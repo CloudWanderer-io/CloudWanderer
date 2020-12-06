@@ -18,6 +18,27 @@ class AwsUrn():
         self.resource_type = resource_type
         self.resource_id = resource_id
 
+    @classmethod
+    def from_string(cls, urn_string):
+        parts = urn_string.split(':')
+        return cls(
+            account_id=parts[0],
+            region=parts[1],
+            service=parts[2],
+            resource_type=parts[3],
+            resource_id=parts[4]
+        )
+
+    def __repr__(self):
+        return str(
+            f"{self.__class__.__name__}("
+            f"account_id='{self.account_id}', '"
+            f"region='{self.region}', '"
+            f"service='{self.service}', '"
+            f"resource_type='{self.resource_type}', '"
+            f"resource_id='{self.resource_id}')"
+        )
+
     def __str__(self):
         return str(
             f"urn:aws:{self.account_id}:{self.region}:{self.service}:{self.resource_type}:{self.resource_id}"
@@ -63,6 +84,9 @@ class CloudWanderer():
             for resource in resources:
                 yield resource
 
+    def read_resource_of_type(self, service, resource_type):
+        return self.storage_connector.read_resource_of_type(service, resource_type)
+
     @property
     def account_id(self):
         if self._account_id is None:
@@ -75,3 +99,26 @@ class CloudWanderer():
         if self._client_region is None:
             self._client_region = boto3.session.Session().region_name
         return self._client_region
+
+
+class ResourceDict(dict):
+    """A dictionary representation of a resource that cleans out our metadata."""
+
+    def __init__(self, urn, resource):
+        self.urn = urn
+        self.metadata = resource
+        super().__init__(**self._clean_resource)
+
+    @property
+    def _clean_resource(self):
+        return {
+            key: value
+            for key, value in self.metadata.items()
+            if not key.startswith('_')
+        }
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(urn={repr(self.urn)}, resource={self.metadata})"
+
+    def __str__(self):
+        return repr(self)

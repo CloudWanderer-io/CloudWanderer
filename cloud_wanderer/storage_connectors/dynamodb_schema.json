@@ -1,13 +1,28 @@
 {
     "table": {
         "AttributeDefinitions": [{
-            "AttributeName": "_id",
-            "AttributeType": "S"
-        }],
+                "AttributeName": "_id",
+                "AttributeType": "S"
+            },
+            {
+                "AttributeName": "_resourcetypeindex",
+                "AttributeType": "S"
+            }
+        ],
         "BillingMode": "PAY_PER_REQUEST",
         "KeySchema": [{
             "AttributeName": "_id",
             "KeyType": "HASH"
+        }],
+        "GlobalSecondaryIndexes": [{
+            "IndexName": "resourcetype",
+            "Projection": {
+                "ProjectionType": "KEYS_ONLY"
+            },
+            "KeySchema": [{
+                "AttributeName": "_resourcetypeindex",
+                "KeyType": "HASH"
+            }]
         }]
     }
 }

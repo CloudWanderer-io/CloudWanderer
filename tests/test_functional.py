@@ -22,3 +22,6 @@ class TestFunctional(unittest.TestCase):
 
     def test_dump(self):
         pprint(self.wanderer.storage_connector.dump())
+
+    def test_read_resource_of_type(self):
+        print(list(self.wanderer.read_resource_of_type(service='ec2', resource_type='vpc')))
