@@ -34,13 +34,12 @@ def dynamodb_items_to_resources(items):
             resource=item
         )
 
+def json_default(item):
+    if isinstance(item, datetime):
+        return item.isoformat()
 
 def standardise_data_types(resource):
-    result = resource.copy()
-    for k, v in resource.items():
-        if isinstance(v, datetime):
-            result[k] = v.isoformat()
-    return result
+    return json.loads(json.dumps(resource, default=json_default))
 
 
 class DynamoDbConnector(BaseConnector):
@@ -60,8 +59,7 @@ class DynamoDbConnector(BaseConnector):
 
     def write(self, urn, resource):
         logging.debug(f"Writing: {urn} to {self.table_name}")
-        self.dynamodb_table.put_item(
-            Item={
+        item = {
                 **{
                     '_id': primary_key_from_urn(urn),
                     '_urn': str(urn),
@@ -71,23 +69,26 @@ class DynamoDbConnector(BaseConnector):
                     '_account_id_index': f"{gen_shard(urn.account_id)}"
                 },
                 **standardise_data_types(resource.meta.data)
-            }
+        }
+        print(item)
+        self.dynamodb_table.put_item(
+            Item=item
         )
 
     def read_resource(self, urn):
-        result = self.dynamodb_table.query(
-            KeyConditionExpression=Key('_id').eq(primary_key_from_urn(urn))
+        result=self.dynamodb_table.query(
+            KeyConditionExpression = Key('_id').eq(primary_key_from_urn(urn))
         )
         yield from dynamodb_items_to_resources(result['Items'])
 
     def read_resource_of_type(self, service, resource_type):
         for shard_id in range(0, 9):
-            key = gen_shard(gen_resource_type_index(service, resource_type), shard_id)
+            key=gen_shard(gen_resource_type_index(service, resource_type), shard_id)
             logging.debug("Fetching shard %s", key)
-            result = self.dynamodb_table.query(
-                IndexName='resource_type',
-                Select='ALL_PROJECTED_ATTRIBUTES',
-                KeyConditionExpression=Key('_resource_type_index').eq(key)
+            result=self.dynamodb_table.query(
+                IndexName = 'resource_type',
+                Select = 'ALL_PROJECTED_ATTRIBUTES',
+                KeyConditionExpression = Key('_resource_type_index').eq(key)
             )
             yield from dynamodb_items_to_resources(result['Items'])
 

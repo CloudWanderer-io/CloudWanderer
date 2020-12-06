@@ -50,24 +50,21 @@ class AwsUrn():
 
 class CloudWanderer():
 
-    def __init__(self, storage_connector, service_name):
+    def __init__(self, storage_connector):
         self.storage_connector = storage_connector
         self._account_id = None
         self._client_region = None
-        self.resource = boto3.resource(service_name)
 
-    def get_collections(self):
-        return self.resource.meta.resource_model.collections
+    def get_resource_collections(self, boto3_resource):
+        return boto3_resource.meta.resource_model.collections
 
-    def get_resource_model(self, resource_name):
-        return self.resource.meta.resource_model[resource_name]
-
-    def write_resources(self):
-        for resource in self.get_resources():
+    def write_resources(self, service_name):
+        boto3_resource = boto3.resource(service_name)
+        for resource in self.get_resources(boto3_resource):
             self.storage_connector.write(self._get_resource_urn(resource), resource)
 
     def _get_resource_urn(self, resource):
-        id_member_name = resource.meta.resource_model.identifiers[0].member_name
+        id_member_name = resource.meta.resource_model.identifiers[0].name
         resource_id = getattr(resource, id_member_name)
         return AwsUrn(
             account_id=self.account_id,
@@ -77,13 +74,13 @@ class CloudWanderer():
             resource_id=resource_id
         )
 
-    def get_resources(self):
-        for collection in self.get_collections():
-            logging.info(f'--> Fetching {xform_name(collection.name)}')
+    def get_resources(self, boto3_resource):
+
+        for collection in self.get_resource_collections(boto3_resource):
+            logging.info(f'--> Fetching {collection.name}')
             if collection.name in ['images', 'snapshots']:
                 continue
-            resources = getattr(
-                self.resource, xform_name(collection.name)).all()
+            resources = getattr(boto3_resource, collection.name).all()
             for resource in resources:
                 yield resource
 

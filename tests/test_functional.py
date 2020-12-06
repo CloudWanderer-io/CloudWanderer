@@ -13,14 +13,15 @@ class TestFunctional(unittest.TestCase):
     def setUp(self):
         self.wanderer = CloudWanderer(storage_connector=DynamoDbConnector(
             endpoint_url='http://localhost:8000'
-        ), service_name='ec2')
+        ))
 
     def test_write_resources(self):
         self.wanderer.storage_connector.init()
-        self.wanderer.write_resources()
+        self.wanderer.write_resources('iam')
 
     def test_read_all(self):
-        print([x.metadata for x in self.wanderer.storage_connector.read_all()])
+        for x in self.wanderer.storage_connector.read_all():
+            print(x.metadata)
 
     def test_read_resource_of_type(self):
         print(list(self.wanderer.read_resource_of_type(service='ec2', resource_type='vpc')))
