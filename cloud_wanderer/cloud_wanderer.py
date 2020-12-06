@@ -11,7 +11,6 @@ GLOBAL_SERVICE_REGIONAL_RESOURCE = [
 ]
 
 
-
 class AwsUrn():
 
     def __init__(self, account_id, region, service, resource_type, resource_id):
@@ -49,6 +48,7 @@ class AwsUrn():
         return str(
             f"urn:aws:{self.account_id}:{self.region}:{self.service}:{self.resource_type}:{self.resource_id}"
         )
+
 
 class CloudWanderer():
 

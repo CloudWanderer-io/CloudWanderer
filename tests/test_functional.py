@@ -28,7 +28,11 @@ class TestFunctional(unittest.TestCase):
             print(x.metadata)
 
     def test_read_resource_of_type(self):
-        print(list(self.wanderer.read_resource_of_type(service='lambda', resource_type='function')))
+        lambda_functions = self.wanderer.read_resource_of_type(service='lambda', resource_type='function')
+        print([
+            dict(self.wanderer.read_resource(x.urn))
+            for x in lambda_functions
+        ])
 
     def test_read_resource(self):
         vpc = next(self.wanderer.read_resource_of_type(service='ec2', resource_type='vpc'))

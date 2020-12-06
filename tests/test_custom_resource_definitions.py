@@ -1,6 +1,7 @@
 import unittest
-from boto3.resources.collection import CollectionManager
 from cloud_wanderer import CustomResourceDefinitions
+
+
 class TestCustomResourceDefinitions(unittest.TestCase):
 
     def test_default(self):

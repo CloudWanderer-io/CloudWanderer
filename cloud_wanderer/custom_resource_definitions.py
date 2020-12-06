@@ -1,16 +1,9 @@
 import os
 import json
 import pathlib
-from collections import defaultdict
 import botocore
-from boto3.resources.collection import (
-    CollectionFactory,
-    CollectionManager,
-    ResourceCollection
-)
 from boto3.resources.factory import ResourceFactory
 from boto3.utils import ServiceContext
-from botocore.model import ServiceModel
 import boto3
 
 
