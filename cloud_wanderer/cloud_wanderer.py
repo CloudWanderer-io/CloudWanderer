@@ -91,15 +91,19 @@ class CloudWanderer():
         return self.storage_connector.read_resource_of_type(service, resource_type)
 
     def read_resource(self, urn):
-        """Read a specific resource by its urn."""
+        """Return a specific resource by its urn from storage."""
         try:
             return next(self.storage_connector.read_resource(urn))
         except StopIteration:
             return None
 
     def read_resource_from_account(self, account_id):
-        """Return all resources from the provided AWS Account."""
+        """Return all resources in the provided AWS Account from storage."""
         return self.storage_connector.read_resource_from_account(account_id)
+
+    def read_resource_of_type_from_account(self, service, resource_type, account_id):
+        """Return all resources of this type in the provided AWS Account from storage."""
+        return self.storage_connector.read_resource_of_type_from_account(service, resource_type, account_id)
 
     @property
     def account_id(self):

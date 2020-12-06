@@ -56,8 +56,10 @@ class DynamoDbConnector(BaseConnector):
             Item={
                 **{
                     '_id': primary_key_from_urn(urn),
-                    '_resourcetypeindex': f"{gen_shard(gen_resource_type_index(urn.service, urn.resource_type))}",
-                    '_accountid': f"{gen_shard(urn.account_id)}"
+                    '_resource_type': f"{gen_resource_type_index(urn.service, urn.resource_type)}",
+                    '_resource_type_index': f"{gen_shard(gen_resource_type_index(urn.service, urn.resource_type))}",
+                    '_account_id': f"{urn.account_id}",
+                    '_account_id_index': f"{gen_shard(urn.account_id)}"
                 },
                 **self._standardise_data_types(resource.meta.data)
             }
@@ -81,9 +83,9 @@ class DynamoDbConnector(BaseConnector):
             key = gen_shard(gen_resource_type_index(service, resource_type), shard_id)
             logging.debug("Fetching shard %s", key)
             result = self.dynamodb_table.query(
-                IndexName='resourcetype',
+                IndexName='resource_type',
                 Select='ALL_PROJECTED_ATTRIBUTES',
-                KeyConditionExpression=Key('_resourcetypeindex').eq(key)
+                KeyConditionExpression=Key('_resource_type_index').eq(key)
             )
             yield from dynamodb_items_to_resources(result['Items'])
 
@@ -92,14 +94,28 @@ class DynamoDbConnector(BaseConnector):
             key = gen_shard(account_id, shard_id)
             logging.debug("Fetching shard %s", key)
             result = self.dynamodb_table.query(
-                IndexName='accountid',
+                IndexName='account_id',
                 Select='ALL_PROJECTED_ATTRIBUTES',
-                KeyConditionExpression=Key('_accountid').eq(key)
+                KeyConditionExpression=Key('_account_id_index').eq(key)
+            )
+            yield from dynamodb_items_to_resources(result['Items'])
+
+    def read_resource_of_type_from_account(self, service, resource_type, account_id):
+        for shard_id in range(0, 9):
+            key = gen_shard(account_id, shard_id)
+            logging.debug("Fetching shard %s", key)
+            result = self.dynamodb_table.query(
+                IndexName='account_id',
+                Select='ALL_PROJECTED_ATTRIBUTES',
+                KeyConditionExpression=(
+                    Key('_account_id_index').eq(key)
+                    & Key('_resource_type').eq(gen_resource_type_index(service, resource_type))
+                )
             )
             yield from dynamodb_items_to_resources(result['Items'])
 
     def dump(self):
-        return self.dynamodb_table.scan()['Items']
+        return dynamodb_items_to_resources(self.dynamodb_table.scan()['Items'])
 
 
 class DynamoDbTableCreator():

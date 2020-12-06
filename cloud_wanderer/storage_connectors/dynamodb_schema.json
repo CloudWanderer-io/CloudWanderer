@@ -5,11 +5,15 @@
                 "AttributeType": "S"
             },
             {
-                "AttributeName": "_resourcetypeindex",
+                "AttributeName": "_resource_type",
                 "AttributeType": "S"
             },
             {
-                "AttributeName": "_accountid",
+                "AttributeName": "_resource_type_index",
+                "AttributeType": "S"
+            },
+            {
+                "AttributeName": "_account_id_index",
                 "AttributeType": "S"
             }
         ],
@@ -19,24 +23,29 @@
             "KeyType": "HASH"
         }],
         "GlobalSecondaryIndexes": [{
-                "IndexName": "resourcetype",
+                "IndexName": "resource_type",
                 "Projection": {
                     "ProjectionType": "KEYS_ONLY"
                 },
                 "KeySchema": [{
-                    "AttributeName": "_resourcetypeindex",
+                    "AttributeName": "_resource_type_index",
                     "KeyType": "HASH"
                 }]
             },
             {
-                "IndexName": "accountid",
+                "IndexName": "account_id",
                 "Projection": {
                     "ProjectionType": "KEYS_ONLY"
                 },
                 "KeySchema": [{
-                    "AttributeName": "_accountid",
-                    "KeyType": "HASH"
-                }]
+                        "AttributeName": "_account_id_index",
+                        "KeyType": "HASH"
+                    },
+                    {
+                        "AttributeName": "_resource_type",
+                        "KeyType": "RANGE"
+                    }
+                ]
             }
         ]
     }

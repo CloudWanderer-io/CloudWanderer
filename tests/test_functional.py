@@ -1,5 +1,4 @@
 import unittest
-from pprint import pprint
 import logging
 from cloud_wanderer import CloudWanderer
 from cloud_wanderer.storage_connectors import DynamoDbConnector
@@ -21,15 +20,20 @@ class TestFunctional(unittest.TestCase):
         self.wanderer.write_resources()
 
     def test_dump(self):
-        pprint(self.wanderer.storage_connector.dump())
+        print([x.metadata for x in self.wanderer.storage_connector.dump()])
 
     def test_read_resource_of_type(self):
         print(list(self.wanderer.read_resource_of_type(service='ec2', resource_type='vpc')))
 
     def test_read_resource(self):
-        vpc = list(self.wanderer.read_resource_of_type(service='ec2', resource_type='vpc'))[0]
+        vpc = next(self.wanderer.read_resource_of_type(service='ec2', resource_type='vpc'))
         print(self.wanderer.read_resource(urn=vpc.urn))
 
     def test_read_resource_from_account(self):
-        vpc = list(self.wanderer.read_resource_of_type(service='ec2', resource_type='vpc'))[0]
+        vpc = next(self.wanderer.read_resource_of_type(service='ec2', resource_type='vpc'))
         print([str(x.urn) for x in self.wanderer.read_resource_from_account(vpc.urn.account_id)])
+
+    def test_read_resource_of_type_from_account(self):
+        vpc = list(self.wanderer.read_resource_of_type(service='ec2', resource_type='vpc'))[0]
+        print([str(x.urn) for x in self.wanderer.read_resource_of_type_from_account(
+            service='ec2', resource_type='vpc', account_id=vpc.urn.account_id)])

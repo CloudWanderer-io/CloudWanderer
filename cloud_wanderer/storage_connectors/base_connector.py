@@ -22,3 +22,7 @@ class BaseConnector(ABC):
     @abstractmethod
     def read_resource_from_account(self, account_id):
         """Return all resources from this AWS account."""
+
+    @abstractmethod
+    def read_resource_of_type_from_account(self, service, resource_type, account_id):
+        """Return all resources of this type from this AWS account."""
