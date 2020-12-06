@@ -35,6 +35,14 @@ def dynamodb_items_to_resources(items):
         )
 
 
+def standardise_data_types(resource):
+    result = resource.copy()
+    for k, v in resource.items():
+        if isinstance(v, datetime):
+            result[k] = v.isoformat()
+    return result
+
+
 class DynamoDbConnector(BaseConnector):
 
     def __init__(self, table_name='cloud_wanderer', endpoint_url=None):
@@ -56,21 +64,15 @@ class DynamoDbConnector(BaseConnector):
             Item={
                 **{
                     '_id': primary_key_from_urn(urn),
+                    '_urn': str(urn),
                     '_resource_type': f"{gen_resource_type_index(urn.service, urn.resource_type)}",
                     '_resource_type_index': f"{gen_shard(gen_resource_type_index(urn.service, urn.resource_type))}",
                     '_account_id': f"{urn.account_id}",
                     '_account_id_index': f"{gen_shard(urn.account_id)}"
                 },
-                **self._standardise_data_types(resource.meta.data)
+                **standardise_data_types(resource.meta.data)
             }
         )
-
-    def _standardise_data_types(self, resource):
-        result = resource.copy()
-        for k, v in resource.items():
-            if isinstance(v, datetime):
-                result[k] = v.isoformat()
-        return result
 
     def read_resource(self, urn):
         result = self.dynamodb_table.query(
@@ -89,7 +91,7 @@ class DynamoDbConnector(BaseConnector):
             )
             yield from dynamodb_items_to_resources(result['Items'])
 
-    def read_resource_from_account(self, account_id):
+    def read_all_resources_in_account(self, account_id):
         for shard_id in range(0, 9):
             key = gen_shard(account_id, shard_id)
             logging.debug("Fetching shard %s", key)
@@ -100,7 +102,7 @@ class DynamoDbConnector(BaseConnector):
             )
             yield from dynamodb_items_to_resources(result['Items'])
 
-    def read_resource_of_type_from_account(self, service, resource_type, account_id):
+    def read_resource_of_type_in_account(self, service, resource_type, account_id):
         for shard_id in range(0, 9):
             key = gen_shard(account_id, shard_id)
             logging.debug("Fetching shard %s", key)
@@ -114,7 +116,7 @@ class DynamoDbConnector(BaseConnector):
             )
             yield from dynamodb_items_to_resources(result['Items'])
 
-    def dump(self):
+    def read_all(self):
         return dynamodb_items_to_resources(self.dynamodb_table.scan()['Items'])
 
 

@@ -19,8 +19,8 @@ class TestFunctional(unittest.TestCase):
         self.wanderer.storage_connector.init()
         self.wanderer.write_resources()
 
-    def test_dump(self):
-        print([x.metadata for x in self.wanderer.storage_connector.dump()])
+    def test_read_all(self):
+        print([x.metadata for x in self.wanderer.storage_connector.read_all()])
 
     def test_read_resource_of_type(self):
         print(list(self.wanderer.read_resource_of_type(service='ec2', resource_type='vpc')))
@@ -29,11 +29,11 @@ class TestFunctional(unittest.TestCase):
         vpc = next(self.wanderer.read_resource_of_type(service='ec2', resource_type='vpc'))
         print(self.wanderer.read_resource(urn=vpc.urn))
 
-    def test_read_resource_from_account(self):
+    def test_read_all_resources_in_account(self):
         vpc = next(self.wanderer.read_resource_of_type(service='ec2', resource_type='vpc'))
-        print([str(x.urn) for x in self.wanderer.read_resource_from_account(vpc.urn.account_id)])
+        print([str(x.urn) for x in self.wanderer.read_all_resources_in_account(vpc.urn.account_id)])
 
-    def test_read_resource_of_type_from_account(self):
+    def test_read_resource_of_type_in_account(self):
         vpc = list(self.wanderer.read_resource_of_type(service='ec2', resource_type='vpc'))[0]
-        print([str(x.urn) for x in self.wanderer.read_resource_of_type_from_account(
+        print([str(x.urn) for x in self.wanderer.read_resource_of_type_in_account(
             service='ec2', resource_type='vpc', account_id=vpc.urn.account_id)])

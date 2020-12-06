@@ -97,13 +97,13 @@ class CloudWanderer():
         except StopIteration:
             return None
 
-    def read_resource_from_account(self, account_id):
+    def read_all_resources_in_account(self, account_id):
         """Return all resources in the provided AWS Account from storage."""
-        return self.storage_connector.read_resource_from_account(account_id)
+        return self.storage_connector.read_all_resources_in_account(account_id)
 
-    def read_resource_of_type_from_account(self, service, resource_type, account_id):
+    def read_resource_of_type_in_account(self, service, resource_type, account_id):
         """Return all resources of this type in the provided AWS Account from storage."""
-        return self.storage_connector.read_resource_of_type_from_account(service, resource_type, account_id)
+        return self.storage_connector.read_resource_of_type_in_account(service, resource_type, account_id)
 
     @property
     def account_id(self):

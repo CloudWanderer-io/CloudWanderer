@@ -8,7 +8,7 @@ class BaseConnector(ABC):
         """Persist a single resource to storage."""
 
     @abstractmethod
-    def dump(self):
+    def read_all(self):
         """Return all records from storage."""
 
     @abstractmethod
@@ -20,9 +20,9 @@ class BaseConnector(ABC):
         """Return all resources of this type from storage."""
 
     @abstractmethod
-    def read_resource_from_account(self, account_id):
+    def read_all_resources_in_account(self, account_id):
         """Return all resources from this AWS account."""
 
     @abstractmethod
-    def read_resource_of_type_from_account(self, service, resource_type, account_id):
+    def read_resource_of_type_in_account(self, service, resource_type, account_id):
         """Return all resources of this type from this AWS account."""
