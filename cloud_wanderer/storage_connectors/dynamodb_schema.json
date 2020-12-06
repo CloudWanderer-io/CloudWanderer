@@ -7,6 +7,10 @@
             {
                 "AttributeName": "_resourcetypeindex",
                 "AttributeType": "S"
+            },
+            {
+                "AttributeName": "_accountid",
+                "AttributeType": "S"
             }
         ],
         "BillingMode": "PAY_PER_REQUEST",
@@ -15,14 +19,25 @@
             "KeyType": "HASH"
         }],
         "GlobalSecondaryIndexes": [{
-            "IndexName": "resourcetype",
-            "Projection": {
-                "ProjectionType": "KEYS_ONLY"
+                "IndexName": "resourcetype",
+                "Projection": {
+                    "ProjectionType": "KEYS_ONLY"
+                },
+                "KeySchema": [{
+                    "AttributeName": "_resourcetypeindex",
+                    "KeyType": "HASH"
+                }]
             },
-            "KeySchema": [{
-                "AttributeName": "_resourcetypeindex",
-                "KeyType": "HASH"
-            }]
-        }]
+            {
+                "IndexName": "accountid",
+                "Projection": {
+                    "ProjectionType": "KEYS_ONLY"
+                },
+                "KeySchema": [{
+                    "AttributeName": "_accountid",
+                    "KeyType": "HASH"
+                }]
+            }
+        ]
     }
 }

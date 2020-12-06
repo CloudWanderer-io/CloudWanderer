@@ -1,6 +1,7 @@
 import unittest
 from cloud_wanderer import AwsUrn
 
+
 class TestAwsUrn(unittest.TestCase):
 
     def test_from_string(self):

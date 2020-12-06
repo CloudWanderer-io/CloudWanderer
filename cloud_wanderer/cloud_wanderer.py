@@ -97,6 +97,10 @@ class CloudWanderer():
         except StopIteration:
             return None
 
+    def read_resource_from_account(self, account_id):
+        """Return all resources from the provided AWS Account."""
+        return self.storage_connector.read_resource_from_account(account_id)
+
     @property
     def account_id(self):
         if self._account_id is None:
