@@ -66,6 +66,8 @@ class CloudWanderer():
     def _get_resource_urn(self, resource):
         id_member_name = resource.meta.resource_model.identifiers[0].name
         resource_id = getattr(resource, id_member_name)
+        if resource_id.startswith('arn:'):
+            resource_id = ''.join(resource_id.split(':')[5:])
         return AwsUrn(
             account_id=self.account_id,
             region=self.client_region,
