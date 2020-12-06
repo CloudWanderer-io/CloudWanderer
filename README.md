@@ -1,4 +1,4 @@
-# cloud-wanderer
+# CloudWanderer
 A Python package which wanders across your AWS account and records your resources in DynamoDB
 
 # Running
