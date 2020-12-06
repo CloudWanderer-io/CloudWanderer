@@ -1,0 +1,24 @@
+{
+    "service": {
+        "hasMany": {
+            "Functions": {
+                "request": { "operation": "ListFunctions" },
+                "resource": {
+                    "type": "Function",
+                    "identifiers": [{
+                        "target": "FunctionName",
+                        "source": "response",
+                        "path": "Functions[].FunctionName"
+                    }],
+                    "path": "Functions[]"
+                }
+            }
+        }
+    },
+    "resources": {
+        "Function": {
+            "identifiers": [{ "name": "FunctionName", "memberName": "FunctionName" }],
+            "shape": "FunctionConfiguration"
+        }
+    }
+}

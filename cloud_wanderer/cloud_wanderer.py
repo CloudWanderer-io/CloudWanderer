@@ -1,13 +1,15 @@
 import logging
 from botocore import xform_name
 from botocore.exceptions import ClientError
+from boto3.exceptions import ResourceNotExistsError
 import boto3
-
+from .custom_resource_definitions import CustomResourceDefinitions
 GLOBAL_SERVICE_REGIONAL_RESOURCE = [
     {
         'resource_name': 's3_bucket'
     }
 ]
+
 
 
 class AwsUrn():
@@ -48,13 +50,13 @@ class AwsUrn():
             f"urn:aws:{self.account_id}:{self.region}:{self.service}:{self.resource_type}:{self.resource_id}"
         )
 
-
 class CloudWanderer():
 
     def __init__(self, storage_connector):
         self.storage_connector = storage_connector
         self._account_id = None
         self._client_region = None
+        self.custom_resource_definitions = CustomResourceDefinitions().load_custom_resource_definitions()
 
     def get_resource_collections(self, boto3_resource):
         return boto3_resource.meta.resource_model.collections
@@ -64,8 +66,12 @@ class CloudWanderer():
             self.write_resources(service_name)
 
     def write_resources(self, service_name):
-        boto3_resource = boto3.resource(service_name)
-        for resource in self.get_resources(boto3_resource):
+        try:
+            boto3_resource = boto3.resource(service_name)
+        except ResourceNotExistsError:
+            boto3_resource = self.custom_resource_definitions[service_name]
+        resources = self.get_resources(boto3_resource)
+        for resource in resources:
             self.storage_connector.write(self._get_resource_urn(resource), resource)
 
     def _get_resource_urn(self, resource):

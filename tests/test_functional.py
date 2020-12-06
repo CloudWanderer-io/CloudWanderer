@@ -19,12 +19,16 @@ class TestFunctional(unittest.TestCase):
         self.wanderer.storage_connector.init()
         self.wanderer.write_all_resources()
 
+    def test_write_custom_resource_definition(self):
+        self.wanderer.storage_connector.init()
+        self.wanderer.write_resources('lambda')
+
     def test_read_all(self):
         for x in self.wanderer.storage_connector.read_all():
             print(x.metadata)
 
     def test_read_resource_of_type(self):
-        print(list(self.wanderer.read_resource_of_type(service='ec2', resource_type='vpc')))
+        print(list(self.wanderer.read_resource_of_type(service='lambda', resource_type='function')))
 
     def test_read_resource(self):
         vpc = next(self.wanderer.read_resource_of_type(service='ec2', resource_type='vpc'))
