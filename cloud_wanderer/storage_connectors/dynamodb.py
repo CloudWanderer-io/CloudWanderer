@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 from random import randrange
 from .base_connector import BaseConnector
-from boto3.dynamodb.conditions import Key, Attr
+from boto3.dynamodb.conditions import Key
 from ..cloud_wanderer import ResourceDict, AwsUrn
 
 
@@ -18,8 +18,22 @@ def gen_shard(key, shard_id=None):
     shard_id = shard_id if shard_id is not None else randrange(10)
     return f"{key}#shard{shard_id}"
 
+
+def primary_key_from_urn(urn):
+    return f"resource#{urn}"
+
+
 def urn_from_primary_key(pk):
-    return pk.split('#')[1]
+    return AwsUrn.from_string(pk.split('#')[1])
+
+
+def dynamodb_items_to_resources(items):
+    for item in items:
+        yield ResourceDict(
+            urn=urn_from_primary_key(item['_id']),
+            resource=item
+        )
+
 
 class DynamoDbConnector(BaseConnector):
 
@@ -41,7 +55,7 @@ class DynamoDbConnector(BaseConnector):
         self.dynamodb_table.put_item(
             Item={
                 **{
-                    '_id': f"resource#{urn}",
+                    '_id': primary_key_from_urn(urn),
                     '_resourcetypeindex': f"{gen_shard(gen_resource_type_index(urn.service, urn.resource_type))}"
                 },
                 **self._standardise_data_types(resource.meta.data)
@@ -55,20 +69,22 @@ class DynamoDbConnector(BaseConnector):
                 result[k] = v.isoformat()
         return result
 
+    def read_resource(self, urn):
+        result = self.dynamodb_table.query(
+            KeyConditionExpression=Key('_id').eq(primary_key_from_urn(urn))
+        )
+        yield from dynamodb_items_to_resources(result['Items'])
+
     def read_resource_of_type(self, service, resource_type):
         for shard_id in range(0, 9):
             key = gen_shard(gen_resource_type_index(service, resource_type), shard_id)
             logging.debug("Fetching shard %s", key)
-            items = self.dynamodb_table.query(
+            result = self.dynamodb_table.query(
                 IndexName='resourcetype',
                 Select='ALL_PROJECTED_ATTRIBUTES',
                 KeyConditionExpression=Key('_resourcetypeindex').eq(key)
-            )['Items']
-            for item in items:
-                yield ResourceDict(
-                    urn=AwsUrn.from_string(urn_from_primary_key(item['_id'])),
-                    resource=item
-                )
+            )
+            yield from dynamodb_items_to_resources(result['Items'])
 
     def dump(self):
         return self.dynamodb_table.scan()['Items']
@@ -102,5 +118,4 @@ class DynamoDbTableCreator():
         if not self._schema:
             with open(self.schema_file) as schema_file:
                 self._schema = json.load(schema_file)
-        print(self._schema)
         return self._schema

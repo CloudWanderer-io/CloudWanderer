@@ -22,12 +22,15 @@ class AwsUrn():
     def from_string(cls, urn_string):
         parts = urn_string.split(':')
         return cls(
-            account_id=parts[0],
-            region=parts[1],
-            service=parts[2],
-            resource_type=parts[3],
-            resource_id=parts[4]
+            account_id=parts[2],
+            region=parts[3],
+            service=parts[4],
+            resource_type=parts[5],
+            resource_id=parts[6]
         )
+
+    def __eq__(self, other):
+        return str(self) == str(other)
 
     def __repr__(self):
         return str(
@@ -86,6 +89,13 @@ class CloudWanderer():
 
     def read_resource_of_type(self, service, resource_type):
         return self.storage_connector.read_resource_of_type(service, resource_type)
+
+    def read_resource(self, urn):
+        """Read a specific resource by its urn."""
+        try:
+            return next(self.storage_connector.read_resource(urn))
+        except StopIteration:
+            return None
 
     @property
     def account_id(self):

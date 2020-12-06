@@ -25,3 +25,7 @@ class TestFunctional(unittest.TestCase):
 
     def test_read_resource_of_type(self):
         print(list(self.wanderer.read_resource_of_type(service='ec2', resource_type='vpc')))
+
+    def test_read_resource(self):
+        vpc = list(self.wanderer.read_resource_of_type(service='ec2', resource_type='vpc'))[0]
+        print(self.wanderer.read_resource(urn=vpc.urn))
