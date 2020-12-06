@@ -13,18 +13,18 @@ class BaseTestResourceFactory():
         self.factory = ResourceFactory(self.emitter)
         self.botocore_session = botocore.session.get_session()
 
-    def load(self, service_name, resource_definition=None,
-             service_resource_definitions=None):
+    def load(self, service_name, resource_definitions=None,
+             service_definition=None):
         service_context = ServiceContext(
             service_name=service_name,
-            resource_json_definitions=service_resource_definitions,
+            resource_json_definitions=resource_definitions,
             service_model=self._get_service_model(service_name),
             service_waiter_model=None
         )
 
         return self.factory.load_from_definition(
             resource_name=service_name,
-            single_resource_json_definition=resource_definition,
+            single_resource_json_definition=service_definition,
             service_context=service_context
         )
 
@@ -50,11 +50,10 @@ class CustomResourceDefinitions():
         services = {}
         for service_name in self._list_service_definitions():
             service_definition = self._load_service_definition(service_name)
-            # for resource_name, resource_definition in service_definition['resources'].items():
             services[service_name] = self.factory.load(
                 service_name=service_name,
-                resource_definition=service_definition['service'],
-                service_resource_definitions=service_definition['resources'],
+                service_definition=service_definition['service'],
+                resource_definitions=service_definition['resources'],
             )()
         return services
 
