@@ -64,6 +64,8 @@ class CloudWanderer():
     def write_all_resources(self):
         for service_name in self._get_available_services():
             self.write_resources(service_name)
+        for service_name in self.custom_resource_definitions:
+            self.write_resources(service_name)
 
     def write_resources(self, service_name):
         try:
