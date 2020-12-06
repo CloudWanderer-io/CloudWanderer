@@ -15,9 +15,9 @@ class TestFunctional(unittest.TestCase):
             endpoint_url='http://localhost:8000'
         ))
 
-    def test_write_resources(self):
+    def test_write_all_resources(self):
         self.wanderer.storage_connector.init()
-        self.wanderer.write_resources('iam')
+        self.wanderer.write_all_resources()
 
     def test_read_all(self):
         for x in self.wanderer.storage_connector.read_all():

@@ -1,5 +1,6 @@
 import logging
 from botocore import xform_name
+from botocore.exceptions import ClientError
 import boto3
 
 GLOBAL_SERVICE_REGIONAL_RESOURCE = [
@@ -58,6 +59,10 @@ class CloudWanderer():
     def get_resource_collections(self, boto3_resource):
         return boto3_resource.meta.resource_model.collections
 
+    def write_all_resources(self):
+        for service_name in self._get_available_services():
+            self.write_resources(service_name)
+
     def write_resources(self, service_name):
         boto3_resource = boto3.resource(service_name)
         for resource in self.get_resources(boto3_resource):
@@ -76,15 +81,23 @@ class CloudWanderer():
             resource_id=resource_id
         )
 
-    def get_resources(self, boto3_resource):
+    def _get_available_services(self):
+        return boto3.Session().get_available_resources()
 
+    def get_resources(self, boto3_resource):
         for collection in self.get_resource_collections(boto3_resource):
-            logging.info(f'--> Fetching {collection.name}')
+            logging.info(f'--> Fetching {boto3_resource.meta.service_name} {collection.name}')
             if collection.name in ['images', 'snapshots']:
                 continue
-            resources = getattr(boto3_resource, collection.name).all()
-            for resource in resources:
-                yield resource
+
+            try:
+                for resource in getattr(boto3_resource, collection.name).all():
+                    yield resource
+            except ClientError as ex:
+                if ex.response['Error']['Code'] == 'InvalidAction':
+                    logging.warning(ex.response['Error']['Message'])
+                    continue
+                raise ex
 
     def read_resource_of_type(self, service, resource_type):
         return self.storage_connector.read_resource_of_type(service, resource_type)

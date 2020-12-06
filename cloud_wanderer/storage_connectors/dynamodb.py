@@ -5,6 +5,7 @@ import boto3
 import json
 from datetime import datetime
 from random import randrange
+from decimal import Decimal
 from .base_connector import BaseConnector
 from boto3.dynamodb.conditions import Key
 from ..cloud_wanderer import ResourceDict, AwsUrn
@@ -41,7 +42,8 @@ def json_default(item):
 
 
 def standardise_data_types(resource):
-    return json.loads(json.dumps(resource, default=json_default))
+    result = json.loads(json.dumps(resource, default=json_default), parse_float=Decimal)
+    return result
 
 
 class DynamoDbConnector(BaseConnector):
@@ -70,7 +72,7 @@ class DynamoDbConnector(BaseConnector):
                 '_account_id': f"{urn.account_id}",
                 '_account_id_index': f"{gen_shard(urn.account_id)}"
             },
-            **standardise_data_types(resource.meta.data)
+            **standardise_data_types(resource.meta.data or {})
         }
         self.dynamodb_table.put_item(
             Item=item
