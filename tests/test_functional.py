@@ -1,10 +1,8 @@
-import sys
 import unittest
 from pprint import pprint
 import logging
-
-sys.path.insert(0, '..')
-from cloud_wanderer.cloud_wanderer import Wanderer, DynamoWriter  # noqa
+from cloud_wanderer import CloudWanderer
+from cloud_wanderer.storage_connectors import DynamoDbConnector
 
 
 class TestFunctional(unittest.TestCase):
@@ -14,11 +12,13 @@ class TestFunctional(unittest.TestCase):
         logging.basicConfig(level='debug')
 
     def setUp(self):
-        self.wanderer = Wanderer(writer=DynamoWriter(
+        self.wanderer = CloudWanderer(storage_connector=DynamoDbConnector(
             endpoint_url='http://localhost:8000'
         ), service_name='ec2')
 
-    def test_default(self):
-        self.wanderer.writer.init()
-        pprint(self.wanderer.writer.dump())
+    def test_write_resources(self):
+        self.wanderer.storage_connector.init()
         self.wanderer.write_resources()
+
+    def test_dump(self):
+        pprint(self.wanderer.storage_connector.dump())
