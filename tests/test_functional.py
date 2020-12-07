@@ -1,7 +1,7 @@
 import unittest
 import logging
-from cloud_wanderer import CloudWanderer
-from cloud_wanderer.storage_connectors import DynamoDbConnector
+from cloudwanderer import CloudWanderer
+from cloudwanderer.storage_connectors import DynamoDbConnector
 
 
 class TestFunctional(unittest.TestCase):

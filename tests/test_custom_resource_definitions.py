@@ -1,5 +1,5 @@
 import unittest
-from cloud_wanderer import CustomResourceDefinitions
+from cloudwanderer import CustomResourceDefinitions
 
 
 class TestCustomResourceDefinitions(unittest.TestCase):

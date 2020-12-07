@@ -1,5 +1,5 @@
 import unittest
-from cloud_wanderer import AwsUrn
+from cloudwanderer import AwsUrn
 
 
 class TestAwsUrn(unittest.TestCase):

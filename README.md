@@ -15,8 +15,8 @@ Open up python and import and initialise `CloudWanderer`
 ```
 $ python
 >>> import logging
->>> from cloud_wanderer import CloudWanderer
->>> from cloud_wanderer.storage_connectors import DynamoDbConnector
+>>> from cloudwanderer import CloudWanderer
+>>> from cloudwanderer.storage_connectors import DynamoDbConnector
 >>> wanderer = CloudWanderer(storage_connector=DynamoDbConnector(
 ...     endpoint_url='http://localhost:8000'
 ... ))
