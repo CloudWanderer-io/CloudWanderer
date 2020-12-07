@@ -1,3 +1,4 @@
+"""Classes for the CloudWanderer DynamoDB Storage Connector."""
 import logging
 import os
 import pathlib
@@ -12,23 +13,28 @@ from ..cloud_wanderer import ResourceDict, AwsUrn
 
 
 def gen_resource_type_index(service, resource_type):
+    """Generate a primary key for the resource type index."""
     return f"{service}#{resource_type}"
 
 
 def gen_shard(key, shard_id=None):
+    """Append a shard designation to the end of a supplied key."""
     shard_id = shard_id if shard_id is not None else randrange(10)
     return f"{key}#shard{shard_id}"
 
 
 def primary_key_from_urn(urn):
+    """Create a DynamoDB Primary Key from a resource's URN."""
     return f"resource#{urn}"
 
 
 def urn_from_primary_key(pk):
+    """Create an AwsUrn from a resource's primary key."""
     return AwsUrn.from_string(pk.split('#')[1])
 
 
 def dynamodb_items_to_resources(items):
+    """Convert a resource item retrieved from DynamoDB to a ResourceDict."""
     for item in items:
         yield ResourceDict(
             urn=urn_from_primary_key(item['_id']),
@@ -37,24 +43,34 @@ def dynamodb_items_to_resources(items):
 
 
 def json_default(item):
+    """A JSON object type converter that handles datetime objects."""
     if isinstance(item, datetime):
         return item.isoformat()
 
 
 def standardise_data_types(resource):
+    """Returns a dictionary normalised to datatypes acceptable for DynamoDB."""
     result = json.loads(json.dumps(resource, default=json_default), parse_float=Decimal)
     return result
 
 
 class DynamoDbConnector(BaseConnector):
+    """CloudWanderer Storage Connector for DynamoDB.
+
+    Arguments:
+        table_name (str): The name of the table to store resources in.
+        endpoint_url (str): optional override endpoint url for DynamoDB.
+    """
 
     def __init__(self, table_name='cloud_wanderer', endpoint_url=None):
+        """Initialise the DynamoDbConnector."""
         self.endpoint_url = endpoint_url
         self.table_name = table_name
         self.dynamodb = boto3.resource('dynamodb', endpoint_url=endpoint_url)
         self.dynamodb_table = self.dynamodb.Table(table_name)
 
     def init(self):
+        """Create the DynamoDB Database."""
         table_creator = DynamoDbTableCreator(
             boto3_dynamodb_resource=self.dynamodb,
             table_name=self.table_name
@@ -62,6 +78,12 @@ class DynamoDbConnector(BaseConnector):
         table_creator.create_table()
 
     def write(self, urn, resource):
+        """Write the specified resource to DynamoDB.
+
+        Arguments:
+            urn (cloudwanderer.AwsUrn): The URN of the resource.
+            resource: The boto3 Resource object representing the resource.
+        """
         logging.debug(f"Writing: {urn} to {self.table_name}")
         item = {
             **{
@@ -79,12 +101,23 @@ class DynamoDbConnector(BaseConnector):
         )
 
     def read_resource(self, urn):
+        """Return the resource with the specified :class:`cloudwanderer.AwsUrn`.
+
+        Arguments:
+            urn (cloudwanderer.AwsUrn): The AWS URN of the resource to return
+        """
         result = self.dynamodb_table.query(
             KeyConditionExpression=Key('_id').eq(primary_key_from_urn(urn))
         )
         yield from dynamodb_items_to_resources(result['Items'])
 
     def read_resource_of_type(self, service, resource_type):
+        """Return all resources of type.
+
+        Args:
+            service (str): Service name (e.g. ec2)
+            resource_type (str): Resource Type (e.g. instance)
+        """
         for shard_id in range(0, 9):
             key = gen_shard(gen_resource_type_index(service, resource_type), shard_id)
             logging.debug("Fetching shard %s", key)
@@ -96,6 +129,11 @@ class DynamoDbConnector(BaseConnector):
             yield from dynamodb_items_to_resources(result['Items'])
 
     def read_all_resources_in_account(self, account_id):
+        """Return all resources in account.
+
+        Args:
+            account_id (str): AWS Account ID
+        """
         for shard_id in range(0, 9):
             key = gen_shard(account_id, shard_id)
             logging.debug("Fetching shard %s", key)
@@ -107,6 +145,13 @@ class DynamoDbConnector(BaseConnector):
             yield from dynamodb_items_to_resources(result['Items'])
 
     def read_resource_of_type_in_account(self, service, resource_type, account_id):
+        """Return all resources of the specified type in the specified AWS account.
+
+        Args:
+            service (str): Service name, e.g. ``ec2``
+            resource_type (str): Resouce type, e.g. ``instance``
+            account_id (str): AWS Account ID
+        """
         for shard_id in range(0, 9):
             key = gen_shard(account_id, shard_id)
             logging.debug("Fetching shard %s", key)
@@ -121,22 +166,35 @@ class DynamoDbConnector(BaseConnector):
             yield from dynamodb_items_to_resources(result['Items'])
 
     def read_all(self):
+        """Return all DynamoDB table records (not just resources)."""
         return dynamodb_items_to_resources(self.dynamodb_table.scan()['Items'])
 
 
 class DynamoDbTableCreator():
+    """DynamoDB Table Creator class.
+
+    Arguments:
+        boto3_dynamodb_resource:
+            The dynamodb resource object from boto3.
+        table_name (str):
+            The name of the table to create.
+
+    """
+
     schema_file = os.path.join(
         pathlib.Path(__file__).parent.absolute(),
         'dynamodb_schema.json'
     )
 
     def __init__(self, boto3_dynamodb_resource, table_name):
+        """Initialise the DynamoDB Table Creator."""
         self.dynamodb = boto3_dynamodb_resource
         self.dynamodb_table = self.dynamodb.Table(table_name)
         self.table_name = table_name
         self._schema = None
 
     def create_table(self):
+        """Create the DynamoDB table."""
         try:
             self.dynamodb.create_table(**{
                 **self.schema['table'],
@@ -149,6 +207,7 @@ class DynamoDbTableCreator():
 
     @property
     def schema(self):
+        """Return the DynamoDB Schema."""
         if not self._schema:
             with open(self.schema_file) as schema_file:
                 self._schema = json.load(schema_file)

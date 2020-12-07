@@ -1,3 +1,4 @@
+"""I wandered lonely through the cloud."""
 from . import storage_connectors
 from .cloud_wanderer import CloudWanderer, AwsUrn
 from .custom_resource_definitions import CustomResourceDefinitions

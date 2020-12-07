@@ -1,0 +1,258 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>CloudWanderer &mdash; CloudWanderer 0.1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="CloudWanderer Reference" href="class_reference.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="#" class="icon icon-home" alt="Documentation Home"> CloudWanderer
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="class_reference.html">CloudWanderer Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="storage_connector_reference.html">Storage Connector Reference</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">CloudWanderer</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="#" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>CloudWanderer</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="cloudwanderer">
+<h1>CloudWanderer<a class="headerlink" href="#cloudwanderer" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="class_reference.html">CloudWanderer Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="storage_connector_reference.html">Storage Connector Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="storage_connector_reference.html#dynamodb-connector">DynamoDB Connector</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<img alt="https://user-images.githubusercontent.com/803607/101322139-7111b800-385e-11eb-9277-c6bf3a580987.png" src="https://user-images.githubusercontent.com/803607/101322139-7111b800-385e-11eb-9277-c6bf3a580987.png" />
+<p>A Python package which wanders across your AWS account and records your resources in DynamoDB</p>
+<div class="section" id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">cloudwanderer</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h2>
+<p>Start a local dynamodb
+.. code-block</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$  docker run -p 8000:8000 amazon/dynamodb-local
+</pre></div>
+</div>
+<p>Open up python and import and initialise <cite>CloudWanderer</cite></p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">logging</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">cloudwanderer</span> <span class="kn">import</span> <span class="n">CloudWanderer</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">cloudwanderer.storage_connectors</span> <span class="kn">import</span> <span class="n">DynamoDbConnector</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">wanderer</span> <span class="o">=</span> <span class="n">CloudWanderer</span><span class="p">(</span><span class="n">storage_connector</span><span class="o">=</span><span class="n">DynamoDbConnector</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">endpoint_url</span><span class="o">=</span><span class="s1">&#39;http://localhost:8000&#39;</span>
+<span class="gp">... </span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="s1">&#39;INFO&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">wanderer</span><span class="o">.</span><span class="n">storage_connector</span><span class="o">.</span><span class="n">init</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Query all the resources from your current account region and save them to your local dynamodb.</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">wanderer</span><span class="o">.</span><span class="n">write_all_resources</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Get a list of lambda functions back.</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">lambda_functions</span> <span class="o">=</span> <span class="n">wanderer</span><span class="o">.</span><span class="n">read_resource_of_type</span><span class="p">(</span><span class="n">service</span><span class="o">=</span><span class="s1">&#39;lambda&#39;</span><span class="p">,</span> <span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;function&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">([</span><span class="nb">dict</span><span class="p">(</span><span class="n">wanderer</span><span class="o">.</span><span class="n">read_resource</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">urn</span><span class="p">))</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">lambda_functions</span><span class="p">])</span>
+<span class="go">[{&#39;FunctionArn&#39;: &#39;arn:aws:lambda:eu-west-2:111111111111:function:awesomeproject-201904202316-HostedUICustomResource-1PLE213GNV66A&#39;, &#39;MemorySize&#39;: Decimal(&#39;128&#39;), &#39;Description&#39;: &#39;&#39;, &#39;TracingConfig&#39;: {&#39;Mode&#39;: &#39;PassThrough&#39;}, &#39;Timeout&#39;: Decimal(&#39;300&#39;), &#39;Handler&#39;: &#39;index.handler&#39;, &#39;CodeSha256&#39;: &#39;fBLFD+AwFo/EQK5rdUweTW8jdBg6cw9LORbpVYqlXXQ=&#39;, &#39;RevisionId&#39;: &#39;7fd173f0-0fc0-4df3-a4c3-5464431da769&#39;, &#39;Role&#39;: &#39;arn:aws:iam::111111111111:role/cognitod72684bb_userpoolclient_lambda_role-dev&#39;, &#39;LastModified&#39;: &#39;2019-04-20T22:32:07.805+0000&#39;, &#39;FunctionName&#39;: &#39;awesomeproject-201904202316-HostedUICustomResource-1PLE213GNV66A&#39;, &#39;Runtime&#39;: &#39;nodejs8.10&#39;, &#39;CodeSize&#39;: Decimal(&#39;1742&#39;), &#39;Version&#39;: &#39;$LATEST&#39;, &#39;PackageType&#39;: &#39;Zip&#39;}]</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="class_reference.html" class="btn btn-neutral float-right" title="CloudWanderer Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, Sam Martin
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

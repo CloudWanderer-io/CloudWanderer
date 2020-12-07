@@ -1,3 +1,4 @@
+"""Classes for handling custom boto3 Resources."""
 import os
 import json
 import pathlib
@@ -7,14 +8,17 @@ from boto3.utils import ServiceContext
 import boto3
 
 
-class BaseTestResourceFactory():
+class ResourceFactory():
+    """Factory class for generating custom boto3 Resource objects."""
+
     def __init__(self):
+        """Initialise the ResourceFactory."""
         self.emitter = boto3.Session().events
         self.factory = ResourceFactory(self.emitter)
         self.botocore_session = botocore.session.get_session()
 
-    def load(self, service_name, resource_definitions=None,
-             service_definition=None):
+    def load(self, service_name, resource_definitions=None, service_definition=None):
+        """Load the specified resource definition dictionaries into a Resource object."""
         service_context = ServiceContext(
             service_name=service_name,
             resource_json_definitions=resource_definitions,
@@ -38,15 +42,21 @@ class BaseTestResourceFactory():
 
 
 class CustomResourceDefinitions():
+    """Custom Resource Definitions.
+
+    Allows us to specify resource definitions where they are not supplied by boto3.
+    """
 
     def __init__(self):
+        """Initialise the CustomResourceDefinition."""
         self.service_definitions_path = os.path.join(
             pathlib.Path(__file__).parent.absolute(),
             'service_definitions'
         )
-        self.factory = BaseTestResourceFactory()
+        self.factory = ResourceFactory()
 
     def load_custom_resource_definitions(self):
+        """Return our custom resource definitions."""
         services = {}
         for service_name in self._list_service_definitions():
             service_definition = self._load_service_definition(service_name)

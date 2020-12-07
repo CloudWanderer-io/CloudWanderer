@@ -1,7 +1,9 @@
+"""Module containing abstract classes for CloudWanderer storage connectors."""
 from abc import ABC, abstractmethod
 
 
 class BaseConnector(ABC):
+    """Abstract class for specification of the CloudWanderer storage connector interface."""
 
     @abstractmethod
     def write(self, urn, resource):
