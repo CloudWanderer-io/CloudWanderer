@@ -1,4 +1,7 @@
 # CloudWanderer
+
+![cloudwanderer](https://user-images.githubusercontent.com/803607/101322139-7111b800-385e-11eb-9277-c6bf3a580987.png)
+
 A Python package which wanders across your AWS account and records your resources in DynamoDB
 
 # Running
