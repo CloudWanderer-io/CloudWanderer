@@ -13,7 +13,6 @@ GLOBAL_SERVICE_REGIONAL_RESOURCE = [
 ]
 
 
-<<<<<<< HEAD
 class CloudWandererBoto3Interface():
     """Class of methods which expect boto3 resources and services rather than resource names and service names."""
 
@@ -26,93 +25,13 @@ class CloudWandererBoto3Interface():
 
     def get_all_resource_services(self):
         """Return all the boto3 service Resource objects that are available, both built-in and custom."""
-=======
-class AwsUrn():
-    """A dataclass for building and querying AWS URNs.
-
-    Args:
-        account_id (str): AWS Account ID (e.g. ``111111111111``).
-        region (str): AWS region (e.g. ``eu-west-1``).
-        service (str): AWS Service (e.g. ``ec2``).
-        resource_type (str): AWS Resource Type (e.g. ``instance``)
-        resource_id (str): AWS Resource Id (e.g. ``i-11111111``)
-    """
-
-    def __init__(self, account_id, region, service, resource_type, resource_id):
-        """Initialise an AWS Urn."""
-        self.account_id = account_id
-        self.region = region
-        self.service = service
-        self.resource_type = resource_type
-        self.resource_id = resource_id
-
-    @classmethod
-    def from_string(cls, urn_string):
-        """Create an AwsUrn Object from an AwsUrn string."""
-        parts = urn_string.split(':')
-        return cls(
-            account_id=parts[2],
-            region=parts[3],
-            service=parts[4],
-            resource_type=parts[5],
-            resource_id=parts[6]
-        )
-
-    def __eq__(self, other):
-        """Allow comparison of one AwsUrn to another."""
-        return str(self) == str(other)
-
-    def __repr__(self):
-        """Return a class representation of the AwsUrn."""
-        return str(
-            f"{self.__class__.__name__}("
-            f"account_id='{self.account_id}', '"
-            f"region='{self.region}', '"
-            f"service='{self.service}', '"
-            f"resource_type='{self.resource_type}', '"
-            f"resource_id='{self.resource_id}')"
-        )
-
-    def __str__(self):
-        """Return a string representation of the AwsUrn."""
-        return str(
-            f"urn:aws:{self.account_id}:{self.region}:{self.service}:{self.resource_type}:{self.resource_id}"
-        )
-
-
-class CloudWanderer():
-    """CloudWanderer.
-
-    Args:
-        storage_connector: A CloudWanderer storage connector object.
-    """
-
-    def __init__(self, storage_connector):
-        """Initialise CloudWanderer."""
-        self.storage_connector = storage_connector
-        self._account_id = None
-        self._client_region = None
-        self.custom_resource_definitions = CustomResourceDefinitions().load_custom_resource_definitions()
-
-    def get_resource_collections(self, boto3_resource):
-        """Return all resource types in this service."""
-        return boto3_resource.meta.resource_model.collections
-
-    def write_all_resources(self):
-        """Write all AWS resources in this account from all services to storage."""
->>>>>>> fa3d837bc76112b4ed40061d312bf13189fc9ad2
         for service_name in self._get_available_services():
             yield self.get_boto3_resource_service(service_name)
         for service_name in self.custom_resource_definitions:
             yield self.get_custom_resource_service(service_name)
 
-<<<<<<< HEAD
     def get_boto3_resource_service(self, service_name):
         """Return the boto3 service Resource object matching this service_name."""
-=======
-    def write_resources(self, service_name):
-        """Write all AWS resources in this account in this service to storage."""
->>>>>>> fa3d837bc76112b4ed40061d312bf13189fc9ad2
         try:
             return boto3.resource(service_name)
         except ResourceNotExistsError:
@@ -240,11 +159,7 @@ class CloudWanderer():
 
     @property
     def account_id(self):
-<<<<<<< HEAD
         """Return the AWS Account ID our boto3 client is authenticated against."""
-=======
-        """The AWS Account ID our boto3 client is authenticated against."""
->>>>>>> fa3d837bc76112b4ed40061d312bf13189fc9ad2
         if self._account_id is None:
             sts = boto3.client('sts')
             self._account_id = sts.get_caller_identity()['Account']
@@ -252,11 +167,7 @@ class CloudWanderer():
 
     @property
     def client_region(self):
-<<<<<<< HEAD
         """Return the region our boto3 client is authenticated against."""
-=======
-        """The region our boto3 client is authenticated against."""
->>>>>>> fa3d837bc76112b4ed40061d312bf13189fc9ad2
         if self._client_region is None:
             self._client_region = boto3.session.Session().region_name
         return self._client_region
@@ -278,12 +189,8 @@ class CloudWanderer():
 class ResourceDict(dict):
     """A dictionary representation of a resource that prevents any storage metadata polluting the resource dictionary.
 
-<<<<<<< HEAD
     Use ``dict(my_resource_dict)`` to convert this object into a dictionary that
     contains *only* the resource's metadata.
-=======
-    Use ``dict(my_resource_dict)`` to convert this object into a dictionary that contains *only* the resource's metadata.
->>>>>>> fa3d837bc76112b4ed40061d312bf13189fc9ad2
 
     Attributes:
         urn (cloudwanderer.AwsUrn): The AWS URN of the resource.

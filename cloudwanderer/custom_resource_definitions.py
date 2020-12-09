@@ -47,29 +47,17 @@ class ResourceFactory():
 
 class CustomResourceDefinitions():
     """Custom Resource Definitions.
-<<<<<<< HEAD
 
     Allows us to specify resource definitions where they are not supplied by boto3.
     """
 
     def __init__(self, definition_path='resource_definitions'):
-=======
-
-    Allows us to specify resource definitions where they are not supplied by boto3.
-    """
-
-    def __init__(self):
->>>>>>> fa3d837bc76112b4ed40061d312bf13189fc9ad2
         """Initialise the CustomResourceDefinition."""
         self.service_definitions_path = os.path.join(
             pathlib.Path(__file__).parent.absolute(),
             definition_path
         )
-<<<<<<< HEAD
         self.factory = CustomResourceFactory()
-=======
-        self.factory = ResourceFactory()
->>>>>>> fa3d837bc76112b4ed40061d312bf13189fc9ad2
 
     def load_custom_resource_definitions(self):
         """Return our custom resource definitions."""
