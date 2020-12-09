@@ -8,10 +8,7 @@ version: 2
 # Build documentation in the docs/ directory with Sphinx
 sphinx:
   configuration: doc_source/conf.py
-<<<<<<< HEAD
-=======
 
 python:
   install:
     - requirements: doc_source/requirements.txt
->>>>>>> fa3d837bc76112b4ed40061d312bf13189fc9ad2
