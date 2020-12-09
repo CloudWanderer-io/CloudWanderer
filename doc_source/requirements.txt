@@ -1,2 +1,2 @@
-sphinxarg
+sphinx-argparse
 boto3
