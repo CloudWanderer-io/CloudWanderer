@@ -17,11 +17,11 @@ class TestFunctional(unittest.TestCase):
 
     def test_write_all_resources(self):
         self.wanderer.storage_connector.init()
-        self.wanderer.write_all_resources()
+        self.wanderer.write_all_resources(exclude_resources=['images', 'snapshots'])
 
     def test_write_custom_resource_definition(self):
         self.wanderer.storage_connector.init()
-        self.wanderer.write_resources('lambda')
+        self.wanderer.write_resources('lambda', exclude_resources=['images', 'snapshots'])
 
     def test_read_all(self):
         for x in self.wanderer.storage_connector.read_all():

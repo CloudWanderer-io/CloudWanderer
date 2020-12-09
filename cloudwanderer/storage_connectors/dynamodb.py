@@ -9,7 +9,8 @@ from random import randrange
 from decimal import Decimal
 from .base_connector import BaseConnector
 from boto3.dynamodb.conditions import Key
-from ..cloud_wanderer import ResourceDict, AwsUrn
+from ..cloud_wanderer import ResourceDict
+from ..aws_urn import AwsUrn
 
 
 def gen_resource_type_index(service, resource_type):
@@ -43,13 +44,13 @@ def dynamodb_items_to_resources(items):
 
 
 def json_default(item):
-    """A JSON object type converter that handles datetime objects."""
+    """JSON object type converter that handles datetime objects."""
     if isinstance(item, datetime):
         return item.isoformat()
 
 
 def standardise_data_types(resource):
-    """Returns a dictionary normalised to datatypes acceptable for DynamoDB."""
+    """Return a dictionary normalised to datatypes acceptable for DynamoDB."""
     result = json.loads(json.dumps(resource, default=json_default), parse_float=Decimal)
     return result
 
