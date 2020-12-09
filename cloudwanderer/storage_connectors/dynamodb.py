@@ -44,13 +44,21 @@ def dynamodb_items_to_resources(items):
 
 
 def json_default(item):
+<<<<<<< HEAD
     """JSON object type converter that handles datetime objects."""
+=======
+    """A JSON object type converter that handles datetime objects."""
+>>>>>>> fa3d837bc76112b4ed40061d312bf13189fc9ad2
     if isinstance(item, datetime):
         return item.isoformat()
 
 
 def standardise_data_types(resource):
+<<<<<<< HEAD
     """Return a dictionary normalised to datatypes acceptable for DynamoDB."""
+=======
+    """Returns a dictionary normalised to datatypes acceptable for DynamoDB."""
+>>>>>>> fa3d837bc76112b4ed40061d312bf13189fc9ad2
     result = json.loads(json.dumps(resource, default=json_default), parse_float=Decimal)
     return result
 
