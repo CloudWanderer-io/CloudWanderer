@@ -5,6 +5,7 @@ from botocore.exceptions import ClientError
 from boto3.exceptions import ResourceNotExistsError
 import boto3
 from .custom_resource_definitions import CustomResourceDefinitions
+from .aws_urn import AwsUrn
 GLOBAL_SERVICE_REGIONAL_RESOURCE = [
     {
         'resource_name': 's3_bucket'
@@ -12,57 +13,58 @@ GLOBAL_SERVICE_REGIONAL_RESOURCE = [
 ]
 
 
-class AwsUrn():
-    """A dataclass for building and querying AWS URNs.
+class CloudWandererBoto3Interface():
+    """Class of methods which expect boto3 resources and services rather than resource names and service names."""
 
-    Args:
-        account_id (str): AWS Account ID (e.g. ``111111111111``).
-        region (str): AWS region (e.g. ``eu-west-1``).
-        service (str): AWS Service (e.g. ``ec2``).
-        resource_type (str): AWS Resource Type (e.g. ``instance``)
-        resource_id (str): AWS Resource Id (e.g. ``i-11111111``)
-    """
+    def __init__(self):
+        """Class of methods which expect boto3 resources and services rather than resource names and service names."""
+        self.custom_resource_definitions = CustomResourceDefinitions().load_custom_resource_definitions()
 
-    def __init__(self, account_id, region, service, resource_type, resource_id):
-        """Initialise an AWS Urn."""
-        self.account_id = account_id
-        self.region = region
-        self.service = service
-        self.resource_type = resource_type
-        self.resource_id = resource_id
+    def _get_available_services(self):
+        return boto3.Session().get_available_resources()
 
-    @classmethod
-    def from_string(cls, urn_string):
-        """Create an AwsUrn Object from an AwsUrn string."""
-        parts = urn_string.split(':')
-        return cls(
-            account_id=parts[2],
-            region=parts[3],
-            service=parts[4],
-            resource_type=parts[5],
-            resource_id=parts[6]
-        )
+    def get_all_resource_services(self):
+        """Return all the boto3 service Resource objects that are available, both built-in and custom."""
+        for service_name in self._get_available_services():
+            yield self.get_boto3_resource_service(service_name)
+        for service_name in self.custom_resource_definitions:
+            yield self.get_custom_resource_service(service_name)
 
-    def __eq__(self, other):
-        """Allow comparison of one AwsUrn to another."""
-        return str(self) == str(other)
+    def get_boto3_resource_service(self, service_name):
+        """Return the boto3 service Resource object matching this service_name."""
+        try:
+            return boto3.resource(service_name)
+        except ResourceNotExistsError:
+            return None
 
-    def __repr__(self):
-        """Return a class representation of the AwsUrn."""
-        return str(
-            f"{self.__class__.__name__}("
-            f"account_id='{self.account_id}', '"
-            f"region='{self.region}', '"
-            f"service='{self.service}', '"
-            f"resource_type='{self.resource_type}', '"
-            f"resource_id='{self.resource_id}')"
-        )
+    def get_custom_resource_service(self, service_name):
+        """Get the custom resource definition matching this service name."""
+        return self.custom_resource_definitions.get(service_name)
 
-    def __str__(self):
-        """Return a string representation of the AwsUrn."""
-        return str(
-            f"urn:aws:{self.account_id}:{self.region}:{self.service}:{self.resource_type}:{self.resource_id}"
-        )
+    def get_resource_service_by_name(self, service_name):
+        """Return all services matching name, boto3 or custom."""
+        boto3_resource_service = self.get_boto3_resource_service(service_name)
+        if boto3_resource_service:
+            yield boto3_resource_service
+        custom_resource_service = self.get_custom_resource_service(service_name)
+        if custom_resource_service:
+            yield custom_resource_service
+
+    def get_resource_collections(self, boto3_service):
+        """Return all resource types in this service."""
+        return boto3_service.meta.resource_model.collections
+
+    def get_resource_from_collection(self, boto3_service, boto3_resource_collection):
+        """Return all resources of this resource type (collection) from this service."""
+        logging.info(f'--> Fetching {boto3_service.meta.service_name} {boto3_resource_collection.name}')
+        try:
+            for resource in getattr(boto3_service, boto3_resource_collection.name).all():
+                yield resource
+        except ClientError as ex:
+            if ex.response['Error']['Code'] == 'InvalidAction':
+                logging.warning(ex.response['Error']['Message'])
+                return
+            raise ex
 
 
 class CloudWanderer():
@@ -75,56 +77,54 @@ class CloudWanderer():
     def __init__(self, storage_connector):
         """Initialise CloudWanderer."""
         self.storage_connector = storage_connector
+        self.boto3_interface = CloudWandererBoto3Interface()
         self._account_id = None
         self._client_region = None
-        self.custom_resource_definitions = CustomResourceDefinitions().load_custom_resource_definitions()
 
-    def get_resource_collections(self, boto3_resource):
-        """Return all resource types in this service."""
-        return boto3_resource.meta.resource_model.collections
-
-    def write_all_resources(self):
+    def write_all_resources(self, exclude_resources=None):
         """Write all AWS resources in this account from all services to storage."""
-        for service_name in self._get_available_services():
-            self.write_resources(service_name)
-        for service_name in self.custom_resource_definitions:
-            self.write_resources(service_name)
+        exclude_resources = exclude_resources or []
+        for boto3_service in self.boto3_interface.get_all_resource_services():
+            for boto3_resource_collection in self.boto3_interface.get_resource_collections(boto3_service):
+                if boto3_resource_collection.name in exclude_resources:
+                    logging.info('Skipping %s as per exclude_resources', boto3_resource_collection.name)
+                    continue
+                resources = self.boto3_interface.get_resource_from_collection(
+                    boto3_service,
+                    boto3_resource_collection
+                )
+                for boto3_resource in resources:
+                    self.storage_connector.write(self._get_resource_urn(boto3_resource), boto3_resource)
 
-    def write_resources(self, service_name):
-        """Write all AWS resources in this account in this service to storage."""
-        try:
-            boto3_resource = boto3.resource(service_name)
-        except ResourceNotExistsError:
-            boto3_resource = self.custom_resource_definitions[service_name]
-        resources = self.get_resources(boto3_resource)
-        for resource in resources:
-            self.storage_connector.write(self._get_resource_urn(resource), resource)
+    def write_resources(self, service_name, exclude_resources=None):
+        """Write all AWS resources in this account in this service to storage.
 
-    def _get_resource_urn(self, resource):
-        id_member_name = resource.meta.resource_model.identifiers[0].name
-        resource_id = getattr(resource, id_member_name)
-        if resource_id.startswith('arn:'):
-            resource_id = ''.join(resource_id.split(':')[5:])
-        return AwsUrn(
-            account_id=self.account_id,
-            region=self.client_region,
-            service=resource.meta.service_name,
-            resource_type=xform_name(resource.meta.resource_model.name),
-            resource_id=resource_id
-        )
+        Arguments:
+            service_name (str): The name of the service to write resources for (e.g. ``'ec2'``)
+            exclude_resources (list): A list of resources to exclude (e.g. `['instances']`)
+        """
+        for boto3_service in self.boto3_interface.get_resource_service_by_name(service_name):
+            for boto3_resource_collection in self.boto3_interface.get_resource_collections(boto3_service):
+                if boto3_resource_collection.name in exclude_resources:
+                    logging.info('Skipping %s as per exclude_resources', boto3_resource_collection.name)
+                    continue
+                resources = self.boto3_interface.get_resource_from_collection(boto3_service, boto3_resource_collection)
+                for boto3_resource in resources:
+                    self.storage_connector.write(self._get_resource_urn(boto3_resource), boto3_resource)
 
-    def _get_available_services(self):
-        return boto3.Session().get_available_resources()
+    def get_resources(self, boto3_service, exclude_resources):
+        """Return all resources for this service from the AWS API.
 
-    def get_resources(self, boto3_resource):
-        """Return all resources for this service from the AWS API."""
-        for collection in self.get_resource_collections(boto3_resource):
-            logging.info(f'--> Fetching {boto3_resource.meta.service_name} {collection.name}')
+        Arguments:
+            boto3_service: The ``boto3.resource()`` service to get the resources of.
+            exclude_resources (list): A list of resources to exclude (e.g. ``['instances']``)
+        """
+        for collection in self.get_resource_collections(boto3_service):
+            logging.info(f'--> Fetching {boto3_service.meta.service_name} {collection.name}')
             if collection.name in ['images', 'snapshots']:
                 continue
-
             try:
-                for resource in getattr(boto3_resource, collection.name).all():
+                for resource in getattr(boto3_service, collection.name).all():
                     yield resource
             except ClientError as ex:
                 if ex.response['Error']['Code'] == 'InvalidAction':
@@ -158,7 +158,7 @@ class CloudWanderer():
 
     @property
     def account_id(self):
-        """The AWS Account ID our boto3 client is authenticated against."""
+        """Return the AWS Account ID our boto3 client is authenticated against."""
         if self._account_id is None:
             sts = boto3.client('sts')
             self._account_id = sts.get_caller_identity()['Account']
@@ -166,16 +166,30 @@ class CloudWanderer():
 
     @property
     def client_region(self):
-        """The region our boto3 client is authenticated against."""
+        """Return the region our boto3 client is authenticated against."""
         if self._client_region is None:
             self._client_region = boto3.session.Session().region_name
         return self._client_region
+
+    def _get_resource_urn(self, resource):
+        id_member_name = resource.meta.resource_model.identifiers[0].name
+        resource_id = getattr(resource, id_member_name)
+        if resource_id.startswith('arn:'):
+            resource_id = ''.join(resource_id.split(':')[5:])
+        return AwsUrn(
+            account_id=self.account_id,
+            region=self.client_region,
+            service=resource.meta.service_name,
+            resource_type=xform_name(resource.meta.resource_model.name),
+            resource_id=resource_id
+        )
 
 
 class ResourceDict(dict):
     """A dictionary representation of a resource that prevents any storage metadata polluting the resource dictionary.
 
-    Use ``dict(my_resource_dict)`` to convert this object into a dictionary that contains *only* the resource's metadata.
+    Use ``dict(my_resource_dict)`` to convert this object into a dictionary that
+    contains *only* the resource's metadata.
 
     Attributes:
         urn (cloudwanderer.AwsUrn): The AWS URN of the resource.

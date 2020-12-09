@@ -8,7 +8,7 @@ from boto3.utils import ServiceContext
 import boto3
 
 
-class ResourceFactory():
+class CustomResourceFactory():
     """Factory class for generating custom boto3 Resource objects."""
 
     def __init__(self):
@@ -47,13 +47,13 @@ class CustomResourceDefinitions():
     Allows us to specify resource definitions where they are not supplied by boto3.
     """
 
-    def __init__(self):
+    def __init__(self, definition_path='resource_definitions'):
         """Initialise the CustomResourceDefinition."""
         self.service_definitions_path = os.path.join(
             pathlib.Path(__file__).parent.absolute(),
-            'service_definitions'
+            definition_path
         )
-        self.factory = ResourceFactory()
+        self.factory = CustomResourceFactory()
 
     def load_custom_resource_definitions(self):
         """Return our custom resource definitions."""
