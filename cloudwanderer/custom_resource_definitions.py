@@ -8,11 +8,7 @@ from boto3.utils import ServiceContext
 import boto3
 
 
-<<<<<<< HEAD
 class CustomResourceFactory():
-=======
-class ResourceFactory():
->>>>>>> fa3d837bc76112b4ed40061d312bf13189fc9ad2
     """Factory class for generating custom boto3 Resource objects."""
 
     def __init__(self):
