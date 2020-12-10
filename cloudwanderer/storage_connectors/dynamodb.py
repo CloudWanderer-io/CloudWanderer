@@ -97,7 +97,8 @@ class DynamoDbConnector(BaseConnector):
         )
 
     def write_resource_attribute(self, urn, attribute_type, resource_attribute,):
-        logging.debug(f"Writing: attribute of {urn} to {self.table_name}")
+        """Write the specified resource attribute to DynamoDb."""
+        logging.debug(f"Writing: {attribute_type} of {urn} to {self.table_name}")
         item = {
             **self._generate_index_values_for_write(urn, attribute_type),
             **standardise_data_types(resource_attribute.meta.data or {})

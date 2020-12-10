@@ -69,9 +69,21 @@ class CloudWandererBoto3Interface():
                 return
             raise ex
 
-    def get_resource_attribute_from_collection(self, boto3_resource_attribute_service, boto3_resource_attribute_collection):
+    def get_resource_attribute_from_collection(
+            self, boto3_resource_attribute_service, boto3_resource_attribute_collection):
+        """Return a boto3.resource pertaining to a resource attribute defined by CloudWanderer.
+
+        These custom resource attribute definitions allow us to fetch resource attributes that are not returned by the
+        resource's default describe calls.
+
+        Arguments:
+            boto3_resource_attribute_service: The boto3.resource service from self.get_resource_attributes_service_by_name
+            boto3_resource_attribute_collection: The boto3 collection of attributes we want to retrieve.
+        """
         resource_attributes = self.get_resource_from_collection(
-            boto3_resource_attribute_service, boto3_resource_attribute_collection)
+            boto3_service=boto3_resource_attribute_service,
+            boto3_resource_collection=boto3_resource_attribute_collection
+        )
         for resource_attribute in resource_attributes:
             # A resource_attribute will initially be populated with its parent resource's data,
             # the attribute data is loaded on .load()
@@ -83,6 +95,14 @@ class CloudWandererBoto3Interface():
             yield resource_attribute
 
     def get_resource_attributes_service_by_name(self, service_name):
+        """Return the boto3.resource service containing a collection of resource attributes provided by CloudWanderer.
+
+        These custom resource attribute definitions allow us to fetch resource attributes that are not returned by the
+        resource's default describe calls.
+
+        Arguments:
+            service_name (str): The name of the service (e.g.``ec2``) to get.
+        """
         yield self.custom_resource_attribute_definitions.get(service_name)
 
 
@@ -132,8 +152,18 @@ class CloudWanderer():
                     self.storage_connector.write_resource(self._get_resource_urn(boto3_resource), boto3_resource)
 
     def write_resource_attributes(self, service_name):
-        for boto3_resource_attribute_service in self.boto3_interface.get_resource_attributes_service_by_name(service_name):
-            for boto3_resource_attribute_collection in self.boto3_interface.get_resource_collections(boto3_resource_attribute_service):
+        """Write all AWS resource attributes in this account in this service to storage.
+
+        These custom resource attribute definitions allow us to fetch resource attributes that are not returned by the
+        resource's default describe calls.
+
+        Arguments:
+            service_name (str): The name of the service to write the attributes of (e.g. ``ec2``)
+        """
+        services = self.boto3_interface.get_resource_attributes_service_by_name(service_name)
+        for boto3_resource_attribute_service in services:
+            collections = self.boto3_interface.get_resource_collections(boto3_resource_attribute_service)
+            for boto3_resource_attribute_collection in collections:
                 resource_attributes = self.boto3_interface.get_resource_attribute_from_collection(
                     boto3_resource_attribute_service,
                     boto3_resource_attribute_collection
