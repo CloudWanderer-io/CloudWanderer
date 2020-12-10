@@ -1,0 +1,39 @@
+{
+    "service": {
+        "hasMany": {
+            "VpcEnableDnsSupport": {
+                "request": { "operation": "DescribeVpcs" },
+                "resource": {
+                    "type": "VpcEnableDnsSupport",
+                    "identifiers": [
+                        { "target": "Id", "source": "response", "path": "Vpcs[].VpcId" }
+                    ],
+                    "path": "Vpcs[]"
+                }
+            }
+        }
+    },
+    "resources": {
+        "VpcEnableDnsSupport": {
+            "identifiers": [{
+                "name": "Id",
+                "memberName": "VpcId"
+            }],
+            "shape": "Vpc",
+            "load": {
+                "request": {
+                    "operation": "DescribeVpcAttribute",
+                    "params": [
+                        { "target": "VpcId", "source": "identifier", "name": "Id" },
+                        {
+                            "target": "Attribute",
+                            "source": "string",
+                            "value": "enableDnsSupport"
+                        }
+                    ]
+                },
+                "path": "@"
+            }
+        }
+    }
+}

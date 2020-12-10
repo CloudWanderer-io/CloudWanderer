@@ -28,11 +28,10 @@ class TestFunctional(unittest.TestCase):
             print(x.metadata)
 
     def test_read_resource_of_type(self):
-        lambda_functions = self.wanderer.read_resource_of_type(service='lambda', resource_type='function')
-        print([
-            dict(self.wanderer.read_resource(x.urn))
-            for x in lambda_functions
-        ])
+        vpcs = self.wanderer.read_resource_of_type(service='ec2', resource_type='vpc')
+
+        for i, x in enumerate(vpcs):
+            print(i, dict(self.wanderer.read_resource(x.urn)))
 
     def test_read_resource(self):
         vpc = next(self.wanderer.read_resource_of_type(service='ec2', resource_type='vpc'))
@@ -46,3 +45,6 @@ class TestFunctional(unittest.TestCase):
         vpc = list(self.wanderer.read_resource_of_type(service='ec2', resource_type='vpc'))[0]
         print([str(x.urn) for x in self.wanderer.read_resource_of_type_in_account(
             service='ec2', resource_type='vpc', account_id=vpc.urn.account_id)])
+
+    def test_write_resource_attributes(self):
+        self.wanderer.write_resource_attributes('ec2')

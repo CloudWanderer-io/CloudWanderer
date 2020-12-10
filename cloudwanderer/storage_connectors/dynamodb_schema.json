@@ -5,6 +5,10 @@
                 "AttributeType": "S"
             },
             {
+                "AttributeName": "_attr",
+                "AttributeType": "S"
+            },
+            {
                 "AttributeName": "_resource_type",
                 "AttributeType": "S"
             },
@@ -19,9 +23,14 @@
         ],
         "BillingMode": "PAY_PER_REQUEST",
         "KeySchema": [{
-            "AttributeName": "_id",
-            "KeyType": "HASH"
-        }],
+                "AttributeName": "_id",
+                "KeyType": "HASH"
+            },
+            {
+                "AttributeName": "_attr",
+                "KeyType": "RANGE"
+            }
+        ],
         "GlobalSecondaryIndexes": [{
                 "IndexName": "resource_type",
                 "Projection": {
