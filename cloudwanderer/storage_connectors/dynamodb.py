@@ -1,5 +1,6 @@
 """Classes for the CloudWanderer DynamoDB Storage Connector."""
 import logging
+import itertools
 import os
 import pathlib
 import boto3
@@ -20,7 +21,7 @@ def gen_resource_type_index(service, resource_type):
 
 def gen_shard(key, shard_id=None):
     """Append a shard designation to the end of a supplied key."""
-    shard_id = shard_id if shard_id is not None else randrange(10)
+    shard_id = shard_id if shard_id is not None else randrange(9)
     return f"{key}#shard{shard_id}"
 
 
@@ -35,8 +36,9 @@ def urn_from_primary_key(pk):
 
 
 def dynamodb_items_to_resources(items):
-    """Convert a resource item retrieved from DynamoDB to a ResourceDict."""
-    for item in items:
+    """Convert a resource and its attributes dynamodb records to a ResourceDict."""
+    for item_id, group in itertools.groupby(items, lambda x: x['_id']):
+        item = {k: v for item in group for k, v in item.items()}
         yield ResourceDict(
             urn=urn_from_primary_key(item['_id']),
             resource=item
@@ -78,7 +80,7 @@ class DynamoDbConnector(BaseConnector):
         )
         table_creator.create_table()
 
-    def write(self, urn, resource):
+    def write_resource(self, urn, resource):
         """Write the specified resource to DynamoDB.
 
         Arguments:
@@ -87,19 +89,37 @@ class DynamoDbConnector(BaseConnector):
         """
         logging.debug(f"Writing: {urn} to {self.table_name}")
         item = {
-            **{
-                '_id': primary_key_from_urn(urn),
-                '_urn': str(urn),
-                '_resource_type': f"{gen_resource_type_index(urn.service, urn.resource_type)}",
-                '_resource_type_index': f"{gen_shard(gen_resource_type_index(urn.service, urn.resource_type))}",
-                '_account_id': f"{urn.account_id}",
-                '_account_id_index': f"{gen_shard(urn.account_id)}"
-            },
+            **self._generate_index_values_for_write(urn),
             **standardise_data_types(resource.meta.data or {})
         }
         self.dynamodb_table.put_item(
             Item=item
         )
+
+    def write_resource_attribute(self, urn, attribute_type, resource_attribute,):
+        logging.debug(f"Writing: attribute of {urn} to {self.table_name}")
+        item = {
+            **self._generate_index_values_for_write(urn, attribute_type),
+            **standardise_data_types(resource_attribute.meta.data or {})
+        }
+        self.dynamodb_table.put_item(
+            Item=item
+        )
+
+    def _generate_index_values_for_write(self, urn, attr='BaseResource'):
+        values = {
+            '_id': primary_key_from_urn(urn),
+            '_attr': attr,
+            '_urn': str(urn),
+            '_resource_type': f"{gen_resource_type_index(urn.service, urn.resource_type)}",
+            '_account_id': f"{urn.account_id}",
+        }
+        if attr == 'BaseResource':
+            values.update({
+                '_resource_type_index': f"{gen_shard(gen_resource_type_index(urn.service, urn.resource_type))}",
+                '_account_id_index': f"{gen_shard(urn.account_id)}"
+            })
+        return values
 
     def read_resource(self, urn):
         """Return the resource with the specified :class:`cloudwanderer.AwsUrn`.

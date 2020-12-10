@@ -6,7 +6,7 @@ class BaseConnector(ABC):
     """Abstract class for specification of the CloudWanderer storage connector interface."""
 
     @abstractmethod
-    def write(self, urn, resource):
+    def write_resource(self, urn, resource):
         """Persist a single resource to storage."""
 
     @abstractmethod

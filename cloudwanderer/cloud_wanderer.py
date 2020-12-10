@@ -19,6 +19,9 @@ class CloudWandererBoto3Interface():
     def __init__(self):
         """Class of methods which expect boto3 resources and services rather than resource names and service names."""
         self.custom_resource_definitions = CustomResourceDefinitions().load_custom_resource_definitions()
+        self.custom_resource_attribute_definitions = CustomResourceDefinitions(
+            definition_path='attribute_definitions'
+        ).load_custom_resource_definitions()
 
     def _get_available_services(self):
         return boto3.Session().get_available_resources()
@@ -66,6 +69,22 @@ class CloudWandererBoto3Interface():
                 return
             raise ex
 
+    def get_resource_attribute_from_collection(self, boto3_resource_attribute_service, boto3_resource_attribute_collection):
+        resource_attributes = self.get_resource_from_collection(
+            boto3_resource_attribute_service, boto3_resource_attribute_collection)
+        for resource_attribute in resource_attributes:
+            # A resource_attribute will initially be populated with its parent resource's data,
+            # the attribute data is loaded on .load()
+            resource_attribute.load()
+            # I'm fairly sure there must be a way to clean out the response metadata with botocore shapes but
+            # I haven't figured out how yet.
+            if 'ResponseMetadata' in resource_attribute.meta.data:
+                del resource_attribute.meta.data['ResponseMetadata']
+            yield resource_attribute
+
+    def get_resource_attributes_service_by_name(self, service_name):
+        yield self.custom_resource_attribute_definitions.get(service_name)
+
 
 class CloudWanderer():
     """CloudWanderer.
@@ -94,7 +113,7 @@ class CloudWanderer():
                     boto3_resource_collection
                 )
                 for boto3_resource in resources:
-                    self.storage_connector.write(self._get_resource_urn(boto3_resource), boto3_resource)
+                    self.storage_connector.write_resource(self._get_resource_urn(boto3_resource), boto3_resource)
 
     def write_resources(self, service_name, exclude_resources=None):
         """Write all AWS resources in this account in this service to storage.
@@ -110,7 +129,21 @@ class CloudWanderer():
                     continue
                 resources = self.boto3_interface.get_resource_from_collection(boto3_service, boto3_resource_collection)
                 for boto3_resource in resources:
-                    self.storage_connector.write(self._get_resource_urn(boto3_resource), boto3_resource)
+                    self.storage_connector.write_resource(self._get_resource_urn(boto3_resource), boto3_resource)
+
+    def write_resource_attributes(self, service_name):
+        for boto3_resource_attribute_service in self.boto3_interface.get_resource_attributes_service_by_name(service_name):
+            for boto3_resource_attribute_collection in self.boto3_interface.get_resource_collections(boto3_resource_attribute_service):
+                resource_attributes = self.boto3_interface.get_resource_attribute_from_collection(
+                    boto3_resource_attribute_service,
+                    boto3_resource_attribute_collection
+                )
+                for boto3_resource_attribute in resource_attributes:
+                    self.storage_connector.write_resource_attribute(
+                        urn=self._get_resource_urn(boto3_resource_attribute),
+                        resource_attribute=boto3_resource_attribute,
+                        attribute_type=boto3_resource_attribute_collection.name
+                    )
 
     def get_resources(self, boto3_service, exclude_resources):
         """Return all resources for this service from the AWS API.
@@ -181,7 +214,7 @@ class CloudWanderer():
             account_id=self.account_id,
             region=self.client_region,
             service=resource.meta.service_name,
-            resource_type=xform_name(resource.meta.resource_model.name),
+            resource_type=xform_name(resource.meta.resource_model.shape),
             resource_id=resource_id
         )
 
