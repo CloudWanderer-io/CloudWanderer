@@ -22,7 +22,7 @@ copyright = '2020, Sam Martin'
 author = 'Sam Martin'
 
 # The full version, including alpha/beta/rc tags
-release = '0.1.0'
+release = '0.3.1'
 
 
 # -- General configuration ---------------------------------------------------
@@ -66,7 +66,7 @@ html_static_path = ['_static']
 doctest_global_setup = '''
 import sys
 from decimal import Decimal
-from unittest.mock import MagicMock, PropertyMock
+from unittest.mock import MagicMock
 import logging
 import cloudwanderer
 

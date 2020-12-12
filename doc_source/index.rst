@@ -29,6 +29,7 @@ Usage
 """"""""""
 
 Start a local dynamodb
+
 .. code-block ::
 
    $  docker run -p 8000:8000 amazon/dynamodb-local

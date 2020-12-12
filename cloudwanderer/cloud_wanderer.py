@@ -77,7 +77,8 @@ class CloudWandererBoto3Interface():
         resource's default describe calls.
 
         Arguments:
-            boto3_resource_attribute_service: The boto3.resource service from self.get_resource_attributes_service_by_name
+            boto3_resource_attribute_service: The boto3.resource service from
+                self.get_resource_attributes_service_by_name
             boto3_resource_attribute_collection: The boto3 collection of attributes we want to retrieve.
         """
         resource_attributes = self.get_resource_from_collection(
@@ -142,6 +143,8 @@ class CloudWanderer():
             service_name (str): The name of the service to write resources for (e.g. ``'ec2'``)
             exclude_resources (list): A list of resources to exclude (e.g. `['instances']`)
         """
+        logging.info("Writing all %s resources in %s", service_name, self.client_region)
+        exclude_resources = exclude_resources or []
         for boto3_service in self.boto3_interface.get_resource_service_by_name(service_name):
             for boto3_resource_collection in self.boto3_interface.get_resource_collections(boto3_service):
                 if boto3_resource_collection.name in exclude_resources:
@@ -174,27 +177,6 @@ class CloudWanderer():
                         resource_attribute=boto3_resource_attribute,
                         attribute_type=boto3_resource_attribute_collection.name
                     )
-
-    def get_resources(self, boto3_service, exclude_resources):
-        """Return all resources for this service from the AWS API.
-
-        Arguments:
-            boto3_service: The ``boto3.resource()`` service to get the resources of.
-            exclude_resources (list): A list of resources to exclude (e.g. ``['instances']``)
-        """
-        for collection in self.get_resource_collections(boto3_service):
-            logging.info(f'--> Fetching {boto3_service.meta.service_name} {collection.name}')
-
-            if collection.name in ['images', 'snapshots']:
-                continue
-            try:
-                for resource in getattr(boto3_service, collection.name).all():
-                    yield resource
-            except ClientError as ex:
-                if ex.response['Error']['Code'] == 'InvalidAction':
-                    logging.warning(ex.response['Error']['Message'])
-                    continue
-                raise ex
 
     def read_resource_of_type(self, service, resource_type):
         """Return all resources of type.
