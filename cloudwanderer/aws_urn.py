@@ -40,10 +40,10 @@ class AwsUrn():
         """Return a class representation of the AwsUrn."""
         return str(
             f"{self.__class__.__name__}("
-            f"account_id='{self.account_id}', '"
-            f"region='{self.region}', '"
-            f"service='{self.service}', '"
-            f"resource_type='{self.resource_type}', '"
+            f"account_id='{self.account_id}', "
+            f"region='{self.region}', "
+            f"service='{self.service}', "
+            f"resource_type='{self.resource_type}', "
             f"resource_id='{self.resource_id}')"
         )
 
