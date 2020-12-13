@@ -1,6 +1,7 @@
-"""Code which abstracts away the majority of boto3 interrogation.ArithmeticError
+"""Code which abstracts away the majority of boto3 interrogation.ArithmeticError.
 
-Provides simpler methods for CloudWanderer to call."""
+Provides simpler methods for CloudWanderer to call.
+"""
 import logging
 import boto3
 from botocore.exceptions import ClientError
