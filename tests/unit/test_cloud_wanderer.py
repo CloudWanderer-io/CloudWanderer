@@ -7,7 +7,7 @@ import cloudwanderer
 from cloudwanderer import CloudWanderer
 
 
-@patch.dict('os.environ', {'AWS_ACCESS_KEY': '111', 'AWS_DEFAULT_REGION': 'eu-west-1'})
+@patch.dict('os.environ', {'AWS_ACCESS_KEY': '111', 'AWS_DEFAULT_REGION': 'eu-west-2'})
 @patch.object(cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface,
               'get_resource_collections',
               return_value=[MOCK_COLLECTION])
@@ -19,6 +19,7 @@ class TestCloudWanderer(unittest.TestCase):
         super().__init__(*args, **kwargs)
         logging.basicConfig(level='INFO')
 
+    @patch.dict('os.environ', {'AWS_ACCESS_KEY': '111', 'AWS_DEFAULT_REGION': 'eu-west-2'})
     def setUp(self):
         self.mock_storage_connector = MagicMock()
         self.wanderer = CloudWanderer(storage_connector=self.mock_storage_connector)
