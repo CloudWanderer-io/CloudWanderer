@@ -1,2 +1,6 @@
 boto3
 moto
+flake8
+pytest
+pydocstyle
+mock==4.0.2
