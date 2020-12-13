@@ -7,7 +7,7 @@ import cloudwanderer
 from cloudwanderer import CloudWanderer
 
 
-@patch.dict('os.environ', {'AWS_ACCESS_KEY': '111'})
+@patch.dict('os.environ', {'AWS_ACCESS_KEY': '111', 'AWS_DEFAULT_REGION': 'eu-west-1'})
 @patch.object(cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface,
               'get_resource_collections',
               return_value=[MOCK_COLLECTION])
