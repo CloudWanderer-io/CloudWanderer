@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+"""Setup CloudWanderer package."""
 from os import path
 from setuptools import setup, find_packages
 

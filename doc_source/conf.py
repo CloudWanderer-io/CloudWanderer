@@ -1,3 +1,6 @@
+import os
+import sys
+import sphinx_rtd_theme # noqa
 # Configuration file for the Sphinx documentation builder.
 #
 # This file only contains a selection of the most common options. For a full
@@ -10,8 +13,6 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-import os
-import sys
 sys.path.insert(0, os.path.abspath('..'))
 
 
@@ -30,7 +31,6 @@ release = '0.3.1'
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-import sphinx_rtd_theme
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.doctest',
@@ -86,7 +86,8 @@ cloudwanderer.storage_connectors.DynamoDbConnector = MagicMock(**{
     'return_value.init.return_value': None,
     'return_value.read_resource_of_type.return_value': [MagicMock()],
     'return_value.read_resource.return_value': iter([{
-        'FunctionArn': 'arn:aws:lambda:eu-west-2:111111111111:function:awesomeproject-201904202316-HostedUICustomResource-1PLE213GNV66A',
+        'FunctionArn': str('arn:aws:lambda:eu-west-2:111111111111:function'
+        ':awesomeproject-201904202316-HostedUICustomResource-1PLE213GNV66A'),
         'MemorySize': Decimal('128'),
         'Description': '',
         'TracingConfig': {'Mode': 'PassThrough'},

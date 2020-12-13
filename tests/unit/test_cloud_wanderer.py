@@ -1,12 +1,10 @@
-import os
 import logging
 import unittest
 from unittest.mock import MagicMock, patch
 from .mocks import add_servers, MOCK_COLLECTION
 from moto import mock_ec2, mock_sts
 import cloudwanderer
-import boto3
-from cloudwanderer import CloudWanderer, AwsUrn
+from cloudwanderer import CloudWanderer
 
 
 @patch.dict('os.environ', {'AWS_ACCESS_KEY': '111'})
@@ -16,6 +14,11 @@ from cloudwanderer import CloudWanderer, AwsUrn
 @mock_ec2
 @mock_sts
 class TestCloudWanderer(unittest.TestCase):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        logging.basicConfig(level='INFO')
+
     def setUp(self):
         self.mock_storage_connector = MagicMock()
         self.wanderer = CloudWanderer(storage_connector=self.mock_storage_connector)
