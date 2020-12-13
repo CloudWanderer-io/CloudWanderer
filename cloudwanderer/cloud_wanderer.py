@@ -54,6 +54,7 @@ class CloudWanderer():
                 if boto3_resource_collection.name in exclude_resources:
                     logging.info('Skipping %s as per exclude_resources', boto3_resource_collection.name)
                     continue
+                logging.info(f'--> Fetching {boto3_service.meta.service_name} {boto3_resource_collection.name}')
                 resources = self.boto3_interface.get_resource_from_collection(boto3_service, boto3_resource_collection)
                 for boto3_resource in resources:
                     self.storage_connector.write_resource(self._get_resource_urn(boto3_resource), boto3_resource)
@@ -71,6 +72,10 @@ class CloudWanderer():
         for boto3_resource_attribute_service in services:
             collections = self.boto3_interface.get_resource_collections(boto3_resource_attribute_service)
             for boto3_resource_attribute_collection in collections:
+                logging.info(f'--> Fetching %s %s',
+                    boto3_resource_attribute_service.meta.service_name,
+                    boto3_resource_attribute_collection.name
+                )
                 resource_attributes = self.boto3_interface.get_resource_attribute_from_collection(
                     boto3_resource_attribute_service,
                     boto3_resource_attribute_collection

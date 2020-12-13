@@ -51,7 +51,6 @@ class CloudWandererBoto3Interface():
 
     def get_resource_from_collection(self, boto3_service, boto3_resource_collection):
         """Return all resources of this resource type (collection) from this service."""
-        logging.info(f'--> Fetching {boto3_service.meta.service_name} {boto3_resource_collection.name}')
         try:
             for resource in getattr(boto3_service, boto3_resource_collection.name).all():
                 yield resource

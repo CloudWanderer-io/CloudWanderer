@@ -1,31 +1,33 @@
 import logging
 import unittest
 from unittest.mock import MagicMock, patch
-from .mocks import add_servers, MOCK_COLLECTION
+from .mocks import add_infra, MOCK_COLLECTION_INSTANCES, MOCK_COLLECTION_VPC_ATTRIBUTE
 from moto import mock_ec2, mock_sts
 import cloudwanderer
 from cloudwanderer import CloudWanderer
 
 
 @patch.dict('os.environ', {'AWS_ACCESS_KEY': '111', 'AWS_DEFAULT_REGION': 'eu-west-2'})
-@patch.object(cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface,
-              'get_resource_collections',
-              return_value=[MOCK_COLLECTION])
 @mock_ec2
 @mock_sts
 class TestCloudWanderer(unittest.TestCase):
 
+    @mock_ec2
+    @mock_sts
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         logging.basicConfig(level='INFO')
+        add_infra()
 
     @patch.dict('os.environ', {'AWS_ACCESS_KEY': '111', 'AWS_DEFAULT_REGION': 'eu-west-2'})
     def setUp(self):
         self.mock_storage_connector = MagicMock()
         self.wanderer = CloudWanderer(storage_connector=self.mock_storage_connector)
-        add_servers()
 
-    def test_write_resources(self, _):
+    @patch.object(cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface,
+                  'get_resource_collections',
+                  new=MagicMock(return_value=[MOCK_COLLECTION_INSTANCES]))
+    def test_write_resources(self):
         self.wanderer.write_resources(service_name='ec2')
 
         self.mock_storage_connector.write_resource.assert_called_once()
@@ -36,3 +38,13 @@ class TestCloudWanderer(unittest.TestCase):
         assert urn.resource_type == 'instance'
 
         assert set(['VpcId', 'SubnetId', 'InstanceId']).issubset(resource.meta.data.keys())
+
+    def test_write_resource_attributes(self):
+        self.wanderer.write_resource_attributes('ec2')
+
+        self.mock_storage_connector.write_resource_attribute.assert_called_once()
+        call_dict = self.mock_storage_connector.write_resource_attribute.call_args_list[0][1]
+
+        assert call_dict['attribute_type'] == 'vpc_enable_dns_support'
+        assert call_dict['urn'].resource_type == 'vpc'
+        assert set(['EnableDnsSupport']).issubset(call_dict['resource_attribute'].meta.data.keys())
