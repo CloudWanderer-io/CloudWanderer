@@ -1,7 +1,7 @@
 import logging
 import unittest
 from unittest.mock import MagicMock, patch
-from .mocks import add_infra, MOCK_COLLECTION_INSTANCES, MOCK_COLLECTION_VPC_ATTRIBUTE
+from .mocks import add_infra, MOCK_COLLECTION_INSTANCES
 from moto import mock_ec2, mock_sts
 import cloudwanderer
 from cloudwanderer import CloudWanderer
