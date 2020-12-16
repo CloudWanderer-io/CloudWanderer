@@ -54,12 +54,13 @@ class TestCloudWanderer(unittest.TestCase):
         cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface,
         'get_resource_collections',
         new=MagicMock(return_value=[MOCK_COLLECTION_INSTANCES]))
-    @patch.object(
-        cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface,
-        'get_all_resource_services',
-        new=MagicMock(return_value=[boto3.resource('ec2')]))
     def test_write_all_resources(self):
-        self.wanderer.write_all_resources()
+
+        with patch.object(
+            cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface,
+            'get_all_resource_services',
+                new=MagicMock(return_value=[boto3.resource('ec2')])):
+            self.wanderer.write_all_resources()
 
         self.mock_storage_connector.write_resource.assert_called_once()
         urn, resource = self.mock_storage_connector.write_resource.call_args_list[0][0]
