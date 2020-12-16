@@ -1,8 +1,9 @@
 import logging
 import unittest
 from unittest.mock import MagicMock, patch
-from .mocks import add_infra, MOCK_COLLECTION_INSTANCES
+import boto3
 from moto import mock_ec2, mock_sts
+from .mocks import add_infra, MOCK_COLLECTION_INSTANCES
 import cloudwanderer
 from cloudwanderer import CloudWanderer
 
@@ -48,3 +49,23 @@ class TestCloudWanderer(unittest.TestCase):
         assert call_dict['attribute_type'] == 'vpc_enable_dns_support'
         assert call_dict['urn'].resource_type == 'vpc'
         assert set(['EnableDnsSupport']).issubset(call_dict['resource_attribute'].meta.data.keys())
+
+    @patch.object(
+        cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface,
+        'get_resource_collections',
+        new=MagicMock(return_value=[MOCK_COLLECTION_INSTANCES]))
+    @patch.object(
+        cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface,
+        'get_all_resource_services',
+        new=MagicMock(return_value=[boto3.resource('ec2')]))
+    def test_write_all_resources(self):
+        self.wanderer.write_all_resources()
+
+        self.mock_storage_connector.write_resource.assert_called_once()
+        urn, resource = self.mock_storage_connector.write_resource.call_args_list[0][0]
+        assert urn.account_id == '123456789012'
+        assert urn.region == 'eu-west-2'
+        assert urn.service == 'ec2'
+        assert urn.resource_type == 'instance'
+
+        assert set(['VpcId', 'SubnetId', 'InstanceId']).issubset(resource.meta.data.keys())
