@@ -1,7 +1,8 @@
 import unittest
-from unittest import patch
+from unittest.mock import patch
 import cloudwanderer
 from cloudwanderer import AwsUrn
+
 
 @patch.dict('os.environ', {'AWS_ACCESS_KEY': '111', 'AWS_DEFAULT_REGION': 'eu-west-2'})
 class TestResource(unittest.TestCase):
