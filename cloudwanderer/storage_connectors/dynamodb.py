@@ -10,7 +10,7 @@ from random import randrange
 from decimal import Decimal
 from .base_connector import BaseConnector
 from boto3.dynamodb.conditions import Key
-from ..cloud_wanderer import ResourceDict
+from ..cloud_wanderer import CloudWandererResource
 from ..aws_urn import AwsUrn
 
 
@@ -38,10 +38,13 @@ def urn_from_primary_key(pk):
 def dynamodb_items_to_resources(items):
     """Convert a resource and its attributes dynamodb records to a ResourceDict."""
     for item_id, group in itertools.groupby(items, lambda x: x['_id']):
-        item = {k: v for item in group for k, v in item.items()}
-        yield ResourceDict(
-            urn=urn_from_primary_key(item['_id']),
-            resource=item
+        grouped_items = list(group)
+        attributes = [attribute for attribute in grouped_items if attribute['_attr'] != 'BaseResource']
+        base_resource = next(iter(resource for resource in grouped_items if resource['_attr'] == 'BaseResource'))
+        yield CloudWandererResource(
+            urn=urn_from_primary_key(base_resource['_id']),
+            resource_data=base_resource,
+            resource_attributes=attributes
         )
 
 

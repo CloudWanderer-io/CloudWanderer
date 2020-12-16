@@ -1,4 +1,5 @@
 """Main cloudwanderer module."""
+from collections import namedtuple
 import logging
 from botocore import xform_name
 import boto3
@@ -66,10 +67,11 @@ class CloudWanderer():
         for boto3_resource_attribute_service in services:
             collections = self.boto3_interface.get_resource_collections(boto3_resource_attribute_service)
             for boto3_resource_attribute_collection in collections:
-                logging.info(f'--> Fetching %s %s',
-                             boto3_resource_attribute_service.meta.service_name,
-                             boto3_resource_attribute_collection.name
-                             )
+                logging.info(
+                    '--> Fetching %s %s',
+                    boto3_resource_attribute_service.meta.service_name,
+                    boto3_resource_attribute_collection.name
+                )
                 resource_attributes = self.boto3_interface.get_resource_attribute_from_collection(
                     boto3_resource_attribute_service,
                     boto3_resource_attribute_collection
@@ -134,8 +136,11 @@ class CloudWanderer():
         )
 
 
-class ResourceDict(dict):
-    """A dictionary representation of a resource that prevents any storage metadata polluting the resource dictionary.
+ResourceMetadata = namedtuple('ResourceMetadata', ['resource_data', 'resource_attributes'])
+
+
+class CloudWandererResource():
+    """A simple representation of a resource that prevents any storage metadata polluting the resource dictionary.
 
     Use ``dict(my_resource_dict)`` to convert this object into a dictionary that
     contains *only* the resource's metadata.
@@ -145,11 +150,14 @@ class ResourceDict(dict):
         metadata (dict): The original storage representation of the resource as it was passed in.
     """
 
-    def __init__(self, urn, resource):
-        """Initialise the resource dict."""
+    def __init__(self, urn, resource_data, resource_attributes=None):
+        """Initialise the resource."""
         self.urn = urn
-        self.metadata = resource
-        super().__init__(**self._clean_resource)
+        self.cloudwanderer_metadata = ResourceMetadata(
+            resource_data=resource_data,
+            resource_attributes=resource_attributes or []
+        )
+        self._set_attrs()
 
     @property
     def _clean_resource(self):
@@ -159,9 +167,22 @@ class ResourceDict(dict):
             if not key.startswith('_')
         }
 
+    def _set_attrs(self):
+        for key, value in self.cloudwanderer_metadata.resource_data.items():
+            setattr(
+                self,
+                xform_name(key),
+                value
+            )
+
     def __repr__(self):
         """Return a code representation of this resource."""
-        return f"{self.__class__.__name__}(urn={repr(self.urn)}, resource={self.metadata})"
+        return str(
+            f"{self.__class__.__name__}("
+            f"urn={repr(self.urn)}, "
+            f"resource_data={self.cloudwanderer_metadata.resource_data}, "
+            f"resource_attributes={self.cloudwanderer_metadata.resource_attributes})"
+        )
 
     def __str__(self):
         """Return the string representation of this Resource."""

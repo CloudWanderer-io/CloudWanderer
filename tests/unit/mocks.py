@@ -6,6 +6,7 @@ MOCK_COLLECTION_INSTANCES = MagicMock(**{
 })
 MOCK_COLLECTION_INSTANCES.configure_mock(name='instances')
 
+
 def add_infra(count=1):
     resource = boto3.resource('ec2', region_name='eu-west-2')
     images = list(resource.images.all())

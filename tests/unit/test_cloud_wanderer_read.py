@@ -1,7 +1,6 @@
 import logging
 import unittest
 from unittest.mock import MagicMock
-import cloudwanderer
 from cloudwanderer import CloudWanderer, AwsUrn
 
 
