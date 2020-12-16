@@ -1,4 +1,5 @@
 import unittest
+from unittest import patch
 import cloudwanderer
 from cloudwanderer import AwsUrn
 
