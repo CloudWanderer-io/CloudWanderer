@@ -11,7 +11,7 @@ from cloudwanderer import CloudWanderer
 @patch.dict('os.environ', {'AWS_ACCESS_KEY': '111', 'AWS_DEFAULT_REGION': 'eu-west-2'})
 @mock_ec2
 @mock_sts
-class TestCloudWanderer(unittest.TestCase):
+class TestCloudWandererWrite(unittest.TestCase):
 
     @mock_ec2
     @mock_sts
