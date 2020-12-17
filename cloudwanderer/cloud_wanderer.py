@@ -17,6 +17,7 @@ class CloudWanderer():
 
     Args:
         storage_connector: A CloudWanderer storage connector object.
+        boto3_session (boto3.session.Session): A boto3 Session object.
     """
 
     def __init__(self, storage_connector, boto3_session=None):
@@ -110,7 +111,7 @@ class CloudWanderer():
 
     @property
     def account_id(self):
-        """Return the AWS Account ID our boto3 client is authenticated against."""
+        """Return the AWS Account ID our boto3 session is authenticated against."""
         if self._account_id is None:
             sts = self.boto3_session.client('sts')
             self._account_id = sts.get_caller_identity()['Account']
@@ -118,7 +119,7 @@ class CloudWanderer():
 
     @property
     def client_region(self):
-        """Return the region our boto3 client is authenticated against."""
+        """Return the region our boto3 session is configured to use."""
         if self._client_region is None:
             self._client_region = self.boto3_session.region_name
         return self._client_region
@@ -137,7 +138,16 @@ class CloudWanderer():
         )
 
 
-ResourceMetadata = namedtuple('ResourceMetadata', ['resource_data', 'resource_attributes'])
+class ResourceMetadata(namedtuple('ResourceMetadata', ['resource_data', 'resource_attributes'])):
+    """
+    Metadata for a :class:`CloudWandererResource`.
+
+    Contains the original dictionaries of the resource and its attributes.
+
+    Attributes:
+        resource_data (dict): The raw dictionary representation of the Resource.
+        resource_attributes (list): the list of raw dictionary representation of the Resource's attributes.
+    """
 
 
 class CloudWandererResource():
