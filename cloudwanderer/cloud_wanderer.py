@@ -139,8 +139,7 @@ class CloudWanderer():
 
 
 class ResourceMetadata(namedtuple('ResourceMetadata', ['resource_data', 'resource_attributes'])):
-    """
-    Metadata for a :class:`CloudWandererResource`.
+    """Metadata for a :class:`CloudWandererResource`.
 
     Contains the original dictionaries of the resource and its attributes.
 
