@@ -15,8 +15,10 @@ class CloudWandererBoto3Interface():
     def __init__(self, boto3_session=None):
         """Class of methods which expect boto3 resources and services rather than resource names and service names."""
         self.boto3_session = boto3_session or boto3.Session()
-        self.custom_resource_definitions = CustomResourceDefinitions().load_custom_resource_definitions()
+        self.custom_resource_definitions = CustomResourceDefinitions(
+            boto3_session=boto3_session).load_custom_resource_definitions()
         self.custom_resource_attribute_definitions = CustomResourceDefinitions(
+            boto3_session=boto3_session,
             definition_path='attribute_definitions'
         ).load_custom_resource_definitions()
 
