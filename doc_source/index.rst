@@ -58,6 +58,19 @@ Get a list of lambda functions back.
 
 .. doctest ::
 
-   >>> lambda_functions = wanderer.read_resource_of_type(service='lambda', resource_type='function')
-   >>> print([dict(wanderer.read_resource(x.urn)) for x in lambda_functions])
-   [{'FunctionArn': 'arn:aws:lambda:eu-west-2:111111111111:function:awesomeproject-201904202316-HostedUICustomResource-1PLE213GNV66A', 'MemorySize': Decimal('128'), 'Description': '', 'TracingConfig': {'Mode': 'PassThrough'}, 'Timeout': Decimal('300'), 'Handler': 'index.handler', 'CodeSha256': 'fBLFD+AwFo/EQK5rdUweTW8jdBg6cw9LORbpVYqlXXQ=', 'RevisionId': '7fd173f0-0fc0-4df3-a4c3-5464431da769', 'Role': 'arn:aws:iam::111111111111:role/cognitod72684bb_userpoolclient_lambda_role-dev', 'LastModified': '2019-04-20T22:32:07.805+0000', 'FunctionName': 'awesomeproject-201904202316-HostedUICustomResource-1PLE213GNV66A', 'Runtime': 'nodejs8.10', 'CodeSize': Decimal('1742'), 'Version': '$LATEST', 'PackageType': 'Zip'}]
+   >>> lambda_function_urns = wanderer.read_resource_of_type(service='lambda', resource_type='function')
+   >>> first_function = next(lambda_function_urns)
+   >>> first_function.urn
+   AwsUrn(account_id='111111111111', region='eu-west-2', service='lambda', resource_type='function', resource_id='awesomeproject-201904202316-HostedUICustomResource-1PLE213GNV66A')
+
+Load the full details of the resource.
+
+.. doctest ::
+
+   >>> function = wanderer.read_resource(urn=first_function.urn)
+   >>> function.function_name
+   'awesomeproject-201904202316-HostedUICustomResource-1PLE213GNV66A'
+   >>> function.role
+   'arn:aws:iam::111111111111:role/cognitod72684bb_userpoolclient_lambda_role-dev'
+   >>> function.runtime
+   'python3.8'
