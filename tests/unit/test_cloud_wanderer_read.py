@@ -1,7 +1,6 @@
 import logging
 import unittest
-from unittest.mock import MagicMock, patch
-import boto3
+from unittest.mock import MagicMock
 from cloudwanderer import CloudWanderer, AwsUrn
 from .mocks import generate_mock_session
 

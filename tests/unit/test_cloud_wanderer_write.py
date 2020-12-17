@@ -1,7 +1,6 @@
 import logging
 import unittest
 from unittest.mock import MagicMock, patch
-import boto3
 from moto import mock_ec2, mock_sts
 from .mocks import add_infra, MOCK_COLLECTION_INSTANCES, generate_mock_session
 import cloudwanderer
@@ -60,7 +59,7 @@ class TestCloudWandererWrite(unittest.TestCase):
         with patch.object(
             cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface,
             'get_all_resource_services',
-                new=MagicMock(return_value=[boto3.resource('ec2')])):
+                new=MagicMock(return_value=[generate_mock_session().resource('ec2')])):
             self.wanderer.write_all_resources()
 
         self.mock_storage_connector.write_resource.assert_called_once()

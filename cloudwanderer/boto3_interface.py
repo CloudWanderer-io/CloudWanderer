@@ -9,7 +9,7 @@ from boto3.exceptions import ResourceNotExistsError
 from .custom_resource_definitions import CustomResourceDefinitions
 
 
-class CloudWandererBoto3Interface():
+class CloudWandererBoto3Interface:
     """Class of methods which expect boto3 resources and services rather than resource names and service names."""
 
     def __init__(self, boto3_session=None):

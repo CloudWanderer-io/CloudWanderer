@@ -22,7 +22,8 @@ class CloudWanderer():
     def __init__(self, storage_connector, boto3_session=None):
         """Initialise CloudWanderer."""
         self.storage_connector = storage_connector
-        self.boto3_interface = CloudWandererBoto3Interface(boto3_session=boto3_session)
+        self.boto3_session = boto3_session or boto3.session.Session()
+        self.boto3_interface = CloudWandererBoto3Interface(boto3_session=self.boto3_session)
         self._account_id = None
         self._client_region = None
 
@@ -111,7 +112,7 @@ class CloudWanderer():
     def account_id(self):
         """Return the AWS Account ID our boto3 client is authenticated against."""
         if self._account_id is None:
-            sts = boto3.client('sts')
+            sts = self.boto3_session.client('sts')
             self._account_id = sts.get_caller_identity()['Account']
         return self._account_id
 
@@ -119,7 +120,7 @@ class CloudWanderer():
     def client_region(self):
         """Return the region our boto3 client is authenticated against."""
         if self._client_region is None:
-            self._client_region = boto3.session.Session().region_name
+            self._client_region = self.boto3_session.region_name
         return self._client_region
 
     def _get_resource_urn(self, resource):
