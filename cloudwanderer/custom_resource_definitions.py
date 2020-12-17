@@ -15,7 +15,6 @@ class CustomResourceFactory():
         self.boto3_session = boto3_session or boto3.Session()
         self.emitter = self.boto3_session.events
         self.factory = ResourceFactory(self.emitter)
-        self.botocore_session = self.boto3_session._session
 
     def load(self, service_name, resource_definitions=None, service_definition=None):
         """Load the specified resource definition dictionaries into a Resource object."""
@@ -37,7 +36,7 @@ class CustomResourceFactory():
         return service_model.shape_for(shape_name)
 
     def _get_service_model(self, service):
-        client = self.botocore_session.create_client(service)
+        client = self.boto3_session.client(service)
         return client.meta.service_model
 
 
