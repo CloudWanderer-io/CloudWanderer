@@ -19,10 +19,10 @@ class CloudWanderer():
         storage_connector: A CloudWanderer storage connector object.
     """
 
-    def __init__(self, storage_connector):
+    def __init__(self, storage_connector, boto3_session=None):
         """Initialise CloudWanderer."""
         self.storage_connector = storage_connector
-        self.boto3_interface = CloudWandererBoto3Interface()
+        self.boto3_interface = CloudWandererBoto3Interface(boto3_session=boto3_session)
         self._account_id = None
         self._client_region = None
 

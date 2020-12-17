@@ -1,4 +1,4 @@
-"""Code which abstracts away the majority of boto3 interrogation.ArithmeticError.
+"""Code which abstracts away the majority of boto3 interrogation.
 
 Provides simpler methods for CloudWanderer to call.
 """
@@ -12,15 +12,16 @@ from .custom_resource_definitions import CustomResourceDefinitions
 class CloudWandererBoto3Interface():
     """Class of methods which expect boto3 resources and services rather than resource names and service names."""
 
-    def __init__(self):
+    def __init__(self, boto3_session=None):
         """Class of methods which expect boto3 resources and services rather than resource names and service names."""
+        self.boto3_session = boto3_session or boto3.Session()
         self.custom_resource_definitions = CustomResourceDefinitions().load_custom_resource_definitions()
         self.custom_resource_attribute_definitions = CustomResourceDefinitions(
             definition_path='attribute_definitions'
         ).load_custom_resource_definitions()
 
     def _get_available_services(self):
-        return boto3.Session().get_available_resources()
+        return self.boto3_session.get_available_resources()
 
     def get_all_resource_services(self):
         """Return all the boto3 service Resource objects that are available, both built-in and custom."""
@@ -32,7 +33,7 @@ class CloudWandererBoto3Interface():
     def get_boto3_resource_service(self, service_name):
         """Return the boto3 service Resource object matching this service_name."""
         try:
-            return boto3.resource(service_name)
+            return self.boto3_session.resource(service_name)
         except ResourceNotExistsError:
             return None
 

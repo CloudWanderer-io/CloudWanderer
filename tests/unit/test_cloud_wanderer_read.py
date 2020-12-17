@@ -1,10 +1,11 @@
 import logging
 import unittest
 from unittest.mock import MagicMock, patch
+import boto3
 from cloudwanderer import CloudWanderer, AwsUrn
+from .mocks import generate_mock_session
 
 
-@patch.dict('os.environ', {'AWS_ACCESS_KEY': '111', 'AWS_DEFAULT_REGION': 'eu-west-2'})
 class TestCloudWandererRead(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
@@ -18,10 +19,12 @@ class TestCloudWandererRead(unittest.TestCase):
             resource_id='vpc-11111111'
         )
 
-    @patch.dict('os.environ', {'AWS_ACCESS_KEY': '111', 'AWS_DEFAULT_REGION': 'eu-west-2'})
     def setUp(self):
         self.mock_storage_connector = MagicMock()
-        self.wanderer = CloudWanderer(storage_connector=self.mock_storage_connector)
+        self.wanderer = CloudWanderer(
+            storage_connector=self.mock_storage_connector,
+            boto3_session=generate_mock_session()
+        )
 
     def test_read_resource_of_type(self):
         self.wanderer.read_resource_of_type(service='ec2', resource_type='vpc')

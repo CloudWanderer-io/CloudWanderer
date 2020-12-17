@@ -3,12 +3,11 @@ import unittest
 from unittest.mock import MagicMock, patch
 import boto3
 from moto import mock_ec2, mock_sts
-from .mocks import add_infra, MOCK_COLLECTION_INSTANCES
+from .mocks import add_infra, MOCK_COLLECTION_INSTANCES, generate_mock_session
 import cloudwanderer
 from cloudwanderer import CloudWanderer
 
 
-@patch.dict('os.environ', {'AWS_ACCESS_KEY': '111', 'AWS_DEFAULT_REGION': 'eu-west-2'})
 @mock_ec2
 @mock_sts
 class TestCloudWandererWrite(unittest.TestCase):
@@ -20,10 +19,12 @@ class TestCloudWandererWrite(unittest.TestCase):
         logging.basicConfig(level='INFO')
         add_infra()
 
-    @patch.dict('os.environ', {'AWS_ACCESS_KEY': '111', 'AWS_DEFAULT_REGION': 'eu-west-2'})
     def setUp(self):
         self.mock_storage_connector = MagicMock()
-        self.wanderer = CloudWanderer(storage_connector=self.mock_storage_connector)
+        self.wanderer = CloudWanderer(
+            storage_connector=self.mock_storage_connector,
+            boto3_session=generate_mock_session()
+        )
 
     @patch.object(cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface,
                   'get_resource_collections',
