@@ -31,6 +31,14 @@ def gen_shard(key, shard_id=None):
 
 
 def gen_resource_type_condition_expression(hash_key, account_id=None, region=None):
+    """Generate a condition expression for the resource type index.
+
+    Will match ONLY on hash_key if neither ``account_id`` nor ``region`` are specified.
+    If account_id is specified without region it will match all records matching account_id.
+    If account_id and region are specified it will match records matching both.
+    If region is specified without account_id it will match nothing.
+    """
+
     condition_expression = Key('_resource_type_index').eq(hash_key)
     if not account_id and not region:
         return condition_expression
