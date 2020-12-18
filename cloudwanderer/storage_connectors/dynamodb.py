@@ -128,6 +128,7 @@ class DynamoDbConnector(BaseConnector):
             '_urn': str(urn),
             '_resource_type': f"{gen_resource_type_index(urn.service, urn.resource_type)}",
             '_account_id': f"{urn.account_id}",
+            '_region': f"{urn.region}",
         }
         if attr == 'BaseResource':
             values.update({
@@ -203,7 +204,21 @@ class DynamoDbConnector(BaseConnector):
 
     def read_all(self):
         """Return all DynamoDB table records (not just resources)."""
-        return dynamodb_items_to_resources(self.dynamodb_table.scan()['Items'])
+        yield from dynamodb_items_to_resources(self.dynamodb_table.scan()['Items'])
+
+    def delete_resource(self, urn):
+        """Delete the resource and all its resource attributes from DynamoDB."""
+        resource_records = self.dynamodb_table.query(
+            KeyConditionExpression=Key('_id').eq(primary_key_from_urn(urn))
+        )['Items']
+        with self.dynamodb_table.batch_writer() as batch:
+            for record in resource_records:
+                batch.delete_item(
+                    Key={
+                        '_id': record['_id'],
+                        '_attr': record['_attr']
+                    }
+                )
 
 
 class DynamoDbTableCreator():

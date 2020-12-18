@@ -28,3 +28,7 @@ class BaseConnector(ABC):
     @abstractmethod
     def read_resource_of_type_in_account(self, service, resource_type, account_id):
         """Return all resources of this type from this AWS account."""
+
+    @abstractmethod
+    def delete_resource(self, urn):
+        """Delete this resource and all its resource attributes."""
