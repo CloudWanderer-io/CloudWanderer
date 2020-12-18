@@ -8,7 +8,7 @@ with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-    version='0.3.2',
+    version='0.4.0',
     python_requires='>=3.6.0',
     name='cloudwanderer',
     packages=find_packages(include=['cloudwanderer', 'cloudwanderer.*']),
