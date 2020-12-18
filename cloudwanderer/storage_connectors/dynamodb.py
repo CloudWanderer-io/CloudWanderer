@@ -73,7 +73,10 @@ class DynamoDbConnector(BaseConnector):
 
     Arguments:
         table_name (str): The name of the table to store resources in.
-        endpoint_url (str): optional override endpoint url for DynamoDB.
+        endpoint_url (str): Optional override endpoint url for DynamoDB.
+        boto3_session (boto3.Sesssion):
+            Optional boto3 session to use to interact with DynamoDB.
+            Useful if your DynamoDB table is in a different account/region to your configured defaults.
     """
 
     def __init__(self, table_name='cloud_wanderer', endpoint_url=None, boto3_session=None):
