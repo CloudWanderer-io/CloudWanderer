@@ -6,7 +6,7 @@ A Python package which wanders across your AWS account and records your resource
 
 # Documentation
 
-See the full documentation at [CloudWanderer.io](https://wwww.cloudwanderer.io).
+See the full documentation at [CloudWanderer.io](https://www.cloudwanderer.io).
 
 # Quick Start
 
