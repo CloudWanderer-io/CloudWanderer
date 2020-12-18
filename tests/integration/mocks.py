@@ -4,6 +4,7 @@ from cloudwanderer import AwsUrn
 
 MOCK_COLLECTION_INSTANCES = MagicMock(**{
     'meta.service_name': 'ec2',
+    'resource.model.shape': 'instance'
 })
 MOCK_COLLECTION_INSTANCES.configure_mock(name='instances')
 

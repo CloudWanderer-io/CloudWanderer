@@ -173,7 +173,7 @@ class DynamoDbConnector(BaseConnector):
 
     def _read_from_resource_type_index(self, service, resource_type, account_id=None, region=None):
 
-        for shard_id in range(0, 9):
+        for shard_id in range(0, 10):
             hash_key = gen_shard(gen_resource_type_index(service, resource_type), shard_id)
             logging.debug("Fetching shard %s", hash_key)
             result = self.dynamodb_table.query(
@@ -235,6 +235,7 @@ class DynamoDbConnector(BaseConnector):
         )['Items']
         with self.dynamodb_table.batch_writer() as batch:
             for record in resource_records:
+                logging.debug("Deleting %s", record['_id'])
                 batch.delete_item(
                     Key={
                         '_id': record['_id'],
@@ -244,6 +245,7 @@ class DynamoDbConnector(BaseConnector):
 
     def delete_resource_of_type_in_account_region(self, service, resource_type, account_id, region, urns_to_keep=None):
         """Delete resources of type in account id unless in list of URNs."""
+        logging.debug('Deleting any q%s not in %s', resource_type, str([x.resource_id for x in urns_to_keep]))
         urns_to_keep = urns_to_keep or []
         resource_records = dynamodb_items_to_resources(self._read_from_resource_type_index(
             service=service,
