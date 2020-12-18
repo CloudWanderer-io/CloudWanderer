@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock
 from moto import mock_dynamodb2, mock_ec2
-from ..mocks import generate_mock_session, add_infra, generate_urn
+from ..mocks import generate_mock_session, add_infra, generate_urn, generate_mock_resource_attribute
 from cloudwanderer.storage_connectors import DynamoDbConnector
 
 
@@ -82,13 +82,7 @@ class TestStorageConnectorDynamoDb(unittest.TestCase):
             self.connector.write_resource_attribute(
                 urn=urn,
                 attribute_type='vpc_enable_dns_support',
-                resource_attribute=Mock(
-                    meta=Mock(
-                        data={
-                            'EnableDnsSupport': {'Value': True}
-                        }
-                    )
-                )
+                resource_attribute=generate_mock_resource_attribute({'EnableDnsSupport': {'Value': True}})
             )
         result_raw_before_delete = list(self.connector.read_all())
         result_before_delete = list(self.connector.read_resource_of_type_in_account(

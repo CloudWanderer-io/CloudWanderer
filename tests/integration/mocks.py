@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, Mock
 import boto3
 from cloudwanderer import AwsUrn
 
@@ -32,4 +32,12 @@ def generate_urn(service, resource_type, id):
         service=service,
         resource_type=resource_type,
         resource_id=id
+    )
+
+
+def generate_mock_resource_attribute(data):
+    return Mock(
+        **{
+            'meta.data':data
+        }
     )
