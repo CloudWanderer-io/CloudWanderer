@@ -2,7 +2,7 @@ import logging
 import unittest
 from unittest.mock import MagicMock, patch
 from moto import mock_ec2, mock_sts
-from .mocks import add_infra, MOCK_COLLECTION_INSTANCES, generate_mock_session
+from ..mocks import add_infra, MOCK_COLLECTION_INSTANCES, generate_mock_session
 import cloudwanderer
 from cloudwanderer import CloudWanderer
 

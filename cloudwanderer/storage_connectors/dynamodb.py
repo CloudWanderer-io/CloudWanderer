@@ -48,6 +48,14 @@ def dynamodb_items_to_resources(items):
         )
 
 
+def json_object_hook(dct):
+    """Clean out empty strings to avoid ValidationException."""
+    for key, value in dct.items():
+        if value == '':
+            dct[key] = None
+    return dct
+
+
 def json_default(item):
     """JSON object type converter that handles datetime objects."""
     if isinstance(item, datetime):
@@ -56,7 +64,7 @@ def json_default(item):
 
 def standardise_data_types(resource):
     """Return a dictionary normalised to datatypes acceptable for DynamoDB."""
-    result = json.loads(json.dumps(resource, default=json_default), parse_float=Decimal)
+    result = json.loads(json.dumps(resource, default=json_default), object_hook=json_object_hook, parse_float=Decimal)
     return result
 
 
@@ -68,11 +76,11 @@ class DynamoDbConnector(BaseConnector):
         endpoint_url (str): optional override endpoint url for DynamoDB.
     """
 
-    def __init__(self, table_name='cloud_wanderer', endpoint_url=None):
+    def __init__(self, table_name='cloud_wanderer', endpoint_url=None, boto3_session=None):
         """Initialise the DynamoDbConnector."""
-        self.endpoint_url = endpoint_url
+        self.boto3_session = boto3_session or boto3.Session()
         self.table_name = table_name
-        self.dynamodb = boto3.resource('dynamodb', endpoint_url=endpoint_url)
+        self.dynamodb = self.boto3_session.resource('dynamodb', endpoint_url=endpoint_url)
         self.dynamodb_table = self.dynamodb.Table(table_name)
 
     def init(self):

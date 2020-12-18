@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock
 import boto3
+from cloudwanderer import AwsUrn
 
 MOCK_COLLECTION_INSTANCES = MagicMock(**{
     'meta.service_name': 'ec2',
@@ -19,3 +20,13 @@ def add_infra(count=1):
     resource = boto3.resource('ec2', region_name='eu-west-2')
     images = list(resource.images.all())
     resource.create_instances(ImageId=images[0].image_id, MinCount=count, MaxCount=count)
+
+
+def generate_urn(service, resource_type, id):
+    return AwsUrn(
+        account_id='111111111111',
+        region='eu-west-2',
+        service=service,
+        resource_type=resource_type,
+        resource_id=id
+    )
