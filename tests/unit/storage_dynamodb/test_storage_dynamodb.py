@@ -2,7 +2,7 @@ import unittest
 from moto import mock_dynamodb2, mock_ec2
 from ..mocks import generate_mock_session, add_infra, generate_urn
 from cloudwanderer.storage_connectors import DynamoDbConnector
-import botocore
+
 
 @mock_dynamodb2
 @mock_ec2
@@ -54,4 +54,4 @@ class TestStorageConnectorDynamoDb(unittest.TestCase):
         result_after_delete = next(self.connector.read_resource(urn=urn), None)
 
         assert result_before_delete.urn == urn
-        assert result_after_delete == None
+        assert result_after_delete is None
