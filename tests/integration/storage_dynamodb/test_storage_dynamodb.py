@@ -1,6 +1,6 @@
 import unittest
 from moto import mock_dynamodb2, mock_ec2
-from ..mocks import generate_mock_session, add_infra, generate_urn
+from ..mocks import generate_mock_session, add_infra, generate_urn, generate_mock_resource_attribute
 from cloudwanderer.storage_connectors import DynamoDbConnector
 
 
@@ -19,14 +19,16 @@ class TestStorageConnectorDynamoDb(unittest.TestCase):
     @mock_ec2
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        add_infra()
-
-    def setUp(self):
         self.mock_session = generate_mock_session()
         self.connector = DynamoDbConnector(
             boto3_session=self.mock_session
         )
+
+        add_infra(count=100)
         self.ec2_instances = list(self.mock_session.resource('ec2').instances.all())
+        self.vpcs = list(self.mock_session.resource('ec2').vpcs.all())
+
+    def setUp(self):
         self.reset_dynamodb_table()
 
     def test_write_and_read_resource(self):
@@ -67,3 +69,41 @@ class TestStorageConnectorDynamoDb(unittest.TestCase):
 
         assert result_before_delete.urn == urn
         assert result_after_delete is None
+
+    def test_write_multiple_delete_type_and_read_resource(self):
+        urn = None
+        for vpc in self.vpcs:
+            urn = generate_urn(service='ec2', resource_type='vpcs', id=vpc.vpc_id)
+            self.connector.write_resource(
+                urn=urn,
+                resource=vpc
+            )
+            self.connector.write_resource_attribute(
+                urn=urn,
+                attribute_type='vpc_enable_dns_support',
+                resource_attribute=generate_mock_resource_attribute({'EnableDnsSupport': {'Value': True}})
+            )
+        result_raw_before_delete = list(self.connector.read_all())
+        result_before_delete = list(self.connector.read_resource_of_type_in_account(
+            service=urn.service,
+            resource_type=urn.resource_type,
+            account_id=urn.account_id,
+        ))
+        self.connector.delete_resource_of_type_in_account_region(
+            service=urn.service,
+            resource_type=urn.resource_type,
+            account_id=urn.account_id,
+            region=urn.region,
+            urns_to_keep=[x.urn for x in result_before_delete[:50]]
+        )
+        result_raw_after_delete = list(self.connector.read_all())
+        result_after_delete = list(self.connector.read_resource_of_type_in_account(
+            service=urn.service,
+            resource_type=urn.resource_type,
+            account_id=urn.account_id,
+        ))
+
+        assert len(result_raw_before_delete) == 200
+        assert len(result_before_delete) == 100
+        assert len(result_after_delete) == 50
+        assert len(result_raw_after_delete) == 100

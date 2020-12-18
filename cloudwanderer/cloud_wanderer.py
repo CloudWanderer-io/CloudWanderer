@@ -51,10 +51,20 @@ class CloudWanderer():
                 if boto3_resource_collection.name in exclude_resources:
                     logging.info('Skipping %s as per exclude_resources', boto3_resource_collection.name)
                     continue
-                logging.info(f'--> Fetching {boto3_service.meta.service_name} {boto3_resource_collection.name}')
+                logging.info('--> Fetching %s %s', boto3_service.meta.service_name, boto3_resource_collection.name)
                 resources = self.boto3_interface.get_resource_from_collection(boto3_service, boto3_resource_collection)
+                urns = []
                 for boto3_resource in resources:
-                    self.storage_connector.write_resource(self._get_resource_urn(boto3_resource), boto3_resource)
+                    urn = self._get_resource_urn(boto3_resource)
+                    self.storage_connector.write_resource(urn, boto3_resource)
+                    urns.append(urn)
+                self.storage_connector.delete_resource_of_type_in_account_region(
+                    service=boto3_service.meta.service_name,
+                    resource_type=xform_name(boto3_resource_collection.resource.model.shape),
+                    account_id=self.account_id,
+                    region=self.client_region,
+                    urns_to_keep=urns
+                )
 
     def write_resource_attributes(self, service_name):
         """Write all AWS resource attributes in this account in this service to storage.
@@ -78,9 +88,11 @@ class CloudWanderer():
                     boto3_resource_attribute_service,
                     boto3_resource_attribute_collection
                 )
+
                 for boto3_resource_attribute in resource_attributes:
+                    urn = self._get_resource_urn(boto3_resource_attribute)
                     self.storage_connector.write_resource_attribute(
-                        urn=self._get_resource_urn(boto3_resource_attribute),
+                        urn=urn,
                         resource_attribute=boto3_resource_attribute,
                         attribute_type=boto3_resource_attribute_collection.name
                     )

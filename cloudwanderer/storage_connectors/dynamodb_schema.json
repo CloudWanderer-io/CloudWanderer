@@ -21,7 +21,7 @@
                 "AttributeType": "S"
             },
             {
-                "AttributeName": "_region",
+                "AttributeName": "_resource_type_range",
                 "AttributeType": "S"
             }
         ],
@@ -45,7 +45,7 @@
                         "KeyType": "HASH"
                     },
                     {
-                        "AttributeName": "_region",
+                        "AttributeName": "_resource_type_range",
                         "KeyType": "RANGE"
                     }
                 ]
