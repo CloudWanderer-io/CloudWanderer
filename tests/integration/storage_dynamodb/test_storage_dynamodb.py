@@ -1,5 +1,4 @@
 import unittest
-from unittest.mock import Mock
 from moto import mock_dynamodb2, mock_ec2
 from ..mocks import generate_mock_session, add_infra, generate_urn, generate_mock_resource_attribute
 from cloudwanderer.storage_connectors import DynamoDbConnector

@@ -270,6 +270,7 @@ class DynamoDbConnector(BaseConnector):
         shard_id = shard_id if shard_id is not None else randrange(self.number_of_shards-1)
         return f"{key}#shard{shard_id}"
 
+
 class DynamoDbTableCreator():
     """DynamoDB Table Creator class.
 
