@@ -203,8 +203,8 @@ class DynamoDbConnector(BaseConnector):
             yield from dynamodb_items_to_resources(result['Items'])
 
     def read_all(self):
-        """Return all DynamoDB table records (not just resources)."""
-        yield from dynamodb_items_to_resources(self.dynamodb_table.scan()['Items'])
+        """Return raw data from all DynamoDB table records (not just resources)."""
+        yield from self.dynamodb_table.scan()['Items']
 
     def delete_resource(self, urn):
         """Delete the resource and all its resource attributes from DynamoDB."""

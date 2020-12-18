@@ -10,7 +10,7 @@ class TestStorageConnectorDynamoDb(unittest.TestCase):
 
     def reset_dynamodb_table(self):
         try:
-            self.mock_session.resource('dynamodb').Table(name='cloudwanderer').delete()
+            self.mock_session.resource('dynamodb').Table(name='cloud_wanderer').delete()
         except self.mock_session.client('dynamodb').exceptions.ResourceNotFoundException:
             pass
         finally:
@@ -37,10 +37,22 @@ class TestStorageConnectorDynamoDb(unittest.TestCase):
             resource=self.ec2_instances[0]
         )
         result = next(self.connector.read_resource(urn=urn))
+        result_resource_of_type = next(self.connector.read_resource_of_type('ec2', 'instance'))
+        result_all_resources = next(self.connector.read_all_resources_in_account(account_id=urn.account_id))
+        result_resource_of_type_in_account = next(self.connector.read_resource_of_type_in_account(
+            service='ec2',
+            resource_type='instance',
+            account_id=urn.account_id
+        ))
+        result_all_raw = next(self.connector.read_all())
 
         assert result.urn == urn
         assert result.instance_type == 'm1.small'
         assert result.placement == {'AvailabilityZone': 'eu-west-2a', 'GroupName': None, 'Tenancy': 'default'}
+        assert result.urn == result_resource_of_type.urn
+        assert result.urn == result_all_resources.urn
+        assert result.urn == result_resource_of_type_in_account.urn
+        assert result.cloudwanderer_metadata.resource_data['_id'] == result_all_raw['_id']
 
     def test_write_delete_and_read_resource(self):
         urn = generate_urn(service='ec2', resource_type='instance', id=self.ec2_instances[0].instance_id)
