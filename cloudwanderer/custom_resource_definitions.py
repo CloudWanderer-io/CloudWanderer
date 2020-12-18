@@ -2,7 +2,6 @@
 import os
 import json
 import pathlib
-import botocore
 from boto3.resources.factory import ResourceFactory
 from boto3.utils import ServiceContext
 import boto3
@@ -11,11 +10,11 @@ import boto3
 class CustomResourceFactory():
     """Factory class for generating custom boto3 Resource objects."""
 
-    def __init__(self):
+    def __init__(self, boto3_session):
         """Initialise the ResourceFactory."""
-        self.emitter = boto3.Session().events
+        self.boto3_session = boto3_session or boto3.Session()
+        self.emitter = self.boto3_session.events
         self.factory = ResourceFactory(self.emitter)
-        self.botocore_session = botocore.session.get_session()
 
     def load(self, service_name, resource_definitions=None, service_definition=None):
         """Load the specified resource definition dictionaries into a Resource object."""
@@ -37,7 +36,7 @@ class CustomResourceFactory():
         return service_model.shape_for(shape_name)
 
     def _get_service_model(self, service):
-        client = self.botocore_session.create_client(service)
+        client = self.boto3_session.client(service)
         return client.meta.service_model
 
 
@@ -47,13 +46,14 @@ class CustomResourceDefinitions():
     Allows us to specify resource definitions where they are not supplied by boto3.
     """
 
-    def __init__(self, definition_path='resource_definitions'):
+    def __init__(self, boto3_session=None, definition_path='resource_definitions'):
         """Initialise the CustomResourceDefinition."""
         self.service_definitions_path = os.path.join(
             pathlib.Path(__file__).parent.absolute(),
             definition_path
         )
-        self.factory = CustomResourceFactory()
+        self.boto3_session = boto3_session or boto3.session.Session()
+        self.factory = CustomResourceFactory(boto3_session=self.boto3_session)
 
     def load_custom_resource_definitions(self):
         """Return our custom resource definitions."""
@@ -64,7 +64,7 @@ class CustomResourceDefinitions():
                 service_name=service_name,
                 service_definition=service_definition['service'],
                 resource_definitions=service_definition['resources'],
-            )()
+            )(client=self.boto3_session.client(service_name))
         return services
 
     def _load_service_definition(self, service_name):

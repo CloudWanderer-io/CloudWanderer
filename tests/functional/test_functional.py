@@ -17,7 +17,7 @@ class TestFunctional(unittest.TestCase):
 
     def test_write_all_resources(self):
         self.wanderer.storage_connector.init()
-        self.wanderer.write_all_resources(exclude_resources=['images', 'snapshots'])
+        self.wanderer.write_all_resources(exclude_resources=['images', 'snapshots', 'policies'])
 
     def test_write_custom_resource_definition(self):
         self.wanderer.storage_connector.init()
@@ -25,13 +25,12 @@ class TestFunctional(unittest.TestCase):
 
     def test_read_all(self):
         for x in self.wanderer.storage_connector.read_all():
-            print(x.metadata)
+            print(x)
 
     def test_read_resource_of_type(self):
         vpcs = self.wanderer.read_resource_of_type(service='ec2', resource_type='vpc')
 
-        for i, x in enumerate(vpcs):
-            print(i, dict(self.wanderer.read_resource(x.urn)))
+        print(list(vpcs))
 
     def test_read_resource(self):
         vpc = next(self.wanderer.read_resource_of_type(service='ec2', resource_type='vpc'))
