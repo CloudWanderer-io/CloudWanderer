@@ -15,14 +15,29 @@ from ..aws_urn import AwsUrn
 
 
 def gen_resource_type_index(service, resource_type):
-    """Generate a primary key for the resource type index."""
+    """Generate a hash key for the resource type index."""
     return f"{service}#{resource_type}"
 
 
-def gen_shard(key, shard_id=None):
-    """Append a shard designation to the end of a supplied key."""
-    shard_id = shard_id if shard_id is not None else randrange(9)
-    return f"{key}#shard{shard_id}"
+def gen_resource_type_range(account_id, region):
+    """Generate a range key for the resource type index."""
+    return f"{account_id}#{region}"
+
+
+def gen_resource_type_condition_expression(hash_key, account_id=None, region=None):
+    """Generate a condition expression for the resource type index.
+
+    Will match ONLY on hash_key if neither ``account_id`` nor ``region`` are specified.
+    If ``account_id`` is specified without region it will match all records matching ``account_id``.
+    If ``account_id`` and region are specified it will match records matching both.
+    If region is specified without ``account_id`` it will match nothing.
+    """
+
+    condition_expression = Key('_resource_type_index').eq(hash_key)
+    if not account_id and not region:
+        return condition_expression
+    range_key = gen_resource_type_range(account_id=account_id, region=region)
+    return condition_expression & Key('_resource_type_range').begins_with(range_key)
 
 
 def primary_key_from_urn(urn):
@@ -48,6 +63,14 @@ def dynamodb_items_to_resources(items):
         )
 
 
+def json_object_hook(dct):
+    """Clean out empty strings to avoid ValidationException."""
+    for key, value in dct.items():
+        if value == '':
+            dct[key] = None
+    return dct
+
+
 def json_default(item):
     """JSON object type converter that handles datetime objects."""
     if isinstance(item, datetime):
@@ -56,7 +79,7 @@ def json_default(item):
 
 def standardise_data_types(resource):
     """Return a dictionary normalised to datatypes acceptable for DynamoDB."""
-    result = json.loads(json.dumps(resource, default=json_default), parse_float=Decimal)
+    result = json.loads(json.dumps(resource, default=json_default), object_hook=json_object_hook, parse_float=Decimal)
     return result
 
 
@@ -65,14 +88,21 @@ class DynamoDbConnector(BaseConnector):
 
     Arguments:
         table_name (str): The name of the table to store resources in.
-        endpoint_url (str): optional override endpoint url for DynamoDB.
+        endpoint_url (str): Optional override endpoint url for DynamoDB.
+        boto3_session (boto3.Session):
+            Optional boto3 session to use to interact with DynamoDB.
+            Useful if your DynamoDB table is in a different account/region to your configured defaults.
+        number_of_shards (int):
+            The number of shards to break records across low-cardinality indices.
+            Prevents hot-partitions. If you don't know what this means, ignore this setting.
     """
 
-    def __init__(self, table_name='cloud_wanderer', endpoint_url=None):
+    def __init__(self, table_name='cloud_wanderer', endpoint_url=None, boto3_session=None, number_of_shards=10):
         """Initialise the DynamoDbConnector."""
-        self.endpoint_url = endpoint_url
+        self.boto3_session = boto3_session or boto3.Session()
         self.table_name = table_name
-        self.dynamodb = boto3.resource('dynamodb', endpoint_url=endpoint_url)
+        self.number_of_shards = number_of_shards
+        self.dynamodb = self.boto3_session.resource('dynamodb', endpoint_url=endpoint_url)
         self.dynamodb_table = self.dynamodb.Table(table_name)
 
     def init(self):
@@ -115,13 +145,15 @@ class DynamoDbConnector(BaseConnector):
             '_id': primary_key_from_urn(urn),
             '_attr': attr,
             '_urn': str(urn),
-            '_resource_type': f"{gen_resource_type_index(urn.service, urn.resource_type)}",
+            '_resource_type': gen_resource_type_index(urn.service, urn.resource_type),
             '_account_id': f"{urn.account_id}",
+            '_region': f"{urn.region}",
+            '_resource_type_range': gen_resource_type_range(urn.account_id, urn.region)
         }
         if attr == 'BaseResource':
             values.update({
-                '_resource_type_index': f"{gen_shard(gen_resource_type_index(urn.service, urn.resource_type))}",
-                '_account_id_index': f"{gen_shard(urn.account_id)}"
+                '_resource_type_index': f"{self._gen_shard(gen_resource_type_index(urn.service, urn.resource_type))}",
+                '_account_id_index': f"{self._gen_shard(urn.account_id)}"
             })
         return values
 
@@ -143,15 +175,23 @@ class DynamoDbConnector(BaseConnector):
             service (str): Service name (e.g. ec2)
             resource_type (str): Resource Type (e.g. instance)
         """
-        for shard_id in range(0, 9):
-            key = gen_shard(gen_resource_type_index(service, resource_type), shard_id)
-            logging.debug("Fetching shard %s", key)
+        yield from dynamodb_items_to_resources(self._read_from_resource_type_index(service, resource_type))
+
+    def _read_from_resource_type_index(self, service, resource_type, account_id=None, region=None):
+
+        for shard_id in range(0, self.number_of_shards):
+            hash_key = self._gen_shard(gen_resource_type_index(service, resource_type), shard_id)
+            logging.debug("Fetching shard %s", hash_key)
             result = self.dynamodb_table.query(
                 IndexName='resource_type',
                 Select='ALL_PROJECTED_ATTRIBUTES',
-                KeyConditionExpression=Key('_resource_type_index').eq(key)
+                KeyConditionExpression=gen_resource_type_condition_expression(
+                    hash_key=hash_key,
+                    account_id=account_id,
+                    region=region
+                )
             )
-            yield from dynamodb_items_to_resources(result['Items'])
+            yield from result['Items']
 
     def read_all_resources_in_account(self, account_id):
         """Return all resources in account.
@@ -159,8 +199,8 @@ class DynamoDbConnector(BaseConnector):
         Args:
             account_id (str): AWS Account ID
         """
-        for shard_id in range(0, 9):
-            key = gen_shard(account_id, shard_id)
+        for shard_id in range(0, self.number_of_shards):
+            key = self._gen_shard(account_id, shard_id)
             logging.debug("Fetching shard %s", key)
             result = self.dynamodb_table.query(
                 IndexName='account_id',
@@ -177,8 +217,8 @@ class DynamoDbConnector(BaseConnector):
             resource_type (str): Resouce type, e.g. ``instance``
             account_id (str): AWS Account ID
         """
-        for shard_id in range(0, 9):
-            key = gen_shard(account_id, shard_id)
+        for shard_id in range(0, self.number_of_shards):
+            key = self._gen_shard(account_id, shard_id)
             logging.debug("Fetching shard %s", key)
             result = self.dynamodb_table.query(
                 IndexName='account_id',
@@ -191,8 +231,44 @@ class DynamoDbConnector(BaseConnector):
             yield from dynamodb_items_to_resources(result['Items'])
 
     def read_all(self):
-        """Return all DynamoDB table records (not just resources)."""
-        return dynamodb_items_to_resources(self.dynamodb_table.scan()['Items'])
+        """Return raw data from all DynamoDB table records (not just resources)."""
+        yield from self.dynamodb_table.scan()['Items']
+
+    def delete_resource(self, urn):
+        """Delete the resource and all its resource attributes from DynamoDB."""
+        resource_records = self.dynamodb_table.query(
+            KeyConditionExpression=Key('_id').eq(primary_key_from_urn(urn))
+        )['Items']
+        with self.dynamodb_table.batch_writer() as batch:
+            for record in resource_records:
+                logging.debug("Deleting %s", record['_id'])
+                batch.delete_item(
+                    Key={
+                        '_id': record['_id'],
+                        '_attr': record['_attr']
+                    }
+                )
+
+    def delete_resource_of_type_in_account_region(self, service, resource_type, account_id, region, urns_to_keep=None):
+        """Delete resources of type in account id unless in list of URNs."""
+        logging.debug('Deleting any %s not in %s', resource_type, str([x.resource_id for x in urns_to_keep]))
+        urns_to_keep = urns_to_keep or []
+        resource_records = dynamodb_items_to_resources(self._read_from_resource_type_index(
+            service=service,
+            resource_type=resource_type,
+            account_id=account_id,
+            region=region
+        ))
+        for resource in resource_records:
+            if resource.urn in urns_to_keep:
+                logging.debug('Skipping deletion of %s as we were told to keep it.', resource.urn)
+                continue
+            self.delete_resource(urn=resource.urn)
+
+    def _gen_shard(self, key, shard_id=None):
+        """Append a shard designation to the end of a supplied key."""
+        shard_id = shard_id if shard_id is not None else randrange(self.number_of_shards-1)
+        return f"{key}#shard{shard_id}"
 
 
 class DynamoDbTableCreator():

@@ -19,6 +19,10 @@
             {
                 "AttributeName": "_account_id_index",
                 "AttributeType": "S"
+            },
+            {
+                "AttributeName": "_resource_type_range",
+                "AttributeType": "S"
             }
         ],
         "BillingMode": "PAY_PER_REQUEST",
@@ -37,9 +41,14 @@
                     "ProjectionType": "KEYS_ONLY"
                 },
                 "KeySchema": [{
-                    "AttributeName": "_resource_type_index",
-                    "KeyType": "HASH"
-                }]
+                        "AttributeName": "_resource_type_index",
+                        "KeyType": "HASH"
+                    },
+                    {
+                        "AttributeName": "_resource_type_range",
+                        "KeyType": "RANGE"
+                    }
+                ]
             },
             {
                 "IndexName": "account_id",
