@@ -35,7 +35,6 @@ def gen_resource_type_condition_expression(hash_key, account_id=None, region=Non
     if not account_id and not region:
         return condition_expression
     range_key = gen_resource_type_range(account_id=account_id, region=region)
-    print(range_key)
     return condition_expression & Key('_resource_type_range').begins_with(range_key)
 
 
@@ -181,7 +180,9 @@ class DynamoDbConnector(BaseConnector):
                 IndexName='resource_type',
                 Select='ALL_PROJECTED_ATTRIBUTES',
                 KeyConditionExpression=gen_resource_type_condition_expression(
-                    hash_key=hash_key
+                    hash_key=hash_key,
+                    account_id=account_id,
+                    region=region
                 )
             )
             yield from result['Items']
