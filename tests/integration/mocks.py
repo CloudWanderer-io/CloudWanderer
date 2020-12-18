@@ -20,6 +20,8 @@ def add_infra(count=1):
     resource = boto3.resource('ec2', region_name='eu-west-2')
     images = list(resource.images.all())
     resource.create_instances(ImageId=images[0].image_id, MinCount=count, MaxCount=count)
+    for i in range(count-1):
+        resource.create_vpc(CidrBlock='10.0.0.0/16')
 
 
 def generate_urn(service, resource_type, id):

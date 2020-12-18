@@ -15,14 +15,28 @@ from ..aws_urn import AwsUrn
 
 
 def gen_resource_type_index(service, resource_type):
-    """Generate a primary key for the resource type index."""
+    """Generate a hash key for the resource type index."""
     return f"{service}#{resource_type}"
+
+
+def gen_resource_type_range(account_id, region):
+    """Generate a range key for the resource type index."""
+    return f"{account_id}#{region}"
 
 
 def gen_shard(key, shard_id=None):
     """Append a shard designation to the end of a supplied key."""
     shard_id = shard_id if shard_id is not None else randrange(9)
     return f"{key}#shard{shard_id}"
+
+
+def gen_resource_type_condition_expression(hash_key, account_id=None, region=None):
+    condition_expression = Key('_resource_type_index').eq(hash_key)
+    if not account_id and not region:
+        return condition_expression
+    range_key = gen_resource_type_range(account_id=account_id, region=region)
+    print(range_key)
+    return condition_expression & Key('_resource_type_range').begins_with(range_key)
 
 
 def primary_key_from_urn(urn):
@@ -74,7 +88,7 @@ class DynamoDbConnector(BaseConnector):
     Arguments:
         table_name (str): The name of the table to store resources in.
         endpoint_url (str): Optional override endpoint url for DynamoDB.
-        boto3_session (boto3.Sesssion):
+        boto3_session (boto3.Session):
             Optional boto3 session to use to interact with DynamoDB.
             Useful if your DynamoDB table is in a different account/region to your configured defaults.
     """
@@ -126,9 +140,10 @@ class DynamoDbConnector(BaseConnector):
             '_id': primary_key_from_urn(urn),
             '_attr': attr,
             '_urn': str(urn),
-            '_resource_type': f"{gen_resource_type_index(urn.service, urn.resource_type)}",
+            '_resource_type': gen_resource_type_index(urn.service, urn.resource_type),
             '_account_id': f"{urn.account_id}",
             '_region': f"{urn.region}",
+            '_resource_type_range': gen_resource_type_range(urn.account_id, urn.region)
         }
         if attr == 'BaseResource':
             values.update({
@@ -155,15 +170,21 @@ class DynamoDbConnector(BaseConnector):
             service (str): Service name (e.g. ec2)
             resource_type (str): Resource Type (e.g. instance)
         """
+        yield from dynamodb_items_to_resources(self._read_from_resource_type_index(service, resource_type))
+
+    def _read_from_resource_type_index(self, service, resource_type, account_id=None, region=None):
+
         for shard_id in range(0, 9):
-            key = gen_shard(gen_resource_type_index(service, resource_type), shard_id)
-            logging.debug("Fetching shard %s", key)
+            hash_key = gen_shard(gen_resource_type_index(service, resource_type), shard_id)
+            logging.debug("Fetching shard %s", hash_key)
             result = self.dynamodb_table.query(
                 IndexName='resource_type',
                 Select='ALL_PROJECTED_ATTRIBUTES',
-                KeyConditionExpression=Key('_resource_type_index').eq(key)
+                KeyConditionExpression=gen_resource_type_condition_expression(
+                    hash_key=hash_key
+                )
             )
-            yield from dynamodb_items_to_resources(result['Items'])
+            yield from result['Items']
 
     def read_all_resources_in_account(self, account_id):
         """Return all resources in account.
@@ -219,6 +240,21 @@ class DynamoDbConnector(BaseConnector):
                         '_attr': record['_attr']
                     }
                 )
+
+    def delete_resource_type(self, service, resource_type, account_id, region, urns_to_keep=None):
+        """Delete resources of type in account id unless in list of URNs."""
+        urns_to_keep = urns_to_keep or []
+        resource_records = dynamodb_items_to_resources(self._read_from_resource_type_index(
+            service=service,
+            resource_type=resource_type,
+            account_id=account_id,
+            region=region
+        ))
+        for resource in resource_records:
+            if resource.urn in urns_to_keep:
+                logging.debug('Skipping deletion of %s as we were told to keep it.', resource.urn)
+                continue
+            self.delete_resource(urn=resource.urn)
 
 
 class DynamoDbTableCreator():
