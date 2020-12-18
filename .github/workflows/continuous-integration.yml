@@ -24,7 +24,7 @@ jobs:
         pip install -r requirements.txt
     - name: Lint with flake8
       run: |
-        flake8 --count --exit-zero --statistics
+        flake8 --count --statistics
     - name: Lint with pydocstyle
       run: |
         pydocstyle
