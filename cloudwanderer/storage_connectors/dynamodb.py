@@ -241,7 +241,7 @@ class DynamoDbConnector(BaseConnector):
                     }
                 )
 
-    def delete_resource_type(self, service, resource_type, account_id, region, urns_to_keep=None):
+    def delete_resource_of_type_in_account_region(self, service, resource_type, account_id, region, urns_to_keep=None):
         """Delete resources of type in account id unless in list of URNs."""
         urns_to_keep = urns_to_keep or []
         resource_records = dynamodb_items_to_resources(self._read_from_resource_type_index(

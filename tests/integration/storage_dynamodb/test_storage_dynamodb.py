@@ -96,7 +96,7 @@ class TestStorageConnectorDynamoDb(unittest.TestCase):
             resource_type=urn.resource_type,
             account_id=urn.account_id,
         ))
-        self.connector.delete_resource_type(
+        self.connector.delete_resource_of_type_in_account_region(
             service=urn.service,
             resource_type=urn.resource_type,
             account_id=urn.account_id,
