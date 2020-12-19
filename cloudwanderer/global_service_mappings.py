@@ -66,6 +66,23 @@ class GlobalServiceMapping:
         self.service_mapping = service_mapping
         self.boto3_client = self.boto3_session.client(service_name)
 
+    def has_global_resources_in_region(self, region):
+        """Return True if service has _only_ global resources and their primary endpoint is this region."""
+        if self.has_regional_resources:
+            return False
+        return self._service_details.get('region') == region
+
+    @property
+    def has_regional_resources(self):
+        """Returns True if this global service has resources in regions other than the primary service region."""
+        return self._service_details.get('regionalResources', False)
+
+    @property
+    def _service_details(self):
+        """Return the dictionary specifying details about the global service."""
+        return self.service_mapping.get('service', {})
+
+
     def get_resource_region(self, resource):
         """Get the region of a boto3.Resource object."""
         if self.service_mapping is None:
