@@ -68,6 +68,7 @@ class CloudWanderer():
                             urn.region,
                             self.boto3_session.region_name
                         )
+                        continue
                     self.storage_connector.write_resource(urn, boto3_resource)
                     urns.append(urn)
                 self.storage_connector.delete_resource_of_type_in_account_region(
