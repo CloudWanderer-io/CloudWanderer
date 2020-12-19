@@ -20,7 +20,6 @@ class GlobalServiceMappingCollection:
     def __init__(self, boto3_session=None):
         """Load and retrieve global service mappings."""
         self.boto3_session = boto3_session or boto3.Session()
-        self.factory = GlobalServiceMapping
         self.global_service_mappings_path = os.path.join(
             pathlib.Path(__file__).parent.absolute(),
             'global_service_mappings'
@@ -31,14 +30,12 @@ class GlobalServiceMappingCollection:
         """Returns the mapping for service_name."""
         if self._global_service_maps is None:
             self._global_service_maps = self.get_global_service_maps()
-        return self._global_service_maps.get(
-            service_name,
-            GlobalServiceMapping(
-                service_name=service_name,
-                service_mapping=None,
-                boto3_session=self.boto3_session
-            )
+        default_service_map = GlobalServiceMapping(
+            service_name=service_name,
+            service_mapping=None,
+            boto3_session=self.boto3_session
         )
+        return self._global_service_maps.get(service_name, default_service_map)
 
     def get_global_service_maps(self):
         """Return our custom resource definitions."""
@@ -65,7 +62,7 @@ class GlobalServiceMappingCollection:
 
 
 class GlobalServiceMapping:
-    """Understand the regional locations of global services and their resources.
+    """Understand the location of global services and their resources.
 
     Arguments:
         service_name (str): The name of the service mapping to instantiate.

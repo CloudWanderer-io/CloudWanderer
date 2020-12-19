@@ -148,10 +148,9 @@ class CloudWanderer():
         if resource_id.startswith('arn:'):
             resource_id = ''.join(resource_id.split(':')[5:])
         global_service_map = self.global_service_maps.get_global_service_map(resource.meta.service_name)
-        region = global_service_map.get_resource_region(resource)
         return AwsUrn(
             account_id=self.account_id,
-            region=region,
+            region=global_service_map.get_resource_region(resource),
             service=resource.meta.service_name,
             resource_type=xform_name(resource.meta.resource_model.shape),
             resource_id=resource_id
