@@ -11,8 +11,14 @@ import jmespath
 
 
 class GlobalServiceMappingCollection:
+    """Load and retrieve global service mappings.
+
+    Arguments:
+        boto3_session (boto3.Sesssion): The boto3 session object to use for any queries.
+    """
 
     def __init__(self, boto3_session=None):
+        """Load and retrieve global service mappings."""
         self.boto3_session = boto3_session or boto3.Session()
         self.factory = GlobalServiceMapping
         self.global_service_mappings_path = os.path.join(
@@ -59,8 +65,16 @@ class GlobalServiceMappingCollection:
 
 
 class GlobalServiceMapping:
+    """Understand the regional locations of global services and their resources.
+
+    Arguments:
+        service_name (str): The name of the service mapping to instantiate.
+        service_mapping (dict): The service mapping to instantiate.
+        boto3_session (boto3.Session): The boto3 session to use to query for resource region information.
+    """
 
     def __init__(self, service_name, service_mapping, boto3_session=None):
+        """Instantiate the GlobalServiceMapping."""
         self.boto3_session = boto3_session or boto3.Session()
         self.service_name = service_name
         self.service_mapping = service_mapping
@@ -86,7 +100,6 @@ class GlobalServiceMapping:
     def _service_details(self):
         """Return the dictionary specifying details about the global service."""
         return self.service_mapping.get('service', {})
-
 
     def get_resource_region(self, resource):
         """Get the region of a boto3.Resource object."""
@@ -124,9 +137,6 @@ class GlobalServiceMapping:
         return self.service_mapping['resources'][resource_type]
 
 
-class GlobalServiceMappingNotFound(Exception):
-    pass
-
-
 class GlobalServiceResourceMappingNotFound(Exception):
+    """Global Service Resource Mapping not Found."""
     pass
