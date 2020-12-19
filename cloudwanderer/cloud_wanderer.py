@@ -60,6 +60,14 @@ class CloudWanderer():
                 urns = []
                 for boto3_resource in resources:
                     urn = self._get_resource_urn(boto3_resource)
+                    if urn.region != self.boto3_session.region_name:
+                        logging.debug(
+                            "Skipping %s %s in %s because it is not in %s",
+                            urn.resource_type,
+                            urn.resource_id,
+                            urn.region,
+                            self.boto3_session.region_name
+                        )
                     self.storage_connector.write_resource(urn, boto3_resource)
                     urns.append(urn)
                 self.storage_connector.delete_resource_of_type_in_account_region(
