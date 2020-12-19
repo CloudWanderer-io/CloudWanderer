@@ -42,6 +42,14 @@ class CloudWanderer():
         """
         logging.info("Writing all %s resources in %s", service_name, self.boto3_session.region_name)
         exclude_resources = exclude_resources or []
+        service_map = self.global_service_maps.get_global_service_map(service_name=service_name)
+        if (
+            not service_map.has_global_resources_in_region(self.boto3_session.region_name)
+            and not service_map.has_regional_resources
+        ):
+            logging.info("Skipping %s as it does not have resources in %s",
+                         service_name, self.boto3_session.region_name)
+            return
         for boto3_service in self.boto3_interface.get_resource_service_by_name(service_name):
             for boto3_resource_collection in self.boto3_interface.get_resource_collections(boto3_service):
                 if boto3_resource_collection.name in exclude_resources:

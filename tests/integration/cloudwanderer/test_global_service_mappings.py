@@ -45,6 +45,9 @@ class TestGlobalServiceMappings(unittest.TestCase):
         gsm = self.maps.get_global_service_map('ec2')
 
         assert gsm.get_resource_region(vpc) == 'eu-west-2'
+        assert gsm.has_global_resources_in_region('us-east-1') == False
+        assert gsm.has_global_resources_in_region('eu-west-1') == False
+        assert gsm.has_regional_resources == True
 
     def test_global_service_single_region_resource(self):
         iam_group = self.mock_session.resource('iam').Group('test-group')

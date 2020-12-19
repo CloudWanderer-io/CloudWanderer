@@ -74,7 +74,12 @@ class GlobalServiceMapping:
 
     @property
     def has_regional_resources(self):
-        """Returns True if this global service has resources in regions other than the primary service region."""
+        """Returns True if this global service has resources in regions other than the primary service region.
+
+        Also returns True if there is no service_mapping (i.e. this is not a known global service).
+        """
+        if self.service_mapping is None:
+            return True
         return self._service_details.get('regionalResources', False)
 
     @property
