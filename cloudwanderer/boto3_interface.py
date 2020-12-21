@@ -25,17 +25,18 @@ class CloudWandererBoto3Interface:
     def _get_available_services(self):
         return self.boto3_session.get_available_resources()
 
-    def get_all_resource_services(self):
+    def get_all_resource_services(self, service_args=None):
         """Return all the boto3 service Resource objects that are available, both built-in and custom."""
         for service_name in self._get_available_services():
-            yield self.get_boto3_resource_service(service_name)
+            yield self.get_boto3_resource_service(service_name, service_args)
         for service_name in self.custom_resource_definitions:
-            yield self.get_custom_resource_service(service_name)
+            yield self.get_custom_resource_service(service_name, service_args)
 
-    def get_boto3_resource_service(self, service_name):
+    def get_boto3_resource_service(self, service_name, service_args=None):
         """Return the boto3 service Resource object matching this service_name."""
+        service_args = service_args or {}
         try:
-            return self.boto3_session.resource(service_name)
+            return self.boto3_session.resource(service_name, **service_args)
         except ResourceNotExistsError:
             return None
 
@@ -43,9 +44,9 @@ class CloudWandererBoto3Interface:
         """Get the custom resource definition matching this service name."""
         return self.custom_resource_definitions.get(service_name)
 
-    def get_resource_service_by_name(self, service_name):
+    def get_resource_service_by_name(self, service_name, service_args=None):
         """Return all services matching name, boto3 or custom."""
-        boto3_resource_service = self.get_boto3_resource_service(service_name)
+        boto3_resource_service = self.get_boto3_resource_service(service_name, service_args)
         if boto3_resource_service:
             yield boto3_resource_service
         custom_resource_service = self.get_custom_resource_service(service_name)

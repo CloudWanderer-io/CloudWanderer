@@ -1,7 +1,7 @@
 import logging
 import unittest
 from unittest.mock import MagicMock, patch
-from moto import mock_ec2, mock_sts
+from moto import mock_ec2, mock_sts, mock_iam
 from ..mocks import add_infra, MOCK_COLLECTION_INSTANCES, generate_mock_session
 import cloudwanderer
 from cloudwanderer import CloudWanderer
@@ -9,10 +9,12 @@ from cloudwanderer import CloudWanderer
 
 @mock_ec2
 @mock_sts
+@mock_iam
 class TestCloudWandererWrite(unittest.TestCase):
 
     @mock_ec2
     @mock_sts
+    @mock_iam
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         logging.basicConfig(level='INFO')
@@ -70,3 +72,20 @@ class TestCloudWandererWrite(unittest.TestCase):
         assert urn.resource_type == 'instance'
 
         assert set(['VpcId', 'SubnetId', 'InstanceId']).issubset(resource.meta.data.keys())
+
+    def test_write_all_resources_specify_region(self):
+
+        with patch.object(
+            cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface,
+            'get_all_resource_services',
+                new=MagicMock(return_value=[generate_mock_session().resource('iam')])):
+            self.wanderer.write_all_resources(region_name='us-east-1')
+
+        # self.mock_storage_connector.write_resource.assert_called_with()
+        urn, resource = self.mock_storage_connector.write_resource.call_args_list[0][0]
+        assert urn.account_id == '123456789012'
+        assert urn.region == 'us-east-1'
+        assert urn.service == 'iam'
+        assert urn.resource_type == 'group'
+
+        assert set(['GroupId', 'GroupName', 'Path']).issubset(resource.meta.data.keys())
