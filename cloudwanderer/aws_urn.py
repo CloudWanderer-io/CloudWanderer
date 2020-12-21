@@ -1,4 +1,22 @@
-"""A dataclass for building and querying AWS URNs."""
+"""A dataclass for building and querying AWS URNs.
+
+AWS URNs are a standardised string format (name borrowed from Pulumi) which provide all the information required to
+find a resource in AWS, whereas AWS ARNs do not always provide this information.
+
+.. code-block ::
+
+    # Format
+    'urn:aws:<account_id>:<region>:<service>:<resource_type>:<resource_id>'
+    # e.g.
+    'urn:aws:111111111111:eu-west-2:ec2:vpc:vpc-11111111'
+
+Example:
+
+    >>> from cloudwanderer import AwsUrn
+    >>> AwsUrn.from_string('urn:aws:111111111111:eu-west-2:ec2:vpc:vpc-11111111')
+    AwsUrn(account_id='111111111111', region='eu-west-2', service='ec2', resource_type='vpc', resource_id='vpc-11111111')
+
+"""
 
 
 class AwsUrn():

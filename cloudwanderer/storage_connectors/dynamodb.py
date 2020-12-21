@@ -89,7 +89,7 @@ class DynamoDbConnector(BaseConnector):
     Arguments:
         table_name (str): The name of the table to store resources in.
         endpoint_url (str): Optional override endpoint url for DynamoDB.
-        boto3_session (boto3.Session):
+        boto3_session (boto3.session.Session):
             Optional boto3 session to use to interact with DynamoDB.
             Useful if your DynamoDB table is in a different account/region to your configured defaults.
         number_of_shards (int):
@@ -117,7 +117,7 @@ class DynamoDbConnector(BaseConnector):
         """Write the specified resource to DynamoDB.
 
         Arguments:
-            urn (cloudwanderer.AwsUrn): The URN of the resource.
+            urn (cloudwanderer.aws_urn.AwsUrn): The URN of the resource.
             resource: The boto3 Resource object representing the resource.
         """
         logging.debug(f"Writing: {urn} to {self.table_name}")
@@ -158,10 +158,10 @@ class DynamoDbConnector(BaseConnector):
         return values
 
     def read_resource(self, urn):
-        """Return the resource with the specified :class:`cloudwanderer.AwsUrn`.
+        """Return the resource with the specified :class:`cloudwanderer.aws_urn.AwsUrn)`.
 
         Arguments:
-            urn (cloudwanderer.AwsUrn): The AWS URN of the resource to return
+            urn (cloudwanderer.aws_urn.AwsUrn): The AWS URN of the resource to return
         """
         result = self.dynamodb_table.query(
             KeyConditionExpression=Key('_id').eq(primary_key_from_urn(urn))
@@ -172,8 +172,8 @@ class DynamoDbConnector(BaseConnector):
         """Return all resources of type.
 
         Args:
-            service (str): Service name (e.g. ec2)
-            resource_type (str): Resource Type (e.g. instance)
+            service (str): Service name (e.g. ``'ec2'``)
+            resource_type (str): Resource Type (e.g. ``'instance'``)
         """
         yield from dynamodb_items_to_resources(self._read_from_resource_type_index(service, resource_type))
 
@@ -213,8 +213,8 @@ class DynamoDbConnector(BaseConnector):
         """Return all resources of the specified type in the specified AWS account.
 
         Args:
-            service (str): Service name, e.g. ``ec2``
-            resource_type (str): Resouce type, e.g. ``instance``
+            service (str): Service name, e.g. ``'ec2'``
+            resource_type (str): Resource type, e.g. ``'instance'``
             account_id (str): AWS Account ID
         """
         for shard_id in range(0, self.number_of_shards):

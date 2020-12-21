@@ -1,5 +1,5 @@
 AWS Urns
 ===============
 
-.. autoclass :: cloudwanderer.aws_urn.AwsUrn
+.. automodule :: cloudwanderer.aws_urn
     :members:

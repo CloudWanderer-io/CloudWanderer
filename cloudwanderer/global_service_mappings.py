@@ -1,6 +1,8 @@
-"""Provides a way to map global resources back to the regions they reside in.
+"""Provides a way to map resources back to the regions they reside in.
 
-Most well-known example of this is s3 buckets which require an additional API call to get their region.
+In some cases we need to perform additional API calls to discover the region in which a resource resides.
+The most well-known example of this is s3 buckets which require an additional API call to get their region.
+When a resource is passed in that doesn't have a Global Service Mapping, the :class:`~boto3.session.Session`'s region is used.
 """
 import os
 import pathlib
@@ -14,7 +16,7 @@ class GlobalServiceMappingCollection:
     """Load and retrieve global service mappings.
 
     Arguments:
-        boto3_session (boto3.Sesssion): The boto3 session object to use for any queries.
+        boto3_session (boto3.session.Session): The :class:`boto3.session.Session` object to use for any queries.
     """
 
     def __init__(self, boto3_session=None):
@@ -67,7 +69,8 @@ class GlobalServiceMapping:
     Arguments:
         service_name (str): The name of the service mapping to instantiate.
         service_mapping (dict): The service mapping to instantiate.
-        boto3_session (boto3.Session): The boto3 session to use to query for resource region information.
+        boto3_session (boto3.session.Session): The :class:`~boto3.session.Session`
+            to use to query for resource region information.
     """
 
     def __init__(self, service_name, service_mapping, boto3_session=None):
@@ -99,7 +102,11 @@ class GlobalServiceMapping:
         return self.service_mapping.get('service', {})
 
     def get_resource_region(self, resource):
-        """Get the region of a boto3.Resource object."""
+        """Get the region of a :class:`boto3.resources.base.ServiceResource` object.
+
+        Arguments:
+            resource (boto3.resources.base.ServiceResource): The :class:`~boto3.resources.base.ServiceResource` to find the region of.
+        """
         if self.service_mapping is None:
             return self.boto3_session.region_name
         resource_type = botocore.xform_name(resource.meta.resource_model.shape)

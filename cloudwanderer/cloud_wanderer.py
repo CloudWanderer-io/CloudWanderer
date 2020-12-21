@@ -40,6 +40,8 @@ class CloudWanderer():
     def write_resources(self, service_name, exclude_resources=None, region_name=None, service_args=None):
         """Write all AWS resources in this region in this service to storage.
 
+        Cleans up any resources in the StorageConnector that no longer exist.
+
         Arguments:
             service_name (str): The name of the service to write resources for (e.g. ``'ec2'``)
             exclude_resources (list): A list of resource names to exclude (e.g. ``['instance']``)
@@ -74,6 +76,8 @@ class CloudWanderer():
 
     def write_resources_of_type(self, service_name, resource_type=None, region_name=None, service_args=None):
         """Write all AWS resources in this region in this service to storage.
+
+        Cleans up any resources in the StorageConnector that no longer exist.
 
         Arguments:
             service_name (str): The name of the service to write resources for (e.g. ``'ec2'``)
@@ -134,7 +138,7 @@ class CloudWanderer():
             region_name (str): The name of the region to get resources from
                 (defaults to session default if not specified)
             service_args (dict): Arguments to pass into the boto3 service Resource object.
-                See: :meth:`boto3.session.Session.resource
+                See: :meth:`boto3.session.Session.resource`
         """
         for boto3_service in self.custom_attributes_interface.get_all_resource_services():
             self.write_resource_attributes(

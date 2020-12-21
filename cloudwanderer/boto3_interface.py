@@ -1,6 +1,6 @@
 """Code which abstracts away the majority of boto3 interrogation.
 
-Provides simpler methods for CloudWanderer to call.
+Provides simpler methods for :class:`~.cloud_wanderer.CloudWanderer` to call.
 """
 import logging
 import boto3
@@ -115,7 +115,15 @@ class CloudWandererBoto3Interface:
 
 
 class CustomAttributesInterface(CloudWandererBoto3Interface):
-    """Simplifies lookup of CloudWanderer custom attributes."""
+    """Simplifies lookup of CloudWanderer custom attributes.
+
+    Custom attributes use the :class:`boto3.resources.base.ServiceResource` model to load attribute information.
+    This means we can use a lot of the methods from :class:`.CloudWandererBoto3Interface`
+    in this class by inherting them. We simply have to override a few in order to load the attribute definitions.
+
+    Arguments:
+        boto3_session (boto3.session.Session): The :class:`boto3.session.Session` object to use for any queries.
+    """
 
     def __init__(self, boto3_session):
         """Simplifies lookup of CloudWanderer custom attributes."""
