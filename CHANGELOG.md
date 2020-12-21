@@ -4,6 +4,7 @@
 - Identify global services and their primary region using `GlobalServiceMapping` objects.
 - No longer queries services which do not exist in the region being queried
 - No longer writes resources which do not exist in the region being queried
+- Added type hints
 
 # 0.5.0
 
