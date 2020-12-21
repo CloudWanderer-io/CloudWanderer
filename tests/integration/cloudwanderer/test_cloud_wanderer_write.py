@@ -57,7 +57,6 @@ class TestCloudWandererWrite(unittest.TestCase):
 
         self.mock_storage_connector.write_resource_attribute.assert_called_once()
         call_dict = self.mock_storage_connector.write_resource_attribute.call_args_list[0][1]
-
         assert call_dict['attribute_type'] == 'vpc_enable_dns_support'
         assert call_dict['urn'].resource_type == 'vpc'
         assert set(['EnableDnsSupport']).issubset(call_dict['resource_attribute'].meta.data.keys())
@@ -66,6 +65,24 @@ class TestCloudWandererWrite(unittest.TestCase):
         self.wanderer.write_resource_attributes('iam', region_name='eu-west-1')
 
         self.mock_storage_connector.write_resource_attribute.assert_not_called()
+
+    def test_write_all_resource_attributes(self):
+        self.wanderer.write_all_resource_attributes(region_name='eu-west-1')
+
+        self.mock_storage_connector.write_resource_attribute.assert_called()
+        call_dict = self.mock_storage_connector.write_resource_attribute.call_args_list[0][1]
+        assert call_dict['attribute_type'] == 'vpc_enable_dns_support'
+        assert call_dict['urn'].resource_type == 'vpc'
+        assert set(['EnableDnsSupport']).issubset(call_dict['resource_attribute'].meta.data.keys())
+
+    def test_write_resource_attributes_of_type(self):
+        self.wanderer.write_resource_attributes_of_type('ec2', 'vpc')
+
+        self.mock_storage_connector.write_resource_attribute.assert_called()
+        call_dict = self.mock_storage_connector.write_resource_attribute.call_args_list[0][1]
+        assert call_dict['attribute_type'] == 'vpc_enable_dns_support'
+        assert call_dict['urn'].resource_type == 'vpc'
+        assert set(['EnableDnsSupport']).issubset(call_dict['resource_attribute'].meta.data.keys())
 
     @patch.object(
         cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface,

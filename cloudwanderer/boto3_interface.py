@@ -36,13 +36,17 @@ class CloudWandererBoto3Interface:
         except ResourceNotExistsError:
             return None
 
+    def get_custom_resource_service(self, service_name, service_args):
+        """Get the custom resource definition matching this service name."""
+        return self.custom_resource_definitions.resource(service_name, service_args)
+
     def get_resource_service_by_name(self, service_name, region_name=None, service_args=None):
         """Return all services matching name, boto3 or custom."""
         service_args = service_args or {'region_name': region_name}
         boto3_resource_service = self.get_boto3_resource_service(service_name, service_args)
         if boto3_resource_service:
             yield boto3_resource_service
-        custom_resource_service = self.custom_resource_definitions.resource(service_name, service_args)
+        custom_resource_service = self.get_custom_resource_service(service_name, service_args)
         if custom_resource_service:
             yield custom_resource_service
 
@@ -77,7 +81,6 @@ class CloudWandererBoto3Interface:
             boto3_resource_collection = next(
                 self.get_resource_collection_by_resource_type(boto3_service, resource_type),
                 None)
-            logging.warning(boto3_resource_collection.__dict__)
             if boto3_resource_collection is not None:
                 yield from self.get_resource_from_collection(
                     boto3_service=boto3_service,
@@ -133,7 +136,6 @@ class CustomAttributesInterface(CloudWandererBoto3Interface):
                 self.get_resource_attributes_service_by_name
             boto3_resource_collection: The boto3 collection of attributes we want to retrieve.
         """
-        logging.warning('getting resources from collection...')
         resource_attributes = super().get_resource_from_collection(
             boto3_service=boto3_service,
             boto3_resource_collection=boto3_resource_collection
@@ -142,7 +144,6 @@ class CustomAttributesInterface(CloudWandererBoto3Interface):
             # A resource_attribute will initially be populated with its parent resource's data,
             # the attribute data is loaded on .load()
             resource_attribute.load()
-            logging.warning(resource_attribute)
             # I'm fairly sure there must be a way to clean out the response metadata with botocore shapes but
             # I haven't figured out how yet.
             if 'ResponseMetadata' in resource_attribute.meta.data:

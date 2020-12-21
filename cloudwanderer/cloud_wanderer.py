@@ -25,13 +25,11 @@ class CloudWanderer():
         self.global_service_maps = GlobalServiceMappingCollection(boto3_session=self.boto3_session)
         self._account_id = None
 
-    def write_all_resources(self, exclude_resources=None, region=None, service_args=None, region_name=None):
+    def write_all_resources(self, exclude_resources=None, region_name=None, service_args=None):
         """Write all AWS resources in this account region from all services to storage."""
         exclude_resources = exclude_resources or []
 
-        service_args = service_args or {}
-        if region_name:
-            service_args['region_name'] = region_name
+        service_args = service_args or {'region_name': region_name}
 
         for boto3_service in self.boto3_interface.get_all_resource_services():
             self.write_resources(
@@ -125,13 +123,8 @@ class CloudWanderer():
             return False
         return True
 
-    def write_all_resource_attributes(self):
-        services = self.custom_attributes_interface.get_resource_attributes_service_by_name(service_name)
-        for service_name in services:
-            self.write_resource_attributes(service_name)
-
-    def write_resource_attributes(self, service_name, region_name=None, service_args=None):
-        """Write all AWS resource attributes in this account in this service to storage.
+    def write_all_resource_attributes(self, exclude_resources=None, region_name=None, service_args=None):
+        """Write all AWS resource attributes in this account in this region to storage.
 
         These custom resource attribute definitions allow us to fetch resource attributes that are not returned by the
         resource's default describe calls.
@@ -141,7 +134,36 @@ class CloudWanderer():
             service_name (str): The name of the service to write the attributes of (e.g. ``ec2``)
         """
         service_args = service_args or {'region_name': region_name}
+
+        for boto3_service in self.custom_attributes_interface.get_all_resource_services():
+            self.write_resource_attributes(
+                service_name=boto3_service.meta.service_name,
+                exclude_resources=exclude_resources,
+                region_name=region_name,
+                service_args=service_args
+            )
+
+        # services = self.custom_attributes_interface.get_resource_attributes_service_by_name(service_name)
+        # for service_name in services:
+        #     self.write_resource_attributes(service_name)
+
+    def write_resource_attributes(self, service_name, exclude_resources=None, region_name=None, service_args=None):
+        """Write all AWS resource attributes in this account in this service to storage.
+
+        These custom resource attribute definitions allow us to fetch resource attributes that are not returned by the
+        resource's default describe calls.
+        Unlike :meth:`~CloudWanderer.write_resources` and :meth:`~CloudWanderer.write_resources_of_type` this method does not clean up stale resource attributes from storage.
+
+        Arguments:
+            service_name (str): The name of the service to write the attributes of (e.g. ``'ec2'``)
+            exclude_attributes (list): A list of resources not to write attributes for (e.g. ``['vpc']``)
+        """
+        exclude_resources = exclude_resources or []
+        service_args = service_args or {'region_name': region_name}
         for resource_name in self.custom_attributes_interface.get_service_resource_names(service_name):
+            if resource_name in exclude_resources:
+                logging.info('Skipping %s as per exclude_resources', resource_name)
+                continue
             self.write_resource_attributes_of_type(service_name, resource_name)
 
     def write_resource_attributes_of_type(self, service_name, resource_type, service_args=None):
@@ -157,8 +179,6 @@ class CloudWanderer():
         logging.info('--> Fetching %s %s', service_name, resource_type)
         resource_attributes = self.custom_attributes_interface.get_resources_of_type(service_name, resource_type, service_args)
         for resource_attribute in resource_attributes:
-
-            logging.warning(resource_attribute.meta.__dict__)
             urn = self._get_resource_urn(resource_attribute)
             self.storage_connector.write_resource_attribute(
                 urn=urn,
