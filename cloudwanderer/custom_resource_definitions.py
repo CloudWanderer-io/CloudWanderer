@@ -1,8 +1,8 @@
 """Classes for handling custom boto3 :class:`~boto3.resources.base.ServiceResource`.
 
 Custom resources use the :class:`boto3.resources.base.ServiceResource` model to extend support to
-AWS resources that boto3 does not support natively. We can do this quite easily because CloudWander only needs
-a fraction of the functionality native that boto3 resources provide (i.e. the description of the resources).
+AWS resources that boto3 does not support natively. We can do this quite easily because CloudWanderer only needs
+a fraction of the functionality that native boto3 resources provide (i.e. the description of the resources).
 """
 import os
 import json

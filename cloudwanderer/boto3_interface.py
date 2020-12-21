@@ -2,48 +2,77 @@
 
 Provides simpler methods for :class:`~.cloud_wanderer.CloudWanderer` to call.
 """
+from typing import List, Iterator
 import logging
 import boto3
 from botocore import xform_name
 from botocore.exceptions import ClientError
 from boto3.exceptions import ResourceNotExistsError
+from boto3.resources.model import Collection, ResourceModel
 from .custom_resource_definitions import CustomResourceDefinitions
 
 
 class CloudWandererBoto3Interface:
     """Simplifies lookup of boto3 services and resources."""
 
-    def __init__(self, boto3_session=None):
+    def __init__(self, boto3_session: boto3.session.Session = None) -> None:
         """Simplifies lookup of boto3 services and resources."""
         self.boto3_session = boto3_session or boto3.Session()
         self.custom_resource_definitions = CustomResourceDefinitions(boto3_session=boto3_session)
 
-    def _get_available_services(self):
+    def _get_available_services(self) -> List[str]:
         return self.boto3_session.get_available_resources()
 
-    def get_all_resource_services(self, service_args=None):
-        """Return all the boto3 service Resource objects that are available, both built-in and custom."""
+    def get_all_resource_services(
+            self, service_args: dict = None) -> Iterator[boto3.resources.base.ServiceResource]:
+        """Return all the boto3 service Resource objects that are available, both built-in and custom.
+
+        Arguments:
+            service_args (dict): Arguments to pass into the boto3 service Resource object.
+                See: :class:`ResourceModel`
+        """
         for service_name in self._get_available_services():
             yield self.get_boto3_resource_service(service_name, service_args)
         for service_name in self.custom_resource_definitions.definitions:
             yield self.get_custom_resource_service(service_name, service_args)
 
-    def get_boto3_resource_service(self, service_name, service_args=None):
-        """Return the boto3 service Resource object matching this service_name."""
+    def get_boto3_resource_service(
+            self, service_name: str, service_args: dict = None) -> boto3.resources.base.ServiceResource:
+        """Return the boto3 service Resource object matching this service_name.
+
+        Arguments:
+            service_name (str): The name of the service (e.g. ``'ec2'``) to get.
+            service_args (dict): Arguments to pass into the boto3 service Resource object.
+                See: :class:`ResourceModel`
+        """
         service_args = service_args or {}
         try:
             return self.boto3_session.resource(service_name, **service_args)
         except ResourceNotExistsError:
             return None
 
-    def get_custom_resource_service(self, service_name, service_args):
-        """Get the custom resource definition matching this service name."""
+    def get_custom_resource_service(
+            self, service_name: str, service_args: dict) -> ResourceModel:
+        """Get the custom resource definition matching this service name.
+
+        Arguments:
+            service_name (str): The name of the service (e.g. ``'ec2'``) to get.
+            service_args (dict): Arguments to pass into the boto3 service Resource object.
+                See: :class:`ResourceModel`
+        """
         service_args = service_args or {}
         return self.custom_resource_definitions.resource(service_name, **service_args)
 
-    def get_resource_service_by_name(self, service_name, region_name=None, service_args=None):
-        """Return all services matching name, boto3 or custom."""
-        service_args = service_args or {'region_name': region_name}
+    def get_resource_service_by_name(
+            self, service_name: str, service_args: dict = None) -> Iterator[boto3.resources.base.ServiceResource]:
+        """Return all services matching name, boto3 or custom.
+
+        Arguments:
+            service_name (str): The name of the service (e.g. ``'ec2'``) to get.
+            service_args (dict): Arguments to pass into the boto3 service Resource object.
+                See: :class:`ResourceModel`
+        """
+        service_args = service_args or {}
         boto3_resource_service = self.get_boto3_resource_service(service_name, service_args)
         if boto3_resource_service:
             yield boto3_resource_service
@@ -51,11 +80,14 @@ class CloudWandererBoto3Interface:
         if custom_resource_service:
             yield custom_resource_service
 
-    def get_resource_collections(self, boto3_service):
+    def get_resource_collections(
+            self, boto3_service: boto3.resources.base.ServiceResource) -> List[Collection]:
         """Return all resource types in this service."""
         return boto3_service.meta.resource_model.collections
 
-    def get_resource_collection_by_resource_type(self, boto3_service, resource_type):
+    def get_resource_collection_by_resource_type(
+            self, boto3_service: boto3.resources.base.ServiceResource,
+            resource_type: str) -> Iterator[Collection]:
         """Return the resource collection that matches the resource_type (e.g. instance).
 
         This is as opposed to the collection name (e.g. instances)
@@ -65,7 +97,9 @@ class CloudWandererBoto3Interface:
                 continue
             yield boto3_resource_collection
 
-    def get_resource_from_collection(self, boto3_service, boto3_resource_collection):
+    def get_resource_from_collection(
+            self, boto3_service: boto3.resources.base.ServiceResource,
+            boto3_resource_collection: Collection) -> Iterator[ResourceModel]:
         """Return all resources of this resource type (collection) from this service."""
         try:
             for resource in getattr(boto3_service, boto3_resource_collection.name).all():
@@ -76,8 +110,16 @@ class CloudWandererBoto3Interface:
                 return
             raise ex
 
-    def get_resources_of_type(self, service_name, resource_type, service_args):
-        """Return all resources of resource_type."""
+    def get_resources_of_type(self, service_name: str,
+                              resource_type: str, service_args: dict) -> Iterator[ResourceModel]:
+        """Return all resources of resource_type.
+
+        Arguments:
+            service_name: The name of the service to get resource for (e.g. ``'ec2'``)
+            resource_type: The type of resource to get resources of (e.g. ``'instance'``
+            service_args (dict): Arguments to pass into the boto3 service Resource object.
+                See: :class:`ResourceModel`
+        """
         for boto3_service in self.get_resource_service_by_name(service_name, service_args=service_args):
             boto3_resource_collection = next(
                 self.get_resource_collection_by_resource_type(boto3_service, resource_type),
@@ -88,26 +130,35 @@ class CloudWandererBoto3Interface:
                     boto3_resource_collection=boto3_resource_collection
                 )
 
-    def get_service_resource_collection_names(self, service_name):
+    def get_service_resource_collection_names(self, service_name: str) -> Iterator[str]:
         """Return all possible resource collection names for a given service.
 
         Returns collection names for both native boto3 resources and custom cloudwanderer resources.
+
+        Arguments:
+            service_name: The name of the service to get resource types for (e.g. ``'ec2'``)
         """
         for collection in self.get_service_resource_collections(service_name):
             yield collection.name
 
-    def get_service_resource_types(self, service_name):
+    def get_service_resource_types(self, service_name: str) -> Iterator[str]:
         """Return all possible resource names for a given service.
 
         Returns resources for both native boto3 resources and custom cloudwanderer resources.
+
+        Arguments:
+            service_name: The name of the service to get resource types for (e.g. ``'ec2'``)
         """
         for collection in self.get_service_resource_collections(service_name):
             yield xform_name(collection.resource.model.shape)
 
-    def get_service_resource_collections(self, service_name):
+    def get_service_resource_collections(self, service_name: str) -> Iterator[Collection]:
         """Return all the resource collections for a given service_name.
 
         This is crucial to return collections for both native boto3 resources and custom cloudwanderer resources.
+
+        Arguments:
+            service_name: The name of the service to get resource types for (e.g. ``'ec2'``)
         """
         for boto3_service in self.get_resource_service_by_name(service_name):
             if boto3_service is not None:
@@ -125,7 +176,7 @@ class CustomAttributesInterface(CloudWandererBoto3Interface):
         boto3_session (boto3.session.Session): The :class:`boto3.session.Session` object to use for any queries.
     """
 
-    def __init__(self, boto3_session):
+    def __init__(self, boto3_session: boto3.session.Session) -> None:
         """Simplifies lookup of CloudWanderer custom attributes."""
         super().__init__(boto3_session=boto3_session)
         self.custom_resource_attribute_definitions = CustomResourceDefinitions(
@@ -134,7 +185,8 @@ class CustomAttributesInterface(CloudWandererBoto3Interface):
         )
 
     def get_resource_from_collection(
-            self, boto3_service, boto3_resource_collection):
+            self, boto3_service: boto3.resources.base.ServiceResource,
+            boto3_resource_collection: Collection) -> Iterator[ResourceModel]:
         """Return a boto3.resource pertaining to a resource attribute defined by CloudWanderer.
 
         These custom resource attribute definitions allow us to fetch resource attributes that are not returned by the
@@ -159,20 +211,28 @@ class CustomAttributesInterface(CloudWandererBoto3Interface):
                 del resource_attribute.meta.data['ResponseMetadata']
             yield resource_attribute
 
-    def get_resource_service_by_name(self, service_name, service_args=None):
-        """Overrides method from CloudWandererBoto3Interface so we can reuse its methods which depend upon this one."""
+    def get_resource_service_by_name(
+            self, service_name: str, service_args: dict = None) -> Iterator[boto3.resources.base.ServiceResource]:
+        """Overrides method from CloudWandererBoto3Interface so we can reuse its methods which depend upon this one.
+
+        Arguments:
+            service_name (str): The name of the service (e.g. ``'ec2'``) to get.
+            service_args (dict): Arguments to pass into the boto3 service Resource object.
+                See: :class:`ResourceModel`
+        """
         yield from self.get_resource_attributes_service_by_name(service_name, service_args)
 
-    def get_resource_attributes_service_by_name(self, service_name, service_args=None):
+    def get_resource_attributes_service_by_name(
+            self, service_name: str, service_args: dict = None) -> Iterator[ResourceModel]:
         """Return the boto3.resource service containing a collection of resource attributes provided by CloudWanderer.
 
         These custom resource attribute definitions allow us to fetch resource attributes that are not returned by the
         resource's default describe calls.
 
         Arguments:
-            service_name (str): The name of the service (e.g.``ec2``) to get.
+            service_name (str): The name of the service (e.g. ``'ec2'``) to get.
             service_args (dict): Arguments to pass into the boto3 service Resource object.
-                See: :meth:`boto3.session.Session.resource`
+                See: :class:`ResourceModel`
         """
         service_args = service_args or {}
         yield self.custom_resource_attribute_definitions.resource(

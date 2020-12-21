@@ -1,4 +1,5 @@
 """Main cloudwanderer module."""
+from typing import List
 from collections import namedtuple
 import logging
 from botocore import xform_name
@@ -25,8 +26,16 @@ class CloudWanderer():
         self.global_service_maps = GlobalServiceMappingCollection(boto3_session=self.boto3_session)
         self._account_id = None
 
-    def write_all_resources(self, exclude_resources=None, region_name=None, service_args=None):
-        """Write all AWS resources in this account region from all services to storage."""
+    def write_all_resources(self, exclude_resources=None, region_name=None, service_args=None) -> None:
+        """Write all AWS resources in this account region from all services to storage.
+
+        Arguments:
+            exclude_resources (list): A list of resource names to exclude (e.g. ``['instance']``)
+            region_name (str): The name of the region to get resources from
+                (defaults to session default if not specified)
+            service_args (dict): Arguments to pass into the boto3 service Resource object.
+                See: :meth:`boto3.session.Session.resource`
+        """
         exclude_resources = exclude_resources or []
 
         for boto3_service in self.boto3_interface.get_all_resource_services():
@@ -37,7 +46,7 @@ class CloudWanderer():
                 service_args=service_args
             )
 
-    def write_resources(self, service_name, exclude_resources=None, region_name=None, service_args=None):
+    def write_resources(self, service_name, exclude_resources=None, region_name=None, service_args=None) -> None:
         """Write all AWS resources in this region in this service to storage.
 
         Cleans up any resources in the StorageConnector that no longer exist.
@@ -74,7 +83,7 @@ class CloudWanderer():
                 service_args=service_args
             )
 
-    def write_resources_of_type(self, service_name, resource_type=None, region_name=None, service_args=None):
+    def write_resources_of_type(self, service_name, resource_type=None, region_name=None, service_args=None) -> None:
         """Write all AWS resources in this region in this service to storage.
 
         Cleans up any resources in the StorageConnector that no longer exist.
@@ -102,7 +111,7 @@ class CloudWanderer():
         self._clean_resources_in_region(
             service_name, resource_type, service_args['region_name'], urns)
 
-    def _clean_resources_in_region(self, service_name, resource_type, region_name, current_urns):
+    def _clean_resources_in_region(self, service_name, resource_type, region_name, current_urns) -> None:
         """Remove all resources of this type in this region which no longer exist."""
         self.storage_connector.delete_resource_of_type_in_account_region(
             service=service_name,
@@ -112,7 +121,7 @@ class CloudWanderer():
             urns_to_keep=current_urns
         )
 
-    def _should_write_resource_in_region(self, urn, write_region):
+    def _should_write_resource_in_region(self, urn, write_region) -> bool:
         """Return True if this is a resource we should write in this region and log the result."""
         if urn.region != write_region:
             logging.debug(
@@ -125,7 +134,7 @@ class CloudWanderer():
             return False
         return True
 
-    def write_all_resource_attributes(self, exclude_resources=None, region_name=None, service_args=None):
+    def write_all_resource_attributes(self, exclude_resources=None, region_name=None, service_args=None) -> None:
         """Write all AWS resource attributes in this account in this region to storage.
 
         These custom resource attribute definitions allow us to fetch resource attributes that are not returned by the
@@ -148,7 +157,7 @@ class CloudWanderer():
                 service_args=service_args
             )
 
-    def write_resource_attributes(self, service_name, exclude_resources=None, region_name=None, service_args=None):
+    def write_resource_attributes(self, service_name, exclude_resources=None, region_name=None, service_args=None) -> None:
         """Write all AWS resource attributes in this account in this service to storage.
 
         These custom resource attribute definitions allow us to fetch resource attributes that are not returned by the
@@ -185,7 +194,7 @@ class CloudWanderer():
                 service_name=service_name,
                 resource_type=resource_type)
 
-    def write_resource_attributes_of_type(self, service_name, resource_type, region_name=None, service_args=None):
+    def write_resource_attributes_of_type(self, service_name, resource_type, region_name=None, service_args=None) -> None:
         """Write all AWS resource attributes in this account of this resource type to storage.
 
         These custom resource attribute definitions allow us to fetch resource attributes that are not returned by the
@@ -216,39 +225,56 @@ class CloudWanderer():
                 attribute_type=xform_name(resource_attribute.meta.resource_model.name)
             )
 
-    def read_resource_of_type(self, service, resource_type):
+    def read_resource_of_type(self, service, resource_type) -> List['CloudWandererResource']:
         """Return all resources of type.
 
-        Args:
-            service (str): Service name (e.g. ec2)
-            resource_type (str): Resource Type (e.g. instance)
+        Arguments:
+            service (str): Service name (e.g. ``'ec2'``)
+            resource_type (str): Resource Type (e.g. ``'instance'``)
         """
         return self.storage_connector.read_resource_of_type(service, resource_type)
 
-    def read_resource(self, urn):
-        """Return a specific resource by its urn from storage."""
+    def read_resource(self, urn) -> List['CloudWandererResource']:
+        """Return a specific resource by its urn from storage.
+
+        Either use this to manually inflate the :class:`~.CloudWandererResource` passsed back by other read methods
+        or build your own :class:`~.aws_urn.AwsUrn` to query a resource you already know exists.
+
+        Args:
+            urn (cloudwanderer.aws_urn.AwsUrn): The :class:`~cloudwanderer.aws_urn.AwsUrn` of the resource to retrieve.
+        """
         try:
             return next(self.storage_connector.read_resource(urn))
         except StopIteration:
             return None
 
-    def read_all_resources_in_account(self, account_id):
-        """Return all resources in the provided AWS Account from storage."""
+    def read_all_resources_in_account(self, account_id) -> List['CloudWandererResource']:
+        """Return all resources in the provided AWS Account from storage.
+
+        Arguments:
+            account_id (str): The account id in which to look for resources.
+        """
         return self.storage_connector.read_all_resources_in_account(account_id)
 
-    def read_resource_of_type_in_account(self, service, resource_type, account_id):
-        """Return all resources of this type in the provided AWS Account from storage."""
+    def read_resource_of_type_in_account(self, service, resource_type, account_id) -> List['CloudWandererResource']:
+        """Return all resources of this type in the provided AWS Account from storage.
+
+        Arguments:
+            service (str): Service name (e.g. ``'ec2'``)
+            resource_type (str): Resource Type (e.g. ``'instance'``)
+            account_id (str): The account id in which to look for resources.
+        """
         return self.storage_connector.read_resource_of_type_in_account(service, resource_type, account_id)
 
     @property
-    def account_id(self):
+    def account_id(self) -> str:
         """Return the AWS Account ID our boto3 session is authenticated against."""
         if self._account_id is None:
             sts = self.boto3_session.client('sts')
             self._account_id = sts.get_caller_identity()['Account']
         return self._account_id
 
-    def _get_resource_urn(self, resource):
+    def _get_resource_urn(self, resource) -> 'AwsUrn':
         id_member_name = resource.meta.resource_model.identifiers[0].name
         resource_id = getattr(resource, id_member_name)
         if resource_id.startswith('arn:'):
