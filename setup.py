@@ -18,7 +18,7 @@ setup(
     author='Sam Martin',
     author_email='samjackmartin+cloudwanderer@gmail.com',
     url='https://github.com/CloudWanderer-io/CloudWanderer',
-    install_requires=['boto3'],
+    install_requires=['boto3', 'jmespath'],
     package_data={
         "": [
             "**/*.json"

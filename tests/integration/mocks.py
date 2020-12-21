@@ -9,9 +9,9 @@ MOCK_COLLECTION_INSTANCES = MagicMock(**{
 MOCK_COLLECTION_INSTANCES.configure_mock(name='instances')
 
 
-def generate_mock_session():
+def generate_mock_session(region='eu-west-2'):
     return boto3.session.Session(
-        region_name='eu-west-2',
+        region_name=region,
         aws_access_key_id='1111',
         aws_secret_access_key='1111'
     )

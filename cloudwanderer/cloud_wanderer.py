@@ -5,11 +5,7 @@ from botocore import xform_name
 import boto3
 from .boto3_interface import CloudWandererBoto3Interface
 from .aws_urn import AwsUrn
-GLOBAL_SERVICE_REGIONAL_RESOURCE = [
-    {
-        'resource_name': 's3_bucket'
-    }
-]
+from .global_service_mappings import GlobalServiceMappingCollection
 
 
 class CloudWanderer():
@@ -25,8 +21,8 @@ class CloudWanderer():
         self.storage_connector = storage_connector
         self.boto3_session = boto3_session or boto3.session.Session()
         self.boto3_interface = CloudWandererBoto3Interface(boto3_session=self.boto3_session)
+        self.global_service_maps = GlobalServiceMappingCollection(boto3_session=self.boto3_session)
         self._account_id = None
-        self._client_region = None
 
     def write_all_resources(self, exclude_resources=None):
         """Write all AWS resources in this account from all services to storage."""
@@ -44,8 +40,16 @@ class CloudWanderer():
             service_name (str): The name of the service to write resources for (e.g. ``'ec2'``)
             exclude_resources (list): A list of resources to exclude (e.g. `['instances']`)
         """
-        logging.info("Writing all %s resources in %s", service_name, self.client_region)
+        logging.info("Writing all %s resources in %s", service_name, self.boto3_session.region_name)
         exclude_resources = exclude_resources or []
+        service_map = self.global_service_maps.get_global_service_map(service_name=service_name)
+        if (
+            not service_map.has_global_resources_in_region(self.boto3_session.region_name)
+            and not service_map.has_regional_resources
+        ):
+            logging.info("Skipping %s as it does not have resources in %s",
+                         service_name, self.boto3_session.region_name)
+            return
         for boto3_service in self.boto3_interface.get_resource_service_by_name(service_name):
             for boto3_resource_collection in self.boto3_interface.get_resource_collections(boto3_service):
                 if boto3_resource_collection.name in exclude_resources:
@@ -56,13 +60,22 @@ class CloudWanderer():
                 urns = []
                 for boto3_resource in resources:
                     urn = self._get_resource_urn(boto3_resource)
+                    if urn.region != self.boto3_session.region_name:
+                        logging.debug(
+                            "Skipping %s %s in %s because it is not in %s",
+                            urn.resource_type,
+                            urn.resource_id,
+                            urn.region,
+                            self.boto3_session.region_name
+                        )
+                        continue
                     self.storage_connector.write_resource(urn, boto3_resource)
                     urns.append(urn)
                 self.storage_connector.delete_resource_of_type_in_account_region(
                     service=boto3_service.meta.service_name,
                     resource_type=xform_name(boto3_resource_collection.resource.model.shape),
                     account_id=self.account_id,
-                    region=self.client_region,
+                    region=self.boto3_session.region_name,
                     urns_to_keep=urns
                 )
 
@@ -129,21 +142,15 @@ class CloudWanderer():
             self._account_id = sts.get_caller_identity()['Account']
         return self._account_id
 
-    @property
-    def client_region(self):
-        """Return the region our boto3 session is configured to use."""
-        if self._client_region is None:
-            self._client_region = self.boto3_session.region_name
-        return self._client_region
-
     def _get_resource_urn(self, resource):
         id_member_name = resource.meta.resource_model.identifiers[0].name
         resource_id = getattr(resource, id_member_name)
         if resource_id.startswith('arn:'):
             resource_id = ''.join(resource_id.split(':')[5:])
+        global_service_map = self.global_service_maps.get_global_service_map(resource.meta.service_name)
         return AwsUrn(
             account_id=self.account_id,
-            region=self.client_region,
+            region=global_service_map.get_resource_region(resource),
             service=resource.meta.service_name,
             resource_type=xform_name(resource.meta.resource_model.shape),
             resource_id=resource_id

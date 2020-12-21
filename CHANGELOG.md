@@ -1,3 +1,10 @@
+# 0.6.0
+
+- Fetch region information for semi-global resources like S3 buckets using `GlobalServiceMapping` objects.
+- Identify global services and their primary region using `GlobalServiceMapping` objects.
+- No longer queries services which do not exist in the region being queried
+- No longer writes resources which do not exist in the region being queried
+
 # 0.5.0
 
  - Add tests for storage connector
