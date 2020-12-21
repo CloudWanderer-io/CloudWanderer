@@ -54,18 +54,28 @@ class CustomResourceDefinitions():
         )
         self.boto3_session = boto3_session or boto3.session.Session()
         self.factory = CustomResourceFactory(boto3_session=self.boto3_session)
+        self._custom_resource_definitions = None
 
-    def load_custom_resource_definitions(self):
+    @property
+    def definitions(self):
         """Return our custom resource definitions."""
-        services = {}
-        for service_name in self._list_service_definitions():
-            service_definition = self._load_service_definition(service_name)
-            services[service_name] = self.factory.load(
-                service_name=service_name,
-                service_definition=service_definition['service'],
-                resource_definitions=service_definition['resources'],
-            )(client=self.boto3_session.client(service_name))
-        return services
+        if self._custom_resource_definitions is None:
+            self._custom_resource_definitions = {}
+            for service_name in self._list_service_definitions():
+                service_definition = self._load_service_definition(service_name)
+                self._custom_resource_definitions[service_name] = self.factory.load(
+                    service_name=service_name,
+                    service_definition=service_definition['service'],
+                    resource_definitions=service_definition['resources'],
+                )
+        return self._custom_resource_definitions
+
+    def resource(self, service_name, service_args=None):
+        service_args = service_args or {}
+        if service_name in self.definitions:
+            return self.definitions[service_name](
+                client=self.boto3_session.client(service_name), **service_args)
+        return None
 
     def _load_service_definition(self, service_name):
         with open(os.path.join(self.service_definitions_path, f"{service_name}.json")) as definition_path:

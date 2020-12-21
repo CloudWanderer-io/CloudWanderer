@@ -3,7 +3,7 @@ from collections import namedtuple
 import logging
 from botocore import xform_name
 import boto3
-from .boto3_interface import CloudWandererBoto3Interface
+from .boto3_interface import CloudWandererBoto3Interface, CustomAttributesInterface
 from .aws_urn import AwsUrn
 from .global_service_mappings import GlobalServiceMappingCollection
 
@@ -21,6 +21,7 @@ class CloudWanderer():
         self.storage_connector = storage_connector
         self.boto3_session = boto3_session or boto3.session.Session()
         self.boto3_interface = CloudWandererBoto3Interface(boto3_session=self.boto3_session)
+        self.custom_attributes_interface = CustomAttributesInterface(boto3_session=self.boto3_session)
         self.global_service_maps = GlobalServiceMappingCollection(boto3_session=self.boto3_session)
         self._account_id = None
 
@@ -36,7 +37,8 @@ class CloudWanderer():
             self.write_resources(
                 service_name=boto3_service.meta.service_name,
                 exclude_resources=exclude_resources,
-                region_name=region_name
+                region_name=region_name,
+                service_args=service_args
             )
 
     def write_resources(self, service_name, exclude_resources=None, region_name=None, service_args=None):
@@ -123,36 +125,46 @@ class CloudWanderer():
             return False
         return True
 
-    def write_resource_attributes(self, service_name):
+    def write_all_resource_attributes(self):
+        services = self.custom_attributes_interface.get_resource_attributes_service_by_name(service_name)
+        for service_name in services:
+            self.write_resource_attributes(service_name)
+
+    def write_resource_attributes(self, service_name, region_name=None, service_args=None):
         """Write all AWS resource attributes in this account in this service to storage.
+
+        These custom resource attribute definitions allow us to fetch resource attributes that are not returned by the
+        resource's default describe calls.
+        Unlike :meth:`~CloudWanderer.write_resources` and :meth:`~CloudWanderer.write_resources_of_type` this method does not clean up stale resource attributes from storage.
+
+        Arguments:
+            service_name (str): The name of the service to write the attributes of (e.g. ``ec2``)
+        """
+        service_args = service_args or {'region_name': region_name}
+        for resource_name in self.custom_attributes_interface.get_service_resource_names(service_name):
+            self.write_resource_attributes_of_type(service_name, resource_name)
+
+    def write_resource_attributes_of_type(self, service_name, resource_type, service_args=None):
+        """Write all AWS resource attributes in this account of this resource type to storage.
 
         These custom resource attribute definitions allow us to fetch resource attributes that are not returned by the
         resource's default describe calls.
 
         Arguments:
             service_name (str): The name of the service to write the attributes of (e.g. ``ec2``)
+            resource_type (str): The type of resource to write the attributes of (e.g. ``instance``)
         """
-        services = self.boto3_interface.get_resource_attributes_service_by_name(service_name)
-        for boto3_resource_attribute_service in services:
-            collections = self.boto3_interface.get_resource_collections(boto3_resource_attribute_service)
-            for boto3_resource_attribute_collection in collections:
-                logging.info(
-                    '--> Fetching %s %s',
-                    boto3_resource_attribute_service.meta.service_name,
-                    boto3_resource_attribute_collection.name
-                )
-                resource_attributes = self.boto3_interface.get_resource_attribute_from_collection(
-                    boto3_resource_attribute_service,
-                    boto3_resource_attribute_collection
-                )
+        logging.info('--> Fetching %s %s', service_name, resource_type)
+        resource_attributes = self.custom_attributes_interface.get_resources_of_type(service_name, resource_type, service_args)
+        for resource_attribute in resource_attributes:
 
-                for boto3_resource_attribute in resource_attributes:
-                    urn = self._get_resource_urn(boto3_resource_attribute)
-                    self.storage_connector.write_resource_attribute(
-                        urn=urn,
-                        resource_attribute=boto3_resource_attribute,
-                        attribute_type=boto3_resource_attribute_collection.name
-                    )
+            logging.warning(resource_attribute.meta.__dict__)
+            urn = self._get_resource_urn(resource_attribute)
+            self.storage_connector.write_resource_attribute(
+                urn=urn,
+                resource_attribute=resource_attribute,
+                attribute_type=xform_name(resource_attribute.meta.resource_model.name)
+            )
 
     def read_resource_of_type(self, service, resource_type):
         """Return all resources of type.

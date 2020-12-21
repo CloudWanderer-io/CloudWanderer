@@ -11,17 +11,12 @@ from .custom_resource_definitions import CustomResourceDefinitions
 
 
 class CloudWandererBoto3Interface:
-    """Class of methods which expect boto3 resources and services rather than resource names and service names."""
+    """Simplifies lookup of boto3 services and resources."""
 
     def __init__(self, boto3_session=None):
-        """Class of methods which expect boto3 resources and services rather than resource names and service names."""
+        """Simplifies lookup of boto3 services and resources."""
         self.boto3_session = boto3_session or boto3.Session()
-        self.custom_resource_definitions = CustomResourceDefinitions(
-            boto3_session=boto3_session).load_custom_resource_definitions()
-        self.custom_resource_attribute_definitions = CustomResourceDefinitions(
-            boto3_session=boto3_session,
-            definition_path='attribute_definitions'
-        ).load_custom_resource_definitions()
+        self.custom_resource_definitions = CustomResourceDefinitions(boto3_session=boto3_session)
 
     def _get_available_services(self):
         return self.boto3_session.get_available_resources()
@@ -29,9 +24,9 @@ class CloudWandererBoto3Interface:
     def get_all_resource_services(self, service_args=None):
         """Return all the boto3 service Resource objects that are available, both built-in and custom."""
         for service_name in self._get_available_services():
-            yield self.get_boto3_resource_service(service_name)
-        for service_name in self.custom_resource_definitions:
-            yield self.get_custom_resource_service(service_name)
+            yield self.get_boto3_resource_service(service_name, service_args)
+        for service_name in self.custom_resource_definitions.definitions:
+            yield self.get_custom_resource_service(service_name, service_args)
 
     def get_boto3_resource_service(self, service_name, service_args=None):
         """Return the boto3 service Resource object matching this service_name."""
@@ -41,16 +36,13 @@ class CloudWandererBoto3Interface:
         except ResourceNotExistsError:
             return None
 
-    def get_custom_resource_service(self, service_name):
-        """Get the custom resource definition matching this service name."""
-        return self.custom_resource_definitions.get(service_name)
-
-    def get_resource_service_by_name(self, service_name, service_args=None):
+    def get_resource_service_by_name(self, service_name, region_name=None, service_args=None):
         """Return all services matching name, boto3 or custom."""
+        service_args = service_args or {'region_name': region_name}
         boto3_resource_service = self.get_boto3_resource_service(service_name, service_args)
         if boto3_resource_service:
             yield boto3_resource_service
-        custom_resource_service = self.get_custom_resource_service(service_name)
+        custom_resource_service = self.custom_resource_definitions.resource(service_name, service_args)
         if custom_resource_service:
             yield custom_resource_service
 
@@ -85,6 +77,7 @@ class CloudWandererBoto3Interface:
             boto3_resource_collection = next(
                 self.get_resource_collection_by_resource_type(boto3_service, resource_type),
                 None)
+            logging.warning(boto3_resource_collection.__dict__)
             if boto3_resource_collection is not None:
                 yield from self.get_resource_from_collection(
                     boto3_service=boto3_service,
@@ -94,7 +87,7 @@ class CloudWandererBoto3Interface:
     def get_service_resource_collection_names(self, service_name):
         """Return all possible resource collection names for a given service.
 
-        Returns collection namess for both native boto3 resources and custom cloudwanderer resources.
+        Returns collection names for both native boto3 resources and custom cloudwanderer resources.
         """
         for collection in self.get_service_resource_collections(service_name):
             yield collection.name
@@ -113,35 +106,54 @@ class CloudWandererBoto3Interface:
         This is crucial to return collections for both native boto3 resources and custom cloudwanderer resources.
         """
         for boto3_service in self.get_resource_service_by_name(service_name):
-            yield from self.get_resource_collections(boto3_service)
+            if boto3_service is not None:
+                yield from self.get_resource_collections(boto3_service)
 
-    def get_resource_attribute_from_collection(
-            self, boto3_resource_attribute_service, boto3_resource_attribute_collection):
+
+class CustomAttributesInterface(CloudWandererBoto3Interface):
+    """Simplifies lookup of CloudWanderer custom attributes."""
+
+    def __init__(self, boto3_session):
+        """Simplifies lookup of CloudWanderer custom attributes."""
+        super().__init__(boto3_session=boto3_session)
+        self.custom_resource_attribute_definitions = CustomResourceDefinitions(
+            boto3_session=boto3_session,
+            definition_path='attribute_definitions'
+        )
+
+    def get_resource_from_collection(
+            self, boto3_service, boto3_resource_collection):
         """Return a boto3.resource pertaining to a resource attribute defined by CloudWanderer.
 
         These custom resource attribute definitions allow us to fetch resource attributes that are not returned by the
         resource's default describe calls.
 
         Arguments:
-            boto3_resource_attribute_service: The boto3.resource service from
+            boto3_service: The boto3.resource service from
                 self.get_resource_attributes_service_by_name
-            boto3_resource_attribute_collection: The boto3 collection of attributes we want to retrieve.
+            boto3_resource_collection: The boto3 collection of attributes we want to retrieve.
         """
-        resource_attributes = self.get_resource_from_collection(
-            boto3_service=boto3_resource_attribute_service,
-            boto3_resource_collection=boto3_resource_attribute_collection
+        logging.warning('getting resources from collection...')
+        resource_attributes = super().get_resource_from_collection(
+            boto3_service=boto3_service,
+            boto3_resource_collection=boto3_resource_collection
         )
         for resource_attribute in resource_attributes:
             # A resource_attribute will initially be populated with its parent resource's data,
             # the attribute data is loaded on .load()
             resource_attribute.load()
+            logging.warning(resource_attribute)
             # I'm fairly sure there must be a way to clean out the response metadata with botocore shapes but
             # I haven't figured out how yet.
             if 'ResponseMetadata' in resource_attribute.meta.data:
                 del resource_attribute.meta.data['ResponseMetadata']
             yield resource_attribute
 
-    def get_resource_attributes_service_by_name(self, service_name):
+    def get_resource_service_by_name(self, service_name, service_args=None):
+        """Overrides method from CloudWandererBoto3Interface so we can reuse its other methods which depend upon this one."""
+        yield from self.get_resource_attributes_service_by_name(service_name, service_args)
+
+    def get_resource_attributes_service_by_name(self, service_name, service_args=None):
         """Return the boto3.resource service containing a collection of resource attributes provided by CloudWanderer.
 
         These custom resource attribute definitions allow us to fetch resource attributes that are not returned by the
@@ -150,4 +162,5 @@ class CloudWandererBoto3Interface:
         Arguments:
             service_name (str): The name of the service (e.g.``ec2``) to get.
         """
-        yield self.custom_resource_attribute_definitions.get(service_name)
+        yield self.custom_resource_attribute_definitions.resource(
+            service_name=service_name, service_args=service_args)
