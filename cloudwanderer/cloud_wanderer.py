@@ -44,8 +44,9 @@ class CloudWanderer():
 
         Arguments:
             service_name (str): The name of the service to write resources for (e.g. ``'ec2'``)
-            exclude_resources (list): A list of resource names to exclude (e.g. `['instance']`)
-            region_name (str): The name of the region to get resources from (defaults to session default if not specified)
+            exclude_resources (list): A list of resource names to exclude (e.g. ``['instance']``)
+            region_name (str): The name of the region to get resources from
+                (defaults to session default if not specified)
             service_args (dict): Arguments to pass into the boto3 service Resource object.
                 See: :meth:`boto3.session.Session.resource`
         """
@@ -78,8 +79,9 @@ class CloudWanderer():
 
         Arguments:
             service_name (str): The name of the service to write resources for (e.g. ``'ec2'``)
-            resource_type (str): The name of the type of the resource to write (e.g. instance)
-            region_name (str): The name of the region to get resources from (defaults to session default if not specified)
+            resource_type (str): The name of the type of the resource to write (e.g. ``'instance'``)
+            region_name (str): The name of the region to get resources from
+                (defaults to session default if not specified)
             service_args (dict): Arguments to pass into the boto3 service Resource object.
                 See: :meth:`boto3.session.Session.resource`
         """
@@ -217,7 +219,7 @@ class CloudWandererResource():
     contains *only* the resource's metadata.
 
     Attributes:
-        urn (cloudwanderer.AwsUrn): The AWS URN of the resource.
+        urn (cloudwanderer.aws_urn.AwsUrn): The AWS URN of the resource.
         metadata (dict): The original storage representation of the resource as it was passed in.
     """
 
