@@ -84,14 +84,14 @@ class GlobalServiceMapping:
         self.boto3_client = self.boto3_session.client(service_name)
 
     def has_global_resources_in_region(self, region: str) -> bool:
-        """Return True if service has _only_ global resources and their primary endpoint is this region."""
+        """Return ``True`` if service has **only** global resources and their primary endpoint is this region."""
         if self.has_regional_resources:
             return False
         return self._service_details.get('region') == region
 
     @property
     def has_regional_resources(self) -> bool:
-        """Returns True if this global service has resources in regions other than the primary service region.
+        """Returns ``True`` if this global service has resources in regions other than the primary service region.
 
         Also returns True if there is no service_mapping (i.e. this is not a known global service).
         """
