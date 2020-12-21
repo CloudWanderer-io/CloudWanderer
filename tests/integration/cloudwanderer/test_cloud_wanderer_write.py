@@ -89,3 +89,20 @@ class TestCloudWandererWrite(unittest.TestCase):
         assert urn.resource_type == 'group'
 
         assert set(['GroupId', 'GroupName', 'Path']).issubset(resource.meta.data.keys())
+
+    def test_write_resources_of_type_specify_region(self):
+        with patch.object(
+            cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface,
+            'get_all_resource_services',
+                new=MagicMock(return_value=[generate_mock_session().resource('iam')])):
+            self.wanderer.write_resources_of_type(
+                service_name='iam', resource_type='group', region_name='us-east-1')
+
+        # self.mock_storage_connector.write_resource.assert_called_with()
+        urn, resource = self.mock_storage_connector.write_resource.call_args_list[0][0]
+        assert urn.account_id == '123456789012'
+        assert urn.region == 'us-east-1'
+        assert urn.service == 'iam'
+        assert urn.resource_type == 'group'
+
+        assert set(['GroupId', 'GroupName', 'Path']).issubset(resource.meta.data.keys())

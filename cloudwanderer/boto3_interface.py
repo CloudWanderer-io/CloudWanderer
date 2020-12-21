@@ -4,6 +4,7 @@ Provides simpler methods for CloudWanderer to call.
 """
 import logging
 import boto3
+from botocore import xform_name
 from botocore.exceptions import ClientError
 from boto3.exceptions import ResourceNotExistsError
 from .custom_resource_definitions import CustomResourceDefinitions
@@ -28,9 +29,9 @@ class CloudWandererBoto3Interface:
     def get_all_resource_services(self, service_args=None):
         """Return all the boto3 service Resource objects that are available, both built-in and custom."""
         for service_name in self._get_available_services():
-            yield self.get_boto3_resource_service(service_name, service_args)
+            yield self.get_boto3_resource_service(service_name)
         for service_name in self.custom_resource_definitions:
-            yield self.get_custom_resource_service(service_name, service_args)
+            yield self.get_custom_resource_service(service_name)
 
     def get_boto3_resource_service(self, service_name, service_args=None):
         """Return the boto3 service Resource object matching this service_name."""
@@ -57,6 +58,16 @@ class CloudWandererBoto3Interface:
         """Return all resource types in this service."""
         return boto3_service.meta.resource_model.collections
 
+    def get_resource_collection_by_resource_type(self, boto3_service, resource_type):
+        """Return the resource collection that matches the resource_type (e.g. instance).
+
+        This is as opposed to the collection name (e.g. instances)
+        """
+        for boto3_resource_collection in self.get_resource_collections(boto3_service):
+            if xform_name(boto3_resource_collection.resource.model.shape) != resource_type:
+                continue
+            yield boto3_resource_collection
+
     def get_resource_from_collection(self, boto3_service, boto3_resource_collection):
         """Return all resources of this resource type (collection) from this service."""
         try:
@@ -67,6 +78,42 @@ class CloudWandererBoto3Interface:
                 logging.warning(ex.response['Error']['Message'])
                 return
             raise ex
+
+    def get_resources_of_type(self, service_name, resource_type, service_args):
+        """Return all resources of resource_type."""
+        for boto3_service in self.get_resource_service_by_name(service_name, service_args=service_args):
+            boto3_resource_collection = next(
+                self.get_resource_collection_by_resource_type(boto3_service, resource_type),
+                None)
+            if boto3_resource_collection is not None:
+                yield from self.get_resource_from_collection(
+                    boto3_service=boto3_service,
+                    boto3_resource_collection=boto3_resource_collection
+                )
+
+    def get_service_resource_collection_names(self, service_name):
+        """Return all possible resource collection names for a given service.
+
+        Returns collection namess for both native boto3 resources and custom cloudwanderer resources.
+        """
+        for collection in self.get_service_resource_collections(service_name):
+            yield collection.name
+
+    def get_service_resource_names(self, service_name):
+        """Return all possible resource names for a given service.
+
+        Returns resources for both native boto3 resources and custom cloudwanderer resources.
+        """
+        for collection in self.get_service_resource_collections(service_name):
+            yield xform_name(collection.resource.model.shape)
+
+    def get_service_resource_collections(self, service_name):
+        """Return all the resource collections for a given service_name.
+
+        This is crucial to return collections for both native boto3 resources and custom cloudwanderer resources.
+        """
+        for boto3_service in self.get_resource_service_by_name(service_name):
+            yield from self.get_resource_collections(boto3_service)
 
     def get_resource_attribute_from_collection(
             self, boto3_resource_attribute_service, boto3_resource_attribute_collection):

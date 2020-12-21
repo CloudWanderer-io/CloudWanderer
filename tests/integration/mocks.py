@@ -8,6 +8,7 @@ MOCK_COLLECTION_INSTANCES = MagicMock(**{
 })
 MOCK_COLLECTION_INSTANCES.configure_mock(name='instances')
 
+
 def generate_mock_session(region='eu-west-2'):
     return boto3.session.Session(
         region_name=region,
