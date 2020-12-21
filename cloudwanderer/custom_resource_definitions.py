@@ -70,11 +70,11 @@ class CustomResourceDefinitions():
                 )
         return self._custom_resource_definitions
 
-    def resource(self, service_name, service_args=None):
-        service_args = service_args or {}
+    def resource(self, service_name, **kwargs):
+        """Instantiate and return the boto3 Resource object for our custom resource definition."""
         if service_name in self.definitions:
             return self.definitions[service_name](
-                client=self.boto3_session.client(service_name), **service_args)
+                client=self.boto3_session.client(service_name, **kwargs))
         return None
 
     def _load_service_definition(self, service_name):

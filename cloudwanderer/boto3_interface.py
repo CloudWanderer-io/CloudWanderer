@@ -38,7 +38,8 @@ class CloudWandererBoto3Interface:
 
     def get_custom_resource_service(self, service_name, service_args):
         """Get the custom resource definition matching this service name."""
-        return self.custom_resource_definitions.resource(service_name, service_args)
+        service_args = service_args or {}
+        return self.custom_resource_definitions.resource(service_name, **service_args)
 
     def get_resource_service_by_name(self, service_name, region_name=None, service_args=None):
         """Return all services matching name, boto3 or custom."""
@@ -95,7 +96,7 @@ class CloudWandererBoto3Interface:
         for collection in self.get_service_resource_collections(service_name):
             yield collection.name
 
-    def get_service_resource_names(self, service_name):
+    def get_service_resource_types(self, service_name):
         """Return all possible resource names for a given service.
 
         Returns resources for both native boto3 resources and custom cloudwanderer resources.
@@ -151,7 +152,7 @@ class CustomAttributesInterface(CloudWandererBoto3Interface):
             yield resource_attribute
 
     def get_resource_service_by_name(self, service_name, service_args=None):
-        """Overrides method from CloudWandererBoto3Interface so we can reuse its other methods which depend upon this one."""
+        """Overrides method from CloudWandererBoto3Interface so we can reuse its methods which depend upon this one."""
         yield from self.get_resource_attributes_service_by_name(service_name, service_args)
 
     def get_resource_attributes_service_by_name(self, service_name, service_args=None):
@@ -162,6 +163,9 @@ class CustomAttributesInterface(CloudWandererBoto3Interface):
 
         Arguments:
             service_name (str): The name of the service (e.g.``ec2``) to get.
+            service_args (dict): Arguments to pass into the boto3 service Resource object.
+                See: :meth:`boto3.session.Session.resource`
         """
+        service_args = service_args or {}
         yield self.custom_resource_attribute_definitions.resource(
-            service_name=service_name, service_args=service_args)
+            service_name=service_name, **service_args)

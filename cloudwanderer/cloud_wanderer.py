@@ -29,8 +29,6 @@ class CloudWanderer():
         """Write all AWS resources in this account region from all services to storage."""
         exclude_resources = exclude_resources or []
 
-        service_args = service_args or {'region_name': region_name}
-
         for boto3_service in self.boto3_interface.get_all_resource_services():
             self.write_resources(
                 service_name=boto3_service.meta.service_name,
@@ -50,7 +48,7 @@ class CloudWanderer():
             service_args (dict): Arguments to pass into the boto3 service Resource object.
                 See: :meth:`boto3.session.Session.resource`
         """
-        service_args = {
+        service_args = service_args or {
             'region_name': region_name or self.boto3_session.region_name
         }
         logging.info("Writing all %s resources in %s", service_name, service_args['region_name'])
@@ -64,13 +62,13 @@ class CloudWanderer():
                          service_name, service_args['region_name'])
             return
 
-        for resource_name in self.boto3_interface.get_service_resource_names(service_name=service_name):
-            if resource_name in exclude_resources:
-                logging.info('Skipping %s as per exclude_resources', resource_name)
+        for resource_type in self.boto3_interface.get_service_resource_types(service_name=service_name):
+            if resource_type in exclude_resources:
+                logging.info('Skipping %s as per exclude_resources', resource_type)
                 continue
             self.write_resources_of_type(
                 service_name=service_name,
-                resource_type=resource_name,
+                resource_type=resource_type,
                 service_args=service_args
             )
 
@@ -128,13 +126,16 @@ class CloudWanderer():
 
         These custom resource attribute definitions allow us to fetch resource attributes that are not returned by the
         resource's default describe calls.
-        Unlike :meth:`~CloudWanderer.write_resources` and :meth:`~CloudWanderer.write_resources_of_type` this method does not clean up stale resource attributes from storage.
+        Unlike :meth:`~CloudWanderer.write_resources` and :meth:`~CloudWanderer.write_resources_of_type`
+        this method does not clean up stale resource attributes from storage.
 
         Arguments:
-            service_name (str): The name of the service to write the attributes of (e.g. ``ec2``)
+            exclude_resources (list): A list of resources not to write attributes for (e.g. ``['vpc']``)
+            region_name (str): The name of the region to get resources from
+                (defaults to session default if not specified)
+            service_args (dict): Arguments to pass into the boto3 service Resource object.
+                See: :meth:`boto3.session.Session.resource
         """
-        service_args = service_args or {'region_name': region_name}
-
         for boto3_service in self.custom_attributes_interface.get_all_resource_services():
             self.write_resource_attributes(
                 service_name=boto3_service.meta.service_name,
@@ -143,30 +144,44 @@ class CloudWanderer():
                 service_args=service_args
             )
 
-        # services = self.custom_attributes_interface.get_resource_attributes_service_by_name(service_name)
-        # for service_name in services:
-        #     self.write_resource_attributes(service_name)
-
     def write_resource_attributes(self, service_name, exclude_resources=None, region_name=None, service_args=None):
         """Write all AWS resource attributes in this account in this service to storage.
 
         These custom resource attribute definitions allow us to fetch resource attributes that are not returned by the
         resource's default describe calls.
-        Unlike :meth:`~CloudWanderer.write_resources` and :meth:`~CloudWanderer.write_resources_of_type` this method does not clean up stale resource attributes from storage.
+        Unlike :meth:`~CloudWanderer.write_resources` and :meth:`~CloudWanderer.write_resources_of_type`
+        this method does not clean up stale resource attributes from storage.
 
         Arguments:
             service_name (str): The name of the service to write the attributes of (e.g. ``'ec2'``)
-            exclude_attributes (list): A list of resources not to write attributes for (e.g. ``['vpc']``)
+            exclude_resources (list): A list of resources not to write attributes for (e.g. ``['vpc']``)
+            region_name (str): The name of the region to get resources from
+                (defaults to session default if not specified)
+            service_args (dict): Arguments to pass into the boto3 service Resource object.
+                See: :meth:`boto3.session.Session.resource`
         """
+        service_args = service_args or {
+            'region_name': region_name or self.boto3_session.region_name
+        }
         exclude_resources = exclude_resources or []
-        service_args = service_args or {'region_name': region_name}
-        for resource_name in self.custom_attributes_interface.get_service_resource_names(service_name):
-            if resource_name in exclude_resources:
-                logging.info('Skipping %s as per exclude_resources', resource_name)
+        service_map = self.global_service_maps.get_global_service_map(service_name=service_name)
+        if (
+            not service_map.has_global_resources_in_region(service_args['region_name'])
+            and not service_map.has_regional_resources
+        ):
+            logging.info("Skipping %s as it does not have resources in %s",
+                         service_name, service_args['region_name'])
+            return
+        exclude_resources = exclude_resources or []
+        for resource_type in self.custom_attributes_interface.get_service_resource_types(service_name):
+            if resource_type in exclude_resources:
+                logging.info('Skipping %s as per exclude_resources', resource_type)
                 continue
-            self.write_resource_attributes_of_type(service_name, resource_name)
+            self.write_resource_attributes_of_type(
+                service_name=service_name,
+                resource_type=resource_type)
 
-    def write_resource_attributes_of_type(self, service_name, resource_type, service_args=None):
+    def write_resource_attributes_of_type(self, service_name, resource_type, region_name=None, service_args=None):
         """Write all AWS resource attributes in this account of this resource type to storage.
 
         These custom resource attribute definitions allow us to fetch resource attributes that are not returned by the
@@ -175,9 +190,20 @@ class CloudWanderer():
         Arguments:
             service_name (str): The name of the service to write the attributes of (e.g. ``ec2``)
             resource_type (str): The type of resource to write the attributes of (e.g. ``instance``)
+            region_name (str): The name of the region to get resources from
+                (defaults to session default if not specified)
+            service_args (dict): Arguments to pass into the boto3 service Resource object.
+                See: :meth:`boto3.session.Session.resource`
         """
-        logging.info('--> Fetching %s %s', service_name, resource_type)
-        resource_attributes = self.custom_attributes_interface.get_resources_of_type(service_name, resource_type, service_args)
+        service_args = service_args or {
+            'region_name': region_name or self.boto3_session.region_name
+        }
+        logging.info('--> Fetching %s %s in %s', service_name, resource_type, service_args['region_name'])
+        resource_attributes = self.custom_attributes_interface.get_resources_of_type(
+            service_name=service_name,
+            resource_type=resource_type,
+            service_args=service_args
+        )
         for resource_attribute in resource_attributes:
             urn = self._get_resource_urn(resource_attribute)
             self.storage_connector.write_resource_attribute(

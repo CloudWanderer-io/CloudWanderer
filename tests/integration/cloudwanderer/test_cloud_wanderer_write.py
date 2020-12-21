@@ -75,6 +75,11 @@ class TestCloudWandererWrite(unittest.TestCase):
         assert call_dict['urn'].resource_type == 'vpc'
         assert set(['EnableDnsSupport']).issubset(call_dict['resource_attribute'].meta.data.keys())
 
+    def test_write_all_resource_attributes_exclude_resource(self):
+        self.wanderer.write_all_resource_attributes(region_name='eu-west-1', exclude_resources=['vpc'])
+
+        self.mock_storage_connector.write_resource_attribute.assert_not_called()
+
     def test_write_resource_attributes_of_type(self):
         self.wanderer.write_resource_attributes_of_type('ec2', 'vpc')
 
