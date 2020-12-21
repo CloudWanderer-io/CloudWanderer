@@ -4,12 +4,14 @@ Custom resources use the :class:`boto3.resources.base.ServiceResource` model to 
 AWS resources that boto3 does not support natively. We can do this quite easily because CloudWanderer only needs
 a fraction of the functionality that native boto3 resources provide (i.e. the description of the resources).
 """
+from typing import List
 import os
 import json
 import pathlib
+import boto3
+from boto3.resources.model import ResourceModel
 from boto3.resources.factory import ResourceFactory
 from boto3.utils import ServiceContext
-import boto3
 
 
 class CustomResourceFactory():
@@ -19,13 +21,14 @@ class CustomResourceFactory():
         boto3_session (boto3.session.Session): The :class:`boto3.session.Session` object to use for any queries.
     """
 
-    def __init__(self, boto3_session):
+    def __init__(self, boto3_session: boto3.session.Session) -> None:
         """Initialise the ResourceFactory."""
         self.boto3_session = boto3_session or boto3.Session()
         self.emitter = self.boto3_session.events
         self.factory = ResourceFactory(self.emitter)
 
-    def load(self, service_name, resource_definitions=None, service_definition=None):
+    def load(self, service_name: str, resource_definitions: dict = None,
+             service_definition: dict = None) -> ResourceModel:
         """Load the specified resource definition dictionaries into a Resource object.
 
         Arguments:
@@ -48,12 +51,12 @@ class CustomResourceFactory():
             service_context=service_context
         )
 
-    def _get_shape(self, service, shape_name):
-        service_model = self._get_service_model()
-        return service_model.shape_for(shape_name)
+    # def _get_shape(self, service, shape_name: str) -> botocore.model.Shape:
+    #     service_model = self._get_service_model()
+    #     return service_model.shape_for(shape_name)
 
-    def _get_service_model(self, service):
-        client = self.boto3_session.client(service)
+    def _get_service_model(self, service_name: str) -> boto3.resources.base.ServiceResource:
+        client = self.boto3_session.client(service_name)
         return client.meta.service_model
 
 
@@ -68,7 +71,8 @@ class CustomResourceDefinitions():
         definition_path (str): The path to the ``*.json`` files containing the custom resource definitions.
     """
 
-    def __init__(self, boto3_session=None, definition_path='resource_definitions'):
+    def __init__(self, boto3_session: boto3.session.Session = None,
+                 definition_path: str = 'resource_definitions') -> None:
         """Initialise the CustomResourceDefinition."""
         self.service_definitions_path = os.path.join(
             pathlib.Path(__file__).parent.absolute(),
@@ -79,7 +83,7 @@ class CustomResourceDefinitions():
         self._custom_resource_definitions = None
 
     @property
-    def definitions(self):
+    def definitions(self) -> List[ResourceModel]:
         """Return our custom resource definitions."""
         if self._custom_resource_definitions is None:
             self._custom_resource_definitions = {}
@@ -92,18 +96,18 @@ class CustomResourceDefinitions():
                 )
         return self._custom_resource_definitions
 
-    def resource(self, service_name, **kwargs):
+    def resource(self, service_name: str, **kwargs) -> ResourceModel:
         """Instantiate and return the boto3 Resource object for our custom resource definition."""
         if service_name in self.definitions:
             return self.definitions[service_name](
                 client=self.boto3_session.client(service_name, **kwargs))
         return None
 
-    def _load_service_definition(self, service_name):
+    def _load_service_definition(self, service_name: str) -> dict:
         with open(os.path.join(self.service_definitions_path, f"{service_name}.json")) as definition_path:
             return json.load(definition_path)
 
-    def _list_service_definitions(self):
+    def _list_service_definitions(self) -> List[str]:
         return [
             file_name.replace('.json', '')
             for file_name in os.listdir(self.service_definitions_path)

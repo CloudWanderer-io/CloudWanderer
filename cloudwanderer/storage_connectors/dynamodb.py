@@ -9,7 +9,7 @@ import json
 from datetime import datetime
 from random import randrange
 from decimal import Decimal
-from .base_connector import BaseConnector
+from .base_connector import BaseStorageConnector
 from boto3.dynamodb.conditions import Key
 from ..cloud_wanderer import CloudWandererResource
 from ..aws_urn import AwsUrn
@@ -84,7 +84,7 @@ def standardise_data_types(resource: dict) -> dict:
     return result
 
 
-class DynamoDbConnector(BaseConnector):
+class DynamoDbConnector(BaseStorageConnector):
     """CloudWanderer Storage Connector for DynamoDB.
 
     Arguments:

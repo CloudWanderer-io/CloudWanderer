@@ -22,7 +22,7 @@ def add_infra(count=1):
         ec2_resource = boto3.resource('ec2', region_name=region_name)
         images = list(ec2_resource.images.all())
         ec2_resource.create_instances(ImageId=images[0].image_id, MinCount=count, MaxCount=count)
-        for i in range(count-1):
+        for i in range(count - 1):
             ec2_resource.create_vpc(CidrBlock='10.0.0.0/16')
 
     iam_resource = boto3.resource('iam')

@@ -5,7 +5,7 @@ from ..aws_urn import AwsUrn
 from ..cloud_wanderer import CloudWandererResource
 
 
-class BaseConnector(ABC):
+class BaseStorageConnector(ABC):
     """Abstract class for specification of the CloudWanderer storage connector interface."""
 
     @abstractmethod
