@@ -69,7 +69,7 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
             )
             if region_name == 'us-east-1':
                 self.assert_storage_connector_write_resource_called_with(
-                    region='us-east-1',
+                    region=region_name,
                     service='iam',
                     resource_type='group',
                     attributes_dict={
@@ -78,8 +78,8 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
                     }
                 )
             else:
-                self.assert_storage_connector_write_resource_called_with(
-                    region='us-east-1',
+                self.assert_storage_connector_write_resource_not_called_with(
+                    region=region_name,
                     service='iam',
                     resource_type='group',
                     attributes_dict={
