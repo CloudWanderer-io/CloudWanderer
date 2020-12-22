@@ -11,12 +11,13 @@ find a resource in AWS, whereas AWS ARNs do not always provide this information.
     'urn:aws:111111111111:eu-west-2:ec2:vpc:vpc-11111111'
 
 Example:
-
     >>> from cloudwanderer import AwsUrn
     >>> AwsUrn.from_string('urn:aws:111111111111:eu-west-2:ec2:vpc:vpc-11111111')
-    AwsUrn(account_id='111111111111', region='eu-west-2', service='ec2', resource_type='vpc', resource_id='vpc-11111111')
+    AwsUrn(account_id='111111111111', region='eu-west-2', service='ec2', \
+resource_type='vpc', resource_id='vpc-11111111')
 
 """
+from typing import Any
 
 
 class AwsUrn():
@@ -30,7 +31,8 @@ class AwsUrn():
         resource_id (str): AWS Resource Id (e.g. ``i-11111111``)
     """
 
-    def __init__(self, account_id, region, service, resource_type, resource_id):
+    def __init__(
+            self, account_id: str, region: str, service: str, resource_type: str, resource_id: str) -> None:
         """Initialise an AWS Urn."""
         self.account_id = account_id
         self.region = region
@@ -39,7 +41,7 @@ class AwsUrn():
         self.resource_id = resource_id
 
     @classmethod
-    def from_string(cls, urn_string):
+    def from_string(cls, urn_string: str) -> 'AwsUrn':
         """Create an AwsUrn Object from an AwsUrn string."""
         parts = urn_string.split(':')
         return cls(
@@ -50,11 +52,11 @@ class AwsUrn():
             resource_id=parts[6]
         )
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         """Allow comparison of one AwsUrn to another."""
         return str(self) == str(other)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return a class representation of the AwsUrn."""
         return str(
             f"{self.__class__.__name__}("
@@ -65,7 +67,7 @@ class AwsUrn():
             f"resource_id='{self.resource_id}')"
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return a string representation of the AwsUrn."""
         return str(
             f"urn:aws:{self.account_id}:{self.region}:{self.service}:{self.resource_type}:{self.resource_id}"
