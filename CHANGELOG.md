@@ -5,6 +5,7 @@
 - No longer queries services which do not exist in the region being queried
 - No longer writes resources which do not exist in the region being queried
 - Added type hints
+- Added client_args
 
 # 0.5.0
 

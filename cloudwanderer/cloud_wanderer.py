@@ -34,15 +34,15 @@ class CloudWanderer():
         self._account_id = None
 
     def write_all_resources(
-            self, exclude_resources: List[str] = None, region_name: str = None, service_args: dict = None) -> None:
+            self, exclude_resources: List[str] = None, region_name: str = None, client_args: dict = None) -> None:
         """Write all AWS resources in this account region from all services to storage.
 
         Arguments:
             exclude_resources (list): A list of resource names to exclude (e.g. ``['instance']``)
             region_name (str): The name of the region to get resources from
                 (defaults to session default if not specified)
-            service_args (dict): Arguments to pass into the boto3 service Resource object.
-                See: :meth:`boto3.session.Session.resource`
+            client_args (dict): Arguments to pass into the boto3 client.
+                See: :meth:`boto3.session.Session.client`
         """
         exclude_resources = exclude_resources or []
 
@@ -51,12 +51,12 @@ class CloudWanderer():
                 service_name=boto3_service.meta.service_name,
                 exclude_resources=exclude_resources,
                 region_name=region_name,
-                service_args=service_args
+                client_args=client_args
             )
 
     def write_resources(
             self, service_name: str, exclude_resources: List[str] = None,
-            region_name: str = None, service_args: dict = None) -> None:
+            region_name: str = None, client_args: dict = None) -> None:
         """Write all AWS resources in this region in this service to storage.
 
         Cleans up any resources in the StorageConnector that no longer exist.
@@ -66,19 +66,19 @@ class CloudWanderer():
             exclude_resources (list): A list of resource names to exclude (e.g. ``['instance']``)
             region_name (str): The name of the region to get resources from
                 (defaults to session default if not specified)
-            service_args (dict): Arguments to pass into the boto3 service Resource object.
-                See: :meth:`boto3.session.Session.resource`
+            client_args (dict): Arguments to pass into the boto3 client.
+                See: :meth:`boto3.session.Session.client`
         """
-        service_args = service_args or {
+        client_args = client_args or {
             'region_name': region_name or self.boto3_session.region_name
         }
-        logging.info("Writing all %s resources in %s", service_name, service_args['region_name'])
+        logging.info("Writing all %s resources in %s", service_name, client_args['region_name'])
         exclude_resources = exclude_resources or []
         service_map = self.global_service_maps.get_global_service_map(service_name=service_name)
-        has_global_resources_in_this_region = service_map.has_global_resources_in_region(service_args['region_name'])
+        has_global_resources_in_this_region = service_map.has_global_resources_in_region(client_args['region_name'])
         if not has_global_resources_in_this_region and not service_map.has_regional_resources:
             logging.info("Skipping %s as it does not have resources in %s",
-                         service_name, service_args['region_name'])
+                         service_name, client_args['region_name'])
             return
 
         for resource_type in self.boto3_interface.get_service_resource_types(service_name=service_name):
@@ -88,12 +88,12 @@ class CloudWanderer():
             self.write_resources_of_type(
                 service_name=service_name,
                 resource_type=resource_type,
-                service_args=service_args
+                client_args=client_args
             )
 
     def write_resources_of_type(
             self, service_name: str, resource_type: str = None,
-            region_name: str = None, service_args: dict = None) -> None:
+            region_name: str = None, client_args: dict = None) -> None:
         """Write all AWS resources in this region in this service to storage.
 
         Cleans up any resources in the StorageConnector that no longer exist.
@@ -103,23 +103,23 @@ class CloudWanderer():
             resource_type (str): The name of the type of the resource to write (e.g. ``'instance'``)
             region_name (str): The name of the region to get resources from
                 (defaults to session default if not specified)
-            service_args (dict): Arguments to pass into the boto3 service Resource object.
-                See: :meth:`boto3.session.Session.resource`
+            client_args (dict): Arguments to pass into the boto3 client.
+                See: :meth:`boto3.session.Session.client`
         """
-        service_args = service_args or {
+        client_args = client_args or {
             'region_name': region_name or self.boto3_session.region_name
         }
-        logging.info('--> Fetching %s %s from %s', service_name, resource_type, service_args['region_name'])
-        resources = self.boto3_interface.get_resources_of_type(service_name, resource_type, service_args)
+        logging.info('--> Fetching %s %s from %s', service_name, resource_type, client_args['region_name'])
+        resources = self.boto3_interface.get_resources_of_type(service_name, resource_type, client_args)
         urns = []
         for boto3_resource in resources:
             urn = self._get_resource_urn(boto3_resource)
-            if not self._should_write_resource_in_region(urn, service_args['region_name']):
+            if not self._should_write_resource_in_region(urn, client_args['region_name']):
                 continue
             self.storage_connector.write_resource(urn, boto3_resource)
             urns.append(urn)
         self._clean_resources_in_region(
-            service_name, resource_type, service_args['region_name'], urns)
+            service_name, resource_type, client_args['region_name'], urns)
 
     def _clean_resources_in_region(
             self, service_name: str, resource_type: str, region_name: str, current_urns: List[AwsUrn]) -> None:
@@ -146,7 +146,7 @@ class CloudWanderer():
         return True
 
     def write_all_resource_attributes(
-            self, exclude_resources: List[str] = None, region_name: str = None, service_args: dict = None) -> None:
+            self, exclude_resources: List[str] = None, region_name: str = None, client_args: dict = None) -> None:
         """Write all AWS resource attributes in this account in this region to storage.
 
         These custom resource attribute definitions allow us to fetch resource attributes that are not returned by the
@@ -158,20 +158,20 @@ class CloudWanderer():
             exclude_resources (list): A list of resources not to write attributes for (e.g. ``['vpc']``)
             region_name (str): The name of the region to get resources from
                 (defaults to session default if not specified)
-            service_args (dict): Arguments to pass into the boto3 service Resource object.
-                See: :meth:`boto3.session.Session.resource`
+            client_args (dict): Arguments to pass into the boto3 client.
+                See: :meth:`boto3.session.Session.client`
         """
         for boto3_service in self.custom_attributes_interface.get_all_resource_services():
             self.write_resource_attributes(
                 service_name=boto3_service.meta.service_name,
                 exclude_resources=exclude_resources,
                 region_name=region_name,
-                service_args=service_args
+                client_args=client_args
             )
 
     def write_resource_attributes(
             self, service_name: str, exclude_resources: List[str] = None,
-            region_name: str = None, service_args: dict = None) -> None:
+            region_name: str = None, client_args: dict = None) -> None:
         """Write all AWS resource attributes in this account in this service to storage.
 
         These custom resource attribute definitions allow us to fetch resource attributes that are not returned by the
@@ -184,18 +184,18 @@ class CloudWanderer():
             exclude_resources (list): A list of resources not to write attributes for (e.g. ``['vpc']``)
             region_name (str): The name of the region to get resources from
                 (defaults to session default if not specified)
-            service_args (dict): Arguments to pass into the boto3 service Resource object.
-                See: :meth:`boto3.session.Session.resource`
+            client_args (dict): Arguments to pass into the boto3 client.
+                See: :meth:`boto3.session.Session.client`
         """
-        service_args = service_args or {
+        client_args = client_args or {
             'region_name': region_name or self.boto3_session.region_name
         }
         exclude_resources = exclude_resources or []
         service_map = self.global_service_maps.get_global_service_map(service_name=service_name)
-        has_gobal_resources_in_this_region = service_map.has_global_resources_in_region(service_args['region_name'])
+        has_gobal_resources_in_this_region = service_map.has_global_resources_in_region(client_args['region_name'])
         if not has_gobal_resources_in_this_region and not service_map.has_regional_resources:
             logging.info("Skipping %s as it does not have resources in %s",
-                         service_name, service_args['region_name'])
+                         service_name, client_args['region_name'])
             return
         exclude_resources = exclude_resources or []
         for resource_type in self.custom_attributes_interface.get_service_resource_types(service_name):
@@ -207,7 +207,7 @@ class CloudWanderer():
                 resource_type=resource_type)
 
     def write_resource_attributes_of_type(
-            self, service_name: str, resource_type: str, region_name: str = None, service_args: dict = None) -> None:
+            self, service_name: str, resource_type: str, region_name: str = None, client_args: dict = None) -> None:
         """Write all AWS resource attributes in this account of this resource type to storage.
 
         These custom resource attribute definitions allow us to fetch resource attributes that are not returned by the
@@ -218,17 +218,17 @@ class CloudWanderer():
             resource_type (str): The type of resource to write the attributes of (e.g. ``instance``)
             region_name (str): The name of the region to get resources from
                 (defaults to session default if not specified)
-            service_args (dict): Arguments to pass into the boto3 service Resource object.
-                See: :meth:`boto3.session.Session.resource`
+            client_args (dict): Arguments to pass into the boto3 client.
+                See: :meth:`boto3.session.Session.client`
         """
-        service_args = service_args or {
+        client_args = client_args or {
             'region_name': region_name or self.boto3_session.region_name
         }
-        logging.info('--> Fetching %s %s in %s', service_name, resource_type, service_args['region_name'])
+        logging.info('--> Fetching %s %s in %s', service_name, resource_type, client_args['region_name'])
         resource_attributes = self.custom_attributes_interface.get_resources_of_type(
             service_name=service_name,
             resource_type=resource_type,
-            service_args=service_args
+            client_args=client_args
         )
         for resource_attribute in resource_attributes:
             urn = self._get_resource_urn(resource_attribute)
