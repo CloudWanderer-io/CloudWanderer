@@ -113,7 +113,7 @@ class CloudWanderer():
         resources = self.boto3_interface.get_resources_of_type(service_name, resource_type, client_args)
         urns = []
         for boto3_resource in resources:
-            urn = self._get_resource_urn(boto3_resource)
+            urn = self._get_resource_urn(boto3_resource, client_args['region_name'])
             if not self._should_write_resource_in_region(urn, client_args['region_name']):
                 continue
             self.storage_connector.write_resource(urn, boto3_resource)
@@ -231,7 +231,7 @@ class CloudWanderer():
             client_args=client_args
         )
         for resource_attribute in resource_attributes:
-            urn = self._get_resource_urn(resource_attribute)
+            urn = self._get_resource_urn(resource_attribute, client_args['region_name'])
             self.storage_connector.write_resource_attribute(
                 urn=urn,
                 resource_attribute=resource_attribute,
@@ -288,7 +288,7 @@ class CloudWanderer():
             self._account_id = sts.get_caller_identity()['Account']
         return self._account_id
 
-    def _get_resource_urn(self, resource: ResourceModel) -> 'AwsUrn':
+    def _get_resource_urn(self, resource: ResourceModel, region_name: str) -> 'AwsUrn':
         id_member_name = resource.meta.resource_model.identifiers[0].name
         resource_id = getattr(resource, id_member_name)
         if resource_id.startswith('arn:'):
@@ -296,7 +296,7 @@ class CloudWanderer():
         global_service_map = self.global_service_maps.get_global_service_map(resource.meta.service_name)
         return AwsUrn(
             account_id=self.account_id,
-            region=global_service_map.get_resource_region(resource),
+            region=global_service_map.get_resource_region(resource, region_name),
             service=resource.meta.service_name,
             resource_type=xform_name(resource.meta.resource_model.shape),
             resource_id=resource_id

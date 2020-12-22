@@ -11,7 +11,7 @@ from cloudwanderer import CloudWanderer
 @mock_sts
 @mock_iam
 @mock_s3
-class TestCloudWandererWrite(unittest.TestCase):
+class TestCloudWandererWriteResources(unittest.TestCase):
 
     @mock_ec2
     @mock_sts
@@ -46,6 +46,14 @@ class TestCloudWandererWrite(unittest.TestCase):
                 'instance_id': ANY
             }
         )
+        self.assert_storage_connector_write_resource_called_with(
+            region='eu-west-2',
+            service='s3',
+            resource_type='bucket',
+            attributes_dict={
+                'name': 'test-eu-west-2'
+            }
+        )
 
     @patch_services(['ec2', 's3'])
     @patch_resource_collections(collections=[MOCK_COLLECTION_INSTANCES, MOCK_COLLECTION_BUCKETS])
@@ -54,6 +62,16 @@ class TestCloudWandererWrite(unittest.TestCase):
         self.wanderer.write_all_resources(region_name='us-east-1')
 
         self.mock_storage_connector.write_resource.assert_called()
+        self.assert_storage_connector_write_resource_called_with(
+            region='us-east-1',
+            service='ec2',
+            resource_type='instance',
+            attributes_dict={
+                'vpc_id': ANY,
+                'subnet_id': ANY,
+                'instance_id': ANY
+            }
+        )
         self.assert_storage_connector_write_resource_called_with(
             region='us-east-1',
             service='s3',
@@ -107,5 +125,5 @@ class TestCloudWandererWrite(unittest.TestCase):
                 except AttributeError:
                     comparisons.append(False)
             if all(comparisons):
-              matches.append((urn, resource))
+                matches.append((urn, resource))
         assert matches

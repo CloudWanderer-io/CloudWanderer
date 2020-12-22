@@ -12,7 +12,9 @@ def patch_resource_collections(collections):
                 cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface,
                 'get_resource_collections',
                 new=MagicMock(side_effect=lambda service_resource: [
-                    collection for collection in collections if service_resource.meta.service_name == collection.meta.service_name
+                    collection
+                    for collection in collections
+                    if service_resource.meta.service_name == collection.meta.service_name
                 ])
             ):
                 return func(*args, **kwargs)

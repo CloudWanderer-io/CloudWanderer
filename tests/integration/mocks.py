@@ -30,7 +30,10 @@ def add_infra(count=1):
         for i in range(count - 1):
             ec2_resource.create_vpc(CidrBlock='10.0.0.0/16')
 
-        bucket_args = {'CreateBucketConfiguration': {'LocationConstraint': region_name}} if region_name != 'us-east-1' else {}
+        if region_name != 'us-east-1':
+            bucket_args = {'CreateBucketConfiguration': {'LocationConstraint': region_name}}
+        else:
+            bucket_args = {}
         boto3.resource('s3', region_name='us-east-1').Bucket(f"test-{region_name}").create(**bucket_args)
 
     iam_resource = boto3.resource('iam')
