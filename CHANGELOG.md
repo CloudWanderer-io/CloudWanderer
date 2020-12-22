@@ -4,6 +4,11 @@
 - Identify global services and their primary region using `GlobalServiceMapping` objects.
 - No longer queries services which do not exist in the region being queried
 - No longer writes resources which do not exist in the region being queried
+- Added type hints
+- Added client_args
+- Added `write_all_resource_attributes`
+- Added `write_resource_attributes_of_type`
+- Made `CustomResourceDefinitions` work more like a `ServiceResource` object with a `resource()` method
 
 # 0.5.0
 
