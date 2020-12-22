@@ -14,6 +14,7 @@ class TestCloudWandererWriteResourceAttributes(unittest.TestCase):
     @mock_ec2
     @mock_sts
     @mock_iam
+    @mock_s3
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         logging.basicConfig(level='INFO')
