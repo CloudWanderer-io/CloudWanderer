@@ -11,8 +11,7 @@ CloudWanderer
    :maxdepth: 2
    :caption: Contents:
 
-   class_reference
-   storage_connector_reference
+   reference
 
 .. image :: https://user-images.githubusercontent.com/803607/101322139-7111b800-385e-11eb-9277-c6bf3a580987.png
 

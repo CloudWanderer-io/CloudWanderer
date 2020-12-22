@@ -18,11 +18,15 @@ def generate_mock_session(region='eu-west-2'):
 
 
 def add_infra(count=1):
-    resource = boto3.resource('ec2', region_name='eu-west-2')
-    images = list(resource.images.all())
-    resource.create_instances(ImageId=images[0].image_id, MinCount=count, MaxCount=count)
-    for i in range(count-1):
-        resource.create_vpc(CidrBlock='10.0.0.0/16')
+    for region_name in ['eu-west-2', 'us-east-1']:
+        ec2_resource = boto3.resource('ec2', region_name=region_name)
+        images = list(ec2_resource.images.all())
+        ec2_resource.create_instances(ImageId=images[0].image_id, MinCount=count, MaxCount=count)
+        for i in range(count - 1):
+            ec2_resource.create_vpc(CidrBlock='10.0.0.0/16')
+
+    iam_resource = boto3.resource('iam')
+    iam_resource.Group('test-group').create()
 
 
 def generate_urn(service, resource_type, id):

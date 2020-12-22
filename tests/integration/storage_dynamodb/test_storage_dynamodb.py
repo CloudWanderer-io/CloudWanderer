@@ -1,5 +1,5 @@
 import unittest
-from moto import mock_dynamodb2, mock_ec2
+from moto import mock_dynamodb2, mock_ec2, mock_iam
 from ..mocks import generate_mock_session, add_infra, generate_urn, generate_mock_resource_attribute
 from cloudwanderer.storage_connectors import DynamoDbConnector
 
@@ -17,6 +17,7 @@ class TestStorageConnectorDynamoDb(unittest.TestCase):
             self.connector.init()
 
     @mock_ec2
+    @mock_iam
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.mock_session = generate_mock_session()

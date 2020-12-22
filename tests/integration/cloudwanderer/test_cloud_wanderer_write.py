@@ -1,7 +1,7 @@
 import logging
 import unittest
 from unittest.mock import MagicMock, patch
-from moto import mock_ec2, mock_sts
+from moto import mock_ec2, mock_sts, mock_iam
 from ..mocks import add_infra, MOCK_COLLECTION_INSTANCES, generate_mock_session
 import cloudwanderer
 from cloudwanderer import CloudWanderer
@@ -9,10 +9,12 @@ from cloudwanderer import CloudWanderer
 
 @mock_ec2
 @mock_sts
+@mock_iam
 class TestCloudWandererWrite(unittest.TestCase):
 
     @mock_ec2
     @mock_sts
+    @mock_iam
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         logging.basicConfig(level='INFO')
@@ -50,6 +52,43 @@ class TestCloudWandererWrite(unittest.TestCase):
         assert call_dict['urn'].resource_type == 'vpc'
         assert set(['EnableDnsSupport']).issubset(call_dict['resource_attribute'].meta.data.keys())
 
+    def test_write_resource_attributes_with_region(self):
+        self.wanderer.write_resource_attributes('ec2', region_name='us-east-1')
+
+        self.mock_storage_connector.write_resource_attribute.assert_called_once()
+        call_dict = self.mock_storage_connector.write_resource_attribute.call_args_list[0][1]
+        assert call_dict['attribute_type'] == 'vpc_enable_dns_support'
+        assert call_dict['urn'].resource_type == 'vpc'
+        assert set(['EnableDnsSupport']).issubset(call_dict['resource_attribute'].meta.data.keys())
+
+    def test_write_resource_ignores_services_out_of_region(self):
+        self.wanderer.write_resource_attributes('iam', region_name='eu-west-1')
+
+        self.mock_storage_connector.write_resource_attribute.assert_not_called()
+
+    def test_write_all_resource_attributes(self):
+        self.wanderer.write_all_resource_attributes(region_name='eu-west-1')
+
+        self.mock_storage_connector.write_resource_attribute.assert_called()
+        call_dict = self.mock_storage_connector.write_resource_attribute.call_args_list[0][1]
+        assert call_dict['attribute_type'] == 'vpc_enable_dns_support'
+        assert call_dict['urn'].resource_type == 'vpc'
+        assert set(['EnableDnsSupport']).issubset(call_dict['resource_attribute'].meta.data.keys())
+
+    def test_write_all_resource_attributes_exclude_resource(self):
+        self.wanderer.write_all_resource_attributes(region_name='eu-west-1', exclude_resources=['vpc'])
+
+        self.mock_storage_connector.write_resource_attribute.assert_not_called()
+
+    def test_write_resource_attributes_of_type(self):
+        self.wanderer.write_resource_attributes_of_type('ec2', 'vpc')
+
+        self.mock_storage_connector.write_resource_attribute.assert_called()
+        call_dict = self.mock_storage_connector.write_resource_attribute.call_args_list[0][1]
+        assert call_dict['attribute_type'] == 'vpc_enable_dns_support'
+        assert call_dict['urn'].resource_type == 'vpc'
+        assert set(['EnableDnsSupport']).issubset(call_dict['resource_attribute'].meta.data.keys())
+
     @patch.object(
         cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface,
         'get_resource_collections',
@@ -70,3 +109,35 @@ class TestCloudWandererWrite(unittest.TestCase):
         assert urn.resource_type == 'instance'
 
         assert set(['VpcId', 'SubnetId', 'InstanceId']).issubset(resource.meta.data.keys())
+
+    def test_write_all_resources_specify_region(self):
+
+        with patch.object(
+            cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface,
+            'get_all_resource_services',
+                new=MagicMock(return_value=[generate_mock_session().resource('iam')])):
+            self.wanderer.write_all_resources(region_name='us-east-1')
+
+        urn, resource = self.mock_storage_connector.write_resource.call_args_list[0][0]
+        assert urn.account_id == '123456789012'
+        assert urn.region == 'us-east-1'
+        assert urn.service == 'iam'
+        assert urn.resource_type == 'group'
+
+        assert set(['GroupId', 'GroupName', 'Path']).issubset(resource.meta.data.keys())
+
+    def test_write_resources_of_type_specify_region(self):
+        with patch.object(
+            cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface,
+            'get_all_resource_services',
+                new=MagicMock(return_value=[generate_mock_session().resource('iam')])):
+            self.wanderer.write_resources_of_type(
+                service_name='iam', resource_type='group', region_name='us-east-1')
+
+        urn, resource = self.mock_storage_connector.write_resource.call_args_list[0][0]
+        assert urn.account_id == '123456789012'
+        assert urn.region == 'us-east-1'
+        assert urn.service == 'iam'
+        assert urn.resource_type == 'group'
+
+        assert set(['GroupId', 'GroupName', 'Path']).issubset(resource.meta.data.keys())
