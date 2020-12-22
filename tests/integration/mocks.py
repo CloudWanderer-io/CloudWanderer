@@ -7,6 +7,16 @@ MOCK_COLLECTION_INSTANCES = MagicMock(**{
     'resource.model.shape': 'instance'
 })
 MOCK_COLLECTION_INSTANCES.configure_mock(name='instances')
+MOCK_COLLECTION_BUCKETS = MagicMock(**{
+    'meta.service_name': 's3',
+    'resource.model.shape': 'bucket'
+})
+MOCK_COLLECTION_BUCKETS.configure_mock(name='buckets')
+MOCK_COLLECTION_IAM_GROUPS = MagicMock(**{
+    'meta.service_name': 'iam',
+    'resource.model.shape': 'group'
+})
+MOCK_COLLECTION_IAM_GROUPS.configure_mock(name='groups')
 
 
 def generate_mock_session(region='eu-west-2'):
@@ -24,6 +34,12 @@ def add_infra(count=1):
         ec2_resource.create_instances(ImageId=images[0].image_id, MinCount=count, MaxCount=count)
         for i in range(count - 1):
             ec2_resource.create_vpc(CidrBlock='10.0.0.0/16')
+
+        if region_name != 'us-east-1':
+            bucket_args = {'CreateBucketConfiguration': {'LocationConstraint': region_name}}
+        else:
+            bucket_args = {}
+        boto3.resource('s3', region_name='us-east-1').Bucket(f"test-{region_name}").create(**bucket_args)
 
     iam_resource = boto3.resource('iam')
     iam_resource.Group('test-group').create()

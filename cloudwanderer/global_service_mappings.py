@@ -104,15 +104,16 @@ class GlobalServiceMapping:
         """Return the dictionary specifying details about the global service."""
         return self.service_mapping.get('service', {})
 
-    def get_resource_region(self, resource: ResourceModel) -> str:
+    def get_resource_region(self, resource: ResourceModel, default_region: str) -> str:
         """Get the region of a :class:`boto3.resources.base.ServiceResource` object.
 
         Arguments:
             resource (boto3.resources.base.ServiceResource): The :class:`~boto3.resources.base.ServiceResource`
-            to find the region of.
+                to find the region of.
+            default_region (str): The region to return if there is no gloabl service mapping for this resource type.
         """
         if self.service_mapping is None:
-            return self.boto3_session.region_name
+            return default_region
         resource_type = botocore.xform_name(resource.meta.resource_model.shape)
         try:
             resource_mapping = self._get_resource_mapping(resource_type)
