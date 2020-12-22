@@ -2,7 +2,7 @@ import logging
 import unittest
 from unittest.mock import MagicMock, ANY
 from moto import mock_ec2, mock_sts, mock_iam, mock_s3
-from ..helpers import patch_resource_collections, patch_services
+from ..helpers import patch_resource_collections, patch_services, MockStorageConnectorMixin
 from ..mocks import (
     add_infra,
     MOCK_COLLECTION_INSTANCES,
@@ -17,7 +17,7 @@ from cloudwanderer import CloudWanderer
 @mock_sts
 @mock_iam
 @mock_s3
-class TestCloudWandererWriteResources(unittest.TestCase):
+class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMixin):
 
     @mock_ec2
     @mock_sts
@@ -251,25 +251,3 @@ class TestCloudWandererWriteResources(unittest.TestCase):
                 'path': '/'
             }
         )
-
-    def assert_storage_connector_write_resource_not_called_with(self, **kwargs):
-        assert not self.storage_connector_write_resource_called_with(**kwargs)
-
-    def assert_storage_connector_write_resource_called_with(self, **kwargs):
-        assert self.storage_connector_write_resource_called_with(**kwargs)
-
-    def storage_connector_write_resource_called_with(self, region, service, resource_type, attributes_dict):
-        matches = []
-        for write_resource_call in self.mock_storage_connector.write_resource.call_args_list:
-            urn, resource = write_resource_call[0]
-            comparisons = []
-            for var in ['region', 'service', 'resource_type']:
-                comparisons.append(eval(var) == getattr(urn, var))
-            for attr, value in attributes_dict.items():
-                try:
-                    comparisons.append(getattr(resource, attr) == value)
-                except AttributeError:
-                    comparisons.append(False)
-            if all(comparisons):
-                matches.append((urn, resource))
-        return matches
