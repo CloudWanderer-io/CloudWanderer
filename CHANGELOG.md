@@ -15,7 +15,8 @@
 - Renamed `write_all_resource_attributes` to `write_resource_attributes_in_region`
 - Renamed `write_resource_attributes` to `write_resource_attributes_of_service_in_region`
 - Renamed `write_resource_attributes_of_type` to `write_resource_attributes_of_type_in_region`
-- Added `write_resources`
+- Added `write_resources` which pulls resources from all regions.
+- Added `write_resource_attributes` which pulls resource attributes from all regions.
 - Handle `EndpointConnectionError`s which occur when a service is not supported in a region.
 
 # 0.5.0
