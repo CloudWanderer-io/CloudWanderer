@@ -165,8 +165,8 @@ class CloudWanderer():
             self.write_resource_attributes(
                 service_name=boto3_service.meta.service_name,
                 exclude_resources=exclude_resources,
+                client_args=client_args,
                 region_name=region_name,
-                client_args=client_args
             )
 
     def write_resource_attributes(
@@ -190,6 +190,7 @@ class CloudWanderer():
         client_args = client_args or {
             'region_name': region_name or self.boto3_session.region_name
         }
+        logging.info("Writing all %s resource attributes in %s", service_name, client_args['region_name'])
         exclude_resources = exclude_resources or []
         service_map = self.global_service_maps.get_global_service_map(service_name=service_name)
         has_gobal_resources_in_this_region = service_map.has_global_resources_in_region(client_args['region_name'])
@@ -204,7 +205,9 @@ class CloudWanderer():
                 continue
             self.write_resource_attributes_of_type(
                 service_name=service_name,
-                resource_type=resource_type)
+                resource_type=resource_type,
+                client_args=client_args
+            )
 
     def write_resource_attributes_of_type(
             self, service_name: str, resource_type: str, region_name: str = None, client_args: dict = None) -> None:

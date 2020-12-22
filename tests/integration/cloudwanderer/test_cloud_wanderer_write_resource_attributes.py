@@ -35,6 +35,7 @@ class TestCloudWandererWriteResourceAttributes(unittest.TestCase):
 
         assert call_dict['attribute_type'] == 'vpc_enable_dns_support'
         assert call_dict['urn'].resource_type == 'vpc'
+        assert call_dict['urn'].region == 'eu-west-2'
         assert set(['EnableDnsSupport']).issubset(call_dict['resource_attribute'].meta.data.keys())
 
     def test_write_resource_attributes_with_region(self):
@@ -44,6 +45,7 @@ class TestCloudWandererWriteResourceAttributes(unittest.TestCase):
         call_dict = self.mock_storage_connector.write_resource_attribute.call_args_list[0][1]
         assert call_dict['attribute_type'] == 'vpc_enable_dns_support'
         assert call_dict['urn'].resource_type == 'vpc'
+        assert call_dict['urn'].region == 'us-east-1'
         assert set(['EnableDnsSupport']).issubset(call_dict['resource_attribute'].meta.data.keys())
 
     def test_write_resource_attributes_ignores_services_out_of_region(self):
@@ -51,17 +53,28 @@ class TestCloudWandererWriteResourceAttributes(unittest.TestCase):
 
         self.mock_storage_connector.write_resource_attribute.assert_not_called()
 
-    def test_write_all_resource_attributes(self):
-        self.wanderer.write_all_resource_attributes(region_name='eu-west-1')
+    def test_write_all_resource_attributes_default_region(self):
+        self.wanderer.write_all_resource_attributes()
 
         self.mock_storage_connector.write_resource_attribute.assert_called()
         call_dict = self.mock_storage_connector.write_resource_attribute.call_args_list[0][1]
         assert call_dict['attribute_type'] == 'vpc_enable_dns_support'
         assert call_dict['urn'].resource_type == 'vpc'
+        assert call_dict['urn'].region == 'eu-west-2'
+        assert set(['EnableDnsSupport']).issubset(call_dict['resource_attribute'].meta.data.keys())
+
+    def test_write_all_resource_attributes_specify_region(self):
+        self.wanderer.write_all_resource_attributes(region_name='us-east-1')
+
+        self.mock_storage_connector.write_resource_attribute.assert_called()
+        call_dict = self.mock_storage_connector.write_resource_attribute.call_args_list[0][1]
+        assert call_dict['attribute_type'] == 'vpc_enable_dns_support'
+        assert call_dict['urn'].resource_type == 'vpc'
+        assert call_dict['urn'].region == 'us-east-1'
         assert set(['EnableDnsSupport']).issubset(call_dict['resource_attribute'].meta.data.keys())
 
     def test_write_all_resource_attributes_exclude_resource(self):
-        self.wanderer.write_all_resource_attributes(region_name='eu-west-1', exclude_resources=['vpc'])
+        self.wanderer.write_all_resource_attributes(exclude_resources=['vpc'])
 
         self.mock_storage_connector.write_resource_attribute.assert_not_called()
 
@@ -72,4 +85,5 @@ class TestCloudWandererWriteResourceAttributes(unittest.TestCase):
         call_dict = self.mock_storage_connector.write_resource_attribute.call_args_list[0][1]
         assert call_dict['attribute_type'] == 'vpc_enable_dns_support'
         assert call_dict['urn'].resource_type == 'vpc'
+        assert call_dict['urn'].region == 'eu-west-2'
         assert set(['EnableDnsSupport']).issubset(call_dict['resource_attribute'].meta.data.keys())
