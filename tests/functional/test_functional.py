@@ -15,6 +15,11 @@ class TestFunctional(unittest.TestCase):
             endpoint_url='http://localhost:8000'
         ))
 
+    # Disabled by default as it takes 6+ minutes to run.
+    # def test_write_resources(self):
+    #     self.wanderer.storage_connector.init()
+    #     self.wanderer.write_resources(exclude_resources=['image', 'snapshot', 'policy'])
+
     def test_write_resources_in_region(self):
         self.wanderer.storage_connector.init()
         self.wanderer.write_resources_in_region(exclude_resources=['image', 'snapshot', 'policy'])

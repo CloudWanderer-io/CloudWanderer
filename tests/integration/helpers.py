@@ -46,7 +46,10 @@ class MockStorageConnectorMixin:
         assert not self.storage_connector_write_resource_called_with(**kwargs)
 
     def assert_storage_connector_write_resource_called_with(self, **kwargs):
-        assert self.storage_connector_write_resource_called_with(**kwargs)
+        self.assertTrue(
+            self.storage_connector_write_resource_called_with(**kwargs),
+            f"No match for {kwargs} in {self.mock_storage_connector.write_resource.call_args_list}"
+        )
 
     def storage_connector_write_resource_called_with(self, region, service, resource_type, attributes_dict):
         matches = []
@@ -68,7 +71,10 @@ class MockStorageConnectorMixin:
         assert not self.storage_connector_write_resource_attribute_called_with(**kwargs)
 
     def assert_storage_connector_write_resource_attribute_called_with(self, **kwargs):
-        assert self.storage_connector_write_resource_attribute_called_with(**kwargs)
+        self.assertTrue(
+            self.storage_connector_write_resource_attribute_called_with(**kwargs),
+            f"No match for {kwargs} in {self.mock_storage_connector.write_resource_attribute.call_args_list}"
+        )
 
     def storage_connector_write_resource_attribute_called_with(
             self, region, service, resource_type, response_dict, attribute_type):
