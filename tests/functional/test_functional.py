@@ -46,4 +46,4 @@ class TestFunctional(unittest.TestCase):
             service='ec2', resource_type='vpc', account_id=vpc.urn.account_id)])
 
     def test_write_resource_attributes(self):
-        self.wanderer.write_resource_attributes('ec2')
+        self.wanderer.write_resource_attributes_in_region('ec2')
