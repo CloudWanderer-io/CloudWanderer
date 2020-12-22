@@ -1,7 +1,7 @@
 import logging
 import unittest
 from unittest.mock import MagicMock
-from moto import mock_ec2, mock_sts, mock_iam
+from moto import mock_ec2, mock_sts, mock_iam, mock_s3
 from ..mocks import add_infra, generate_mock_session
 from cloudwanderer import CloudWanderer
 
