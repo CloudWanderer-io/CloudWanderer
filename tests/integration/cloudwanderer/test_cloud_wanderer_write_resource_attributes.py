@@ -2,7 +2,7 @@ import logging
 import unittest
 from unittest.mock import MagicMock
 from moto import mock_ec2, mock_sts, mock_iam, mock_s3
-from ..mocks import add_infra, generate_mock_session
+from ..mocks import add_infra, generate_mock_session, ENABLED_REGIONS
 from ..helpers import MockStorageConnectorMixin
 from cloudwanderer import CloudWanderer
 
@@ -27,6 +27,20 @@ class TestCloudWandererWriteResourceAttributes(unittest.TestCase, MockStorageCon
             storage_connector=self.mock_storage_connector,
             boto3_session=generate_mock_session()
         )
+
+    def test_write_resource_attributes(self):
+        self.wanderer.write_resource_attributes()
+
+        for region_name in ENABLED_REGIONS:
+            self.assert_storage_connector_write_resource_attribute_called_with(
+                region=region_name,
+                service='ec2',
+                resource_type='vpc',
+                response_dict={
+                    'EnableDnsSupport': {'Value': True}
+                },
+                attribute_type='vpc_enable_dns_support'
+            )
 
     def test_write_resource_attributes_of_service_in_region_attributes(self):
         self.wanderer.write_resource_attributes_of_service_in_region('ec2')

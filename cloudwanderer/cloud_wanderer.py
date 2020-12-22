@@ -163,6 +163,23 @@ class CloudWanderer():
             return False
         return True
 
+    def write_resource_attributes(
+            self, exclude_resources: List[str] = None, client_args: dict = None) -> None:
+        """Write all AWS resource attributes in this account from all regions and all services to storage.
+
+        Arguments:
+            exclude_resources (list): A list of resource names to exclude (e.g. ``['instance']``)
+            client_args (dict): Arguments to pass into the boto3 client.
+                See: :meth:`boto3.session.Session.client`
+        """
+        logging.info('Writing resource attributes in all regions')
+        for region_name in self.enabled_regions:
+            self.write_resource_attributes_in_region(
+                region_name=region_name,
+                exclude_resources=exclude_resources,
+                client_args=client_args
+            )
+
     def write_resource_attributes_in_region(
             self, exclude_resources: List[str] = None, region_name: str = None, client_args: dict = None) -> None:
         """Write all AWS resource attributes in this account in this region to storage.

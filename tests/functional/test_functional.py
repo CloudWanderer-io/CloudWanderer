@@ -50,5 +50,10 @@ class TestFunctional(unittest.TestCase):
         print([str(x.urn) for x in self.wanderer.read_resource_of_type_in_account(
             service='ec2', resource_type='vpc', account_id=vpc.urn.account_id)])
 
-    def test_write_resource_attributes(self):
+    # Disabled by default as it takes 6+ minutes to run.
+    # def test_write_resource_attributes(self):
+    #     self.wanderer.storage_connector.init()
+    #     self.wanderer.write_resource_attributes()
+
+    def test_write_resource_attributes_in_region(self):
         self.wanderer.write_resource_attributes_in_region('ec2')
