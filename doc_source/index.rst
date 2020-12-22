@@ -51,7 +51,7 @@ Query all the resources from your current account region and save them to your l
 
 .. doctest ::
 
-   >>> wanderer.write_all_resources()
+   >>> wanderer.write_resources_in_region()
 
 Get a list of lambda functions back.
 
