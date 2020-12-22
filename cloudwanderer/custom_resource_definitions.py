@@ -51,10 +51,6 @@ class CustomResourceFactory():
             service_context=service_context
         )
 
-    # def _get_shape(self, service, shape_name: str) -> botocore.model.Shape:
-    #     service_model = self._get_service_model()
-    #     return service_model.shape_for(shape_name)
-
     def _get_service_model(self, service_name: str) -> boto3.resources.base.ServiceResource:
         client = self.boto3_session.client(service_name)
         return client.meta.service_model
