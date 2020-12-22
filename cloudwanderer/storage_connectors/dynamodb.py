@@ -100,12 +100,19 @@ class DynamoDbConnector(BaseStorageConnector):
 
     def __init__(
             self, table_name: str = 'cloud_wanderer', endpoint_url: str = None,
-            boto3_session: boto3.session.Session = None, number_of_shards: int = 10) -> None:
-        """Initialise the DynamoDbConnector."""
+            boto3_session: boto3.session.Session = None, client_args: dict = None, number_of_shards: int = 10) -> None:
+        """Initialise the DynamoDbConnector.
+
+        Arguments:
+            client_args (dict): Arguments to pass into the boto3 client.
+                See: :meth:`boto3.session.Session.client`"""
+        client_args = client_args or {}
+        if endpoint_url:
+            client_args['endpoint_url'] = endpoint_url
         self.boto3_session = boto3_session or boto3.Session()
         self.table_name = table_name
         self.number_of_shards = number_of_shards
-        self.dynamodb = self.boto3_session.resource('dynamodb', endpoint_url=endpoint_url)
+        self.dynamodb = self.boto3_session.resource('dynamodb', **client_args)
         self.dynamodb_table = self.dynamodb.Table(table_name)
 
     def init(self) -> None:

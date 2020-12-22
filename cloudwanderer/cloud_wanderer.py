@@ -3,6 +3,7 @@ from typing import List
 from collections import namedtuple
 import logging
 from typing import TYPE_CHECKING
+import concurrent.futures
 from botocore import xform_name
 import boto3
 from .boto3_interface import CloudWandererBoto3Interface, CustomAttributesInterface
@@ -35,24 +36,36 @@ class CloudWanderer():
         self._enabled_regions = None
 
     def write_resources(
-            self, exclude_resources: List[str] = None, client_args: dict = None) -> None:
+            self, exclude_resources: List[str] = None, client_args: dict = None, concurrency: int = 1) -> None:
         """Write all AWS resources in this account from all regions and all services to storage.
 
         Arguments:
             exclude_resources (list): A list of resource names to exclude (e.g. ``['instance']``)
             client_args (dict): Arguments to pass into the boto3 client.
                 See: :meth:`boto3.session.Session.client`
+            concurrency (int): Number of query threads to invoke concurrently.
+                If the number of threads exceeds the number of regions by at least two times
+                multiple services to be queried concurrently in each region.
+                **WARNING:** Experimental. Complete data capture depends heavily on the thread safeness of the
+                storage connector and has not been thoroughly tested!
         """
         logging.info('Writing resources in all regions')
-        for region_name in self.enabled_regions:
-            self.write_resources_in_region(
-                region_name=region_name,
-                exclude_resources=exclude_resources,
-                client_args=client_args
-            )
+        if concurrency > 1:
+            logging.warning('Using concurrency of: %s CONCURRENCY IS EXPERIMENTAL', concurrency)
+        service_concurrecy = int(concurrency / len(self.enabled_regions))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency) as executor:
+            for region_name in self.enabled_regions:
+                executor.submit(
+                    self.write_resources_in_region,
+                    exclude_resources=exclude_resources,
+                    region_name=region_name,
+                    client_args=client_args,
+                    concurrency=service_concurrecy or 1
+                )
 
     def write_resources_in_region(
-            self, exclude_resources: List[str] = None, region_name: str = None, client_args: dict = None) -> None:
+            self, exclude_resources: List[str] = None, region_name: str = None,
+            client_args: dict = None, concurrency: int = 10) -> None:
         """Write all AWS resources in this account region from all services to storage.
 
         Arguments:
@@ -61,16 +74,21 @@ class CloudWanderer():
                 (defaults to session default if not specified)
             client_args (dict): Arguments to pass into the boto3 client.
                 See: :meth:`boto3.session.Session.client`
+            concurrency (int): Number of query threads to invoke concurrently.
+                **WARNING:** Experimental. Complete data capture depends heavily on the thread safeness of the
+                storage connector and
         """
+        if concurrency > 1:
+            logging.warning('Using concurrency of: %s, this is EXPERIMENTAL', concurrency)
         exclude_resources = exclude_resources or []
-
-        for boto3_service in self.boto3_interface.get_all_resource_services():
-            self.write_resources_of_service_in_region(
-                service_name=boto3_service.meta.service_name,
-                exclude_resources=exclude_resources,
-                region_name=region_name,
-                client_args=client_args
-            )
+        with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency) as executor:
+            for boto3_service in self.boto3_interface.get_all_resource_services():
+                executor.submit(self.write_resources_of_service_in_region,
+                                service_name=boto3_service.meta.service_name,
+                                exclude_resources=exclude_resources,
+                                region_name=region_name,
+                                client_args=client_args
+                                )
 
     def write_resources_of_service_in_region(
             self, service_name: str, exclude_resources: List[str] = None,
@@ -87,9 +105,10 @@ class CloudWanderer():
             client_args (dict): Arguments to pass into the boto3 client.
                 See: :meth:`boto3.session.Session.client`
         """
-        client_args = client_args or {
-            'region_name': region_name or self.boto3_session.region_name
-        }
+        client_args = client_args.copy() or {}
+        if not client_args.get('region_name'):
+            client_args['region_name'] = region_name or self.boto3_session.region_name
+
         logging.info("Writing all %s resources in %s", service_name, client_args['region_name'])
         exclude_resources = exclude_resources or []
         service_map = self.global_service_maps.get_global_service_map(service_name=service_name)
@@ -103,11 +122,14 @@ class CloudWanderer():
             if resource_type in exclude_resources:
                 logging.info('Skipping %s as per exclude_resources', resource_type)
                 continue
-            self.write_resources_of_type_in_region(
-                service_name=service_name,
-                resource_type=resource_type,
-                client_args=client_args
-            )
+            try:
+                self.write_resources_of_type_in_region(
+                    service_name=service_name,
+                    resource_type=resource_type,
+                    client_args=client_args
+                )
+            except Exception as ex:
+                logging.error(ex)
 
     def write_resources_of_type_in_region(
             self, service_name: str, resource_type: str = None,
