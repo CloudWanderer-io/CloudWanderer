@@ -12,6 +12,11 @@ MOCK_COLLECTION_BUCKETS = MagicMock(**{
     'resource.model.shape': 'bucket'
 })
 MOCK_COLLECTION_BUCKETS.configure_mock(name='buckets')
+MOCK_COLLECTION_IAM_GROUPS = MagicMock(**{
+    'meta.service_name': 'iam',
+    'resource.model.shape': 'group'
+})
+MOCK_COLLECTION_IAM_GROUPS.configure_mock(name='groups')
 
 
 def generate_mock_session(region='eu-west-2'):

@@ -3,7 +3,13 @@ import unittest
 from unittest.mock import MagicMock, ANY
 from moto import mock_ec2, mock_sts, mock_iam, mock_s3
 from ..helpers import patch_resource_collections, patch_services
-from ..mocks import add_infra, MOCK_COLLECTION_INSTANCES, MOCK_COLLECTION_BUCKETS, generate_mock_session
+from ..mocks import (
+    add_infra,
+    MOCK_COLLECTION_INSTANCES,
+    MOCK_COLLECTION_BUCKETS,
+    MOCK_COLLECTION_IAM_GROUPS,
+    generate_mock_session
+)
 from cloudwanderer import CloudWanderer
 
 
@@ -30,7 +36,9 @@ class TestCloudWandererWriteResources(unittest.TestCase):
         )
 
     @patch_services(['ec2', 's3'])
-    @patch_resource_collections(collections=[MOCK_COLLECTION_INSTANCES, MOCK_COLLECTION_BUCKETS])
+    @patch_resource_collections(collections=[
+        MOCK_COLLECTION_INSTANCES, MOCK_COLLECTION_BUCKETS,
+        MOCK_COLLECTION_IAM_GROUPS])
     def test_write_all_resources_default_region(self):
 
         self.wanderer.write_all_resources()
@@ -54,9 +62,20 @@ class TestCloudWandererWriteResources(unittest.TestCase):
                 'name': 'test-eu-west-2'
             }
         )
+        self.assert_storage_connector_write_resource_not_called_with(
+            region='us-east-1',
+            service='iam',
+            resource_type='group',
+            attributes_dict={
+                'group_name': 'test-group',
+                'path': '/'
+            }
+        )
 
-    @patch_services(['ec2', 's3'])
-    @patch_resource_collections(collections=[MOCK_COLLECTION_INSTANCES, MOCK_COLLECTION_BUCKETS])
+    @patch_services(['ec2', 's3', 'iam'])
+    @patch_resource_collections(collections=[
+        MOCK_COLLECTION_INSTANCES, MOCK_COLLECTION_BUCKETS,
+        MOCK_COLLECTION_IAM_GROUPS])
     def test_write_all_resources_specify_region(self):
 
         self.wanderer.write_all_resources(region_name='us-east-1')
@@ -80,28 +99,6 @@ class TestCloudWandererWriteResources(unittest.TestCase):
                 'name': 'test-us-east-1'
             }
         )
-
-    @patch_resource_collections(collections=[MOCK_COLLECTION_INSTANCES])
-    def test_write_resources(self):
-        self.wanderer.write_resources(service_name='ec2')
-
-        self.mock_storage_connector.write_resource.assert_called_once()
-        self.assert_storage_connector_write_resource_called_with(
-            region='eu-west-2',
-            service='ec2',
-            resource_type='instance',
-            attributes_dict={
-                'vpc_id': ANY,
-                'subnet_id': ANY,
-                'instance_id': ANY
-            }
-        )
-
-    @patch_services(['iam'])
-    def test_write_resources_of_type_specify_region(self):
-        self.wanderer.write_resources_of_type(
-            service_name='iam', resource_type='group', region_name='us-east-1')
-
         self.assert_storage_connector_write_resource_called_with(
             region='us-east-1',
             service='iam',
@@ -112,7 +109,153 @@ class TestCloudWandererWriteResources(unittest.TestCase):
             }
         )
 
-    def assert_storage_connector_write_resource_called_with(self, region, service, resource_type, attributes_dict):
+    @patch_resource_collections(collections=[
+        MOCK_COLLECTION_INSTANCES, MOCK_COLLECTION_BUCKETS,
+        MOCK_COLLECTION_IAM_GROUPS])
+    def test_write_resources_default_region(self):
+        self.wanderer.write_resources(service_name='ec2')
+        self.wanderer.write_resources(service_name='s3')
+
+        self.mock_storage_connector.write_resource.assert_called()
+        self.assert_storage_connector_write_resource_called_with(
+            region='eu-west-2',
+            service='ec2',
+            resource_type='instance',
+            attributes_dict={
+                'vpc_id': ANY,
+                'subnet_id': ANY,
+                'instance_id': ANY
+            }
+        )
+        self.assert_storage_connector_write_resource_called_with(
+            region='eu-west-2',
+            service='s3',
+            resource_type='bucket',
+            attributes_dict={
+                'name': 'test-eu-west-2'
+            }
+        )
+        self.assert_storage_connector_write_resource_not_called_with(
+            region='us-east-1',
+            service='iam',
+            resource_type='group',
+            attributes_dict={
+                'group_name': 'test-group',
+                'path': '/'
+            }
+        )
+
+    @patch_resource_collections(collections=[
+        MOCK_COLLECTION_INSTANCES, MOCK_COLLECTION_BUCKETS,
+        MOCK_COLLECTION_IAM_GROUPS])
+    def test_write_resources_specify_region(self):
+        self.wanderer.write_resources(service_name='ec2', region_name='us-east-1')
+        self.wanderer.write_resources(service_name='s3', region_name='us-east-1')
+        self.wanderer.write_resources(service_name='iam', region_name='us-east-1')
+
+        self.mock_storage_connector.write_resource.assert_called()
+        self.assert_storage_connector_write_resource_called_with(
+            region='us-east-1',
+            service='ec2',
+            resource_type='instance',
+            attributes_dict={
+                'vpc_id': ANY,
+                'subnet_id': ANY,
+                'instance_id': ANY
+            }
+        )
+        self.assert_storage_connector_write_resource_called_with(
+            region='us-east-1',
+            service='s3',
+            resource_type='bucket',
+            attributes_dict={
+                'name': 'test-us-east-1'
+            }
+        )
+        self.assert_storage_connector_write_resource_called_with(
+            region='us-east-1',
+            service='iam',
+            resource_type='group',
+            attributes_dict={
+                'group_name': 'test-group',
+                'path': '/'
+            }
+        )
+
+    def test_write_resources_of_type_default_region(self):
+        self.wanderer.write_resources_of_type(service_name='s3', resource_type='bucket')
+        self.wanderer.write_resources_of_type(service_name='ec2', resource_type='instance')
+        self.wanderer.write_resources_of_type(service_name='iam', resource_type='group')
+
+        self.assert_storage_connector_write_resource_called_with(
+            region='eu-west-2',
+            service='ec2',
+            resource_type='instance',
+            attributes_dict={
+                'vpc_id': ANY,
+                'subnet_id': ANY,
+                'instance_id': ANY
+            }
+        )
+        self.assert_storage_connector_write_resource_called_with(
+            region='eu-west-2',
+            service='s3',
+            resource_type='bucket',
+            attributes_dict={
+                'name': 'test-eu-west-2'
+            }
+        )
+        self.assert_storage_connector_write_resource_not_called_with(
+            region='us-east-1',
+            service='iam',
+            resource_type='group',
+            attributes_dict={
+                'group_name': 'test-group',
+                'path': '/'
+            }
+        )
+
+    @patch_services(['iam'])
+    def test_write_resources_of_type_specify_region(self):
+        self.wanderer.write_resources_of_type(service_name='s3', resource_type='bucket', region_name='us-east-1')
+        self.wanderer.write_resources_of_type(service_name='ec2', resource_type='instance', region_name='us-east-1')
+        self.wanderer.write_resources_of_type(service_name='iam', resource_type='group', region_name='us-east-1')
+
+        self.assert_storage_connector_write_resource_called_with(
+            region='us-east-1',
+            service='ec2',
+            resource_type='instance',
+            attributes_dict={
+                'vpc_id': ANY,
+                'subnet_id': ANY,
+                'instance_id': ANY
+            }
+        )
+        self.assert_storage_connector_write_resource_called_with(
+            region='us-east-1',
+            service='s3',
+            resource_type='bucket',
+            attributes_dict={
+                'name': 'test-us-east-1'
+            }
+        )
+        self.assert_storage_connector_write_resource_called_with(
+            region='us-east-1',
+            service='iam',
+            resource_type='group',
+            attributes_dict={
+                'group_name': 'test-group',
+                'path': '/'
+            }
+        )
+
+    def assert_storage_connector_write_resource_not_called_with(self, **kwargs):
+        assert not self.storage_connector_write_resource_called_with(**kwargs)
+
+    def assert_storage_connector_write_resource_called_with(self, **kwargs):
+        assert self.storage_connector_write_resource_called_with(**kwargs)
+
+    def storage_connector_write_resource_called_with(self, region, service, resource_type, attributes_dict):
         matches = []
         for write_resource_call in self.mock_storage_connector.write_resource.call_args_list:
             urn, resource = write_resource_call[0]
@@ -126,4 +269,4 @@ class TestCloudWandererWriteResources(unittest.TestCase):
                     comparisons.append(False)
             if all(comparisons):
                 matches.append((urn, resource))
-        assert matches
+        return matches
