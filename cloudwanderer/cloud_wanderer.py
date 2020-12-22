@@ -33,7 +33,7 @@ class CloudWanderer():
         self.global_service_maps = GlobalServiceMappingCollection(boto3_session=self.boto3_session)
         self._account_id = None
 
-    def write_all_resources(
+    def write_resources_in_region(
             self, exclude_resources: List[str] = None, region_name: str = None, client_args: dict = None) -> None:
         """Write all AWS resources in this account region from all services to storage.
 
@@ -47,14 +47,14 @@ class CloudWanderer():
         exclude_resources = exclude_resources or []
 
         for boto3_service in self.boto3_interface.get_all_resource_services():
-            self.write_resources(
+            self.write_resources_of_service_in_region(
                 service_name=boto3_service.meta.service_name,
                 exclude_resources=exclude_resources,
                 region_name=region_name,
                 client_args=client_args
             )
 
-    def write_resources(
+    def write_resources_of_service_in_region(
             self, service_name: str, exclude_resources: List[str] = None,
             region_name: str = None, client_args: dict = None) -> None:
         """Write all AWS resources in this region in this service to storage.
@@ -85,13 +85,13 @@ class CloudWanderer():
             if resource_type in exclude_resources:
                 logging.info('Skipping %s as per exclude_resources', resource_type)
                 continue
-            self.write_resources_of_type(
+            self.write_resources_of_type_in_region(
                 service_name=service_name,
                 resource_type=resource_type,
                 client_args=client_args
             )
 
-    def write_resources_of_type(
+    def write_resources_of_type_in_region(
             self, service_name: str, resource_type: str = None,
             region_name: str = None, client_args: dict = None) -> None:
         """Write all AWS resources in this region in this service to storage.

@@ -9,6 +9,9 @@
 - Added `write_all_resource_attributes`
 - Added `write_resource_attributes_of_type`
 - Made `CustomResourceDefinitions` work more like a `ServiceResource` object with a `resource()` method
+- Renamed `write_all_resources` to `write_resources_in_region`
+- Renamed `write_resources` to `write_resources_of_service_in_region`
+- Renamed `write_resources_of_type` to `write_resources_of_type_in_region`
 
 # 0.5.0
 

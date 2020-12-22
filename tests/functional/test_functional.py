@@ -15,13 +15,13 @@ class TestFunctional(unittest.TestCase):
             endpoint_url='http://localhost:8000'
         ))
 
-    def test_write_all_resources(self):
+    def test_write_resources_in_region(self):
         self.wanderer.storage_connector.init()
-        self.wanderer.write_all_resources(exclude_resources=['image', 'snapshot', 'policy'])
+        self.wanderer.write_resources_in_region(exclude_resources=['image', 'snapshot', 'policy'])
 
     def test_write_custom_resource_definition(self):
         self.wanderer.storage_connector.init()
-        self.wanderer.write_resources('lambda', exclude_resources=['images', 'snapshots'])
+        self.wanderer.write_resources_of_service_in_region('lambda', exclude_resources=['images', 'snapshots'])
 
     def test_read_all(self):
         for x in self.wanderer.storage_connector.read_all():
