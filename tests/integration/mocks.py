@@ -1,3 +1,4 @@
+import os
 from unittest.mock import MagicMock, Mock
 import boto3
 from cloudwanderer import AwsUrn
@@ -17,6 +18,31 @@ MOCK_COLLECTION_IAM_GROUPS = MagicMock(**{
     'resource.model.shape': 'group'
 })
 MOCK_COLLECTION_IAM_GROUPS.configure_mock(name='groups')
+ENABLED_REGIONS = [
+    'af-south-1',
+    'ap-northeast-1',
+    'ap-northeast-2',
+    'ap-south-1',
+    'ap-southeast-1',
+    'ap-southeast-2',
+    'ca-central-1',
+    'eu-central-1',
+    'eu-north-1',
+    'eu-south-1',
+    'eu-west-1',
+    'eu-west-2',
+    'eu-west-3',
+    'sa-east-1',
+    'us-east-1',
+    'us-east-2',
+    'us-west-1',
+    'us-west-2',
+    'us-gov-east-1',
+    'us-gov-west-1',
+    # Disabled because moto seemed to leak through to real AWS for listbuckets in these regions.
+    # 'cn-north-1',
+    # 'cn-northwest-1'
+]
 
 
 def generate_mock_session(region='eu-west-2'):
@@ -28,7 +54,11 @@ def generate_mock_session(region='eu-west-2'):
 
 
 def add_infra(count=1):
-    for region_name in ['eu-west-2', 'us-east-1']:
+    os.environ['AWS_ACCESS_KEY_ID'] = 'testing'
+    os.environ['AWS_SECRET_ACCESS_KEY'] = 'testing'
+    os.environ['AWS_SECURITY_TOKEN'] = 'testing'
+    os.environ['AWS_SESSION_TOKEN'] = 'testing'
+    for region_name in ENABLED_REGIONS:
         ec2_resource = boto3.resource('ec2', region_name=region_name)
         images = list(ec2_resource.images.all())
         ec2_resource.create_instances(ImageId=images[0].image_id, MinCount=count, MaxCount=count)

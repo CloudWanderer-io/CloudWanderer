@@ -15,6 +15,7 @@
 - Renamed `write_all_resource_attributes` to `write_resource_attributes_in_region`
 - Renamed `write_resource_attributes` to `write_resource_attributes_of_service_in_region`
 - Renamed `write_resource_attributes_of_type` to `write_resource_attributes_of_type_in_region`
+- Added `write_resources`
 
 # 0.5.0
 

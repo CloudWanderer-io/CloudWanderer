@@ -6,7 +6,7 @@ from typing import List, Iterator
 import logging
 import boto3
 from botocore import xform_name
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, EndpointConnectionError
 from boto3.exceptions import ResourceNotExistsError
 from boto3.resources.base import ServiceResource
 from boto3.resources.model import Collection, ResourceModel
@@ -126,10 +126,13 @@ class CloudWandererBoto3Interface:
                 self.get_resource_collection_by_resource_type(boto3_service, resource_type),
                 None)
             if boto3_resource_collection is not None:
-                yield from self.get_resource_from_collection(
-                    boto3_service=boto3_service,
-                    boto3_resource_collection=boto3_resource_collection
-                )
+                try:
+                    yield from self.get_resource_from_collection(
+                        boto3_service=boto3_service,
+                        boto3_resource_collection=boto3_resource_collection
+                    )
+                except EndpointConnectionError as ex:
+                    logging.warning(ex)
 
     def get_service_resource_collection_names(self, service_name: str) -> Iterator[str]:
         """Return all possible resource collection names for a given service.

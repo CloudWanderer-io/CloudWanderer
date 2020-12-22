@@ -32,6 +32,24 @@ class CloudWanderer():
         self.custom_attributes_interface = CustomAttributesInterface(boto3_session=self.boto3_session)
         self.global_service_maps = GlobalServiceMappingCollection(boto3_session=self.boto3_session)
         self._account_id = None
+        self._enabled_regions = None
+
+    def write_resources(
+            self, exclude_resources: List[str] = None, client_args: dict = None) -> None:
+        """Write all AWS resources in this account from all regions and all services to storage.
+
+        Arguments:
+            exclude_resources (list): A list of resource names to exclude (e.g. ``['instance']``)
+            client_args (dict): Arguments to pass into the boto3 client.
+                See: :meth:`boto3.session.Session.client`
+        """
+        logging.info('Writing resources in all regions')
+        for region_name in self.enabled_regions:
+            self.write_resources_in_region(
+                region_name=region_name,
+                exclude_resources=exclude_resources,
+                client_args=client_args
+            )
 
     def write_resources_in_region(
             self, exclude_resources: List[str] = None, region_name: str = None, client_args: dict = None) -> None:
@@ -290,6 +308,18 @@ class CloudWanderer():
             sts = self.boto3_session.client('sts')
             self._account_id = sts.get_caller_identity()['Account']
         return self._account_id
+
+    @property
+    def enabled_regions(self) -> List[str]:
+        """Return a list of enabled regions in this account."""
+        if not self._enabled_regions:
+            regions = self.boto3_session.client('ec2').describe_regions()['Regions']
+            self._enabled_regions = [
+                region['RegionName']
+                for region in regions
+                if region['OptInStatus'] != 'not-opted-in'
+            ]
+        return self._enabled_regions
 
     def _get_resource_urn(self, resource: ResourceModel, region_name: str) -> 'AwsUrn':
         id_member_name = resource.meta.resource_model.identifiers[0].name

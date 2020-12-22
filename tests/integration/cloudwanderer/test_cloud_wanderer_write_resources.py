@@ -8,6 +8,7 @@ from ..mocks import (
     MOCK_COLLECTION_INSTANCES,
     MOCK_COLLECTION_BUCKETS,
     MOCK_COLLECTION_IAM_GROUPS,
+    ENABLED_REGIONS,
     generate_mock_session
 )
 from cloudwanderer import CloudWanderer
@@ -27,15 +28,67 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
         super().__init__(*args, **kwargs)
         logging.basicConfig(level='INFO')
         add_infra()
+        self.mock_session = generate_mock_session()
+        self.enabled_regions = ENABLED_REGIONS
 
     def setUp(self):
         self.mock_storage_connector = MagicMock()
         self.wanderer = CloudWanderer(
             storage_connector=self.mock_storage_connector,
-            boto3_session=generate_mock_session()
+            boto3_session=self.mock_session
         )
+        self.wanderer._enabled_regions = ENABLED_REGIONS
 
-    @patch_services(['ec2', 's3'])
+    @patch_services(['ec2', 's3', 'iam'])
+    @patch_resource_collections(collections=[
+        MOCK_COLLECTION_INSTANCES, MOCK_COLLECTION_BUCKETS,
+        MOCK_COLLECTION_IAM_GROUPS])
+    def test_write_resources(self):
+
+        self.wanderer.write_resources()
+
+        for region_name in self.enabled_regions:
+            self.assert_storage_connector_write_resource_called_with(
+                region=region_name,
+                service='ec2',
+                resource_type='instance',
+                attributes_dict={
+                    'vpc_id': ANY,
+                    'subnet_id': ANY,
+                    'instance_id': ANY
+                }
+            )
+
+            self.assert_storage_connector_write_resource_called_with(
+                region=region_name,
+                service='s3',
+                resource_type='bucket',
+                attributes_dict={
+                    'name': f'test-{region_name}'
+                }
+            )
+            if region_name == 'us-east-1':
+                self.assert_storage_connector_write_resource_called_with(
+                    region='us-east-1',
+                    service='iam',
+                    resource_type='group',
+                    attributes_dict={
+                        'group_name': 'test-group',
+                        'path': '/'
+                    }
+                )
+            else:
+                self.assert_storage_connector_write_resource_called_with(
+                    region='us-east-1',
+                    service='iam',
+                    resource_type='group',
+                    attributes_dict={
+                        'group_name': 'test-group',
+                        'path': '/'
+                    }
+                )
+
+    @patch_services(['ec2', 's3', 'iam'])
     @patch_resource_collections(collections=[
         MOCK_COLLECTION_INSTANCES, MOCK_COLLECTION_BUCKETS,
         MOCK_COLLECTION_IAM_GROUPS])
