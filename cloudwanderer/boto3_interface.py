@@ -12,6 +12,8 @@ from boto3.resources.base import ServiceResource
 from boto3.resources.model import Collection, ResourceModel
 from .custom_resource_definitions import CustomResourceDefinitions
 
+logger = logging.getLogger(__name__)
+
 
 class CloudWandererBoto3Interface:
     """Simplifies lookup of boto3 services and resources."""
@@ -107,7 +109,7 @@ class CloudWandererBoto3Interface:
                 yield resource
         except ClientError as ex:
             if ex.response['Error']['Code'] == 'InvalidAction':
-                logging.warning(ex.response['Error']['Message'])
+                logger.warning(ex.response['Error']['Message'])
                 return
             raise ex
 
@@ -132,7 +134,7 @@ class CloudWandererBoto3Interface:
                         boto3_resource_collection=boto3_resource_collection
                     )
                 except EndpointConnectionError as ex:
-                    logging.warning(ex)
+                    logger.warning(ex)
 
     def get_service_resource_collection_names(self, service_name: str) -> Iterator[str]:
         """Return all possible resource collection names for a given service.

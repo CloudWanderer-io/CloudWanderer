@@ -19,6 +19,7 @@
 - Added `write_resource_attributes` which pulls resource attributes from all regions.
 - Handle `EndpointConnectionError`s which occur when a service is not supported in a region.
 - Added experimental multithreading support
+- Updated logger to log to filename logger rather than `root`
 
 # 0.5.0
 

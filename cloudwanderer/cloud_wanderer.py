@@ -12,6 +12,8 @@ from .aws_urn import AwsUrn
 from .global_service_mappings import GlobalServiceMappingCollection
 from boto3.resources.model import ResourceModel
 
+logger = logging.getLogger('cloudwanderer')
+
 if TYPE_CHECKING:
     from .storage_connectors import BaseStorageConnector  # noqa
 
@@ -50,9 +52,9 @@ class CloudWanderer():
                 **WARNING:** Experimental. Complete data capture depends heavily on the thread safeness of the
                 storage connector and has not been thoroughly tested!
         """
-        logging.info('Writing resources in all regions')
+        logger.info('Writing resources in all regions')
         if concurrency > 1:
-            logging.warning('Using concurrency of: %s - CONCURRENCY IS EXPERIMENTAL', concurrency)
+            logger.warning('Using concurrency of: %s - CONCURRENCY IS EXPERIMENTAL', concurrency)
         with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency) as executor:
             for region_name in self.enabled_regions:
                 executor.submit(
@@ -99,24 +101,24 @@ class CloudWanderer():
             client_args (dict): Arguments to pass into the boto3 client.
                 See: :meth:`boto3.session.Session.client`
         """
-        client_args = client_args or {}
+        client_args = client_args.copy() if client_args else {}
         if region_name:
             client_args['region_name'] = region_name
         if 'region_name' not in client_args:
             client_args['region_name'] = self.boto3_session.region_name
 
-        logging.info("Writing all %s resources in %s", service_name, client_args['region_name'])
+        logger.info("Writing all %s resources in %s", service_name, client_args['region_name'])
         exclude_resources = exclude_resources or []
         service_map = self.global_service_maps.get_global_service_map(service_name=service_name)
         has_global_resources_in_this_region = service_map.has_global_resources_in_region(client_args['region_name'])
         if not has_global_resources_in_this_region and not service_map.has_regional_resources:
-            logging.info("Skipping %s as it does not have resources in %s",
-                         service_name, client_args['region_name'])
+            logger.info("Skipping %s as it does not have resources in %s",
+                        service_name, client_args['region_name'])
             return
 
         for resource_type in self.boto3_interface.get_service_resource_types(service_name=service_name):
             if resource_type in exclude_resources:
-                logging.info('Skipping %s as per exclude_resources', resource_type)
+                logger.info('Skipping %s as per exclude_resources', resource_type)
                 continue
             self.write_resources_of_type_in_region(
                 service_name=service_name,
@@ -142,7 +144,7 @@ class CloudWanderer():
         client_args = client_args or {
             'region_name': region_name or self.boto3_session.region_name
         }
-        logging.info('--> Fetching %s %s from %s', service_name, resource_type, client_args['region_name'])
+        logger.info('--> Fetching %s %s from %s', service_name, resource_type, client_args['region_name'])
         resources = self.boto3_interface.get_resources_of_type(service_name, resource_type, client_args)
         urns = []
         for boto3_resource in resources:
@@ -168,7 +170,7 @@ class CloudWanderer():
     def _should_write_resource_in_region(self, urn: AwsUrn, write_region: str) -> bool:
         """Return True if this is a resource we should write in this region and log the result."""
         if urn.region != write_region:
-            logging.debug(
+            logger.debug(
                 "Skipping %s %s in %s because it is not in %s",
                 urn.resource_type,
                 urn.resource_id,
@@ -187,7 +189,7 @@ class CloudWanderer():
             client_args (dict): Arguments to pass into the boto3 client.
                 See: :meth:`boto3.session.Session.client`
         """
-        logging.info('Writing resource attributes in all regions')
+        logger.info('Writing resource attributes in all regions')
         for region_name in self.enabled_regions:
             self.write_resource_attributes_in_region(
                 region_name=region_name,
@@ -240,18 +242,18 @@ class CloudWanderer():
         client_args = client_args or {
             'region_name': region_name or self.boto3_session.region_name
         }
-        logging.info("Writing all %s resource attributes in %s", service_name, client_args['region_name'])
+        logger.info("Writing all %s resource attributes in %s", service_name, client_args['region_name'])
         exclude_resources = exclude_resources or []
         service_map = self.global_service_maps.get_global_service_map(service_name=service_name)
         has_gobal_resources_in_this_region = service_map.has_global_resources_in_region(client_args['region_name'])
         if not has_gobal_resources_in_this_region and not service_map.has_regional_resources:
-            logging.info("Skipping %s as it does not have resources in %s",
-                         service_name, client_args['region_name'])
+            logger.info("Skipping %s as it does not have resources in %s",
+                        service_name, client_args['region_name'])
             return
         exclude_resources = exclude_resources or []
         for resource_type in self.custom_attributes_interface.get_service_resource_types(service_name):
             if resource_type in exclude_resources:
-                logging.info('Skipping %s as per exclude_resources', resource_type)
+                logger.info('Skipping %s as per exclude_resources', resource_type)
                 continue
             self.write_resource_attributes_of_type_in_region(
                 service_name=service_name,
@@ -277,7 +279,7 @@ class CloudWanderer():
         client_args = client_args or {
             'region_name': region_name or self.boto3_session.region_name
         }
-        logging.info('--> Fetching %s %s in %s', service_name, resource_type, client_args['region_name'])
+        logger.info('--> Fetching %s %s in %s', service_name, resource_type, client_args['region_name'])
         resource_attributes = self.custom_attributes_interface.get_resources_of_type(
             service_name=service_name,
             resource_type=resource_type,

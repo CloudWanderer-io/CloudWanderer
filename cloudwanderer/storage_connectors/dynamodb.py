@@ -1,7 +1,7 @@
 """Classes for the CloudWanderer DynamoDB Storage Connector."""
 from typing import List
-import logging
 import itertools
+import logging
 import os
 import pathlib
 import boto3
@@ -13,6 +13,8 @@ from .base_connector import BaseStorageConnector
 from boto3.dynamodb.conditions import Key
 from ..cloud_wanderer import CloudWandererResource
 from ..aws_urn import AwsUrn
+
+logger = logging.getLogger(__name__)
 
 
 def gen_resource_type_index(service: str, resource_type: str) -> str:
@@ -127,7 +129,7 @@ class DynamoDbConnector(BaseStorageConnector):
             urn (cloudwanderer.aws_urn.AwsUrn): The URN of the resource.
             resource: The boto3 Resource object representing the resource.
         """
-        logging.debug(f"Writing: {urn} to {self.table_name}")
+        logger.debug(f"Writing: {urn} to {self.table_name}")
         item = {
             **self._generate_index_values_for_write(urn),
             **standardise_data_types(resource.meta.data or {})
@@ -139,7 +141,7 @@ class DynamoDbConnector(BaseStorageConnector):
     def write_resource_attribute(
             self, urn: AwsUrn, attribute_type: str, resource_attribute: boto3.resources.base.ServiceResource) -> None:
         """Write the specified resource attribute to DynamoDb."""
-        logging.debug(f"Writing: {attribute_type} of {urn} to {self.table_name}")
+        logger.debug(f"Writing: {attribute_type} of {urn} to {self.table_name}")
         item = {
             **self._generate_index_values_for_write(urn, attribute_type),
             **standardise_data_types(resource_attribute.meta.data or {})
@@ -190,7 +192,7 @@ class DynamoDbConnector(BaseStorageConnector):
 
         for shard_id in range(0, self.number_of_shards):
             hash_key = self._gen_shard(gen_resource_type_index(service, resource_type), shard_id)
-            logging.debug("Fetching shard %s", hash_key)
+            logger.debug("Fetching shard %s", hash_key)
             result = self.dynamodb_table.query(
                 IndexName='resource_type',
                 Select='ALL_PROJECTED_ATTRIBUTES',
@@ -210,7 +212,7 @@ class DynamoDbConnector(BaseStorageConnector):
         """
         for shard_id in range(0, self.number_of_shards):
             key = self._gen_shard(account_id, shard_id)
-            logging.debug("Fetching shard %s", key)
+            logger.debug("Fetching shard %s", key)
             result = self.dynamodb_table.query(
                 IndexName='account_id',
                 Select='ALL_PROJECTED_ATTRIBUTES',
@@ -229,7 +231,7 @@ class DynamoDbConnector(BaseStorageConnector):
         """
         for shard_id in range(0, self.number_of_shards):
             key = self._gen_shard(account_id, shard_id)
-            logging.debug("Fetching shard %s", key)
+            logger.debug("Fetching shard %s", key)
             result = self.dynamodb_table.query(
                 IndexName='account_id',
                 Select='ALL_PROJECTED_ATTRIBUTES',
@@ -251,7 +253,7 @@ class DynamoDbConnector(BaseStorageConnector):
         )['Items']
         with self.dynamodb_table.batch_writer() as batch:
             for record in resource_records:
-                logging.debug("Deleting %s", record['_id'])
+                logger.debug("Deleting %s", record['_id'])
                 batch.delete_item(
                     Key={
                         '_id': record['_id'],
@@ -262,7 +264,7 @@ class DynamoDbConnector(BaseStorageConnector):
     def delete_resource_of_type_in_account_region(
             self, service: str, resource_type: str, account_id: str, region: str, urns_to_keep: AwsUrn = None) -> None:
         """Delete resources of type in account id unless in list of URNs."""
-        logging.debug('Deleting any %s not in %s', resource_type, str([x.resource_id for x in urns_to_keep]))
+        logger.debug('Deleting any %s not in %s', resource_type, str([x.resource_id for x in urns_to_keep]))
         urns_to_keep = urns_to_keep or []
         resource_records = dynamodb_items_to_resources(self._read_from_resource_type_index(
             service=service,
@@ -272,7 +274,7 @@ class DynamoDbConnector(BaseStorageConnector):
         ))
         for resource in resource_records:
             if resource.urn in urns_to_keep:
-                logging.debug('Skipping deletion of %s as we were told to keep it.', resource.urn)
+                logger.debug('Skipping deletion of %s as we were told to keep it.', resource.urn)
                 continue
             self.delete_resource(urn=resource.urn)
 
@@ -313,7 +315,7 @@ class DynamoDbTableCreator():
                 **{'TableName': self.table_name}
             })
         except self.dynamodb_table.meta.client.exceptions.ResourceInUseException:
-            logging.warning(
+            logger.warning(
                 'Table %s already exists, skipping creation.',
                 self.table_name)
 
