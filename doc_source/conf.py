@@ -1,6 +1,7 @@
 import os
 import sys
 import sphinx_rtd_theme # noqa
+
 # Configuration file for the Sphinx documentation builder.
 #
 # This file only contains a selection of the most common options. For a full
@@ -14,6 +15,7 @@ import sphinx_rtd_theme # noqa
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 sys.path.insert(0, os.path.abspath('..'))
+sys.path.append(os.path.abspath("./_ext"))
 
 
 # -- Project information -----------------------------------------------------
@@ -39,6 +41,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',
     'sphinx_rtd_theme',
+    'supported_resources'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -63,7 +66,9 @@ html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
 
 # -- intersphinx
-intersphinx_mapping = {'boto3': ('https://boto3.amazonaws.com/v1/documentation/api/latest/', None)}
+intersphinx_mapping = {
+    'boto3': ('https://boto3.amazonaws.com/v1/documentation/api/latest/', None)
+}
 
 # -- Autodoc
 add_module_names = False
