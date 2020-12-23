@@ -40,7 +40,7 @@ class Boto3ResourcesDirective(SphinxDirective):
 
 
 class CloudWandererResourcesDirective(SphinxDirective):
-    """A custom directive that describes CloudWanderers resource attribute definitions."""
+    """A custom directive that describes CloudWanderers added resources."""
 
     has_content = True
 
@@ -70,7 +70,7 @@ class CloudWandererResourcesDirective(SphinxDirective):
 
 
 class CloudWandererResourceAttributesDirective(SphinxDirective):
-    """A custom directive that describes CloudWanderers added resources."""
+    """A custom directive that describes CloudWanderers additional resource attribute definitions."""
 
     has_content = True
 
