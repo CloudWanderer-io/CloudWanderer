@@ -101,7 +101,7 @@ class CloudWanderer():
             client_args (dict): Arguments to pass into the boto3 client.
                 See: :meth:`boto3.session.Session.client`
         """
-        client_args = client_args.copy() or {}
+        client_args = client_args.copy() if client_args else {}
         if region_name:
             client_args['region_name'] = region_name
         if 'region_name' not in client_args:
