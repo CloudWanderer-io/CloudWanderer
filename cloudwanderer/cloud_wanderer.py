@@ -74,9 +74,6 @@ class CloudWanderer():
                 (defaults to session default if not specified)
             client_args (dict): Arguments to pass into the boto3 client.
                 See: :meth:`boto3.session.Session.client`
-            concurrency (int): Number of query threads to invoke concurrently.
-                **WARNING:** Experimental. Complete data capture depends heavily on the thread safeness of the
-                storage connector and
         """
         exclude_resources = exclude_resources or []
         for boto3_service in self.boto3_interface.get_all_resource_services():
@@ -121,14 +118,11 @@ class CloudWanderer():
             if resource_type in exclude_resources:
                 logging.info('Skipping %s as per exclude_resources', resource_type)
                 continue
-            try:
-                self.write_resources_of_type_in_region(
-                    service_name=service_name,
-                    resource_type=resource_type,
-                    client_args=client_args
-                )
-            except Exception as ex:
-                logging.error(ex)
+            self.write_resources_of_type_in_region(
+                service_name=service_name,
+                resource_type=resource_type,
+                client_args=client_args
+            )
 
     def write_resources_of_type_in_region(
             self, service_name: str, resource_type: str = None,

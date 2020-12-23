@@ -18,6 +18,7 @@
 - Added `write_resources` which pulls resources from all regions.
 - Added `write_resource_attributes` which pulls resource attributes from all regions.
 - Handle `EndpointConnectionError`s which occur when a service is not supported in a region.
+- Added experimental multithreading support
 
 # 0.5.0
 
