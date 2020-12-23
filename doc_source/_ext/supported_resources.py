@@ -16,7 +16,9 @@ class Boto3ResourcesDirective(SphinxDirective):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.boto3_interface = cloudwanderer.boto3_interface.CloudWandererBoto3Interface()
+        self.boto3_interface = cloudwanderer.boto3_interface.CloudWandererBoto3Interface(
+            boto3_session=boto3.Session(region_name='eu-west-2')
+        )
 
     def run(self) -> list:
         targetid = 'cloudwanderer-%d' % self.env.new_serialno('cloudwanderer')
@@ -46,7 +48,9 @@ class CloudWandererResourcesDirective(SphinxDirective):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.boto3_interface = cloudwanderer.boto3_interface.CloudWandererBoto3Interface()
+        self.boto3_interface = cloudwanderer.boto3_interface.CloudWandererBoto3Interface(
+            boto3_session=boto3.Session(region_name='eu-west-2')
+        )
 
     def run(self) -> list:
         targetid = 'cloudwanderer-%d' % self.env.new_serialno('cloudwanderer')
@@ -76,7 +80,8 @@ class CloudWandererResourceAttributesDirective(SphinxDirective):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.custom_attributes_interface = cloudwanderer.boto3_interface.CustomAttributesInterface(boto3.Session())
+        self.custom_attributes_interface = cloudwanderer.boto3_interface.CustomAttributesInterface(
+            boto3.Session(region_name='eu-west-1'))
 
     def run(self) -> list:
         targetid = 'cloudwanderer-%d' % self.env.new_serialno('cloudwanderer')
