@@ -1,5 +1,6 @@
 import unittest
 import logging
+import botocore
 from cloudwanderer import CloudWanderer
 from cloudwanderer.storage_connectors import DynamoDbConnector
 
@@ -12,16 +13,29 @@ class TestFunctional(unittest.TestCase):
 
     def setUp(self):
         self.wanderer = CloudWanderer(storage_connector=DynamoDbConnector(
-            endpoint_url='http://localhost:8000'
+            endpoint_url='http://localhost:8000',
+            client_args={
+                'config': botocore.config.Config(
+                    max_pool_connections=100,
+                )
+            }
         ))
 
-    def test_write_all_resources(self):
+    def test_write_resources(self):
         self.wanderer.storage_connector.init()
-        self.wanderer.write_all_resources(exclude_resources=['images', 'snapshots', 'policies'])
+        self.wanderer.write_resources(exclude_resources=['image', 'snapshot', 'policy'], concurrency=128, client_args={
+            'config': botocore.config.Config(
+                max_pool_connections=100,
+            )
+        })
+
+    def test_write_resources_in_region(self):
+        self.wanderer.storage_connector.init()
+        self.wanderer.write_resources_in_region(exclude_resources=['image', 'snapshot', 'policy'])
 
     def test_write_custom_resource_definition(self):
         self.wanderer.storage_connector.init()
-        self.wanderer.write_resources('lambda', exclude_resources=['images', 'snapshots'])
+        self.wanderer.write_resources_of_service_in_region('lambda', exclude_resources=['images', 'snapshots'])
 
     def test_read_all(self):
         for x in self.wanderer.storage_connector.read_all():
@@ -46,4 +60,8 @@ class TestFunctional(unittest.TestCase):
             service='ec2', resource_type='vpc', account_id=vpc.urn.account_id)])
 
     def test_write_resource_attributes(self):
-        self.wanderer.write_resource_attributes('ec2')
+        self.wanderer.storage_connector.init()
+        self.wanderer.write_resource_attributes()
+
+    def test_write_resource_attributes_in_region(self):
+        self.wanderer.write_resource_attributes_in_region('ec2')

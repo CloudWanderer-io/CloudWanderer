@@ -1,0 +1,6 @@
+{
+    "service": {
+        "region": "us-east-1",
+        "regionalResources": false
+    }
+}

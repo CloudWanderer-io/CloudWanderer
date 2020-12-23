@@ -23,7 +23,7 @@ copyright = '2020, Sam Martin'
 author = 'Sam Martin'
 
 # The full version, including alpha/beta/rc tags
-release = '0.5.0'
+release = '0.6.0'
 
 
 # -- General configuration ---------------------------------------------------
@@ -33,9 +33,11 @@ release = '0.5.0'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.autodoc.typehints',
     'sphinx.ext.doctest',
     'sphinxarg.ext',
     'sphinx.ext.napoleon',
+    'sphinx.ext.intersphinx',
     'sphinx_rtd_theme',
 ]
 
@@ -60,7 +62,13 @@ html_theme = 'sphinx_rtd_theme'
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
+# -- intersphinx
+intersphinx_mapping = {'boto3': ('https://boto3.amazonaws.com/v1/documentation/api/latest/', None)}
+
 # -- Autodoc
+add_module_names = False
+autodoc_typehints = 'description'
+
 
 # -- Doctest
 doctest_global_setup = '''

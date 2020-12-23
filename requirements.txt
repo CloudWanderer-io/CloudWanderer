@@ -4,3 +4,4 @@ flake8
 pytest
 pydocstyle
 mock==4.0.2
+flake8-annotations

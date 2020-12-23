@@ -1,5 +1,5 @@
 import unittest
-from moto import mock_dynamodb2, mock_ec2
+from moto import mock_dynamodb2, mock_ec2, mock_iam, mock_s3
 from ..mocks import generate_mock_session, add_infra, generate_urn, generate_mock_resource_attribute
 from cloudwanderer.storage_connectors import DynamoDbConnector
 
@@ -17,6 +17,8 @@ class TestStorageConnectorDynamoDb(unittest.TestCase):
             self.connector.init()
 
     @mock_ec2
+    @mock_iam
+    @mock_s3
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.mock_session = generate_mock_session()
@@ -24,7 +26,7 @@ class TestStorageConnectorDynamoDb(unittest.TestCase):
             boto3_session=self.mock_session
         )
 
-        add_infra(count=100)
+        add_infra(count=100, regions=['eu-west-2'])
         self.ec2_instances = list(self.mock_session.resource('ec2').instances.all())
         self.vpcs = list(self.mock_session.resource('ec2').vpcs.all())
 

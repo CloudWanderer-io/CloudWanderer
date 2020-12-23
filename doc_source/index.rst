@@ -11,8 +11,7 @@ CloudWanderer
    :maxdepth: 2
    :caption: Contents:
 
-   class_reference
-   storage_connector_reference
+   reference
 
 .. image :: https://user-images.githubusercontent.com/803607/101322139-7111b800-385e-11eb-9277-c6bf3a580987.png
 
@@ -52,7 +51,7 @@ Query all the resources from your current account region and save them to your l
 
 .. doctest ::
 
-   >>> wanderer.write_all_resources()
+   >>> wanderer.write_resources_in_region()
 
 Get a list of lambda functions back.
 

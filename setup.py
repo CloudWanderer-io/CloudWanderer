@@ -8,7 +8,7 @@ with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-    version='0.5.0',
+    version='0.6.0',
     python_requires='>=3.6.0',
     name='cloudwanderer',
     packages=find_packages(include=['cloudwanderer', 'cloudwanderer.*']),
@@ -18,7 +18,7 @@ setup(
     author='Sam Martin',
     author_email='samjackmartin+cloudwanderer@gmail.com',
     url='https://github.com/CloudWanderer-io/CloudWanderer',
-    install_requires=['boto3'],
+    install_requires=['boto3', 'jmespath'],
     package_data={
         "": [
             "**/*.json"
