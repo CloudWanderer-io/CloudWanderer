@@ -1,4 +1,4 @@
-"""Colletion of loose utility functions."""
+"""Collection of loose utility functions."""
 import logging
 from typing import Callable
 

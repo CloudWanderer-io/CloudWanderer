@@ -21,7 +21,6 @@ class TestFunctional(unittest.TestCase):
             }
         ))
 
-    # Disabled by default as it takes 6+ minutes to run.
     def test_write_resources(self):
         self.wanderer.storage_connector.init()
         self.wanderer.write_resources(exclude_resources=['image', 'snapshot', 'policy'], concurrency=128, client_args={
@@ -60,10 +59,9 @@ class TestFunctional(unittest.TestCase):
         print([str(x.urn) for x in self.wanderer.read_resource_of_type_in_account(
             service='ec2', resource_type='vpc', account_id=vpc.urn.account_id)])
 
-    # Disabled by default as it takes 6+ minutes to run.
-    # def test_write_resource_attributes(self):
-    #     self.wanderer.storage_connector.init()
-    #     self.wanderer.write_resource_attributes()
+    def test_write_resource_attributes(self):
+        self.wanderer.storage_connector.init()
+        self.wanderer.write_resource_attributes()
 
     def test_write_resource_attributes_in_region(self):
         self.wanderer.write_resource_attributes_in_region('ec2')
