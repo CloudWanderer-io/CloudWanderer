@@ -1,5 +1,6 @@
 import unittest
 import logging
+import botocore
 from cloudwanderer import CloudWanderer
 from cloudwanderer.storage_connectors import DynamoDbConnector
 
@@ -12,13 +13,21 @@ class TestFunctional(unittest.TestCase):
 
     def setUp(self):
         self.wanderer = CloudWanderer(storage_connector=DynamoDbConnector(
-            endpoint_url='http://localhost:8000'
+            endpoint_url='http://localhost:8000',
+            client_args={
+                'config': botocore.config.Config(
+                    max_pool_connections=100,
+                )
+            }
         ))
 
-    # Disabled by default as it takes 6+ minutes to run.
-    # def test_write_resources(self):
-    #     self.wanderer.storage_connector.init()
-    #     self.wanderer.write_resources(exclude_resources=['image', 'snapshot', 'policy'])
+    def test_write_resources(self):
+        self.wanderer.storage_connector.init()
+        self.wanderer.write_resources(exclude_resources=['image', 'snapshot', 'policy'], concurrency=128, client_args={
+            'config': botocore.config.Config(
+                max_pool_connections=100,
+            )
+        })
 
     def test_write_resources_in_region(self):
         self.wanderer.storage_connector.init()
@@ -50,10 +59,9 @@ class TestFunctional(unittest.TestCase):
         print([str(x.urn) for x in self.wanderer.read_resource_of_type_in_account(
             service='ec2', resource_type='vpc', account_id=vpc.urn.account_id)])
 
-    # Disabled by default as it takes 6+ minutes to run.
-    # def test_write_resource_attributes(self):
-    #     self.wanderer.storage_connector.init()
-    #     self.wanderer.write_resource_attributes()
+    def test_write_resource_attributes(self):
+        self.wanderer.storage_connector.init()
+        self.wanderer.write_resource_attributes()
 
     def test_write_resource_attributes_in_region(self):
         self.wanderer.write_resource_attributes_in_region('ec2')

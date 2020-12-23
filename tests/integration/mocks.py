@@ -53,12 +53,12 @@ def generate_mock_session(region='eu-west-2'):
     )
 
 
-def add_infra(count=1):
+def add_infra(count=1, regions=ENABLED_REGIONS):
     os.environ['AWS_ACCESS_KEY_ID'] = 'testing'
     os.environ['AWS_SECRET_ACCESS_KEY'] = 'testing'
     os.environ['AWS_SECURITY_TOKEN'] = 'testing'
     os.environ['AWS_SESSION_TOKEN'] = 'testing'
-    for region_name in ENABLED_REGIONS:
+    for region_name in regions:
         ec2_resource = boto3.resource('ec2', region_name=region_name)
         images = list(ec2_resource.images.all())
         ec2_resource.create_instances(ImageId=images[0].image_id, MinCount=count, MaxCount=count)

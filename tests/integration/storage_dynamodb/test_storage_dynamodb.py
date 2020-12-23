@@ -26,7 +26,7 @@ class TestStorageConnectorDynamoDb(unittest.TestCase):
             boto3_session=self.mock_session
         )
 
-        add_infra(count=100)
+        add_infra(count=100, regions=['eu-west-2'])
         self.ec2_instances = list(self.mock_session.resource('ec2').instances.all())
         self.vpcs = list(self.mock_session.resource('ec2').vpcs.all())
 

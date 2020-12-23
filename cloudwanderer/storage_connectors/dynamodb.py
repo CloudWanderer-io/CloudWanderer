@@ -33,7 +33,6 @@ def gen_resource_type_condition_expression(hash_key: str, account_id: str = None
     If ``account_id`` and region are specified it will match records matching both.
     If region is specified without ``account_id`` it will match nothing.
     """
-
     condition_expression = Key('_resource_type_index').eq(hash_key)
     if not account_id and not region:
         return condition_expression
@@ -96,16 +95,21 @@ class DynamoDbConnector(BaseStorageConnector):
         number_of_shards (int):
             The number of shards to break records across low-cardinality indices.
             Prevents hot-partitions. If you don't know what this means, ignore this setting.
+        client_args (dict): Arguments to pass into the boto3 client.
+            See: :meth:`boto3.session.Session.client`
     """
 
     def __init__(
             self, table_name: str = 'cloud_wanderer', endpoint_url: str = None,
-            boto3_session: boto3.session.Session = None, number_of_shards: int = 10) -> None:
+            boto3_session: boto3.session.Session = None, client_args: dict = None, number_of_shards: int = 10) -> None:
         """Initialise the DynamoDbConnector."""
+        client_args = client_args or {}
+        if endpoint_url:
+            client_args['endpoint_url'] = endpoint_url
         self.boto3_session = boto3_session or boto3.Session()
         self.table_name = table_name
         self.number_of_shards = number_of_shards
-        self.dynamodb = self.boto3_session.resource('dynamodb', endpoint_url=endpoint_url)
+        self.dynamodb = self.boto3_session.resource('dynamodb', **client_args)
         self.dynamodb_table = self.dynamodb.Table(table_name)
 
     def init(self) -> None:
