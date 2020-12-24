@@ -100,7 +100,7 @@ class MemoryStorageConnector(BaseStorageConnector):
         self._data[str(urn)]['BaseResource'] = resource.meta.data
 
     def delete_resource(self, urn: AwsUrn) -> None:
-        """Delete the resource and all its resource attributes from DynamoDB."""
+        """Delete the resource and all its resource attributes from memory."""
         try:
             del self._data[str(urn)]
         except KeyError:
