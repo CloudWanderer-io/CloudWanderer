@@ -77,66 +77,56 @@ autodoc_typehints = 'description'
 
 # -- Doctest
 doctest_global_setup = '''
-import sys
-from decimal import Decimal
-from unittest.mock import MagicMock
-import logging
+import os
+from unittest.mock import MagicMock, patch
+import boto3
 import cloudwanderer
+from moto import ec2
 
-# Mocking
-mock_collection = MagicMock(**{
-    'meta.service_name': 'ec2',
-})
-mock_collection.configure_mock(name='instances')
-cloudwanderer.cloud_wanderer.boto3 = MagicMock(**{
-    'Session.return_value.get_available_resources.return_value': ['ec2'],
-    'resource.return_value.meta.resource_model.collections': [mock_collection],
-    'resource.return_value.meta.service_name': 'ec2'
+ec2.models.random_vpc_id = MagicMock(return_value='vpc-11111111')
+from moto import mock_ec2, mock_s3, mock_iam, mock_sts
 
-})
+os.environ['AWS_ACCESS_KEY_ID'] = '1111111'
+os.environ['AWS_SECRET_ACCESS_KEY'] = '1111111'
+os.environ['AWS_SESSION_TOKEN'] = '1111111'
+os.environ['AWS_DEFAULT_REGION'] = 'eu-west-2'
 
-cloudwanderer.storage_connectors.DynamoDbConnector = MagicMock(**{
-    'return_value.init.return_value': None,
-    'return_value.read_resource_of_type.return_value': iter([
-        cloudwanderer.cloud_wanderer.CloudWandererResource(
-            urn=cloudwanderer.AwsUrn(
-                account_id='111111111111',
-                region='eu-west-2',
-                service='lambda',
-                resource_type='function',
-                resource_id='awesomeproject-201904202316-HostedUICustomResource-1PLE213GNV66A'
-            ),
-            resource_data={}, resource_attributes=[]
-        )
-    ]),
-    'return_value.read_resource.return_value': iter([
-        cloudwanderer.cloud_wanderer.CloudWandererResource(
-            urn=cloudwanderer.AwsUrn(
-                account_id='111111111111',
-                region='eu-west-2',
-                service='lambda',
-                resource_type='function',
-                resource_id='awesomeproject-201904202316-HostedUICustomResource-1PLE213GNV66A'
-            ),
-            resource_data={
-                'FunctionArn': str('arn:aws:lambda:eu-west-2:111111111111:function'
-                ':awesomeproject-201904202316-HostedUICustomResource-1PLE213GNV66A'),
-                'MemorySize': Decimal('128'),
-                'Description': '',
-                'TracingConfig': {'Mode': 'PassThrough'},
-                'Timeout': Decimal('300'),
-                'Handler': 'index.handler',
-                'CodeSha256': 'fBLFD+AwFo/EQK5rdUweTW8jdBg6cw9LORbpVYqlXXQ=',
-                'RevisionId': '7fd173f0-0fc0-4df3-a4c3-5464431da769',
-                'Role': 'arn:aws:iam::111111111111:role/cognitod72684bb_userpoolclient_lambda_role-dev',
-                'LastModified': '2019-04-20T22:32:07.805+0000',
-                'FunctionName': 'awesomeproject-201904202316-HostedUICustomResource-1PLE213GNV66A',
-                'Runtime': 'python3.8',
-                'CodeSize': Decimal('1742'),
-                'Version': '$LATEST',
-                'PackageType': 'Zip'
-            }
-        )
-    ])
-})
+
+def limit_collections_list():
+    collections_to_mock = {
+        'ec2': ('instance', 'instances'),
+        'ec2': ('vpc', 'vpcs'),
+        's3': ('bucket', 'buckets'),
+        'iam': ('group', 'groups')
+    }
+    mock_collections = []
+    for service, name_tuple in collections_to_mock.items():
+        collection = MagicMock(**{
+            'meta.service_name': service,
+            'resource.model.shape': name_tuple[0]
+        })
+        collection.configure_mock(name=name_tuple[1])
+        mock_collections.append(collection)
+    cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface.get_resource_collections = MagicMock(
+        side_effect=lambda service_resource: [
+            collection
+            for collection in mock_collections
+            if service_resource.meta.service_name == collection.meta.service_name
+        ]
+    )
+
+def limit_services_list():
+    cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface.get_all_resource_services = MagicMock(
+        return_value=[boto3.resource(service) for service in ['ec2', 's3', 'iam']])
+
+def mock_services():
+    for service in [mock_ec2, mock_iam, mock_sts, mock_s3]:
+        mock = service()
+        mock.start()
+
+limit_services_list()
+limit_collections_list()
+mock_services()
+
+cloudwanderer.storage_connectors.DynamoDbConnector = cloudwanderer.storage_connectors.MemoryStorageConnector
 '''

@@ -20,9 +20,12 @@ class MemoryStorageConnector(BaseStorageConnector):
 
     """
 
-    def __init__(self) -> None:
+    def __init__(self, *args, **kwargs) -> None:
         """Initialise MemoryStorageConnector."""
         self._data = defaultdict(dict)
+
+    def init(self) -> None:
+        """Dummy method to fulfil interface requirements."""
 
     def read_resource(self, urn: AwsUrn) -> List['CloudWandererResource']:
         """Return the resource with the specified :class:`cloudwanderer.aws_urn.AwsUrn)`.

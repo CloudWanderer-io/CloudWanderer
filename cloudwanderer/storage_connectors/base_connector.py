@@ -9,6 +9,10 @@ class BaseStorageConnector(ABC):
     """Abstract class for specification of the CloudWanderer storage connector interface."""
 
     @abstractmethod
+    def init(self) -> None:
+        """Initialise the storage backend whatever it is."""
+
+    @abstractmethod
     def write_resource(self, urn: AwsUrn, resource: str) -> None:
         """Persist a single resource to storage."""
 
