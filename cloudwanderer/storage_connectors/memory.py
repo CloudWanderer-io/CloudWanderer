@@ -11,6 +11,14 @@ class MemoryStorageConnector(BaseStorageConnector):
     """Storage connector to place data in memory.
 
     Useful for testing.
+
+    Example:
+
+        >>> import cloudwanderer
+        >>> cloud_wanderer = cloudwanderer.CloudWanderer(
+        ...     storage_connector=cloudwanderer.storage_connectors.MemoryStorageConnector()
+        ... )
+
     """
 
     def __init__(self) -> None:
