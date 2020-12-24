@@ -94,10 +94,10 @@ os.environ['AWS_DEFAULT_REGION'] = 'eu-west-2'
 
 def limit_collections_list():
     collections_to_mock = {
-        'ec2': ['instance', 'instances'],
-        'ec2': ['vpc', 'vpcs'],
-        's3': ['bucket', 'buckets'],
-        'iam': ['group', 'groups']
+        'ec2': ('instance', 'instances'),
+        'ec2': ('vpc', 'vpcs'),
+        's3': ('bucket', 'buckets'),
+        'iam': ('group', 'groups')
     }
     mock_collections = []
     for service, name_tuple in collections_to_mock.items():
