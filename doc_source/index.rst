@@ -11,6 +11,7 @@ CloudWanderer
    :maxdepth: 2
    :caption: Contents:
 
+   examples
    supported_resources
    reference
 
