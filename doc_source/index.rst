@@ -54,23 +54,23 @@ Query all the resources from your current account region and save them to your l
 
    >>> wanderer.write_resources_in_region()
 
-Get a list of lambda functions back.
+Get a list of VPCs back.
 
 .. doctest ::
 
-   >>> lambda_function_urns = wanderer.read_resource_of_type(service='lambda', resource_type='function')
-   >>> first_function = next(lambda_function_urns)
-   >>> first_function.urn
-   AwsUrn(account_id='111111111111', region='eu-west-2', service='lambda', resource_type='function', resource_id='awesomeproject-201904202316-HostedUICustomResource-1PLE213GNV66A')
+   >>> vpc_urns = wanderer.read_resource_of_type(service='ec2', resource_type='vpc')
+   >>> first_vpc = next(vpc_urns)
+   >>> first_vpc.urn
+   AwsUrn(account_id='123456789012', region='eu-west-2', service='ec2', resource_type='vpc', resource_id='vpc-11111111')
 
 Load the full details of the resource.
 
 .. doctest ::
 
-   >>> function = wanderer.read_resource(urn=first_function.urn)
-   >>> function.function_name
-   'awesomeproject-201904202316-HostedUICustomResource-1PLE213GNV66A'
-   >>> function.role
-   'arn:aws:iam::111111111111:role/cognitod72684bb_userpoolclient_lambda_role-dev'
-   >>> function.runtime
-   'python3.8'
+   >>> vpc = wanderer.read_resource(urn=first_vpc.urn)
+   >>> vpc.cidr_block
+   '172.31.0.0/16'
+   >>> vpc.instance_tenancy
+   'default'
+   >>> vpc.is_default
+   True
