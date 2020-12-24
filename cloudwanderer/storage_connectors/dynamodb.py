@@ -1,5 +1,5 @@
 """Classes for the CloudWanderer DynamoDB Storage Connector."""
-from typing import List
+from typing import List, Callable
 import itertools
 import logging
 import os
@@ -52,7 +52,7 @@ def urn_from_primary_key(pk: str) -> AwsUrn:
     return AwsUrn.from_string(pk.split('#')[1])
 
 
-def dynamodb_items_to_resources(items: List[dict]) -> CloudWandererResource:
+def dynamodb_items_to_resources(items: List[dict], loader: Callable) -> CloudWandererResource:
     """Convert a resource and its attributes dynamodb records to a ResourceDict."""
     for item_id, group in itertools.groupby(items, lambda x: x['_id']):
         grouped_items = list(group)
@@ -61,7 +61,8 @@ def dynamodb_items_to_resources(items: List[dict]) -> CloudWandererResource:
         yield CloudWandererResource(
             urn=urn_from_primary_key(base_resource['_id']),
             resource_data=base_resource,
-            resource_attributes=attributes
+            resource_attributes=attributes,
+            loader=loader
         )
 
 
@@ -99,6 +100,14 @@ class DynamoDbConnector(BaseStorageConnector):
             Prevents hot-partitions. If you don't know what this means, ignore this setting.
         client_args (dict): Arguments to pass into the boto3 client.
             See: :meth:`boto3.session.Session.client`
+
+    Example:
+        >>> import cloudwanderer
+        >>> cloud_wanderer = cloudwanderer.CloudWanderer(
+        ...     storage_connector=cloudwanderer.storage_connectors.DynamoDbConnector(
+        ...         endpoint_url='http://localhost:8000'
+        ...     )
+        ... )
     """
 
     def __init__(
@@ -176,7 +185,7 @@ class DynamoDbConnector(BaseStorageConnector):
         result = self.dynamodb_table.query(
             KeyConditionExpression=Key('_id').eq(primary_key_from_urn(urn))
         )
-        yield from dynamodb_items_to_resources(result['Items'])
+        yield from dynamodb_items_to_resources(result['Items'], loader=self.read_resource)
 
     def read_resource_of_type(self, service: str, resource_type: str) -> List['CloudWandererResource']:
         """Return all resources of type.
@@ -185,7 +194,9 @@ class DynamoDbConnector(BaseStorageConnector):
             service (str): Service name (e.g. ``'ec2'``)
             resource_type (str): Resource Type (e.g. ``'instance'``)
         """
-        yield from dynamodb_items_to_resources(self._read_from_resource_type_index(service, resource_type))
+        yield from dynamodb_items_to_resources(
+            self._read_from_resource_type_index(service, resource_type),
+            loader=self.read_resource)
 
     def _read_from_resource_type_index(
             self, service: str, resource_type: str, account_id: str = None, region: str = None) -> None:
@@ -218,7 +229,7 @@ class DynamoDbConnector(BaseStorageConnector):
                 Select='ALL_PROJECTED_ATTRIBUTES',
                 KeyConditionExpression=Key('_account_id_index').eq(key)
             )
-            yield from dynamodb_items_to_resources(result['Items'])
+            yield from dynamodb_items_to_resources(result['Items'], loader=self.read_resource)
 
     def read_resource_of_type_in_account(
             self, service: str, resource_type: str, account_id: str) -> List['CloudWandererResource']:
@@ -240,7 +251,7 @@ class DynamoDbConnector(BaseStorageConnector):
                         gen_resource_type_index(service, resource_type))
                 )
             )
-            yield from dynamodb_items_to_resources(result['Items'])
+            yield from dynamodb_items_to_resources(result['Items'], loader=self.read_resource)
 
     def read_all(self) -> List['CloudWandererResource']:
         """Return raw data from all DynamoDB table records (not just resources)."""
@@ -271,7 +282,7 @@ class DynamoDbConnector(BaseStorageConnector):
             resource_type=resource_type,
             account_id=account_id,
             region=region
-        ))
+        ), loader=self.read_resource)
         for resource in resource_records:
             if resource.urn in urns_to_keep:
                 logger.debug('Skipping deletion of %s as we were told to keep it.', resource.urn)

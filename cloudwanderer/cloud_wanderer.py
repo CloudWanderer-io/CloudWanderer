@@ -1,5 +1,5 @@
 """Main cloudwanderer module."""
-from typing import List
+from typing import Callable, List
 from collections import namedtuple
 import logging
 from typing import TYPE_CHECKING
@@ -392,13 +392,27 @@ class CloudWandererResource():
         metadata (dict): The original storage representation of the resource as it was passed in.
     """
 
-    def __init__(self, urn: AwsUrn, resource_data: dict, resource_attributes: List[dict] = None) -> None:
+    def __init__(self, urn: AwsUrn, resource_data: dict,
+                 resource_attributes: List[dict] = None, loader: Callable = None) -> None:
         """Initialise the resource."""
         self.urn = urn
         self.cloudwanderer_metadata = ResourceMetadata(
             resource_data=resource_data,
             resource_attributes=resource_attributes or []
         )
+        self._loader = loader
+        self._set_attrs()
+
+    def load(self) -> None:
+        """Inflate this resource with all data from the original storage connector it was spawned from.."""
+        if self._loader is None:
+            logger.error('Could not inflate %s, storage connector loader not populated', self)
+            return
+        updated_resource = next(self._loader(urn=self.urn), None)
+        if updated_resource is None:
+            logger.error('Could not inflate %s, does not exist in storage', self)
+            return
+        self.cloudwanderer_metadata = updated_resource.cloudwanderer_metadata
         self._set_attrs()
 
     @property
