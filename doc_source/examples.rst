@@ -77,11 +77,24 @@ Retrieving all VPCs from all Regions
     >>> vpcs = wanderer.read_resource_of_type(service='ec2', resource_type='vpc')
     >>> for vpc in vpcs:
     ...     print('vpc_region:', vpc.urn.region)
+    ...     vpc.load()
     ...     print('vpc_state:', vpc.state)
+    ...     print('is_default:', vpc.is_default)
     vpc_region: eu-west-2
     vpc_state: available
+    is_default: True
     vpc_region: us-east-1
     vpc_state: available
+    is_default: True
 
 You'll notice here we're calling a property ``urn`` in order to print the region.
 :doc:`AwsUrns <reference/aws_urn>` are CloudWanderer's way of uniquely identifying a resource.
+
+More expectedly you can see we're printing the vpc's ``state`` attribute and ``is_default`` attribute. However, it's very important to notice the
+:meth:`~cloudwanderer.cloud_wanderer.CloudWandererResource.load` call beforehand which loads the resource's data.
+Resources returned from any ``read_`` method of the ``DynamoDbConnector`` are lazily loaded *except* for ``read_resource``.
+This is due to the sparsely populated global secondary indexes in the DynamoDB table schema.
+
+Once you've called :meth:`~cloudwanderer.cloud_wanderer.CloudWandererResource.load` you can access any property of
+the AWS resource that is returned by its describe method. E.g. for VPCs see :attr:`boto3:EC2.Client.describe_vpcs`.
+These attributes are stored as snake_case instead of the APIs camelCase, so ``isDefault`` becomes ``is_default``.
