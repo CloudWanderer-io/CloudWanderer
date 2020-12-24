@@ -1,5 +1,5 @@
 """Storage connector to place data in memory."""
-from collections import defaultdict
+from collections import defaultdict, Callable
 from typing import List
 import boto3
 from .base_connector import BaseStorageConnector
@@ -33,7 +33,7 @@ class MemoryStorageConnector(BaseStorageConnector):
         Arguments:
             urn (cloudwanderer.aws_urn.AwsUrn): The AWS URN of the resource to return
         """
-        yield memory_item_to_resource(urn, self._data[str(urn)])
+        yield memory_item_to_resource(urn, self._data[str(urn)], loader=self.read_resource)
 
     def read_all(self) -> dict:
         """Return the raw dictionaries stored in memory."""
@@ -57,7 +57,7 @@ class MemoryStorageConnector(BaseStorageConnector):
             urn = AwsUrn.from_string(urn_str)
             if urn.account_id != account_id:
                 continue
-            yield memory_item_to_resource(urn, items)
+            yield memory_item_to_resource(urn, loader=self.read_resource)
 
     def read_resource_of_type(self, service: str, resource_type: str) -> List['CloudWandererResource']:
         """Return all resources of type.
@@ -72,7 +72,7 @@ class MemoryStorageConnector(BaseStorageConnector):
                 continue
             if urn.resource_type != resource_type:
                 continue
-            yield memory_item_to_resource(urn, items)
+            yield memory_item_to_resource(urn, loader=self.read_resource)
 
     def read_resource_of_type_in_account(
             self, service: str, resource_type: str, account_id: str) -> List['CloudWandererResource']:
@@ -91,7 +91,7 @@ class MemoryStorageConnector(BaseStorageConnector):
                 continue
             if urn.resource_type != resource_type:
                 continue
-            yield memory_item_to_resource(urn, items)
+            yield memory_item_to_resource(urn, loader=self.read_resource)
 
     def write_resource(self, urn: AwsUrn, resource: boto3.resources.base.ServiceResource) -> None:
         """Write the specified resource to memory.
@@ -130,12 +130,14 @@ class MemoryStorageConnector(BaseStorageConnector):
             del self._data[str(urn)]
 
 
-def memory_item_to_resource(urn: AwsUrn, items: dict) -> CloudWandererResource:
+def memory_item_to_resource(urn: AwsUrn, items: dict = None, loader: Callable = None) -> CloudWandererResource:
     """Convert a resource and its attributes to a CloudWandererResource."""
+    items = items or {}
     attributes = [attribute for item_type, attribute in items.items() if item_type != 'BaseResource']
-    base_resource = next(iter(resource for item_type, resource in items.items() if item_type == 'BaseResource'))
+    base_resource = next(iter(resource for item_type, resource in items.items() if item_type == 'BaseResource'), {})
     return CloudWandererResource(
         urn=urn,
         resource_data=base_resource,
-        resource_attributes=attributes
+        resource_attributes=attributes,
+        loader=loader
     )

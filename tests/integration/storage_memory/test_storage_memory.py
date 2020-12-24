@@ -53,6 +53,8 @@ class TestStorageMemory(unittest.TestCase):
         self.assertIsInstance(resource, CloudWandererResource)
         assert resource.urn.region == 'eu-west-2'
         assert resource.urn.resource_type == 'instance'
+        self.assertRaises(AttributeError, getattr, resource, 'instance_type')
+        resource.load()
         assert resource.instance_type == 'm1.small'
 
     def test_write_and_read_resource_of_type(self):
@@ -72,6 +74,8 @@ class TestStorageMemory(unittest.TestCase):
             self.assertIsInstance(resource, CloudWandererResource)
             assert resource.urn.region == 'eu-west-2'
             assert resource.urn.resource_type == 'instance'
+            self.assertRaises(AttributeError, getattr, resource, 'instance_type')
+            resource.load()
             assert resource.instance_type == 'm1.small'
 
     def test_write_and_read_all_resources_in_account(self):
@@ -92,11 +96,16 @@ class TestStorageMemory(unittest.TestCase):
         self.assertIsInstance(instance, CloudWandererResource)
         assert instance.urn.region == 'eu-west-2'
         assert instance.urn.resource_type == 'instance'
+        self.assertRaises(AttributeError, getattr, instance, 'instance_type')
+        instance.load()
         assert instance.instance_type == 'm1.small'
+
         vpc = next(resources)
         self.assertIsInstance(instance, CloudWandererResource)
         assert vpc.urn.region == 'eu-west-2'
         assert vpc.urn.resource_type == 'vpc'
+        self.assertRaises(AttributeError, getattr, vpc, 'cidr_block')
+        vpc.load()
         assert vpc.cidr_block == '172.31.0.0/16'
 
     def test_write_and_read_all(self):

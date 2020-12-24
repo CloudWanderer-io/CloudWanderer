@@ -58,6 +58,10 @@ class TestStorageConnectorDynamoDb(unittest.TestCase):
         assert result.urn == result_resource_of_type_in_account.urn
         assert result.cloudwanderer_metadata.resource_data['_id'] == result_all_raw['_id']
 
+        self.assertRaises(AttributeError, getattr, result_resource_of_type_in_account, 'instance_type')
+        result_resource_of_type_in_account.load()
+        assert result_resource_of_type_in_account.instance_type == 'm1.small'
+
     def test_write_delete_and_read_resource(self):
         urn = generate_urn(service='ec2', resource_type='instance', id=self.ec2_instances[0].instance_id)
 

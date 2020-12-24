@@ -25,7 +25,7 @@ copyright = '2020, Sam Martin'
 author = 'Sam Martin'
 
 # The full version, including alpha/beta/rc tags
-release = '0.6.0'
+release = '0.7.0'
 
 
 # -- General configuration ---------------------------------------------------
@@ -83,8 +83,12 @@ import boto3
 import cloudwanderer
 from moto import ec2
 
+ec2.models.RegionsAndZonesBackend.regions = [
+    ec2.models.Region(region_name, "ec2.{region_name}.amazonaws.com", "opt-in-not-required")
+    for region_name in ['eu-west-2', 'us-east-1']
+]
 ec2.models.random_vpc_id = MagicMock(return_value='vpc-11111111')
-from moto import mock_ec2, mock_s3, mock_iam, mock_sts
+from moto import mock_ec2, mock_s3, mock_iam, mock_sts, mock_dynamodb2
 
 os.environ['AWS_ACCESS_KEY_ID'] = '1111111'
 os.environ['AWS_SECRET_ACCESS_KEY'] = '1111111'
@@ -120,7 +124,7 @@ def limit_services_list():
         return_value=[boto3.resource(service) for service in ['ec2', 's3', 'iam']])
 
 def mock_services():
-    for service in [mock_ec2, mock_iam, mock_sts, mock_s3]:
+    for service in [mock_ec2, mock_iam, mock_sts, mock_s3, mock_dynamodb2]:
         mock = service()
         mock.start()
 
