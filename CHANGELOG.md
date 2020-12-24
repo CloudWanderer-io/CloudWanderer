@@ -1,3 +1,7 @@
+# 0.7.0
+- Added MemoryStorageConnector (useful for testing)
+
+
 # 0.6.0
 
 - Fetch region information for semi-global resources like S3 buckets using `GlobalServiceMapping` objects.

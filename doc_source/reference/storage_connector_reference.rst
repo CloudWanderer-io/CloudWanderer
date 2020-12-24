@@ -9,6 +9,12 @@ DynamoDB Connector
 .. autoclass :: cloudwanderer.storage_connectors.DynamoDbConnector
     :members:
 
+Memory Connector
+-----------------
+
+.. autoclass :: cloudwanderer.storage_connectors.memory.MemoryStorageConnector
+    :members:
+
 Base Connector
 -----------------
 

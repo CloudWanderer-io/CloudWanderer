@@ -99,6 +99,14 @@ class DynamoDbConnector(BaseStorageConnector):
             Prevents hot-partitions. If you don't know what this means, ignore this setting.
         client_args (dict): Arguments to pass into the boto3 client.
             See: :meth:`boto3.session.Session.client`
+
+    Example:
+        >>> import cloudwanderer
+        >>> cloud_wanderer = cloudwanderer.CloudWanderer(
+        ...     storage_connector=cloudwanderer.storage_connectors.DynamoDbConnector(
+        ...         endpoint_url='http://localhost:8000'
+        ...     )
+        ... )
     """
 
     def __init__(
