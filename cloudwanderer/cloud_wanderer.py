@@ -406,11 +406,11 @@ class CloudWandererResource():
     def load(self) -> None:
         """Inflate this resource with all data from the original storage connector it was spawned from.."""
         if self._loader is None:
-            logger.warning('Could not inflate %s, storage connector loader not populated', self)
+            logger.error('Could not inflate %s, storage connector loader not populated', self)
             return
         updated_resource = next(self._loader(urn=self.urn), None)
         if updated_resource is None:
-            logger.warning('Could not inflate %s, does not exist in storage', self)
+            logger.error('Could not inflate %s, does not exist in storage', self)
             return
         self.cloudwanderer_metadata = updated_resource.cloudwanderer_metadata
         self._set_attrs()
