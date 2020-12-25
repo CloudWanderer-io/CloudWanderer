@@ -141,6 +141,9 @@ class TestStorageMemory(unittest.TestCase):
         no_resources = self.connector.read_resource_of_type(service='ec2', resource_type='instance')
         self.assertRaises(StopIteration, next, no_resources)
 
+        non_resource = self.connector.read_resource(urn=instance.urn)
+        self.assertRaises(StopIteration, next, non_resource)
+
     def test_write_and_delete_resource_of_type_in_account_region(self):
         for i in range(5):
             self.connector.write_resource(

@@ -1,3 +1,7 @@
+# 0.7.1
+
+- Bugfix Memory Storage Connector to return None from `read_resource`
+
 # 0.7.0
 
 - Added MemoryStorageConnector (useful for testing)
