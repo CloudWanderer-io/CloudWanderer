@@ -1,5 +1,5 @@
 """Storage connector to place data in memory."""
-from collections import defaultdict, Callable
+from collections import Callable
 from typing import List
 import boto3
 from .base_connector import BaseStorageConnector
@@ -22,7 +22,7 @@ class MemoryStorageConnector(BaseStorageConnector):
 
     def __init__(self, *args, **kwargs) -> None:
         """Initialise MemoryStorageConnector."""
-        self._data = defaultdict(dict)
+        self._data = {}
 
     def init(self) -> None:
         """Dummy method to fulfil interface requirements."""
@@ -33,7 +33,10 @@ class MemoryStorageConnector(BaseStorageConnector):
         Arguments:
             urn (cloudwanderer.aws_urn.AwsUrn): The AWS URN of the resource to return
         """
-        yield memory_item_to_resource(urn, self._data[str(urn)], loader=self.read_resource)
+        try:
+            yield memory_item_to_resource(urn, self._data[str(urn)], loader=self.read_resource)
+        except KeyError:
+            pass
 
     def read_all(self) -> dict:
         """Return the raw dictionaries stored in memory."""
@@ -100,6 +103,7 @@ class MemoryStorageConnector(BaseStorageConnector):
             urn (cloudwanderer.aws_urn.AwsUrn): The URN of the resource.
             resource: The boto3 Resource object representing the resource.
         """
+        self._data[str(urn)] = self._data.get(str(urn), {})
         self._data[str(urn)]['BaseResource'] = resource.meta.data
 
     def delete_resource(self, urn: AwsUrn) -> None:

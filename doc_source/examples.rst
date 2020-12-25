@@ -105,3 +105,32 @@ This is due to the sparsely populated global secondary indexes in the DynamoDB t
 Once you've called :meth:`~cloudwanderer.cloud_wanderer.CloudWandererResource.load` you can access any property of
 the AWS resource that is returned by its describe method. E.g. for VPCs see :attr:`boto3:EC2.Client.describe_vpcs`.
 These attributes are stored as snake_case instead of the APIs camelCase, so ``isDefault`` becomes ``is_default``.
+
+Deleting Stale Resources
+-------------------------
+
+CloudWanderer deletes resources which no longer exist automatically when you run:
+:meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resources_of_service_in_region`.
+
+Individual Resources
+^^^^^^^^^^^^^^^^^^^^^
+
+Deleting individual resources (if necessary), can be done by calling
+:meth:`~cloudwanderer.storage_connectors.dynamodb.delete_resource` directly on the storage connector.
+
+e.g.
+
+.. doctest ::
+
+    >>> vpc = next(wanderer.read_resource_of_type(
+    ...     service='ec2',
+    ...     resource_type='vpc',
+    ... ))
+    >>> str(vpc.urn)
+    'urn:aws:123456789012:eu-west-2:ec2:vpc:vpc-11111111'
+    >>> wanderer.storage_connector.delete_resource(urn=vpc.urn)
+    >>> vpc = wanderer.read_resource(
+    ...     urn=vpc.urn
+    ... )
+    >>> print(vpc)
+    None

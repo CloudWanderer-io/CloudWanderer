@@ -311,10 +311,7 @@ class CloudWanderer():
         Args:
             urn (cloudwanderer.aws_urn.AwsUrn): The :class:`~cloudwanderer.aws_urn.AwsUrn` of the resource to retrieve.
         """
-        try:
-            return next(self.storage_connector.read_resource(urn))
-        except StopIteration:
-            return None
+        return next(self.storage_connector.read_resource(urn), None)
 
     def read_all_resources_in_account(self, account_id: str) -> List['CloudWandererResource']:
         """Return all resources in the provided AWS Account from storage.
