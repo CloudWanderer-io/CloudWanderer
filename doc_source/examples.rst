@@ -8,12 +8,15 @@ Getting Started
 Testing with a local DynamoDB
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-DynamoDB has a `Docker Image <https://hub.docker.com/r/amazon/dynamodb-local>` that allows you to run a local DynamoDB in memory.
+`DynamoDB has a Docker Image <https://hub.docker.com/r/amazon/dynamodb-local>`_ that allows you to run a local, persistent DynamoDB.
 This provides us with a cheap and easy way to start trying out CloudWanderer.
 
 .. code-block ::
 
-    $  docker run -p 8000:8000 -v $(pwd):/data amazon/dynamodb-local  -Djava.library.path=./DynamoDBLocal_lib -jar DynamoDBLocal.jar -sharedDb -dbPath  /data/
+    $  docker run -p 8000:8000 -v $(pwd):/data amazon/dynamodb-local \
+        -Djava.library.path=./DynamoDBLocal_lib \
+        -jar DynamoDBLocal.jar \
+        -sharedDb -dbPath  /data/
 
 This starts a DynamoDB docker image on your local machine and tells it to persist data into the current directory in
 a shared database file ``shared-local-instance.db``. This allows the data to persist even if you stop the container.
@@ -47,6 +50,9 @@ test CloudWanderer using the Memory Storage Connector!
 
 It's wise to do this in an interactive environment otherwise you may spend an inordinate amount of time re-querying
 your AWS environment!
+
+Writing Resources
+--------------------
 
 Writing all Resources from all Regions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -90,9 +96,10 @@ Retrieving all VPCs from all Regions
 You'll notice here we're calling a property ``urn`` in order to print the region.
 :doc:`AwsUrns <reference/aws_urn>` are CloudWanderer's way of uniquely identifying a resource.
 
-More expectedly you can see we're printing the vpc's ``state`` attribute and ``is_default`` attribute. However, it's very important to notice the
+You can also see we're printing the vpc's ``state`` and ``is_default`` attributes. It's very important to notice the
 :meth:`~cloudwanderer.cloud_wanderer.CloudWandererResource.load` call beforehand which loads the resource's data.
-Resources returned from any ``read_`` method of the ``DynamoDbConnector`` are lazily loaded *except* for ``read_resource``.
+Resources returned from any ``read_`` method using the :class:`~cloudwanderer.storage_connectors.DynamoDbConnector`
+are lazily loaded *except* for :meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.read_resource`.
 This is due to the sparsely populated global secondary indexes in the DynamoDB table schema.
 
 Once you've called :meth:`~cloudwanderer.cloud_wanderer.CloudWandererResource.load` you can access any property of
