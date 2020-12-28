@@ -60,7 +60,7 @@ Get a list of VPCs back.
 
 .. doctest ::
 
-   >>> vpc_urns = storage_connector.read_resource_of_type(service='ec2', resource_type='vpc')
+   >>> vpc_urns = storage_connector.read_resources(service='ec2', resource_type='vpc')
    >>> first_vpc = next(vpc_urns)
    >>> first_vpc.urn
    AwsUrn(account_id='123456789012', region='eu-west-2', service='ec2', resource_type='vpc', resource_id='vpc-11111111')
@@ -69,7 +69,7 @@ Load the full details of the resource.
 
 .. doctest ::
 
-   >>> vpc = next(storage_connector.read_resource(urn=first_vpc.urn))
+   >>> vpc = storage_connector.read_resource(urn=first_vpc.urn)
    >>> vpc.cidr_block
    '172.31.0.0/16'
    >>> vpc.instance_tenancy

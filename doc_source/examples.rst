@@ -82,7 +82,7 @@ Retrieving all VPCs from all Regions
 
 .. doctest ::
 
-    >>> vpcs = storage_connector.read_resource_of_type(service='ec2', resource_type='vpc')
+    >>> vpcs = storage_connector.read_resources(service='ec2', resource_type='vpc')
     >>> for vpc in vpcs:
     ...     print('vpc_region:', vpc.urn.region)
     ...     vpc.load()
@@ -124,15 +124,15 @@ e.g.
 
 .. doctest ::
 
-    >>> vpc = next(storage_connector.read_resource_of_type(
+    >>> vpc = next(storage_connector.read_resources(
     ...     service='ec2',
     ...     resource_type='vpc',
     ... ))
     >>> str(vpc.urn)
     'urn:aws:123456789012:eu-west-2:ec2:vpc:vpc-11111111'
     >>> storage_connector.delete_resource(urn=vpc.urn)
-    >>> vpc = next(storage_connector.read_resource(
+    >>> vpc = storage_connector.read_resource(
     ...     urn=vpc.urn
-    ... ), None)
+    ... )
     >>> print(vpc)
     None
