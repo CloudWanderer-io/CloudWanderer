@@ -1,18 +1,24 @@
 # 0.8.0
 
-- `read_resource` on DynamoDbStorageConnector returns a `CloudWandererResource` instead of an iterator.
-- `read_resource` on MemoryStorageConnector returns a `CloudWandererResource` instead of an iterator.
-- added `read_resources` to DynamoDbStorageConnector
-- added `read_resources` to MemoryStorageConnector
-- Removed `read_resource_of_type` from DynamoDBStorageConnector
-- Removed `read_resource_of_type_in_account` from DynamoDBStorageConnector
-- Removed `read_all_resources_in_account` from DynamoDBStorageConnector
-- Removed `read_resource_of_type` from BaseStorageConnector
-- Removed `read_resource_of_type_in_account` from BaseStorageConnector
-- Removed `read_all_resources_in_account` from BaseStorageConnector
-- Removed `read_resource_of_type` from MemoryStorageConnector
-- Removed `read_resource_of_type_in_account` from MemoryStorageConnector
-- Removed `read_all_resources_in_account` from MemoryStorageConnector
+- Added support for multiple storage connectors
+- Made Storage Connectors the primary interface for reading from storage
+    - `read_resource` on DynamoDbStorageConnector returns a `CloudWandererResource` instead of an iterator.
+    - `read_resource` on MemoryStorageConnector returns a `CloudWandererResource` instead of an iterator.
+    - Added `read_resources` to DynamoDbStorageConnector
+    - Added `read_resources` to MemoryStorageConnector
+    - Removed `read_resource_of_type` from DynamoDBStorageConnector
+    - Removed `read_resource_of_type_in_account` from DynamoDBStorageConnector
+    - Removed `read_all_resources_in_account` from DynamoDBStorageConnector
+    - Removed `read_resource_of_type` from BaseStorageConnector
+    - Removed `read_resource_of_type_in_account` from BaseStorageConnector
+    - Removed `read_all_resources_in_account` from BaseStorageConnector
+    - Removed `read_resource_of_type` from MemoryStorageConnector
+    - Removed `read_resource_of_type_in_account` from MemoryStorageConnector
+    - Removed `read_all_resources_in_account` from MemoryStorageConnector
+    - Removed `read_resource_of_type` from CloudWanderer
+    - Removed `read_resource` from CloudWanderer
+    - Removed `read_all_resources_in_account` from CloudWanderer
+    - Removed `read_resource_of_type_in_account` from CloudWanderer
 
 # 0.7.1
 

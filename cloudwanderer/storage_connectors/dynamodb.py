@@ -200,7 +200,7 @@ class DynamoDbConnector(BaseStorageConnector):
         Arguments:
             urn (cloudwanderer.aws_urn.AwsUrn): The AWS URN of the resource to return
             account_id (str): AWS Account ID
-            region (str): AWS region (e.g. ``eu-west-2``)
+            region (str): AWS region (e.g. ``'eu-west-2'``)
             service (str): Service name (e.g. ``'ec2'``)
             resource_type (str): Resource Type (e.g. ``'instance'``)
         """
