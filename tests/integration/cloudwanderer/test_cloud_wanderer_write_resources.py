@@ -34,7 +34,7 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
     def setUp(self):
         self.mock_storage_connector = MagicMock()
         self.wanderer = CloudWanderer(
-            storage_connector=self.mock_storage_connector,
+            storage_connectors=[self.mock_storage_connector],
             boto3_session=self.mock_session
         )
         self.wanderer._enabled_regions = ENABLED_REGIONS

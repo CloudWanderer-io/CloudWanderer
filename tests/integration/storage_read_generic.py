@@ -15,7 +15,7 @@ class TestStorageRead(TestStorageConnectorReadMixin):
         self.connector = self.connector_class()
         self.wanderer = cloudwanderer.CloudWanderer(
             boto3_session=generate_mock_session(),
-            storage_connector=self.connector
+            storage_connectors=[self.connector]
         )
         self.wanderer._account_id = '111111111111'
         self.wanderer.write_resources()
