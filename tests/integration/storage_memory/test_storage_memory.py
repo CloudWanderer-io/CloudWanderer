@@ -30,7 +30,7 @@ class TestStorageMemory(unittest.TestCase):
             urn=urn,
             resource=self.ec2_instances[0]
         )
-        resource = next(self.connector.read_resource(urn=urn))
+        resource = self.connector.read_resource(urn=urn)
 
         self.assertIsInstance(resource, CloudWandererResource)
         assert resource.urn.region == 'eu-west-2'
@@ -38,14 +38,14 @@ class TestStorageMemory(unittest.TestCase):
         assert resource.urn.resource_type == 'instance'
         assert resource.instance_type == 'm1.small'
 
-    def test_write_and_read_resource_of_type_in_account(self):
+    def test_write_and_read_resources_of_type_in_account(self):
         urn = generate_urn(service='ec2', resource_type='instance', id=self.ec2_instances[0].instance_id)
 
         self.connector.write_resource(
             urn=urn,
             resource=self.ec2_instances[0]
         )
-        resource = next(self.connector.read_resource_of_type_in_account(
+        resource = next(self.connector.read_resources(
             account_id='111111111111',
             service='ec2',
             resource_type='instance'
@@ -64,7 +64,7 @@ class TestStorageMemory(unittest.TestCase):
                 resource=self.ec2_instances[i]
             )
 
-        resources = self.connector.read_resource_of_type(
+        resources = self.connector.read_resources(
             service='ec2',
             resource_type='instance'
         )
@@ -88,7 +88,7 @@ class TestStorageMemory(unittest.TestCase):
             resource=self.vpcs[0]
         )
 
-        resources = self.connector.read_all_resources_in_account(
+        resources = self.connector.read_resources(
             account_id='111111111111'
         )
 
@@ -132,17 +132,17 @@ class TestStorageMemory(unittest.TestCase):
             resource=self.ec2_instances[0]
         )
 
-        instance = next(self.connector.read_resource_of_type(service='ec2', resource_type='instance'))
+        instance = next(self.connector.read_resources(service='ec2', resource_type='instance'))
         self.assertIsInstance(instance, CloudWandererResource)
 
         self.connector.delete_resource(urn=instance.urn)
         self.connector.delete_resource(urn=instance.urn)
 
-        no_resources = self.connector.read_resource_of_type(service='ec2', resource_type='instance')
+        no_resources = self.connector.read_resources(service='ec2', resource_type='instance')
         self.assertRaises(StopIteration, next, no_resources)
 
         non_resource = self.connector.read_resource(urn=instance.urn)
-        self.assertRaises(StopIteration, next, non_resource)
+        assert non_resource is None
 
     def test_write_and_delete_resource_of_type_in_account_region(self):
         for i in range(5):
@@ -153,7 +153,7 @@ class TestStorageMemory(unittest.TestCase):
 
         resource_urns = [
             resource.urn for resource in
-            self.connector.read_resource_of_type(
+            self.connector.read_resources(
                 service='ec2',
                 resource_type='instance'
             )
@@ -169,7 +169,7 @@ class TestStorageMemory(unittest.TestCase):
 
         remaining_urns = [
             resource.urn for resource in
-            self.connector.read_resource_of_type(service='ec2', resource_type='instance')
+            self.connector.read_resources(service='ec2', resource_type='instance')
         ]
 
         assert remaining_urns == resource_urns[4:]

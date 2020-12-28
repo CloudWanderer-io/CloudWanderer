@@ -1,6 +1,6 @@
 """Module containing abstract classes for CloudWanderer storage connectors."""
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Iterator
 from ..aws_urn import AwsUrn
 from ..cloud_wanderer import CloudWandererResource
 
@@ -21,21 +21,14 @@ class BaseStorageConnector(ABC):
         """Return all records from storage."""
 
     @abstractmethod
-    def read_resource(self, urn: AwsUrn) -> List['CloudWandererResource']:
+    def read_resource(self, urn: AwsUrn) -> 'CloudWandererResource':
         """Return a resource matching the supplied urn from storage."""
 
     @abstractmethod
-    def read_resource_of_type(self, service: str, resource_type: str) -> List['CloudWandererResource']:
-        """Return all resources of this type from storage."""
-
-    @abstractmethod
-    def read_all_resources_in_account(self, account_id: str) -> List['CloudWandererResource']:
-        """Return all resources from this AWS account."""
-
-    @abstractmethod
-    def read_resource_of_type_in_account(
-            self, service: str, resource_type: str, account_id: str) -> List['CloudWandererResource']:
-        """Return all resources of this type from this AWS account."""
+    def read_resources(
+            self, urn: AwsUrn, account_id: str, region: str, service: str,
+            resource_type: str) -> Iterator['CloudWandererResource']:
+        """Yield a resource matching the supplied urn from storage."""
 
     @abstractmethod
     def delete_resource(self, urn: AwsUrn) -> None:

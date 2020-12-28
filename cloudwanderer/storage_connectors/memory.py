@@ -37,9 +37,9 @@ class MemoryStorageConnector(BaseStorageConnector):
             urn (cloudwanderer.aws_urn.AwsUrn): The AWS URN of the resource to return
         """
         try:
-            yield memory_item_to_resource(urn, self._data[str(urn)], loader=self.read_resource)
+            return memory_item_to_resource(urn, self._data[str(urn)], loader=self.read_resource)
         except KeyError:
-            pass
+            return None
 
     def read_resources(self, **kwargs) -> List['CloudWandererResource']:
         """Return the resources matching the arguments.
@@ -49,7 +49,7 @@ class MemoryStorageConnector(BaseStorageConnector):
         Arguments:
             urn (cloudwanderer.aws_urn.AwsUrn): The AWS URN of the resource to return
             account_id (str): AWS Account ID
-            region_name (str): AWS region (e.g. ``eu-west-2``)
+            region (str): AWS region (e.g. ``eu-west-2``)
             service (str): Service name (e.g. ``'ec2'``)
             resource_type (str): Resource Type (e.g. ``'instance'``)
         """
@@ -59,15 +59,13 @@ class MemoryStorageConnector(BaseStorageConnector):
                 if urn == kwargs['urn']:
                     yield memory_item_to_resource(urn, loader=self.read_resource)
                 continue
-            if self._should_yield(urn, **kwargs):
+            if self._urn_matches_kwargs(urn, **kwargs):
                 yield memory_item_to_resource(urn, loader=self.read_resource)
 
-    def _should_yield(self, urn: AwsUrn, **kwargs) -> bool:
-        filter_items = [('account_id', 'account_id'), ('region_name', 'region'),
-                        ('service', 'service'), ('resource_type', 'resource_type')]
-        for kwarg, urn_attribute in filter_items:
-            if kwargs.get(kwarg) is not None and getattr(urn, urn_attribute) != kwargs[kwarg]:
-                logger.warning('%s != %s', getattr(urn, urn_attribute), kwargs[kwarg])
+    def _urn_matches_kwargs(self, urn: AwsUrn, **kwargs) -> bool:
+        filter_items = ('account_id', 'region', 'service', 'resource_type')
+        for item in filter_items:
+            if kwargs.get(item) is not None and getattr(urn, item) != kwargs[item]:
                 return False
         return True
 
@@ -82,52 +80,6 @@ class MemoryStorageConnector(BaseStorageConnector):
                     },
                     **item
                 }
-
-    def read_all_resources_in_account(self, account_id: str) -> List['CloudWandererResource']:
-        """Return all resources in account.
-
-        Args:
-            account_id (str): AWS Account ID
-        """
-        for urn_str, items in self._data.items():
-            urn = AwsUrn.from_string(urn_str)
-            if urn.account_id != account_id:
-                continue
-            yield memory_item_to_resource(urn, loader=self.read_resource)
-
-    def read_resource_of_type(self, service: str, resource_type: str) -> List['CloudWandererResource']:
-        """Return all resources of type.
-
-        Args:
-            service (str): Service name (e.g. ``'ec2'``)
-            resource_type (str): Resource Type (e.g. ``'instance'``)
-        """
-        for urn_str, items in self._data.items():
-            urn = AwsUrn.from_string(urn_str)
-            if urn.service != service:
-                continue
-            if urn.resource_type != resource_type:
-                continue
-            yield memory_item_to_resource(urn, loader=self.read_resource)
-
-    def read_resource_of_type_in_account(
-            self, service: str, resource_type: str, account_id: str) -> List['CloudWandererResource']:
-        """Return all resources of the specified type in the specified AWS account.
-
-        Args:
-            service (str): Service name, e.g. ``'ec2'``
-            resource_type (str): Resource type, e.g. ``'instance'``
-            account_id (str): AWS Account ID
-        """
-        for urn_str, items in self._data.items():
-            urn = AwsUrn.from_string(urn_str)
-            if urn.service != service:
-                continue
-            if urn.account_id != account_id:
-                continue
-            if urn.resource_type != resource_type:
-                continue
-            yield memory_item_to_resource(urn, loader=self.read_resource)
 
     def write_resource(self, urn: AwsUrn, resource: boto3.resources.base.ServiceResource) -> None:
         """Write the specified resource to memory.

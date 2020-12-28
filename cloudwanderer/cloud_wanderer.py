@@ -369,7 +369,7 @@ class CloudWandererResource():
         if self._loader is None:
             logger.error('Could not inflate %s, storage connector loader not populated', self)
             return
-        updated_resource = next(self._loader(urn=self.urn), None)
+        updated_resource = self._loader(urn=self.urn)
         if updated_resource is None:
             logger.error('Could not inflate %s, does not exist in storage', self)
             return

@@ -40,10 +40,10 @@ class TestStorageConnectorDynamoDb(unittest.TestCase):
             urn=urn,
             resource=self.ec2_instances[0]
         )
-        result = next(self.connector.read_resource(urn=urn))
-        result_resource_of_type = next(self.connector.read_resource_of_type('ec2', 'instance'))
-        result_all_resources = next(self.connector.read_all_resources_in_account(account_id=urn.account_id))
-        result_resource_of_type_in_account = next(self.connector.read_resource_of_type_in_account(
+        result = self.connector.read_resource(urn=urn)
+        result_resource_of_type = next(self.connector.read_resources(service='ec2', resource_type='instance'))
+        result_all_resources = next(self.connector.read_resources(account_id=urn.account_id))
+        result_resource_of_type_in_account = next(self.connector.read_resources(
             service='ec2',
             resource_type='instance',
             account_id=urn.account_id
@@ -69,9 +69,9 @@ class TestStorageConnectorDynamoDb(unittest.TestCase):
             urn=urn,
             resource=self.ec2_instances[0]
         )
-        result_before_delete = next(self.connector.read_resource(urn=urn))
+        result_before_delete = self.connector.read_resource(urn=urn)
         self.connector.delete_resource(urn=urn)
-        result_after_delete = next(self.connector.read_resource(urn=urn), None)
+        result_after_delete = self.connector.read_resource(urn=urn)
 
         assert result_before_delete.urn == urn
         assert result_after_delete is None
@@ -90,7 +90,7 @@ class TestStorageConnectorDynamoDb(unittest.TestCase):
                 resource_attribute=generate_mock_resource_attribute({'EnableDnsSupport': {'Value': True}})
             )
         result_raw_before_delete = list(self.connector.read_all())
-        result_before_delete = list(self.connector.read_resource_of_type_in_account(
+        result_before_delete = list(self.connector.read_resources(
             service=urn.service,
             resource_type=urn.resource_type,
             account_id=urn.account_id,
@@ -103,7 +103,7 @@ class TestStorageConnectorDynamoDb(unittest.TestCase):
             urns_to_keep=[x.urn for x in result_before_delete[:50]]
         )
         result_raw_after_delete = list(self.connector.read_all())
-        result_after_delete = list(self.connector.read_resource_of_type_in_account(
+        result_after_delete = list(self.connector.read_resources(
             service=urn.service,
             resource_type=urn.resource_type,
             account_id=urn.account_id,

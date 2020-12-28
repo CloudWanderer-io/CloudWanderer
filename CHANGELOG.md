@@ -1,6 +1,19 @@
 # 0.7.1
 
 - Bugfix Memory Storage Connector to return None from `read_resource`
+- `read_resource` on DynamoDbStorageConnector returns a `CloudWandererResource` instead of an iterator.
+- `read_resource` on MemoryStorageConnector returns a `CloudWandererResource` instead of an iterator.
+- added `read_resources` to DynamoDbStorageConnector
+- added `read_resources` to MemoryStorageConnector
+- Removed `read_resource_of_type` from DynamoDBStorageConnector
+- Removed `read_resource_of_type_in_account` from DynamoDBStorageConnector
+- Removed `read_all_resources_in_account` from DynamoDBStorageConnector
+- Removed `read_resource_of_type` from BaseStorageConnector
+- Removed `read_resource_of_type_in_account` from BaseStorageConnector
+- Removed `read_all_resources_in_account` from BaseStorageConnector
+- Removed `read_resource_of_type` from MemoryStorageConnector
+- Removed `read_resource_of_type_in_account` from MemoryStorageConnector
+- Removed `read_all_resources_in_account` from MemoryStorageConnector
 
 # 0.7.0
 
