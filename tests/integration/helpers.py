@@ -134,15 +134,15 @@ class TestStorageConnectorReadMixin:
                 exist in at least one urn in iterable.
         """
         iterable = list(iterable)
-        print(iterable)
         for urn in aws_urns:
-            print(urn)
-            self.assertFalse(self.has_matching_aws_urn(iterable, **urn),
-                             f"{urn} is in {iterable}"
-                             )
+            self.assertFalse(
+                self.has_matching_aws_urn(iterable, **urn),
+                f"{urn} is in {iterable}"
+            )
 
 
 def limit_collections_list():
+    """Limit the boto3 resource collections we service to a subset we use for testing."""
     collections_to_mock = [
         ('ec2', ('instance', 'instances')),
         ('ec2', ('vpc', 'vpcs')),
