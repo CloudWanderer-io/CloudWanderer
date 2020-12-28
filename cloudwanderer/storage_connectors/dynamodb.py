@@ -298,8 +298,6 @@ class DynamoDbQueryGenerator:
             return 'resource_type'
         if self.account_id is not None:
             return 'account_id'
-        if self.account_id is not None:
-            return 'account_id'
         if self.urn is not None:
             return index
         raise IndexNotAvailableException()
