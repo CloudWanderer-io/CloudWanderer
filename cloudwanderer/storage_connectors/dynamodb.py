@@ -292,14 +292,14 @@ class DynamoDbQueryGenerator:
             yield Key('_id').eq(primary_key_from_urn(self.urn))
             return
         if self.index == 'resource_type':
-            yield from [
-                gen_resource_type_condition_expression(
-                    key,
-                    account_id=self.account_id,
-                    region=self.region
-                ) for key in self._yield_shards(gen_resource_type_index(
-                    service=self.service, resource_type=self.resource_type))
-            ]
+            unsharded_key = gen_resource_type_index(
+                service=self.service, resource_type=self.resource_type)
+            for sharded_key in self._yield_shards(unsharded_key):
+                yield gen_resource_type_condition_expression(
+                        sharded_key,
+                        account_id=self.account_id,
+                        region=self.region
+                    )
             return
         if self.index == 'account_id':
             yield from [
