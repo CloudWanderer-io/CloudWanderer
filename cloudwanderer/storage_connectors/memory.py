@@ -1,10 +1,13 @@
 """Storage connector to place data in memory."""
+import logging
 from collections import Callable
 from typing import List
 import boto3
 from .base_connector import BaseStorageConnector
 from ..aws_urn import AwsUrn
 from ..cloud_wanderer import CloudWandererResource
+
+logger = logging.getLogger(__name__)
 
 
 class MemoryStorageConnector(BaseStorageConnector):
@@ -37,12 +40,36 @@ class MemoryStorageConnector(BaseStorageConnector):
             yield memory_item_to_resource(urn, self._data[str(urn)], loader=self.read_resource)
         except KeyError:
             pass
-    
-    def read_resources(self):
+
+    def read_resources(self, **kwargs) -> List['CloudWandererResource']:
+        """Return the resources matching the arguments.
+
+        All arguments are optional
+
+        Arguments:
+            urn (cloudwanderer.aws_urn.AwsUrn): The AWS URN of the resource to return
+            account_id (str): AWS Account ID
+            region_name (str): AWS region (e.g. ``eu-west-2``)
+            service (str): Service name (e.g. ``'ec2'``)
+            resource_type (str): Resource Type (e.g. ``'instance'``)
+        """
         for urn_str, items in self._data.items():
             urn = AwsUrn.from_string(urn_str)
-            yield memory_item_to_resource(urn, loader=self.read_resource)
+            if kwargs.get('urn') is not None:
+                if urn == kwargs['urn']:
+                    yield memory_item_to_resource(urn, loader=self.read_resource)
+                continue
+            if self._should_yield(urn, **kwargs):
+                yield memory_item_to_resource(urn, loader=self.read_resource)
 
+    def _should_yield(self, urn: AwsUrn, **kwargs) -> bool:
+        filter_items = [('account_id', 'account_id'), ('region_name', 'region'),
+                        ('service', 'service'), ('resource_type', 'resource_type')]
+        for kwarg, urn_attribute in filter_items:
+            if kwargs.get(kwarg) is not None and getattr(urn, urn_attribute) != kwargs[kwarg]:
+                logger.warning('%s != %s', getattr(urn, urn_attribute), kwargs[kwarg])
+                return False
+        return True
 
     def read_all(self) -> dict:
         """Return the raw dictionaries stored in memory."""

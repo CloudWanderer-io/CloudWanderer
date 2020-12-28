@@ -6,6 +6,7 @@ from .mocks import generate_mock_session
 from moto import ec2, mock_ec2, mock_iam, mock_sts, mock_s3, mock_dynamodb2
 import boto3
 
+
 def patch_resource_collections(collections):
     def decorator_patch_resource_collections(func):
         @functools.wraps(func)
@@ -114,37 +115,42 @@ class TestStorageConnectorReadMixin:
             iterable (iterable):
                 An iterable containing AwsUrn objects
             aws_urns (list):
-                List of dictionaries whose key match aws urn attributes that must exist in at least one urn in iterable.
+                List of dictionaries whose key match aws urn attributes that must
+                exist in at least one urn in iterable.
         """
         iterable = list(iterable)
         for urn in aws_urns:
             self.assertTrue(self.has_matching_aws_urn(iterable, **urn),
-                f"{urn} not in {iterable}"
-            )
-    
+                            f"{urn} not in {iterable}"
+                            )
+
     def assert_does_not_have_matching_aws_urns(self, iterable, aws_urns):
         """Assert that iterable does not have AwsUrns that match the list of dicts in aws_urns
         Arguments:
             iterable (iterable):
                 An iterable containing AwsUrn objects
             aws_urns (list):
-                List of dictionaries whose keys should not match aws urn attributes that must exist in at least one urn in iterable.
+                List of dictionaries whose keys should not match aws urn attributes that must
+                exist in at least one urn in iterable.
         """
         iterable = list(iterable)
+        print(iterable)
         for urn in aws_urns:
-            self.assertFalse(self.has_matching_aws_urn(iterable, urn),
-                f"{urn} is in {iterable}"
-            )
+            print(urn)
+            self.assertFalse(self.has_matching_aws_urn(iterable, **urn),
+                             f"{urn} is in {iterable}"
+                             )
+
 
 def limit_collections_list():
-    collections_to_mock = {
-        'ec2': ('instance', 'instances'),
-        'ec2': ('vpc', 'vpcs'),
-        's3': ('bucket', 'buckets'),
-        'iam': ('group', 'groups')
-    }
+    collections_to_mock = [
+        ('ec2', ('instance', 'instances')),
+        ('ec2', ('vpc', 'vpcs')),
+        ('s3', ('bucket', 'buckets')),
+        ('iam', ('group', 'groups'))
+    ]
     mock_collections = []
-    for service, name_tuple in collections_to_mock.items():
+    for service, name_tuple in collections_to_mock:
         collection = MagicMock(**{
             'meta.service_name': service,
             'resource.model.shape': name_tuple[0]
@@ -159,10 +165,12 @@ def limit_collections_list():
         ]
     )
 
+
 def mock_services():
     for service in [mock_ec2, mock_iam, mock_sts, mock_s3, mock_dynamodb2]:
         mock = service()
         mock.start()
+
 
 def setup_moto():
     os.environ['AWS_ACCESS_KEY_ID'] = '1111111'
