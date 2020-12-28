@@ -18,7 +18,7 @@ class MemoryStorageConnector(BaseStorageConnector):
     Example:
         >>> import cloudwanderer
         >>> cloud_wanderer = cloudwanderer.CloudWanderer(
-        ...     storage_connector=cloudwanderer.storage_connectors.MemoryStorageConnector()
+        ...     storage_connectors=[cloudwanderer.storage_connectors.MemoryStorageConnector()]
         ... )
 
     """

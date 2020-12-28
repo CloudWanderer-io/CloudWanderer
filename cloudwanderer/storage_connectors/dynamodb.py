@@ -104,9 +104,9 @@ class DynamoDbConnector(BaseStorageConnector):
     Example:
         >>> import cloudwanderer
         >>> cloud_wanderer = cloudwanderer.CloudWanderer(
-        ...     storage_connector=cloudwanderer.storage_connectors.DynamoDbConnector(
+        ...     storage_connectors=[cloudwanderer.storage_connectors.DynamoDbConnector(
         ...         endpoint_url='http://localhost:8000'
-        ...     )
+        ...     )]
         ... )
     """
 

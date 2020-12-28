@@ -32,7 +32,7 @@ This creates an alternative storage connector that points at your local DynamoDB
 
 .. doctest ::
 
-    >>> wanderer = cloudwanderer.CloudWanderer(storage_connector=local_storage_connector)
+    >>> wanderer = cloudwanderer.CloudWanderer(storage_connectors=[local_storage_connector])
 
 This passes the storage connector that points at your local DynamoDB into a new wanderer
 and now all subsequent CloudWanderer operations will occur against your local DynamoDB!
@@ -46,7 +46,9 @@ test CloudWanderer using the Memory Storage Connector!
 .. doctest ::
 
     >>> import cloudwanderer
-    >>> wanderer = cloudwanderer.CloudWanderer(storage_connector=cloudwanderer.storage_connectors.MemoryStorageConnector())
+    >>> wanderer = cloudwanderer.CloudWanderer(
+    ...     storage_connectors=[cloudwanderer.storage_connectors.MemoryStorageConnector()]
+    ... )
 
 It's wise to do this in an interactive environment otherwise you may spend an inordinate amount of time re-querying
 your AWS environment!
@@ -63,7 +65,7 @@ Writing all :doc:`supported_resources` in all regions is as simple as using the 
     >>> import cloudwanderer
     >>> storage_connector = cloudwanderer.storage_connectors.DynamoDbConnector()
     >>> storage_connector.init()
-    >>> wanderer = cloudwanderer.CloudWanderer(storage_connector=storage_connector)
+    >>> wanderer = cloudwanderer.CloudWanderer(storage_connectors=[storage_connector])
     >>> wanderer.write_resources()
 
 In that block we are:
@@ -80,7 +82,7 @@ Retrieving all VPCs from all Regions
 
 .. doctest ::
 
-    >>> vpcs = wanderer.read_resource_of_type(service='ec2', resource_type='vpc')
+    >>> vpcs = storage_connector.read_resource_of_type(service='ec2', resource_type='vpc')
     >>> for vpc in vpcs:
     ...     print('vpc_region:', vpc.urn.region)
     ...     vpc.load()
@@ -122,15 +124,15 @@ e.g.
 
 .. doctest ::
 
-    >>> vpc = next(wanderer.read_resource_of_type(
+    >>> vpc = next(storage_connector.read_resource_of_type(
     ...     service='ec2',
     ...     resource_type='vpc',
     ... ))
     >>> str(vpc.urn)
     'urn:aws:123456789012:eu-west-2:ec2:vpc:vpc-11111111'
-    >>> wanderer.storage_connector.delete_resource(urn=vpc.urn)
-    >>> vpc = wanderer.read_resource(
+    >>> storage_connector.delete_resource(urn=vpc.urn)
+    >>> vpc = next(storage_connector.read_resource(
     ...     urn=vpc.urn
-    ... )
+    ... ), None)
     >>> print(vpc)
     None
