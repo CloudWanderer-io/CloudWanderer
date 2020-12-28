@@ -43,11 +43,12 @@ Open up python and import and initialise `CloudWanderer`
    >>> import logging
    >>> from cloudwanderer import CloudWanderer
    >>> from cloudwanderer.storage_connectors import DynamoDbConnector
-   >>> wanderer = CloudWanderer(storage_connector=DynamoDbConnector(
+   >>> storage_connector = DynamoDbConnector(
    ...     endpoint_url='http://localhost:8000'
-   ... ))
+   ... )
+   >>> wanderer = CloudWanderer(storage_connectors=[storage_connector])
    >>> logging.basicConfig(level='INFO')
-   >>> wanderer.storage_connector.init()
+   >>> storage_connector.init()
 
 Query all the resources from your current account region and save them to your local dynamodb.
 
@@ -59,7 +60,7 @@ Get a list of VPCs back.
 
 .. doctest ::
 
-   >>> vpc_urns = wanderer.read_resource_of_type(service='ec2', resource_type='vpc')
+   >>> vpc_urns = storage_connector.read_resources(service='ec2', resource_type='vpc')
    >>> first_vpc = next(vpc_urns)
    >>> first_vpc.urn
    AwsUrn(account_id='123456789012', region='eu-west-2', service='ec2', resource_type='vpc', resource_id='vpc-11111111')
@@ -68,7 +69,7 @@ Load the full details of the resource.
 
 .. doctest ::
 
-   >>> vpc = wanderer.read_resource(urn=first_vpc.urn)
+   >>> vpc = storage_connector.read_resource(urn=first_vpc.urn)
    >>> vpc.cidr_block
    '172.31.0.0/16'
    >>> vpc.instance_tenancy

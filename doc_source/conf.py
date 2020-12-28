@@ -25,7 +25,7 @@ copyright = '2020, Sam Martin'
 author = 'Sam Martin'
 
 # The full version, including alpha/beta/rc tags
-release = '0.7.1'
+release = '0.8.0'
 
 
 # -- General configuration ---------------------------------------------------
@@ -37,7 +37,6 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autodoc.typehints',
     'sphinx.ext.doctest',
-    'sphinxarg.ext',
     'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',
     'sphinx_rtd_theme',

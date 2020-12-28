@@ -5,3 +5,5 @@ pytest
 pydocstyle
 mock==4.0.2
 flake8-annotations
+sphinx
+sphinx_rtd_theme
