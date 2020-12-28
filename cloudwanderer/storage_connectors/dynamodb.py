@@ -1,5 +1,5 @@
 """Classes for the CloudWanderer DynamoDB Storage Connector."""
-from typing import List, Callable
+from typing import List, Callable, Iterable
 import itertools
 import logging
 import os
@@ -17,6 +17,11 @@ from ..aws_urn import AwsUrn
 logger = logging.getLogger(__name__)
 
 
+def gen_shard(key: str, shard_id: int = None) -> str:
+    """Append a shard designation to the end of a supplied key."""
+    return f"{key}#shard{shard_id}"
+
+
 def gen_resource_type_index(service: str, resource_type: str) -> str:
     """Generate a hash key for the resource type index."""
     return f"{service}#{resource_type}"
@@ -24,7 +29,7 @@ def gen_resource_type_index(service: str, resource_type: str) -> str:
 
 def gen_resource_type_range(account_id: str, region: str) -> str:
     """Generate a range key for the resource type index."""
-    return f"{account_id}#{region}"
+    return f"{account_id}#{region or ''}"
 
 
 def gen_resource_type_condition_expression(hash_key: str, account_id: str = None, region: str = None) -> bool:
@@ -202,7 +207,7 @@ class DynamoDbConnector(BaseStorageConnector):
             self, service: str, resource_type: str, account_id: str = None, region: str = None) -> None:
 
         for shard_id in range(0, self.number_of_shards):
-            hash_key = self._gen_shard(gen_resource_type_index(service, resource_type), shard_id)
+            hash_key = gen_shard(gen_resource_type_index(service, resource_type), shard_id)
             logger.debug("Fetching shard %s", hash_key)
             result = self.dynamodb_table.query(
                 IndexName='resource_type',
@@ -222,7 +227,7 @@ class DynamoDbConnector(BaseStorageConnector):
             account_id (str): AWS Account ID
         """
         for shard_id in range(0, self.number_of_shards):
-            key = self._gen_shard(account_id, shard_id)
+            key = gen_shard(account_id, shard_id)
             logger.debug("Fetching shard %s", key)
             result = self.dynamodb_table.query(
                 IndexName='account_id',
@@ -241,7 +246,7 @@ class DynamoDbConnector(BaseStorageConnector):
             account_id (str): AWS Account ID
         """
         for shard_id in range(0, self.number_of_shards):
-            key = self._gen_shard(account_id, shard_id)
+            key = gen_shard(account_id, shard_id)
             logger.debug("Fetching shard %s", key)
             result = self.dynamodb_table.query(
                 IndexName='account_id',
@@ -292,7 +297,64 @@ class DynamoDbConnector(BaseStorageConnector):
     def _gen_shard(self, key: str, shard_id: int = None) -> str:
         """Append a shard designation to the end of a supplied key."""
         shard_id = shard_id if shard_id is not None else randrange(self.number_of_shards - 1)
-        return f"{key}#shard{shard_id}"
+        return gen_shard(key=key, shard_id=shard_id)
+
+
+class DynamoDbQueryGenerator:
+    """Generate ConditionExpression and index name based on init params."""
+
+    def __init__(
+            self, account_id: str = None, region: str = None, service: str = None,
+            resource_type: str = None, urn: AwsUrn = None, number_of_shards: int = 10) -> None:
+        """Initialise QueryGenerator."""
+        self.account_id = account_id
+        self.region = region
+        self.service = service
+        self.resource_type = resource_type
+        self.urn = urn
+        self.number_of_shards = number_of_shards
+
+    @property
+    def index(self) -> str:
+        """Return the DynamoDB index to query."""
+        index = None
+
+        if self.service is not None and self.resource_type is not None:
+            return 'resource_type'
+        if self.account_id is not None:
+            return 'account_id'
+        if self.account_id is not None:
+            return 'account_id'
+        if self.urn is not None:
+            return index
+        raise IndexNotAvailableException()
+
+    @property
+    def condition_expressions(self) -> Iterable[Key]:
+        """Return the condition expression for the query."""
+        if self.index is None:
+            yield Key('_id').eq(primary_key_from_urn(self.urn))
+            return
+        if self.index == 'resource_type':
+            yield from [
+                gen_resource_type_condition_expression(
+                    key,
+                    account_id=self.account_id,
+                    region=self.region
+                ) for key in self._yield_shards(gen_resource_type_index(
+                    service=self.service, resource_type=self.resource_type))
+            ]
+            return
+        if self.index == 'account_id':
+            yield from [
+                Key('_account_id_index').eq(shard)
+                for shard in self._yield_shards(self.account_id)
+            ]
+            return
+
+    def _yield_shards(self, key: str) -> None:
+        for shard_id in range(0, self.number_of_shards):
+            yield gen_shard(key=key, shard_id=shard_id)
 
 
 class DynamoDbTableCreator():
@@ -337,3 +399,8 @@ class DynamoDbTableCreator():
             with open(self.schema_file) as schema_file:
                 self._schema = json.load(schema_file)
         return self._schema
+
+
+class IndexNotAvailableException(Exception):
+    """There is no DynamoDB index available for this type of query."""
+    pass

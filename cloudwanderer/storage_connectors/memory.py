@@ -1,6 +1,6 @@
 """Storage connector to place data in memory."""
 import logging
-from collections import Callable
+from typing import Callable
 from typing import List
 import boto3
 from .base_connector import BaseStorageConnector
