@@ -37,6 +37,12 @@ class MemoryStorageConnector(BaseStorageConnector):
             yield memory_item_to_resource(urn, self._data[str(urn)], loader=self.read_resource)
         except KeyError:
             pass
+    
+    def read_resources(self):
+        for urn_str, items in self._data.items():
+            urn = AwsUrn.from_string(urn_str)
+            yield memory_item_to_resource(urn, loader=self.read_resource)
+
 
     def read_all(self) -> dict:
         """Return the raw dictionaries stored in memory."""
