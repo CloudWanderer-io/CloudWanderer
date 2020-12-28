@@ -215,23 +215,6 @@ class DynamoDbConnector(BaseStorageConnector):
             result = self.dynamodb_table.query(**query_args)
             yield from dynamodb_items_to_resources(result['Items'], loader=self.read_resource)
 
-    def _read_from_resource_type_index(
-            self, service: str, resource_type: str, account_id: str = None, region: str = None) -> None:
-
-        for shard_id in range(0, self.number_of_shards):
-            hash_key = gen_shard(gen_resource_type_index(service, resource_type), shard_id)
-            logger.debug("Fetching shard %s", hash_key)
-            result = self.dynamodb_table.query(
-                IndexName='resource_type',
-                Select='ALL_PROJECTED_ATTRIBUTES',
-                KeyConditionExpression=gen_resource_type_condition_expression(
-                    hash_key=hash_key,
-                    account_id=account_id,
-                    region=region
-                )
-            )
-            yield from result['Items']
-
     def read_all(self) -> Iterator['CloudWandererResource']:
         """Return raw data from all DynamoDB table records (not just resources)."""
         yield from self.dynamodb_table.scan()['Items']
@@ -257,12 +240,12 @@ class DynamoDbConnector(BaseStorageConnector):
         """Delete resources of type in account id unless in list of URNs."""
         logger.debug('Deleting any %s not in %s', resource_type, str([x.resource_id for x in urns_to_keep]))
         urns_to_keep = urns_to_keep or []
-        resource_records = dynamodb_items_to_resources(self._read_from_resource_type_index(
+        resource_records = self.read_resources(
             service=service,
             resource_type=resource_type,
             account_id=account_id,
             region=region
-        ), loader=self.read_resource)
+        )
         for resource in resource_records:
             if resource.urn in urns_to_keep:
                 logger.debug('Skipping deletion of %s as we were told to keep it.', resource.urn)
