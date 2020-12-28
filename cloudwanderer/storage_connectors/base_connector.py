@@ -17,7 +17,7 @@ class BaseStorageConnector(ABC):
         """Persist a single resource to storage."""
 
     @abstractmethod
-    def read_all(self) -> List[dict]:
+    def read_all(self) -> Iterator[dict]:
         """Return all records from storage."""
 
     @abstractmethod
@@ -36,7 +36,8 @@ class BaseStorageConnector(ABC):
 
     @abstractmethod
     def delete_resource_of_type_in_account_region(
-            self, service: str, resource_type: str, account_id: str, region: str, urns_to_keep: AwsUrn = None) -> None:
+            self, service: str, resource_type: str, account_id: str,
+            region: str, urns_to_keep: List[AwsUrn] = None) -> None:
         """Delete resources of type in account and region unless in list of URNs.
 
         This is used primarily to clean up old resources.

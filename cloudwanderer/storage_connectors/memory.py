@@ -1,7 +1,6 @@
 """Storage connector to place data in memory."""
 import logging
-from typing import Callable
-from typing import List
+from typing import Callable, Iterator, List
 import boto3
 from .base_connector import BaseStorageConnector
 from ..aws_urn import AwsUrn
@@ -30,7 +29,7 @@ class MemoryStorageConnector(BaseStorageConnector):
     def init(self) -> None:
         """Dummy method to fulfil interface requirements."""
 
-    def read_resource(self, urn: AwsUrn) -> List['CloudWandererResource']:
+    def read_resource(self, urn: AwsUrn) -> CloudWandererResource:
         """Return the resource with the specified :class:`cloudwanderer.aws_urn.AwsUrn)`.
 
         Arguments:
@@ -41,7 +40,7 @@ class MemoryStorageConnector(BaseStorageConnector):
         except KeyError:
             return None
 
-    def read_resources(self, **kwargs) -> List['CloudWandererResource']:
+    def read_resources(self, **kwargs) -> Iterator['CloudWandererResource']:
         """Return the resources matching the arguments.
 
         All arguments are optional
@@ -99,7 +98,8 @@ class MemoryStorageConnector(BaseStorageConnector):
             pass
 
     def delete_resource_of_type_in_account_region(
-            self, service: str, resource_type: str, account_id: str, region: str, urns_to_keep: AwsUrn = None) -> None:
+            self, service: str, resource_type: str, account_id: str,
+            region: str, urns_to_keep: List[AwsUrn] = None) -> None:
         """Delete resources of type in account id unless in list of URNs."""
         urns_to_delete = []
         for urn_str, items in self._data.items():

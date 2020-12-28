@@ -1,5 +1,5 @@
 """Classes for the CloudWanderer DynamoDB Storage Connector."""
-from typing import List, Callable, Iterable
+from typing import Callable, Iterable, Iterator, List
 import itertools
 import logging
 import os
@@ -57,7 +57,7 @@ def urn_from_primary_key(pk: str) -> AwsUrn:
     return AwsUrn.from_string(pk.split('#')[1])
 
 
-def dynamodb_items_to_resources(items: List[dict], loader: Callable) -> CloudWandererResource:
+def dynamodb_items_to_resources(items: Iterable[dict], loader: Callable) -> Iterator[CloudWandererResource]:
     """Convert a resource and its attributes dynamodb records to a ResourceDict."""
     for item_id, group in itertools.groupby(items, lambda x: x['_id']):
         grouped_items = list(group)
@@ -192,7 +192,7 @@ class DynamoDbConnector(BaseStorageConnector):
         )
         return next(dynamodb_items_to_resources(result['Items'], loader=self.read_resource), None)
 
-    def read_resources(self, **kwargs) -> Iterable['CloudWandererResource']:
+    def read_resources(self, **kwargs) -> Iterator['CloudWandererResource']:
         """Return the resources matching the arguments.
 
         All arguments are optional, though some will fallback to performing a table scan.
@@ -232,7 +232,7 @@ class DynamoDbConnector(BaseStorageConnector):
             )
             yield from result['Items']
 
-    def read_all(self) -> List['CloudWandererResource']:
+    def read_all(self) -> Iterator['CloudWandererResource']:
         """Return raw data from all DynamoDB table records (not just resources)."""
         yield from self.dynamodb_table.scan()['Items']
 
@@ -252,7 +252,8 @@ class DynamoDbConnector(BaseStorageConnector):
                 )
 
     def delete_resource_of_type_in_account_region(
-            self, service: str, resource_type: str, account_id: str, region: str, urns_to_keep: AwsUrn = None) -> None:
+            self, service: str, resource_type: str, account_id: str,
+            region: str, urns_to_keep: List[AwsUrn] = None) -> None:
         """Delete resources of type in account id unless in list of URNs."""
         logger.debug('Deleting any %s not in %s', resource_type, str([x.resource_id for x in urns_to_keep]))
         urns_to_keep = urns_to_keep or []
@@ -304,7 +305,7 @@ class DynamoDbQueryGenerator:
         raise IndexNotAvailableException()
 
     @property
-    def condition_expressions(self) -> Iterable[Key]:
+    def condition_expressions(self) -> Iterator[Key]:
         """Return the condition expression for the query."""
         if self.index is None:
             yield Key('_id').eq(primary_key_from_urn(self.urn))
