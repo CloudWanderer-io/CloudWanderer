@@ -120,9 +120,10 @@ class TestStorageConnectorReadMixin:
         """
         iterable = list(iterable)
         for urn in aws_urns:
-            self.assertTrue(self.has_matching_aws_urn(iterable, **urn),
-                            f"{urn} not in {iterable}"
-                            )
+            self.assertTrue(
+                self.has_matching_aws_urn(iterable, **urn),
+                f"{urn} not in {iterable}"
+            )
 
     def assert_does_not_have_matching_aws_urns(self, iterable, aws_urns):
         """Assert that iterable does not have AwsUrns that match the list of dicts in aws_urns
