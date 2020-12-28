@@ -1,5 +1,7 @@
 """Classes for the CloudWanderer DynamoDB Storage Connector."""
 from typing import Callable, Iterable, Iterator, List
+import operator
+from functools import reduce
 import itertools
 import logging
 import os
@@ -10,7 +12,7 @@ from datetime import datetime
 from random import randrange
 from decimal import Decimal
 from .base_connector import BaseStorageConnector
-from boto3.dynamodb.conditions import Key
+from boto3.dynamodb.conditions import Key, Attr
 from ..cloud_wanderer import CloudWandererResource
 from ..aws_urn import AwsUrn
 
@@ -41,7 +43,7 @@ def gen_resource_type_condition_expression(hash_key: str, account_id: str = None
     If region is specified without ``account_id`` it will match nothing.
     """
     condition_expression = Key('_resource_type_index').eq(hash_key)
-    if not account_id and not region:
+    if not account_id:
         return condition_expression
     range_key = gen_resource_type_range(account_id=account_id, region=region)
     return condition_expression & Key('_resource_type_range').begins_with(range_key)
@@ -169,9 +171,10 @@ class DynamoDbConnector(BaseStorageConnector):
             '_id': primary_key_from_urn(urn),
             '_attr': attr,
             '_urn': str(urn),
-            '_resource_type': gen_resource_type_index(urn.service, urn.resource_type),
-            '_account_id': f"{urn.account_id}",
-            '_region': f"{urn.region}",
+            '_resource_type': urn.resource_type,
+            '_account_id': urn.account_id,
+            '_region': urn.region,
+            '_service': urn.service,
             '_resource_type_range': gen_resource_type_range(urn.account_id, urn.region)
         }
         if attr == 'BaseResource':
@@ -211,7 +214,10 @@ class DynamoDbConnector(BaseStorageConnector):
                 'KeyConditionExpression': condition_expression
             }
             if query_generator.index is not None:
+                logger.info("using index %s", query_generator.index)
                 query_args['IndexName'] = query_generator.index
+            if query_generator.condition_expressions is not None:
+                query_args['FilterExpression'] = query_generator.filter_expression
             result = self.dynamodb_table.query(**query_args)
             yield from dynamodb_items_to_resources(result['Items'], loader=self.read_resource)
 
@@ -307,6 +313,17 @@ class DynamoDbQueryGenerator:
                 for shard in self._yield_shards(self.account_id)
             ]
             return
+
+    @property
+    def filter_expression(self) -> Attr:
+        """Return a DynamoDB filter expression to use to filter out unwanted resources returned on our index."""
+        query_args = {'account_id', 'region', 'service', 'resource_type', 'urn'}
+        filter_elements = []
+        for key in query_args:
+            value = getattr(self, key)
+            if value is not None:
+                filter_elements.append(Attr(f"_{key}").eq(str(value)))
+        return reduce(operator.and_, filter_elements)
 
     def _yield_shards(self, key: str) -> None:
         for shard_id in range(0, self.number_of_shards):

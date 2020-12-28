@@ -19,6 +19,7 @@
     - Removed `read_resource` from CloudWanderer
     - Removed `read_all_resources_in_account` from CloudWanderer
     - Removed `read_resource_of_type_in_account` from CloudWanderer
+- Added  dynamodb filter expressions to increase flexibility of `get_resources`
 
 # 0.7.1
 

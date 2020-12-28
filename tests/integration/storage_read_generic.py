@@ -1,3 +1,5 @@
+from itertools import combinations
+import logging
 from .helpers import TestStorageConnectorReadMixin, setup_moto
 from .mocks import add_infra, generate_mock_session
 import cloudwanderer
@@ -10,13 +12,15 @@ class StorageReadTestMixin(TestStorageConnectorReadMixin):
         super().__init__(*args, **kwargs)
         setup_moto()
         add_infra(regions=['eu-west-2', 'us-east-1'])
+        self.maxDiff = 10000
 
     def setUp(self):
         self.connector = self.connector_class()
         self.connector.init()
+        self.memory_storage_connector = cloudwanderer.storage_connectors.MemoryStorageConnector()
         self.wanderer = cloudwanderer.CloudWanderer(
             boto3_session=generate_mock_session(),
-            storage_connectors=[self.connector]
+            storage_connectors=[self.connector, self.memory_storage_connector]
         )
         self.wanderer._account_id = '111111111111'
         self.wanderer.write_resources()
@@ -158,3 +162,44 @@ class StorageReadTestMixin(TestStorageConnectorReadMixin):
         ])
         self.assert_has_matching_aws_urns(result, self.expected_urns)
         self.assert_does_not_have_matching_aws_urns(result, self.not_expected_urns)
+
+    def test_arg_permutations(self):
+        """Try all possible combinations of arguments and compare against the memory storage connector's results."""
+        if isinstance(self.connector, cloudwanderer.storage_connectors.MemoryStorageConnector):
+            logging.info('Skipping test_arg_permutations as we are testing memory storage connector')
+        for generated_args in get_inflated_arg_combinations():
+            try:
+                cut_result = sorted(str(resource.urn) for resource in self.connector.read_resources(**generated_args))
+            except self.valid_exceptions as ex:
+                logging.info('Received: %s while testing %s but was in valid_exceptions', ex, generated_args)
+                continue
+            correct_result = sorted(str(resource.urn)
+                                    for resource in self.memory_storage_connector.read_resources(**generated_args))
+
+            self.assertListEqual(correct_result, cut_result,
+                                 f"Returned resources did not match for args: {generated_args}")
+
+
+def get_arg_combinations():
+    args = ('account_id', 'region', 'service', 'resource_type', 'urn')
+    for i in range(len(args)):
+        yield from combinations(args, i)
+
+
+def inflate_args(args):
+    arg_values = {
+        'account_id': '111111111111',
+        'region': 'eu-west-2',
+        'service': 'ec2',
+        'resource_type': 'vpc',
+        'urn': 'urn:aws:111111111111:eu-west-2:vpc:vpc-111111111'
+    }
+    return {
+        arg: arg_values[arg]
+        for arg in args
+    }
+
+
+def get_inflated_arg_combinations():
+    for arg_combination in get_arg_combinations():
+        yield inflate_args(arg_combination)
