@@ -12,7 +12,7 @@ from datetime import datetime
 from random import randrange
 from decimal import Decimal
 from .base_connector import BaseStorageConnector
-from boto3.dynamodb.conditions import Key, Attr
+from boto3.dynamodb.conditions import Key, Attr, ConditionBase
 from ..cloud_wanderer import CloudWandererResource
 from ..aws_urn import AwsUrn
 
@@ -314,9 +314,9 @@ class DynamoDbQueryGenerator:
             return
 
     @property
-    def filter_expression(self) -> Attr:
+    def filter_expression(self) -> ConditionBase:
         """Return a DynamoDB filter expression to use to filter out unwanted resources returned on our index."""
-        query_args = {'account_id', 'region', 'service', 'resource_type', 'urn'}
+        query_args = ['account_id', 'region', 'service', 'resource_type', 'urn']
         filter_elements = []
         for key in query_args:
             value = getattr(self, key)
