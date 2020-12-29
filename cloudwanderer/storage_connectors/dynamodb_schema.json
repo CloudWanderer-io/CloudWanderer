@@ -38,7 +38,13 @@
         "GlobalSecondaryIndexes": [{
                 "IndexName": "resource_type",
                 "Projection": {
-                    "ProjectionType": "KEYS_ONLY"
+                    "ProjectionType": "INCLUDE",
+                    "NonKeyAttributes": [
+                        "_account_id",
+                        "_region",
+                        "_resource_type",
+                        "_service"
+                    ]
                 },
                 "KeySchema": [{
                         "AttributeName": "_resource_type_index",
@@ -53,7 +59,13 @@
             {
                 "IndexName": "account_id",
                 "Projection": {
-                    "ProjectionType": "KEYS_ONLY"
+                    "ProjectionType": "INCLUDE",
+                    "NonKeyAttributes": [
+                        "_account_id",
+                        "_region",
+                        "_resource_type",
+                        "_service"
+                    ]
                 },
                 "KeySchema": [{
                         "AttributeName": "_account_id_index",
