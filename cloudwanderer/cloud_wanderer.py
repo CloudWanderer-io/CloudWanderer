@@ -22,15 +22,15 @@ class CloudWanderer():
     """CloudWanderer.
 
     Args:
-        storage_connector: A CloudWanderer storage connector object.
+        storage_connectors: CloudWanderer storage connector objects.
         boto3_session (boto3.session.Session): A boto3 :class:`~boto3.session.Session` object.
     """
 
     def __init__(
-            self, storage_connector: 'BaseStorageConnector',
+            self, storage_connectors: List['BaseStorageConnector'],
             boto3_session: boto3.session.Session = None) -> None:
         """Initialise CloudWanderer."""
-        self.storage_connector = storage_connector
+        self.storage_connectors = storage_connectors
         self.boto3_session = boto3_session or boto3.session.Session()
         self.boto3_interface = CloudWandererBoto3Interface(boto3_session=self.boto3_session)
         self.custom_attributes_interface = CustomAttributesInterface(boto3_session=self.boto3_session)
@@ -151,7 +151,8 @@ class CloudWanderer():
             urn = self._get_resource_urn(boto3_resource, client_args['region_name'])
             if not self._should_write_resource_in_region(urn, client_args['region_name']):
                 continue
-            self.storage_connector.write_resource(urn, boto3_resource)
+            for storage_connector in self.storage_connectors:
+                storage_connector.write_resource(urn, boto3_resource)
             urns.append(urn)
         self._clean_resources_in_region(
             service_name, resource_type, client_args['region_name'], urns)
@@ -159,13 +160,14 @@ class CloudWanderer():
     def _clean_resources_in_region(
             self, service_name: str, resource_type: str, region_name: str, current_urns: List[AwsUrn]) -> None:
         """Remove all resources of this type in this region which no longer exist."""
-        self.storage_connector.delete_resource_of_type_in_account_region(
-            service=service_name,
-            resource_type=resource_type,
-            account_id=self.account_id,
-            region=region_name,
-            urns_to_keep=current_urns
-        )
+        for storage_connector in self.storage_connectors:
+            storage_connector.delete_resource_of_type_in_account_region(
+                service=service_name,
+                resource_type=resource_type,
+                account_id=self.account_id,
+                region=region_name,
+                urns_to_keep=current_urns
+            )
 
     def _should_write_resource_in_region(self, urn: AwsUrn, write_region: str) -> bool:
         """Return True if this is a resource we should write in this region and log the result."""
@@ -203,7 +205,7 @@ class CloudWanderer():
 
         These custom resource attribute definitions allow us to fetch resource attributes that are not returned by the
         resource's default describe calls.
-        Unlike :meth:`~CloudWanderer.write_resources` and :meth:`~CloudWanderer.write_resources_of_type`
+        Unlike :meth:`~CloudWanderer.write_resources` and :meth:`~CloudWanderer.write_resources_of_type_in_region`
         this method does not clean up stale resource attributes from storage.
 
         Arguments:
@@ -228,7 +230,7 @@ class CloudWanderer():
 
         These custom resource attribute definitions allow us to fetch resource attributes that are not returned by the
         resource's default describe calls.
-        Unlike :meth:`~CloudWanderer.write_resources` and :meth:`~CloudWanderer.write_resources_of_type`
+        Unlike :meth:`~CloudWanderer.write_resources` and :meth:`~CloudWanderer.write_resources_of_type_in_region`
         this method does not clean up stale resource attributes from storage.
 
         Arguments:
@@ -287,50 +289,12 @@ class CloudWanderer():
         )
         for resource_attribute in resource_attributes:
             urn = self._get_resource_urn(resource_attribute, client_args['region_name'])
-            self.storage_connector.write_resource_attribute(
-                urn=urn,
-                resource_attribute=resource_attribute,
-                attribute_type=xform_name(resource_attribute.meta.resource_model.name)
-            )
-
-    def read_resource_of_type(self, service: str, resource_type: str) -> List['CloudWandererResource']:
-        """Return all resources of type.
-
-        Arguments:
-            service (str): Service name (e.g. ``'ec2'``)
-            resource_type (str): Resource Type (e.g. ``'instance'``)
-        """
-        return self.storage_connector.read_resource_of_type(service, resource_type)
-
-    def read_resource(self, urn: AwsUrn) -> List['CloudWandererResource']:
-        """Return a specific resource by its urn from storage.
-
-        Either use this to manually inflate the :class:`~.CloudWandererResource` passsed back by other read methods
-        or build your own :class:`~.aws_urn.AwsUrn` to query a resource you already know exists.
-
-        Args:
-            urn (cloudwanderer.aws_urn.AwsUrn): The :class:`~cloudwanderer.aws_urn.AwsUrn` of the resource to retrieve.
-        """
-        return next(self.storage_connector.read_resource(urn), None)
-
-    def read_all_resources_in_account(self, account_id: str) -> List['CloudWandererResource']:
-        """Return all resources in the provided AWS Account from storage.
-
-        Arguments:
-            account_id (str): The account id in which to look for resources.
-        """
-        return self.storage_connector.read_all_resources_in_account(account_id)
-
-    def read_resource_of_type_in_account(
-            self, service: str, resource_type: str, account_id: str) -> List['CloudWandererResource']:
-        """Return all resources of this type in the provided AWS Account from storage.
-
-        Arguments:
-            service (str): Service name (e.g. ``'ec2'``)
-            resource_type (str): Resource Type (e.g. ``'instance'``)
-            account_id (str): The account id in which to look for resources.
-        """
-        return self.storage_connector.read_resource_of_type_in_account(service, resource_type, account_id)
+            for storage_connector in self.storage_connectors:
+                storage_connector.write_resource_attribute(
+                    urn=urn,
+                    resource_attribute=resource_attribute,
+                    attribute_type=xform_name(resource_attribute.meta.resource_model.name)
+                )
 
     @property
     def account_id(self) -> str:
@@ -405,7 +369,7 @@ class CloudWandererResource():
         if self._loader is None:
             logger.error('Could not inflate %s, storage connector loader not populated', self)
             return
-        updated_resource = next(self._loader(urn=self.urn), None)
+        updated_resource = self._loader(urn=self.urn)
         if updated_resource is None:
             logger.error('Could not inflate %s, does not exist in storage', self)
             return

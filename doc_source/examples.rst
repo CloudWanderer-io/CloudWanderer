@@ -13,10 +13,10 @@ This provides us with a cheap and easy way to start trying out CloudWanderer.
 
 .. code-block ::
 
-    $  docker run -p 8000:8000 -v $(pwd):/data amazon/dynamodb-local \
+    $ docker run -p 8000:8000 -v $(pwd):/data amazon/dynamodb-local \
         -Djava.library.path=./DynamoDBLocal_lib \
         -jar DynamoDBLocal.jar \
-        -sharedDb -dbPath  /data/
+        -sharedDb -dbPath /data/
 
 This starts a DynamoDB docker image on your local machine and tells it to persist data into the current directory in
 a shared database file ``shared-local-instance.db``. This allows the data to persist even if you stop the container.
@@ -32,7 +32,7 @@ This creates an alternative storage connector that points at your local DynamoDB
 
 .. doctest ::
 
-    >>> wanderer = cloudwanderer.CloudWanderer(storage_connector=local_storage_connector)
+    >>> wanderer = cloudwanderer.CloudWanderer(storage_connectors=[local_storage_connector])
 
 This passes the storage connector that points at your local DynamoDB into a new wanderer
 and now all subsequent CloudWanderer operations will occur against your local DynamoDB!
@@ -46,7 +46,9 @@ test CloudWanderer using the Memory Storage Connector!
 .. doctest ::
 
     >>> import cloudwanderer
-    >>> wanderer = cloudwanderer.CloudWanderer(storage_connector=cloudwanderer.storage_connectors.MemoryStorageConnector())
+    >>> wanderer = cloudwanderer.CloudWanderer(
+    ...     storage_connectors=[cloudwanderer.storage_connectors.MemoryStorageConnector()]
+    ... )
 
 It's wise to do this in an interactive environment otherwise you may spend an inordinate amount of time re-querying
 your AWS environment!
@@ -56,21 +58,21 @@ Writing Resources
 
 Writing all Resources from all Regions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Writing all :doc:`supported_resources` in all regions is as simple as using the :meth:`~cloudwanderer.CloudWanderer.write_resources` method.
+Writing all :doc:`supported_resources` in all regions is as simple as using the :meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resources` method.
 
 .. doctest ::
 
     >>> import cloudwanderer
     >>> storage_connector = cloudwanderer.storage_connectors.DynamoDbConnector()
     >>> storage_connector.init()
-    >>> wanderer = cloudwanderer.CloudWanderer(storage_connector=storage_connector)
+    >>> wanderer = cloudwanderer.CloudWanderer(storage_connectors=[storage_connector])
     >>> wanderer.write_resources()
 
 In that block we are:
 
 #. Creating a storage connector (in this case DynamoDB)
 #. Initialising the storage connector (in this case creating a dynamodb table called ``cloud_wanderer``
-#. Creating a wanderer and using :meth:`~cloudwanderer.CloudWanderer.write_resources` to get all resources in all regions.
+#. Creating a wanderer and using :meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resources` to get all resources in all regions.
 
 **Important:** This will create DynamoDB table in your AWS account and write a potentially large number of records to it which may incur some cost.
 See earlier examples for how to test against a local DynamoDB or memory.
@@ -80,17 +82,17 @@ Retrieving all VPCs from all Regions
 
 .. doctest ::
 
-    >>> vpcs = wanderer.read_resource_of_type(service='ec2', resource_type='vpc')
+    >>> vpcs = storage_connector.read_resources(service='ec2', resource_type='vpc')
     >>> for vpc in vpcs:
     ...     print('vpc_region:', vpc.urn.region)
     ...     vpc.load()
-    ...     print('vpc_state:', vpc.state)
+    ...     print('vpc_state: ', vpc.state)
     ...     print('is_default:', vpc.is_default)
     vpc_region: eu-west-2
-    vpc_state: available
+    vpc_state:  available
     is_default: True
     vpc_region: us-east-1
-    vpc_state: available
+    vpc_state:  available
     is_default: True
 
 You'll notice here we're calling a property ``urn`` in order to print the region.
@@ -98,8 +100,9 @@ You'll notice here we're calling a property ``urn`` in order to print the region
 
 You can also see we're printing the vpc's ``state`` and ``is_default`` attributes. It's very important to notice the
 :meth:`~cloudwanderer.cloud_wanderer.CloudWandererResource.load` call beforehand which loads the resource's data.
-Resources returned from any ``read_`` method using the :class:`~cloudwanderer.storage_connectors.DynamoDbConnector`
-are lazily loaded *except* for :meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.read_resource`.
+Resources returned from any :meth:`~cloudwanderer.storage_connectors.DynamoDbConnector.read_resources`
+call on :class:`~cloudwanderer.storage_connectors.DynamoDbConnector`
+are lazily loaded *unless* you specify the ``urn=`` argument.
 This is due to the sparsely populated global secondary indexes in the DynamoDB table schema.
 
 Once you've called :meth:`~cloudwanderer.cloud_wanderer.CloudWandererResource.load` you can access any property of
@@ -116,20 +119,20 @@ Individual Resources
 ^^^^^^^^^^^^^^^^^^^^^
 
 Deleting individual resources (if necessary), can be done by calling
-:meth:`~cloudwanderer.storage_connectors.dynamodb.delete_resource` directly on the storage connector.
+:meth:`~cloudwanderer.storage_connectors.DynamoDbConnector.delete_resource` directly on the storage connector.
 
 e.g.
 
 .. doctest ::
 
-    >>> vpc = next(wanderer.read_resource_of_type(
+    >>> vpc = next(storage_connector.read_resources(
     ...     service='ec2',
     ...     resource_type='vpc',
     ... ))
     >>> str(vpc.urn)
     'urn:aws:123456789012:eu-west-2:ec2:vpc:vpc-11111111'
-    >>> wanderer.storage_connector.delete_resource(urn=vpc.urn)
-    >>> vpc = wanderer.read_resource(
+    >>> storage_connector.delete_resource(urn=vpc.urn)
+    >>> vpc = storage_connector.read_resource(
     ...     urn=vpc.urn
     ... )
     >>> print(vpc)

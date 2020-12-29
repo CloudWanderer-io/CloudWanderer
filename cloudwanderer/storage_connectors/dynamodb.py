@@ -1,5 +1,7 @@
-"""Classes for the CloudWanderer DynamoDB Storage Connector."""
-from typing import List, Callable
+"""Allows CloudWanderer to store resources in DynamoDB."""
+from typing import Callable, Iterable, Iterator, List
+import operator
+from functools import reduce
 import itertools
 import logging
 import os
@@ -10,11 +12,16 @@ from datetime import datetime
 from random import randrange
 from decimal import Decimal
 from .base_connector import BaseStorageConnector
-from boto3.dynamodb.conditions import Key
+from boto3.dynamodb.conditions import Key, Attr, ConditionBase
 from ..cloud_wanderer import CloudWandererResource
 from ..aws_urn import AwsUrn
 
 logger = logging.getLogger(__name__)
+
+
+def gen_shard(key: str, shard_id: int = None) -> str:
+    """Append a shard designation to the end of a supplied key."""
+    return f"{key}#shard{shard_id}"
 
 
 def gen_resource_type_index(service: str, resource_type: str) -> str:
@@ -24,7 +31,7 @@ def gen_resource_type_index(service: str, resource_type: str) -> str:
 
 def gen_resource_type_range(account_id: str, region: str) -> str:
     """Generate a range key for the resource type index."""
-    return f"{account_id}#{region}"
+    return f"{account_id}#{region or ''}"
 
 
 def gen_resource_type_condition_expression(hash_key: str, account_id: str = None, region: str = None) -> bool:
@@ -36,7 +43,7 @@ def gen_resource_type_condition_expression(hash_key: str, account_id: str = None
     If region is specified without ``account_id`` it will match nothing.
     """
     condition_expression = Key('_resource_type_index').eq(hash_key)
-    if not account_id and not region:
+    if not account_id:
         return condition_expression
     range_key = gen_resource_type_range(account_id=account_id, region=region)
     return condition_expression & Key('_resource_type_range').begins_with(range_key)
@@ -52,7 +59,7 @@ def urn_from_primary_key(pk: str) -> AwsUrn:
     return AwsUrn.from_string(pk.split('#')[1])
 
 
-def dynamodb_items_to_resources(items: List[dict], loader: Callable) -> CloudWandererResource:
+def dynamodb_items_to_resources(items: Iterable[dict], loader: Callable) -> Iterator[CloudWandererResource]:
     """Convert a resource and its attributes dynamodb records to a ResourceDict."""
     for item_id, group in itertools.groupby(items, lambda x: x['_id']):
         grouped_items = list(group)
@@ -104,9 +111,9 @@ class DynamoDbConnector(BaseStorageConnector):
     Example:
         >>> import cloudwanderer
         >>> cloud_wanderer = cloudwanderer.CloudWanderer(
-        ...     storage_connector=cloudwanderer.storage_connectors.DynamoDbConnector(
+        ...     storage_connectors=[cloudwanderer.storage_connectors.DynamoDbConnector(
         ...         endpoint_url='http://localhost:8000'
-        ...     )
+        ...     )]
         ... )
     """
 
@@ -164,9 +171,10 @@ class DynamoDbConnector(BaseStorageConnector):
             '_id': primary_key_from_urn(urn),
             '_attr': attr,
             '_urn': str(urn),
-            '_resource_type': gen_resource_type_index(urn.service, urn.resource_type),
-            '_account_id': f"{urn.account_id}",
-            '_region': f"{urn.region}",
+            '_resource_type': urn.resource_type,
+            '_account_id': urn.account_id,
+            '_region': urn.region,
+            '_service': urn.service,
             '_resource_type_range': gen_resource_type_range(urn.account_id, urn.region)
         }
         if attr == 'BaseResource':
@@ -176,89 +184,52 @@ class DynamoDbConnector(BaseStorageConnector):
             })
         return values
 
-    def read_resource(self, urn: AwsUrn) -> List['CloudWandererResource']:
-        """Return the resource with the specified :class:`cloudwanderer.aws_urn.AwsUrn)`.
+    def read_resource(self, urn: AwsUrn) -> CloudWandererResource:
+        """Return the resource with the specified :class:`cloudwanderer.aws_urn.AwsUrn`.
 
         Arguments:
-            urn (cloudwanderer.aws_urn.AwsUrn): The AWS URN of the resource to return
+            urn (AwsUrn): The AWS URN of the resource to return
         """
         result = self.dynamodb_table.query(
             KeyConditionExpression=Key('_id').eq(primary_key_from_urn(urn))
         )
-        yield from dynamodb_items_to_resources(result['Items'], loader=self.read_resource)
+        return next(dynamodb_items_to_resources(result['Items'], loader=self.read_resource), None)
 
-    def read_resource_of_type(self, service: str, resource_type: str) -> List['CloudWandererResource']:
-        """Return all resources of type.
+    def read_resources(self, **kwargs) -> Iterator['CloudWandererResource']:
+        """Return the resources matching the arguments.
 
-        Args:
+        All arguments are optional, though some will fallback to performing a table scan.
+
+        Arguments:
+            urn (cloudwanderer.aws_urn.AwsUrn): The AWS URN of the resource to return
+            account_id (str): AWS Account ID
+            region (str): AWS region (e.g. ``'eu-west-2'``)
             service (str): Service name (e.g. ``'ec2'``)
             resource_type (str): Resource Type (e.g. ``'instance'``)
         """
-        yield from dynamodb_items_to_resources(
-            self._read_from_resource_type_index(service, resource_type),
-            loader=self.read_resource)
-
-    def _read_from_resource_type_index(
-            self, service: str, resource_type: str, account_id: str = None, region: str = None) -> None:
-
-        for shard_id in range(0, self.number_of_shards):
-            hash_key = self._gen_shard(gen_resource_type_index(service, resource_type), shard_id)
-            logger.debug("Fetching shard %s", hash_key)
-            result = self.dynamodb_table.query(
-                IndexName='resource_type',
-                Select='ALL_PROJECTED_ATTRIBUTES',
-                KeyConditionExpression=gen_resource_type_condition_expression(
-                    hash_key=hash_key,
-                    account_id=account_id,
-                    region=region
-                )
-            )
-            yield from result['Items']
-
-    def read_all_resources_in_account(self, account_id: str) -> List['CloudWandererResource']:
-        """Return all resources in account.
-
-        Args:
-            account_id (str): AWS Account ID
-        """
-        for shard_id in range(0, self.number_of_shards):
-            key = self._gen_shard(account_id, shard_id)
-            logger.debug("Fetching shard %s", key)
-            result = self.dynamodb_table.query(
-                IndexName='account_id',
-                Select='ALL_PROJECTED_ATTRIBUTES',
-                KeyConditionExpression=Key('_account_id_index').eq(key)
-            )
+        query_generator = DynamoDbQueryGenerator(**kwargs)
+        for condition_expression in query_generator.condition_expressions:
+            query_args = {
+                'Select': 'ALL_PROJECTED_ATTRIBUTES',
+                'KeyConditionExpression': condition_expression
+            }
+            if query_generator.index is not None:
+                query_args['IndexName'] = query_generator.index
+            if query_generator.condition_expressions is not None:
+                query_args['FilterExpression'] = query_generator.filter_expression
+            result = self.dynamodb_table.query(**query_args)
             yield from dynamodb_items_to_resources(result['Items'], loader=self.read_resource)
 
-    def read_resource_of_type_in_account(
-            self, service: str, resource_type: str, account_id: str) -> List['CloudWandererResource']:
-        """Return all resources of the specified type in the specified AWS account.
-
-        Args:
-            service (str): Service name, e.g. ``'ec2'``
-            resource_type (str): Resource type, e.g. ``'instance'``
-            account_id (str): AWS Account ID
-        """
-        for shard_id in range(0, self.number_of_shards):
-            key = self._gen_shard(account_id, shard_id)
-            logger.debug("Fetching shard %s", key)
-            result = self.dynamodb_table.query(
-                IndexName='account_id',
-                Select='ALL_PROJECTED_ATTRIBUTES',
-                KeyConditionExpression=(
-                    Key('_account_id_index').eq(key) & Key('_resource_type').eq(
-                        gen_resource_type_index(service, resource_type))
-                )
-            )
-            yield from dynamodb_items_to_resources(result['Items'], loader=self.read_resource)
-
-    def read_all(self) -> List['CloudWandererResource']:
+    def read_all(self) -> Iterator[dict]:
         """Return raw data from all DynamoDB table records (not just resources)."""
         yield from self.dynamodb_table.scan()['Items']
 
     def delete_resource(self, urn: AwsUrn) -> None:
-        """Delete the resource and all its resource attributes from DynamoDB."""
+        """Delete the resource and all its resource attributes from DynamoDB.
+
+        Arguments:
+            urn (AwsUrn): The URN of the resource to delete from Dynamo
+        """
         resource_records = self.dynamodb_table.query(
             KeyConditionExpression=Key('_id').eq(primary_key_from_urn(urn))
         )['Items']
@@ -273,16 +244,25 @@ class DynamoDbConnector(BaseStorageConnector):
                 )
 
     def delete_resource_of_type_in_account_region(
-            self, service: str, resource_type: str, account_id: str, region: str, urns_to_keep: AwsUrn = None) -> None:
-        """Delete resources of type in account id unless in list of URNs."""
+            self, service: str, resource_type: str, account_id: str,
+            region: str, urns_to_keep: List[AwsUrn] = None) -> None:
+        """Delete resources of type in account id unless in list of URNs.
+
+        Arguments:
+            account_id (str): AWS Account ID
+            region (str): AWS region (e.g. ``'eu-west-2'``)
+            service (str): Service name (e.g. ``'ec2'``)
+            resource_type (str): Resource Type (e.g. ``'instance'``)
+            urns_to_keep (List[cloudwanderer.aws_urn.AwsUrn]): A list of resources not to delete
+        """
         logger.debug('Deleting any %s not in %s', resource_type, str([x.resource_id for x in urns_to_keep]))
         urns_to_keep = urns_to_keep or []
-        resource_records = dynamodb_items_to_resources(self._read_from_resource_type_index(
+        resource_records = self.read_resources(
             service=service,
             resource_type=resource_type,
             account_id=account_id,
             region=region
-        ), loader=self.read_resource)
+        )
         for resource in resource_records:
             if resource.urn in urns_to_keep:
                 logger.debug('Skipping deletion of %s as we were told to keep it.', resource.urn)
@@ -292,7 +272,73 @@ class DynamoDbConnector(BaseStorageConnector):
     def _gen_shard(self, key: str, shard_id: int = None) -> str:
         """Append a shard designation to the end of a supplied key."""
         shard_id = shard_id if shard_id is not None else randrange(self.number_of_shards - 1)
-        return f"{key}#shard{shard_id}"
+        return gen_shard(key=key, shard_id=shard_id)
+
+
+class DynamoDbQueryGenerator:
+    """Generate ConditionExpression and index name based on init params."""
+
+    def __init__(
+            self, account_id: str = None, region: str = None, service: str = None,
+            resource_type: str = None, urn: AwsUrn = None, number_of_shards: int = 10) -> None:
+        """Initialise QueryGenerator."""
+        self.account_id = account_id
+        self.region = region
+        self.service = service
+        self.resource_type = resource_type
+        self.urn = urn
+        self.number_of_shards = number_of_shards
+
+    @property
+    def index(self) -> str:
+        """Return the DynamoDB index to query."""
+        index = None
+
+        if self.service is not None and self.resource_type is not None:
+            return 'resource_type'
+        if self.account_id is not None:
+            return 'account_id'
+        if self.urn is not None:
+            return index
+        raise IndexNotAvailableException()
+
+    @property
+    def condition_expressions(self) -> Iterator[Key]:
+        """Return the condition expression for the query."""
+        if self.index is None:
+            yield Key('_id').eq(primary_key_from_urn(self.urn))
+            return
+        if self.index == 'resource_type':
+            unsharded_key = gen_resource_type_index(
+                service=self.service, resource_type=self.resource_type)
+            for sharded_key in self._yield_shards(unsharded_key):
+                yield gen_resource_type_condition_expression(
+                    sharded_key,
+                    account_id=self.account_id,
+                    region=self.region
+                )
+            return
+        if self.index == 'account_id':
+            yield from [
+                Key('_account_id_index').eq(shard)
+                for shard in self._yield_shards(self.account_id)
+            ]
+            return
+
+    @property
+    def filter_expression(self) -> ConditionBase:
+        """Return a DynamoDB filter expression to use to filter out unwanted resources returned on our index."""
+        query_args = ['account_id', 'region', 'service', 'resource_type', 'urn']
+        filter_elements = []
+        for key in query_args:
+            value = getattr(self, key)
+            if value is not None:
+                filter_elements.append(Attr(f"_{key}").eq(str(value)))
+        return reduce(operator.and_, filter_elements)
+
+    def _yield_shards(self, key: str) -> None:
+        for shard_id in range(0, self.number_of_shards):
+            yield gen_shard(key=key, shard_id=shard_id)
 
 
 class DynamoDbTableCreator():
@@ -326,7 +372,7 @@ class DynamoDbTableCreator():
                 **{'TableName': self.table_name}
             })
         except self.dynamodb_table.meta.client.exceptions.ResourceInUseException:
-            logger.warning(
+            logger.info(
                 'Table %s already exists, skipping creation.',
                 self.table_name)
 
@@ -337,3 +383,8 @@ class DynamoDbTableCreator():
             with open(self.schema_file) as schema_file:
                 self._schema = json.load(schema_file)
         return self._schema
+
+
+class IndexNotAvailableException(Exception):
+    """There is no DynamoDB index available for this type of query."""
+    pass
