@@ -1,4 +1,4 @@
-"""Storage connector to place data in memory."""
+"""Allows CloudWanderer to store resources in memory."""
 import logging
 from typing import Callable, Iterator, List
 import boto3
@@ -30,7 +30,7 @@ class MemoryStorageConnector(BaseStorageConnector):
         """Dummy method to fulfil interface requirements."""
 
     def read_resource(self, urn: AwsUrn) -> CloudWandererResource:
-        """Return the resource with the specified :class:`cloudwanderer.aws_urn.AwsUrn)`.
+        """Return the resource with the specified :class:`cloudwanderer.aws_urn.AwsUrn`.
 
         Arguments:
             urn (cloudwanderer.aws_urn.AwsUrn): The AWS URN of the resource to return
@@ -68,7 +68,7 @@ class MemoryStorageConnector(BaseStorageConnector):
                 return False
         return True
 
-    def read_all(self) -> dict:
+    def read_all(self) -> Iterator[dict]:
         """Return the raw dictionaries stored in memory."""
         for urn_str, items in self._data.items():
             for item_type, item in items.items():

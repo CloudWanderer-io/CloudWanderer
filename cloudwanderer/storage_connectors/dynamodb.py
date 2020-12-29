@@ -1,4 +1,4 @@
-"""Classes for the CloudWanderer DynamoDB Storage Connector."""
+"""Allows CloudWanderer to store resources in DynamoDB."""
 from typing import Callable, Iterable, Iterator, List
 import operator
 from functools import reduce
@@ -185,10 +185,10 @@ class DynamoDbConnector(BaseStorageConnector):
         return values
 
     def read_resource(self, urn: AwsUrn) -> CloudWandererResource:
-        """Return the resource with the specified :class:`cloudwanderer.aws_urn.AwsUrn)`.
+        """Return the resource with the specified :class:`cloudwanderer.aws_urn.AwsUrn`.
 
         Arguments:
-            urn (cloudwanderer.aws_urn.AwsUrn): The AWS URN of the resource to return
+            urn (AwsUrn): The AWS URN of the resource to return
         """
         result = self.dynamodb_table.query(
             KeyConditionExpression=Key('_id').eq(primary_key_from_urn(urn))
@@ -220,12 +220,16 @@ class DynamoDbConnector(BaseStorageConnector):
             result = self.dynamodb_table.query(**query_args)
             yield from dynamodb_items_to_resources(result['Items'], loader=self.read_resource)
 
-    def read_all(self) -> Iterator['CloudWandererResource']:
+    def read_all(self) -> Iterator[dict]:
         """Return raw data from all DynamoDB table records (not just resources)."""
         yield from self.dynamodb_table.scan()['Items']
 
     def delete_resource(self, urn: AwsUrn) -> None:
-        """Delete the resource and all its resource attributes from DynamoDB."""
+        """Delete the resource and all its resource attributes from DynamoDB.
+
+        Arguments:
+            urn (AwsUrn): The URN of the resource to delete from Dynamo
+        """
         resource_records = self.dynamodb_table.query(
             KeyConditionExpression=Key('_id').eq(primary_key_from_urn(urn))
         )['Items']
@@ -242,7 +246,15 @@ class DynamoDbConnector(BaseStorageConnector):
     def delete_resource_of_type_in_account_region(
             self, service: str, resource_type: str, account_id: str,
             region: str, urns_to_keep: List[AwsUrn] = None) -> None:
-        """Delete resources of type in account id unless in list of URNs."""
+        """Delete resources of type in account id unless in list of URNs.
+
+        Arguments:
+            account_id (str): AWS Account ID
+            region (str): AWS region (e.g. ``'eu-west-2'``)
+            service (str): Service name (e.g. ``'ec2'``)
+            resource_type (str): Resource Type (e.g. ``'instance'``)
+            urns_to_keep (List[cloudwanderer.aws_urn.AwsUrn]): A list of resources not to delete
+        """
         logger.debug('Deleting any %s not in %s', resource_type, str([x.resource_id for x in urns_to_keep]))
         urns_to_keep = urns_to_keep or []
         resource_records = self.read_resources(

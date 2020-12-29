@@ -27,6 +27,8 @@ author = 'Sam Martin'
 # The full version, including alpha/beta/rc tags
 release = '0.8.0'
 
+nitpicky = True
+
 
 # -- General configuration ---------------------------------------------------
 
