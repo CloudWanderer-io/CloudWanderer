@@ -190,7 +190,7 @@ class CloudWanderer():
             client_args (dict): Arguments to pass into the boto3 client.
                 See: :meth:`boto3.session.Session.client`
         """
-        logger.info('Writing resource attributes in all regions')
+        logger.info('Writing resource attributes in all enabled regions')
         for region_name in self.enabled_regions:
             self.write_resource_attributes_in_region(
                 region_name=region_name,

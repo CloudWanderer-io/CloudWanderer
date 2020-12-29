@@ -1,4 +1,4 @@
-from cloudwanderer.cloud_wanderer import CloudWandererResource
+from cloudwanderer.cloud_wanderer_resource import CloudWandererResource
 import unittest
 from cloudwanderer.storage_connectors.memory import MemoryStorageConnector
 from moto import mock_ec2, mock_s3, mock_iam

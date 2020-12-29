@@ -13,7 +13,7 @@ from random import randrange
 from decimal import Decimal
 from .base_connector import BaseStorageConnector
 from boto3.dynamodb.conditions import Key, Attr, ConditionBase
-from ..cloud_wanderer import CloudWandererResource
+from ..cloud_wanderer_resource import CloudWandererResource
 from ..aws_urn import AwsUrn
 
 logger = logging.getLogger(__name__)
@@ -156,7 +156,14 @@ class DynamoDbConnector(BaseStorageConnector):
 
     def write_resource_attribute(
             self, urn: AwsUrn, attribute_type: str, resource_attribute: boto3.resources.base.ServiceResource) -> None:
-        """Write the specified resource attribute to DynamoDb."""
+        """Write the specified resource attribute to DynamoDb.
+
+        Arguments:
+            urn (AwsUrn): The resource whose attribute to write.
+            attribute_type (str): The type of the resource attribute to write (usually the boto3 client method name)
+            resource_attribute (boto3.resources.base.ServiceResource): The resource attribute to write to storage.
+
+        """
         logger.debug(f"Writing: {attribute_type} of {urn} to {self.table_name}")
         item = {
             **self._generate_index_values_for_write(urn, attribute_type),

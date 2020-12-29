@@ -18,7 +18,7 @@ class TestResource(unittest.TestCase):
         )
 
     def test_resource_no_attributes(self):
-        resource = cloudwanderer.cloud_wanderer.CloudWandererResource(
+        resource = cloudwanderer.cloud_wanderer_resource.CloudWandererResource(
             urn=self.test_urn,
             resource_data={'InstanceId': 'i-11111111'}
         )
@@ -28,7 +28,7 @@ class TestResource(unittest.TestCase):
         assert resource.cloudwanderer_metadata.secondary_attributes == []
 
     def test_resource_with_attributes(self):
-        resource = cloudwanderer.cloud_wanderer.CloudWandererResource(
+        resource = cloudwanderer.cloud_wanderer_resource.CloudWandererResource(
             urn=self.test_urn,
             resource_data={'VpcId': 'vpc-11111111', 'CidrBlock': '10.0.0.0/8'},
             secondary_attributes=[{'VpcId': 'vpc-11111111'}]
@@ -41,7 +41,7 @@ class TestResource(unittest.TestCase):
         ]
 
     def test_repr(self):
-        resource = cloudwanderer.cloud_wanderer.CloudWandererResource(
+        resource = cloudwanderer.cloud_wanderer_resource.CloudWandererResource(
             urn=self.test_urn,
             resource_data={'VpcId': 'vpc-11111111', 'CidrBlock': '10.0.0.0/8'},
             secondary_attributes=[{'VpcId': 'vpc-11111111'}]

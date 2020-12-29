@@ -125,12 +125,20 @@ This value isn't captured when we write the VPC by default as it's not returned 
 .. doctest ::
 
     >>> first_vpc = next(storage_connector.read_resources(service='ec2', resource_type='vpc'))
-    >>> print(first_vpc.cloud_wanderer_attributes)
-    None
+    >>> first_vpc.enable_dns_support
+    Traceback (most recent call last):
+     ...
+    AttributeError: 'CloudWandererResource' object has no attribute 'enable_dns_support'
 
 Fortunately we can do this alongside capturing all similar additional bits of information using
 :meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resource_attributes`.
 
+.. doctest ::
+
+    >>> wanderer.write_resource_attributes()
+    >>> first_vpc.load()
+    >>> first_vpc.enable_dns_support
+    {'Value': True}
 
 
 Deleting Stale Resources

@@ -4,7 +4,7 @@ from typing import Callable, Iterator, List
 import boto3
 from .base_connector import BaseStorageConnector
 from ..aws_urn import AwsUrn
-from ..cloud_wanderer import CloudWandererResource
+from ..cloud_wanderer_resource import CloudWandererResource
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +89,19 @@ class MemoryStorageConnector(BaseStorageConnector):
         """
         self._data[str(urn)] = self._data.get(str(urn), {})
         self._data[str(urn)]['BaseResource'] = resource.meta.data
+
+    def write_resource_attribute(
+            self, urn: AwsUrn, attribute_type: str, resource_attribute: boto3.resources.base.ServiceResource) -> None:
+        """Write the specified resource attribute to DynamoDb.
+
+        Arguments:
+            urn (AwsUrn): The resource whose attribute to write.
+            attribute_type (str): The type of the resource attribute to write (usually the boto3 client method name)
+            resource_attribute (boto3.resources.base.ServiceResource): The resource attribute to write to storage.
+
+        """
+        self._data[str(urn)] = self._data.get(str(urn), {})
+        self._data[str(urn)][attribute_type] = resource_attribute.meta.data
 
     def delete_resource(self, urn: AwsUrn) -> None:
         """Delete the resource and all its resource attributes from memory."""
