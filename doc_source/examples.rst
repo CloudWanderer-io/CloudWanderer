@@ -109,6 +109,30 @@ Once you've called :meth:`~cloudwanderer.cloud_wanderer.CloudWandererResource.lo
 the AWS resource that is returned by its describe method. E.g. for VPCs see :attr:`boto3:EC2.Client.describe_vpcs`.
 These attributes are stored as snake_case instead of the APIs camelCase, so ``isDefault`` becomes ``is_default``.
 
+Writing all Resource Attributes
+----------------------------------
+
+Some resources require additional API calls beyond the initial
+``list`` or ``describe`` call to retrieve all their metadata.
+To allow us to retrieve that additional information and return it in our
+:class:`~cloudwanderer.cloud_wanderer.CloudWandererResource`, we implement our own
+custom Resource Attribute definitions.
+
+For example, let's say we want to get the value of ``enableDnsSupport`` for a VPC.
+This value isn't captured when we write the VPC by default as it's not returned by
+:meth:`~boto3:EC2.Client.describe_vpcs` instead we have to call :meth:`~boto3:EC2.Client.describe_vpc_attribute`.
+
+.. doctest ::
+
+    >>> first_vpc = next(storage_connector.read_resources(service='ec2', resource_type='vpc'))
+    >>> print(first_vpc.cloud_wanderer_attributes)
+    None
+
+Fortunately we can do this alongside capturing all similar additional bits of information using
+:meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resource_attributes`.
+
+
+
 Deleting Stale Resources
 -------------------------
 

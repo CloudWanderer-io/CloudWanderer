@@ -68,7 +68,7 @@ def dynamodb_items_to_resources(items: Iterable[dict], loader: Callable) -> Iter
         yield CloudWandererResource(
             urn=urn_from_primary_key(base_resource['_id']),
             resource_data=base_resource,
-            resource_attributes=attributes,
+            secondary_attributes=attributes,
             loader=loader
         )
 

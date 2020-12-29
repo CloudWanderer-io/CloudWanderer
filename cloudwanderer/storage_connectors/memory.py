@@ -127,6 +127,6 @@ def memory_item_to_resource(urn: AwsUrn, items: dict = None, loader: Callable = 
     return CloudWandererResource(
         urn=urn,
         resource_data=base_resource,
-        resource_attributes=attributes,
+        secondary_attributes=attributes,
         loader=loader
     )

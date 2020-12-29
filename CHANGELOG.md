@@ -1,3 +1,8 @@
+# 0.9.0
+
+- Added `get_secondary_attribute` to `CloudWandererResource`
+- Added secondary attributes to `CloudWandererResource` if they don't clash.
+
 # 0.8.0
 
 - Added support for multiple storage connectors

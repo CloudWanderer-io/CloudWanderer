@@ -40,6 +40,11 @@ class TestStorageConnectorDynamoDb(unittest.TestCase):
             urn=urn,
             resource=self.ec2_instances[0]
         )
+        self.connector.write_resource_attribute(
+            urn=urn,
+            attribute_type='vpc_enable_dns_support',
+            resource_attribute=generate_mock_resource_attribute({'EnableDnsSupport': {'Value': True}})
+        )
         result = self.connector.read_resource(urn=urn)
         result_resource_of_type = next(self.connector.read_resources(service='ec2', resource_type='instance'))
         result_all_resources = next(self.connector.read_resources(account_id=urn.account_id))
@@ -61,6 +66,10 @@ class TestStorageConnectorDynamoDb(unittest.TestCase):
         self.assertRaises(AttributeError, getattr, result_resource_of_type_in_account, 'instance_type')
         result_resource_of_type_in_account.load()
         assert result_resource_of_type_in_account.instance_type == 'm1.small'
+        assert result_resource_of_type_in_account.cloudwanderer_metadata.secondary_attributes[0][
+            'EnableDnsSupport'] == {
+            'Value': True
+        }
 
     def test_write_delete_and_read_resource(self):
         urn = generate_urn(service='ec2', resource_type='instance', id=self.ec2_instances[0].instance_id)
@@ -111,5 +120,6 @@ class TestStorageConnectorDynamoDb(unittest.TestCase):
 
         assert len(result_raw_before_delete) == 200
         assert len(result_before_delete) == 100
+        print(result_after_delete[0].cloudwanderer_metadata)
         assert len(result_after_delete) == 50
         assert len(result_raw_after_delete) == 100
