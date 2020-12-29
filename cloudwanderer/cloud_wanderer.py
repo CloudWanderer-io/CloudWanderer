@@ -22,7 +22,7 @@ class CloudWanderer():
     """CloudWanderer.
 
     Args:
-        storage_connector: A CloudWanderer storage connector object.
+        storage_connectors: CloudWanderer storage connector objects.
         boto3_session (boto3.session.Session): A boto3 :class:`~boto3.session.Session` object.
     """
 
@@ -205,7 +205,7 @@ class CloudWanderer():
 
         These custom resource attribute definitions allow us to fetch resource attributes that are not returned by the
         resource's default describe calls.
-        Unlike :meth:`~CloudWanderer.write_resources` and :meth:`~CloudWanderer.write_resources_of_type`
+        Unlike :meth:`~CloudWanderer.write_resources` and :meth:`~CloudWanderer.write_resources_of_type_in_region`
         this method does not clean up stale resource attributes from storage.
 
         Arguments:
@@ -230,7 +230,7 @@ class CloudWanderer():
 
         These custom resource attribute definitions allow us to fetch resource attributes that are not returned by the
         resource's default describe calls.
-        Unlike :meth:`~CloudWanderer.write_resources` and :meth:`~CloudWanderer.write_resources_of_type`
+        Unlike :meth:`~CloudWanderer.write_resources` and :meth:`~CloudWanderer.write_resources_of_type_in_region`
         this method does not clean up stale resource attributes from storage.
 
         Arguments:
