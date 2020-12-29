@@ -214,7 +214,6 @@ class DynamoDbConnector(BaseStorageConnector):
                 'KeyConditionExpression': condition_expression
             }
             if query_generator.index is not None:
-                logger.info("using index %s", query_generator.index)
                 query_args['IndexName'] = query_generator.index
             if query_generator.condition_expressions is not None:
                 query_args['FilterExpression'] = query_generator.filter_expression
@@ -361,7 +360,7 @@ class DynamoDbTableCreator():
                 **{'TableName': self.table_name}
             })
         except self.dynamodb_table.meta.client.exceptions.ResourceInUseException:
-            logger.warning(
+            logger.info(
                 'Table %s already exists, skipping creation.',
                 self.table_name)
 
