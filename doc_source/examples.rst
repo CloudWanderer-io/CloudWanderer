@@ -99,23 +99,23 @@ You'll notice here we're calling a property ``urn`` in order to print the region
 :doc:`AwsUrns <reference/aws_urn>` are CloudWanderer's way of uniquely identifying a resource.
 
 You can also see we're printing the vpc's ``state`` and ``is_default`` attributes. It's very important to notice the
-:meth:`~cloudwanderer.cloud_wanderer.CloudWandererResource.load` call beforehand which loads the resource's data.
+:meth:`~cloudwanderer.cloud_wanderer_resource.CloudWandererResource.load` call beforehand which loads the resource's data.
 Resources returned from any :meth:`~cloudwanderer.storage_connectors.DynamoDbConnector.read_resources`
 call on :class:`~cloudwanderer.storage_connectors.DynamoDbConnector`
 are lazily loaded *unless* you specify the ``urn=`` argument.
 This is due to the sparsely populated global secondary indexes in the DynamoDB table schema.
 
-Once you've called :meth:`~cloudwanderer.cloud_wanderer.CloudWandererResource.load` you can access any property of
+Once you've called :meth:`~cloudwanderer.cloud_wanderer_resource.CloudWandererResource.load` you can access any property of
 the AWS resource that is returned by its describe method. E.g. for VPCs see :attr:`boto3:EC2.Client.describe_vpcs`.
 These attributes are stored as snake_case instead of the APIs camelCase, so ``isDefault`` becomes ``is_default``.
 
-Writing all Resource Attributes
-----------------------------------
+Writing Secondary Resource Attributes
+---------------------------------------
 
 Some resources require additional API calls beyond the initial
 ``list`` or ``describe`` call to retrieve all their metadata.
 To allow us to retrieve that additional information and return it in our
-:class:`~cloudwanderer.cloud_wanderer.CloudWandererResource`, we implement our own
+:class:`~cloudwanderer.cloud_wanderer_resource.CloudWandererResource`, we implement our own
 custom Resource Attribute definitions.
 
 For example, let's say we want to get the value of ``enableDnsSupport`` for a VPC.
