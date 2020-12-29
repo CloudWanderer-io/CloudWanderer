@@ -114,13 +114,9 @@ Writing Secondary Resource Attributes
 
 Some resources require additional API calls beyond the initial
 ``list`` or ``describe`` call to retrieve all their metadata.
-To allow us to retrieve that additional information and return it in our
-:class:`~cloudwanderer.cloud_wanderer_resource.CloudWandererResource`, we implement our own
-custom Resource Attribute definitions.
-
 For example, let's say we want to get the value of ``enableDnsSupport`` for a VPC.
 This value isn't captured when we write the VPC by default as it's not returned by
-:meth:`~boto3:EC2.Client.describe_vpcs` instead we have to call :meth:`~boto3:EC2.Client.describe_vpc_attribute`.
+:meth:`~boto3:EC2.Client.describe_vpcs`.
 
 .. doctest ::
 
@@ -130,8 +126,17 @@ This value isn't captured when we write the VPC by default as it's not returned 
      ...
     AttributeError: 'CloudWandererResource' object has no attribute 'enable_dns_support'
 
-Fortunately we can do this alongside capturing all similar additional bits of information using
-:meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resource_attributes`.
+
+Instead we have to find a way to call :meth:`~boto3:EC2.Client.describe_vpc_attribute`.
+
+To allow us to:
+
+#. Retrieve that additional information
+#. Put it in storage
+#. Return it in our :class:`~cloudwanderer.cloud_wanderer_resource.CloudWandererResource`
+
+in a standardised way, we implement our own custom Resource Attribute definitions.
+These are written using :meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resource_attributes`.
 
 .. doctest ::
 
@@ -140,6 +145,8 @@ Fortunately we can do this alongside capturing all similar additional bits of in
     >>> first_vpc.enable_dns_support
     {'Value': True}
 
+Note that we have to call :meth:`~cloudwanderer.cloud_wanderer_resource.CloudWandererResource.load` to pull
+the new data into the object after calling :meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resource_attributes`.
 
 Deleting Stale Resources
 -------------------------
