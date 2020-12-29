@@ -1,5 +1,6 @@
 boto3
-moto
+# moto Pinned to git until https://github.com/spulec/moto/pull/3498 is releaseed (should be 1.3.17 or 1.4.0)
+git+git://github.com/spulec/moto.git@c9c30b82867294030833cef292db167955bc8240
 flake8
 pytest
 pydocstyle
