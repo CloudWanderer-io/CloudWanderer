@@ -4,6 +4,12 @@
 - Added secondary attributes to `CloudWandererResource` if they don't clash.
 - Added `is_inflated` to `CloudWandererResource`
 
+- Storage Standardisation improvements
+    - Standardised storage connector write tests
+    - Deleted duplicate read tests
+    - Added `write_resource_attribute` to `BaseStorageConnector`
+    - Added `write_resource_attribute` to `MemoryStorageConnector`
+
 
 # 0.8.0
 
