@@ -71,3 +71,37 @@ class TestCloudWandererResource(unittest.TestCase):
         cwr.load()
         assert cwr.is_inflated is True
         assert cwr.cidr_block == '10.0.0.0/0'
+
+    def test_str(self):
+        cwr = CloudWandererResource(
+            urn=AwsUrn.from_string('urn:aws:111111111111:eu-west-2:ec2:vpc:vpc-11111111'),
+            resource_data={
+                'CidrBlock': '10.0.0.0/0'
+            },
+            secondary_attributes=[{'EnableDnsSupport': {'Value': True}}]
+        )
+
+        assert str(cwr) == str(
+            "CloudWandererResource("
+            "urn=AwsUrn(account_id='111111111111', region='eu-west-2', service='ec2', "
+            "resource_type='vpc', resource_id='vpc-11111111'), "
+            "resource_data={'CidrBlock': '10.0.0.0/0'}, secondary_attributes=[{'EnableDnsSupport': {'Value': True}}]"
+            ")"
+        )
+
+    def test_repr(self):
+        cwr = CloudWandererResource(
+            urn=AwsUrn.from_string('urn:aws:111111111111:eu-west-2:ec2:vpc:vpc-11111111'),
+            resource_data={
+                'CidrBlock': '10.0.0.0/0'
+            },
+            secondary_attributes=[{'EnableDnsSupport': {'Value': True}}]
+        )
+
+        assert repr(cwr) == str(
+            "CloudWandererResource("
+            "urn=AwsUrn(account_id='111111111111', region='eu-west-2', service='ec2', "
+            "resource_type='vpc', resource_id='vpc-11111111'), "
+            "resource_data={'CidrBlock': '10.0.0.0/0'}, secondary_attributes=[{'EnableDnsSupport': {'Value': True}}]"
+            ")"
+        )

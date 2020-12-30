@@ -2,6 +2,8 @@
 
 - Added `get_secondary_attribute` to `CloudWandererResource`
 - Added secondary attributes to `CloudWandererResource` if they don't clash.
+- Added `is_inflated` to `CloudWandererResource`
+
 
 # 0.8.0
 
