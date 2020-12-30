@@ -1,4 +1,4 @@
-from .mocks import generate_mock_session, add_infra, generate_urn, generate_mock_resource_attribute
+from .mocks import generate_mock_session, add_infra, generate_urn, generate_mock_secondary_attribute
 from .helpers import mock_services
 
 
@@ -20,10 +20,10 @@ class StorageWriteTestMixin:
             urn=urn,
             resource=self.ec2_instances[0]
         )
-        self.connector.write_resource_attribute(
+        self.connector.write_secondary_attribute(
             urn=urn,
             attribute_type='vpc_enable_dns_support',
-            resource_attribute=generate_mock_resource_attribute({'EnableDnsSupport': {'Value': True}})
+            secondary_attribute=generate_mock_secondary_attribute({'EnableDnsSupport': {'Value': True}})
         )
         result = self.connector.read_resource(urn=urn)
         assert result.urn == urn

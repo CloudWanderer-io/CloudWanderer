@@ -136,17 +136,17 @@ To allow us to:
 #. Return it in our :class:`~cloudwanderer.cloud_wanderer_resource.CloudWandererResource`
 
 in a standardised way, we implement our own custom Resource Attribute definitions.
-These are written using :meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resource_attributes`.
+These are written using :meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_secondary_attributes`.
 
 .. doctest ::
 
-    >>> wanderer.write_resource_attributes()
+    >>> wanderer.write_secondary_attributes()
     >>> first_vpc.load()
     >>> first_vpc.enable_dns_support
     {'Value': True}
 
 Note that we have to call :meth:`~cloudwanderer.cloud_wanderer_resource.CloudWandererResource.load` to pull
-the new data into the object after calling :meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resource_attributes`.
+the new data into the object after calling :meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_secondary_attributes`.
 
 Deleting Stale Resources
 -------------------------

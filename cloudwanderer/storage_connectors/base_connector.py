@@ -44,13 +44,13 @@ class BaseStorageConnector(ABC):
         This is used primarily to clean up old resources.
         """
     @abstractmethod
-    def write_resource_attribute(
-            self, urn: AwsUrn, attribute_type: str, resource_attribute: boto3.resources.base.ServiceResource) -> None:
+    def write_secondary_attribute(
+            self, urn: AwsUrn, attribute_type: str, secondary_attribute: boto3.resources.base.ServiceResource) -> None:
         """Write the specified resource attribute to DynamoDb.
 
         Arguments:
             urn (AwsUrn): The resource whose attribute to write.
             attribute_type (str): The type of the resource attribute to write (usually the boto3 client method name)
-            resource_attribute (boto3.resources.base.ServiceResource): The resource attribute to write to storage.
+            secondary_attribute (boto3.resources.base.ServiceResource): The resource attribute to write to storage.
 
         """

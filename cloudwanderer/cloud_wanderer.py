@@ -181,7 +181,7 @@ class CloudWanderer():
             return False
         return True
 
-    def write_resource_attributes(
+    def write_secondary_attributes(
             self, exclude_resources: List[str] = None, client_args: dict = None) -> None:
         """Write all AWS resource attributes in this account from all regions and all services to storage.
 
@@ -192,13 +192,13 @@ class CloudWanderer():
         """
         logger.info('Writing resource attributes in all enabled regions')
         for region_name in self.enabled_regions:
-            self.write_resource_attributes_in_region(
+            self.write_secondary_attributes_in_region(
                 region_name=region_name,
                 exclude_resources=exclude_resources,
                 client_args=client_args
             )
 
-    def write_resource_attributes_in_region(
+    def write_secondary_attributes_in_region(
             self, exclude_resources: List[str] = None, region_name: str = None, client_args: dict = None) -> None:
         """Write all AWS resource attributes in this account in this region to storage.
 
@@ -215,14 +215,14 @@ class CloudWanderer():
                 See: :meth:`boto3.session.Session.client`
         """
         for boto3_service in self.custom_attributes_interface.get_all_resource_services():
-            self.write_resource_attributes_of_service_in_region(
+            self.write_secondary_attributes_of_service_in_region(
                 service_name=boto3_service.meta.service_name,
                 exclude_resources=exclude_resources,
                 client_args=client_args,
                 region_name=region_name,
             )
 
-    def write_resource_attributes_of_service_in_region(
+    def write_secondary_attributes_of_service_in_region(
             self, service_name: str, exclude_resources: List[str] = None,
             region_name: str = None, client_args: dict = None) -> None:
         """Write all AWS resource attributes in this account in this service to storage.
@@ -256,13 +256,13 @@ class CloudWanderer():
             if resource_type in exclude_resources:
                 logger.info('Skipping %s as per exclude_resources', resource_type)
                 continue
-            self.write_resource_attributes_of_type_in_region(
+            self.write_secondary_attributes_of_type_in_region(
                 service_name=service_name,
                 resource_type=resource_type,
                 client_args=client_args
             )
 
-    def write_resource_attributes_of_type_in_region(
+    def write_secondary_attributes_of_type_in_region(
             self, service_name: str, resource_type: str, region_name: str = None, client_args: dict = None) -> None:
         """Write all AWS resource attributes in this account of this resource type to storage.
 
@@ -281,18 +281,18 @@ class CloudWanderer():
             'region_name': region_name or self.boto3_session.region_name
         }
         logger.info('--> Fetching %s %s in %s', service_name, resource_type, client_args['region_name'])
-        resource_attributes = self.custom_attributes_interface.get_resources_of_type(
+        secondary_attributes = self.custom_attributes_interface.get_resources_of_type(
             service_name=service_name,
             resource_type=resource_type,
             client_args=client_args
         )
-        for resource_attribute in resource_attributes:
-            urn = self._get_resource_urn(resource_attribute, client_args['region_name'])
+        for secondary_attribute in secondary_attributes:
+            urn = self._get_resource_urn(secondary_attribute, client_args['region_name'])
             for storage_connector in self.storage_connectors:
-                storage_connector.write_resource_attribute(
+                storage_connector.write_secondary_attribute(
                     urn=urn,
-                    resource_attribute=resource_attribute,
-                    attribute_type=xform_name(resource_attribute.meta.resource_model.name)
+                    secondary_attribute=secondary_attribute,
+                    attribute_type=xform_name(secondary_attribute.meta.resource_model.name)
                 )
 
     @property
