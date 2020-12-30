@@ -243,8 +243,3 @@ class CustomAttributesInterface(CloudWandererBoto3Interface):
         client_args = client_args or {}
         yield self.custom_resource_attribute_definitions.resource(
             service_name=service_name, **client_args)
-
-    def get_resource_collections(
-            self, boto3_service: ServiceResource) -> List[Collection]:
-        """Return all resource types in this service."""
-        return boto3_service.meta.resource_model.collections
