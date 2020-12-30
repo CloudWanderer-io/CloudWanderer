@@ -27,7 +27,7 @@ class CloudWandererResource():
 
     Attributes:
         urn (cloudwanderer.aws_urn.AwsUrn): The AWS URN of the resource.
-        metadata (dict): The original storage representation of the resource as it was passed in.
+        cloudwanderer_metadata (dict): The original storage representation of the resource as it was passed in.
     """
 
     def __init__(self, urn: AwsUrn, resource_data: dict,
@@ -40,7 +40,6 @@ class CloudWandererResource():
         )
         self._loader = loader
         self._set_resource_data_attrs()
-        self._set_secondary_attribute_attrs()
 
     def load(self) -> None:
         """Inflate this resource with all data from the original storage connector it was spawned from.."""
@@ -52,7 +51,6 @@ class CloudWandererResource():
             return
         self.cloudwanderer_metadata = updated_resource.cloudwanderer_metadata
         self._set_resource_data_attrs()
-        self._set_secondary_attribute_attrs()
 
     @property
     def is_inflated(self) -> bool:
@@ -71,35 +69,19 @@ class CloudWandererResource():
         """
         return jmespath.search(jmes_path, self.cloudwanderer_metadata.secondary_attributes)
 
-    @property
-    def _clean_resource(self) -> dict:
-        return {
-            key: value
-            for key, value in self.metadata.items()
-            if not key.startswith('_')
-        }
+    # @property
+    # def _clean_resource(self) -> dict:
+    #     return {
+    #         key: value
+    #         for key, value in self.metadata.items()
+    #         if not key.startswith('_')
+    #     }
 
     def _set_resource_data_attrs(self) -> None:
         for key, value in self.cloudwanderer_metadata.resource_data.items():
             if key.startswith('_'):
                 continue
             setattr(self, xform_name(key), value)
-
-    def _set_secondary_attribute_attrs(self) -> None:
-        for attribute in self.cloudwanderer_metadata.secondary_attributes:
-            for key, value in attribute.items():
-                if key.startswith('_'):
-                    continue
-                if xform_name(key) in dir(self):
-                    logger.warning(
-                        str(
-                            '%s is already an attribute on %s, '
-                            '%s will only be accessible via get_secondary_attributes'
-                        ),
-                        key, self.__class__.__name__, key
-                    )
-                    continue
-                setattr(self, xform_name(key), value)
 
     def __repr__(self) -> str:
         """Return a code representation of this resource."""

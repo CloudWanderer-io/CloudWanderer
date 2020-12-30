@@ -115,22 +115,21 @@ Writing Secondary Resource Attributes
 Some resources require additional API calls beyond the initial
 ``list`` or ``describe`` call to retrieve all their metadata.
 For example, let's say we want to get the value of ``enableDnsSupport`` for a VPC.
-We can get this one of two ways, either by getting the ``enable_dns_support`` attribute on our
-:class:`~cloudwanderer.cloud_wanderer_resource.CloudWandererResource` object, or by calling
+We can get this one of two ways, either by looping over the dictionaries in
+:attr:`~cloudwanderer.cloud_wanderer_resource.ResourceMetadata.secondary_attributes` on
+:attr:`~cloudwanderer.cloud_wanderer_resource.CloudWandererResource.cloudwanderer_metadata`, or by calling
 :meth:`~cloudwanderer.cloud_wanderer_resource.CloudWandererResource.get_secondary_attribute`
 with a `JMESPath <https://jmespath.org/>`_.
 
 .. doctest ::
 
     >>> first_vpc = next(storage_connector.read_resources(service='ec2', resource_type='vpc'))
-    >>> first_vpc.enable_dns_support
-    Traceback (most recent call last):
-     ...
-    AttributeError: 'CloudWandererResource' object has no attribute 'enable_dns_support'
+    >>> first_vpc.cloudwanderer_metadata.secondary_attributes
+    []
     >>> first_vpc.get_secondary_attribute('[].EnableDnsSupport.Value')
     []
 
-However, when we try, we find the attribute empty!
+However, when we try, we find it empty!
 
 This is because this value isn't captured when we write the VPC
 using :meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resources` as it's not returned by a standard
@@ -156,7 +155,7 @@ the new data into the object after calling :meth:`~cloudwanderer.cloud_wanderer.
 .. doctest ::
 
     >>> first_vpc.load()
-    >>> first_vpc.enable_dns_support
+    >>> first_vpc.cloudwanderer_metadata.secondary_attributes[0]['EnableDnsSupport']
     {'Value': True}
     >>> first_vpc.get_secondary_attribute('[].EnableDnsSupport.Value')
     [True]
