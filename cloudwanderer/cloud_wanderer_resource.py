@@ -45,8 +45,7 @@ class CloudWandererResource():
     def load(self) -> None:
         """Inflate this resource with all data from the original storage connector it was spawned from.."""
         if self._loader is None:
-            logger.error('Could not inflate %s, storage connector loader not populated', self)
-            return
+            raise ValueError(f'Could not inflate {self}, storage connector loader not populated')
         updated_resource = self._loader(urn=self.urn)
         if updated_resource is None:
             logger.error('Could not inflate %s, does not exist in storage', self)
@@ -54,6 +53,15 @@ class CloudWandererResource():
         self.cloudwanderer_metadata = updated_resource.cloudwanderer_metadata
         self._set_resource_data_attrs()
         self._set_secondary_attribute_attrs()
+
+    @property
+    def is_inflated(self) -> bool:
+        """Returns whether this resource has all the attributes from storage."""
+        return bool([
+            key
+            for key in self.cloudwanderer_metadata.resource_data
+            if not key.startswith('_')
+        ])
 
     def get_secondary_attribute(self, jmes_path: str) -> None:
         """Get an attribute not returned in the resource's standard ``describe`` method.

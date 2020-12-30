@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import MagicMock
 from cloudwanderer import AwsUrn
 from cloudwanderer.cloud_wanderer_resource import CloudWandererResource
 
@@ -19,6 +20,7 @@ class TestCloudWandererResource(unittest.TestCase):
         assert cwr.cidr_block == '10.0.0.0/0'
         assert cwr.get_secondary_attribute('[].EnableDnsSupport.Value')[0] is True
         assert cwr.enable_dns_support == {'Value': True}
+        assert cwr.is_inflated is True
 
     def test_clashing_attributes(self):
         urn = AwsUrn.from_string('urn:aws:111111111111:eu-west-2:ec2:vpc:vpc-11111111')
@@ -39,3 +41,33 @@ class TestCloudWandererResource(unittest.TestCase):
             'via get_secondary_attributes')])
         assert cwr.enable_dns_support == {'Value': True}
         assert cwr.get_secondary_attribute('[].EnableDnsSupport.Value') == [True, False]
+
+    def test_load_without_loader(self):
+        urn = AwsUrn.from_string('urn:aws:111111111111:eu-west-2:ec2:vpc:vpc-11111111')
+        cwr = CloudWandererResource(
+            urn=urn,
+            resource_data={},
+            secondary_attributes=[{'EnableDnsSupport': {'Value': True}}]
+        )
+        assert cwr.is_inflated is False
+        self.assertRaises(ValueError, cwr.load)
+
+    def test_load_with_loader(self):
+        urn = AwsUrn.from_string('urn:aws:111111111111:eu-west-2:ec2:vpc:vpc-11111111')
+        mock_loader = MagicMock(return_value=CloudWandererResource(
+            urn=urn,
+            resource_data={
+                'CidrBlock': '10.0.0.0/0'
+            },
+            secondary_attributes=[{'EnableDnsSupport': {'Value': True}}]
+        ))
+        cwr = CloudWandererResource(
+            urn=urn,
+            resource_data={},
+            secondary_attributes=[],
+            loader=mock_loader
+        )
+        assert cwr.is_inflated is False
+        cwr.load()
+        assert cwr.is_inflated is True
+        assert cwr.cidr_block == '10.0.0.0/0'

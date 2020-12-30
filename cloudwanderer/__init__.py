@@ -6,6 +6,7 @@ from .aws_urn import AwsUrn
 from .custom_resource_definitions import CustomResourceDefinitions
 __all__ = [
     'storage_connectors',
+    'cloud_wanderer_resource',
     'CloudWanderer',
     'AwsUrn',
     'CustomResourceDefinitions'

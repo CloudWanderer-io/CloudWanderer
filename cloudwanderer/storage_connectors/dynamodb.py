@@ -3,18 +3,17 @@ from typing import Callable, Iterable, Iterator, List
 import operator
 from functools import reduce
 import itertools
+import json
 import logging
 import os
 import pathlib
 import boto3
-import json
-from datetime import datetime
 from random import randrange
-from decimal import Decimal
 from .base_connector import BaseStorageConnector
 from boto3.dynamodb.conditions import Key, Attr, ConditionBase
 from ..cloud_wanderer_resource import CloudWandererResource
 from ..aws_urn import AwsUrn
+from ..utils import standardise_data_types
 
 logger = logging.getLogger(__name__)
 
@@ -71,26 +70,6 @@ def dynamodb_items_to_resources(items: Iterable[dict], loader: Callable) -> Iter
             secondary_attributes=attributes,
             loader=loader
         )
-
-
-def json_object_hook(dct: dict) -> dict:
-    """Clean out empty strings to avoid ValidationException."""
-    for key, value in dct.items():
-        if value == '':
-            dct[key] = None
-    return dct
-
-
-def json_default(item: object) -> object:
-    """JSON object type converter that handles datetime objects."""
-    if isinstance(item, datetime):
-        return item.isoformat()
-
-
-def standardise_data_types(resource: dict) -> dict:
-    """Return a dictionary normalised to datatypes acceptable for DynamoDB."""
-    result = json.loads(json.dumps(resource, default=json_default), object_hook=json_object_hook, parse_float=Decimal)
-    return result
 
 
 class DynamoDbConnector(BaseStorageConnector):

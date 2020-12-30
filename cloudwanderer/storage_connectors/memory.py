@@ -5,6 +5,7 @@ import boto3
 from .base_connector import BaseStorageConnector
 from ..aws_urn import AwsUrn
 from ..cloud_wanderer_resource import CloudWandererResource
+from ..utils import standardise_data_types
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +89,7 @@ class MemoryStorageConnector(BaseStorageConnector):
             resource: The boto3 Resource object representing the resource.
         """
         self._data[str(urn)] = self._data.get(str(urn), {})
-        self._data[str(urn)]['BaseResource'] = resource.meta.data
+        self._data[str(urn)]['BaseResource'] = standardise_data_types(resource.meta.data)
 
     def write_resource_attribute(
             self, urn: AwsUrn, attribute_type: str, resource_attribute: boto3.resources.base.ServiceResource) -> None:

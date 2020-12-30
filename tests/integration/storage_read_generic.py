@@ -49,7 +49,8 @@ class StorageReadTestMixin(TestStorageConnectorReadMixin):
     def test_account_id(self):
         try:
             result = list(self.connector.read_resources(account_id='111111111111'))
-        except self.valid_exceptions:
+        except self.valid_exceptions as ex:
+            logging.info('Received: %s while testing account_id= but was in valid_exceptions', ex)
             return
 
         for account_id in ['111111111111']:
@@ -72,11 +73,15 @@ class StorageReadTestMixin(TestStorageConnectorReadMixin):
             ])
         self.assert_has_matching_aws_urns(result, self.expected_urns)
         self.assert_does_not_have_matching_aws_urns(result, self.not_expected_urns)
+        if not result[0].is_inflated:
+            result[0].load()
+            assert result[0].is_inflated
 
     def test_region(self):
         try:
             result = list(self.connector.read_resources(region='eu-west-2'))
-        except self.valid_exceptions:
+        except self.valid_exceptions as ex:
+            logging.info('Received: %s while testing region= but was in valid_exceptions', ex)
             return
 
         for account_id in ['111111111111', '222222222222']:
@@ -96,7 +101,8 @@ class StorageReadTestMixin(TestStorageConnectorReadMixin):
     def test_service(self):
         try:
             result = list(self.connector.read_resources(service='ec2'))
-        except self.valid_exceptions:
+        except self.valid_exceptions as ex:
+            logging.info('Received: %s while testing service= but was in valid_exceptions', ex)
             return
 
         for account_id in ['111111111111', '222222222222']:
@@ -116,7 +122,8 @@ class StorageReadTestMixin(TestStorageConnectorReadMixin):
     def test_resource_type(self):
         try:
             result = list(self.connector.read_resources(resource_type='bucket'))
-        except self.valid_exceptions:
+        except self.valid_exceptions as ex:
+            logging.info('Received: %s while testing resource_type= but was in valid_exceptions', ex)
             return
 
         for account_id in ['111111111111', '222222222222']:
@@ -173,11 +180,16 @@ class StorageReadTestMixin(TestStorageConnectorReadMixin):
             except self.valid_exceptions as ex:
                 logging.info('Received: %s while testing %s but was in valid_exceptions', ex, generated_args)
                 continue
-            correct_result = sorted(str(resource.urn)
-                                    for resource in self.memory_storage_connector.read_resources(**generated_args))
+            correct_result = sorted(
+                str(resource.urn)
+                for resource in self.memory_storage_connector.read_resources(**generated_args)
+            )
 
-            self.assertListEqual(correct_result, cut_result,
-                                 f"Returned resources did not match for args: {generated_args}")
+            self.assertListEqual(
+                correct_result,
+                cut_result,
+                f"Returned resources did not match for args: {generated_args}"
+            )
 
 
 def get_arg_combinations():
