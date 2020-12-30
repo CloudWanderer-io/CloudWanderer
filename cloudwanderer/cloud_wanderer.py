@@ -183,14 +183,14 @@ class CloudWanderer():
 
     def write_secondary_attributes(
             self, exclude_resources: List[str] = None, client_args: dict = None) -> None:
-        """Write all AWS resource attributes in this account from all regions and all services to storage.
+        """Write all AWS secondary attributes in this account from all regions and all services to storage.
 
         Arguments:
             exclude_resources (list): A list of resource names to exclude (e.g. ``['instance']``)
             client_args (dict): Arguments to pass into the boto3 client.
                 See: :meth:`boto3.session.Session.client`
         """
-        logger.info('Writing resource attributes in all enabled regions')
+        logger.info('Writing secondary attributes in all enabled regions')
         for region_name in self.enabled_regions:
             self.write_secondary_attributes_in_region(
                 region_name=region_name,
@@ -200,12 +200,12 @@ class CloudWanderer():
 
     def write_secondary_attributes_in_region(
             self, exclude_resources: List[str] = None, region_name: str = None, client_args: dict = None) -> None:
-        """Write all AWS resource attributes in this account in this region to storage.
+        """Write all AWS secondary attributes in this account in this region to storage.
 
-        These custom resource attribute definitions allow us to fetch resource attributes that are not returned by the
+        These custom resource attribute definitions allow us to fetch secondary attributes that are not returned by the
         resource's default describe calls.
         Unlike :meth:`~CloudWanderer.write_resources` and :meth:`~CloudWanderer.write_resources_of_type_in_region`
-        this method does not clean up stale resource attributes from storage.
+        this method does not clean up stale secondary attributes from storage.
 
         Arguments:
             exclude_resources (list): A list of resources not to write attributes for (e.g. ``['vpc']``)
@@ -225,12 +225,12 @@ class CloudWanderer():
     def write_secondary_attributes_of_service_in_region(
             self, service_name: str, exclude_resources: List[str] = None,
             region_name: str = None, client_args: dict = None) -> None:
-        """Write all AWS resource attributes in this account in this service to storage.
+        """Write all AWS secondary attributes in this account in this service to storage.
 
-        These custom resource attribute definitions allow us to fetch resource attributes that are not returned by the
+        These custom resource attribute definitions allow us to fetch secondary attributes that are not returned by the
         resource's default describe calls.
         Unlike :meth:`~CloudWanderer.write_resources` and :meth:`~CloudWanderer.write_resources_of_type_in_region`
-        this method does not clean up stale resource attributes from storage.
+        this method does not clean up stale secondary attributes from storage.
 
         Arguments:
             service_name (str): The name of the service to write the attributes of (e.g. ``'ec2'``)
@@ -243,7 +243,7 @@ class CloudWanderer():
         client_args = client_args or {
             'region_name': region_name or self.boto3_session.region_name
         }
-        logger.info("Writing all %s resource attributes in %s", service_name, client_args['region_name'])
+        logger.info("Writing all %s secondary attributes in %s", service_name, client_args['region_name'])
         exclude_resources = exclude_resources or []
         service_map = self.global_service_maps.get_global_service_map(service_name=service_name)
         has_gobal_resources_in_this_region = service_map.has_global_resources_in_region(client_args['region_name'])
@@ -264,9 +264,9 @@ class CloudWanderer():
 
     def write_secondary_attributes_of_type_in_region(
             self, service_name: str, resource_type: str, region_name: str = None, client_args: dict = None) -> None:
-        """Write all AWS resource attributes in this account of this resource type to storage.
+        """Write all AWS secondary attributes in this account of this resource type to storage.
 
-        These custom resource attribute definitions allow us to fetch resource attributes that are not returned by the
+        These custom resource attribute definitions allow us to fetch secondary attributes that are not returned by the
         resource's default describe calls.
 
         Arguments:
