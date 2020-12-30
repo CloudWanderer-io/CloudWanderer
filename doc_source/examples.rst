@@ -115,8 +115,10 @@ Writing Secondary Resource Attributes
 Some resources require additional API calls beyond the initial
 ``list`` or ``describe`` call to retrieve all their metadata.
 For example, let's say we want to get the value of ``enableDnsSupport`` for a VPC.
-This value isn't captured when we write the VPC by default as it's not returned by
-:meth:`~boto3:EC2.Client.describe_vpcs`.
+We can get this one of two ways, either by getting the ``enable_dns_support`` attribute on our
+:class:`~cloudwanderer.cloud_wanderer_resource.CloudWandererResource` object, or by calling
+:meth:`~cloudwanderer.cloud_wanderer_resource.CloudWandererResource.get_secondary_attribute`
+with a `JMESPath <https://jmespath.org/>`_.
 
 .. doctest ::
 
@@ -125,28 +127,40 @@ This value isn't captured when we write the VPC by default as it's not returned 
     Traceback (most recent call last):
      ...
     AttributeError: 'CloudWandererResource' object has no attribute 'enable_dns_support'
+    >>> first_vpc.get_secondary_attribute('[].EnableDnsSupport.Value')
+    []
 
+However, when we try, we find the attribute empty!
 
-Instead we have to find a way to call :meth:`~boto3:EC2.Client.describe_vpc_attribute`.
+This is because this value isn't captured when we write the VPC
+using :meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resources` as it's not returned by a standard
+:meth:`~boto3:EC2.Client.describe_vpcs` call.
 
-To allow us to:
+Instead we have to find a way to call :meth:`~boto3:EC2.Client.describe_vpc_attribute`. We do this with our own
+custom secondary attribute definitions in order to allow us to standardise the process of:
 
-#. Retrieve that additional information
-#. Put it in storage
-#. Return it in our :class:`~cloudwanderer.cloud_wanderer_resource.CloudWandererResource`
+#. Retrieving that additional information from methods like :meth:`~boto3:EC2.Client.describe_vpc_attribute`
+#. Putting it in storage
+#. Returning it in our :class:`~cloudwanderer.cloud_wanderer_resource.CloudWandererResource`
 
-in a standardised way, we implement our own custom Resource Attribute definitions.
-These are written using :meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_secondary_attributes`.
+These secondary attributes are written using :meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_secondary_attributes`.
 
 .. doctest ::
 
     >>> wanderer.write_secondary_attributes()
+
+Now we have to call :meth:`~cloudwanderer.cloud_wanderer_resource.CloudWandererResource.load` to pull
+the new data into the object after calling :meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_secondary_attributes`.
+
+
+.. doctest ::
+
     >>> first_vpc.load()
     >>> first_vpc.enable_dns_support
     {'Value': True}
+    >>> first_vpc.get_secondary_attribute('[].EnableDnsSupport.Value')
+    [True]
 
-Note that we have to call :meth:`~cloudwanderer.cloud_wanderer_resource.CloudWandererResource.load` to pull
-the new data into the object after calling :meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_secondary_attributes`.
 
 Deleting Stale Resources
 -------------------------
