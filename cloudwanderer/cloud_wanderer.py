@@ -183,7 +183,7 @@ class CloudWanderer():
 
     def write_secondary_attributes(
             self, exclude_resources: List[str] = None, client_args: dict = None) -> None:
-        """Write all AWS secondary attributes in this account from all regions and all services to storage.
+        """Write all secondary attributes in this account from all regions and all services to storage.
 
         Arguments:
             exclude_resources (list): A list of resource names to exclude (e.g. ``['instance']``)
@@ -200,7 +200,7 @@ class CloudWanderer():
 
     def write_secondary_attributes_in_region(
             self, exclude_resources: List[str] = None, region_name: str = None, client_args: dict = None) -> None:
-        """Write all AWS secondary attributes in this account in this region to storage.
+        """Write all secondary attributes in this account in this region to storage.
 
         These custom resource attribute definitions allow us to fetch secondary attributes that are not returned by the
         resource's default describe calls.
@@ -225,7 +225,7 @@ class CloudWanderer():
     def write_secondary_attributes_of_service_in_region(
             self, service_name: str, exclude_resources: List[str] = None,
             region_name: str = None, client_args: dict = None) -> None:
-        """Write all AWS secondary attributes in this account in this service to storage.
+        """Write all secondary attributes in this account in this service to storage.
 
         These custom resource attribute definitions allow us to fetch secondary attributes that are not returned by the
         resource's default describe calls.
@@ -264,7 +264,7 @@ class CloudWanderer():
 
     def write_secondary_attributes_of_type_in_region(
             self, service_name: str, resource_type: str, region_name: str = None, client_args: dict = None) -> None:
-        """Write all AWS secondary attributes in this account of this resource type to storage.
+        """Write all secondary attributes in this account of this resource type to storage.
 
         These custom resource attribute definitions allow us to fetch secondary attributes that are not returned by the
         resource's default describe calls.
