@@ -56,9 +56,9 @@ class TestFunctional(unittest.TestCase):
         print([str(x.urn) for x in self.storage_connector.read_resources(
             service='ec2', resource_type='vpc', account_id=vpc.urn.account_id)])
 
-    def test_write_resource_attributes(self):
+    def test_write_secondary_attributes(self):
         self.storage_connector.init()
-        self.wanderer.write_resource_attributes()
+        self.wanderer.write_secondary_attributes()
 
-    def test_write_resource_attributes_in_region(self):
-        self.wanderer.write_resource_attributes_in_region('ec2')
+    def test_write_secondary_attributes_in_region(self):
+        self.wanderer.write_secondary_attributes_in_region('ec2')

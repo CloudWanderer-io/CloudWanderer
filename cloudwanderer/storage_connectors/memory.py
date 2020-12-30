@@ -91,18 +91,18 @@ class MemoryStorageConnector(BaseStorageConnector):
         self._data[str(urn)] = self._data.get(str(urn), {})
         self._data[str(urn)]['BaseResource'] = standardise_data_types(resource.meta.data)
 
-    def write_resource_attribute(
-            self, urn: AwsUrn, attribute_type: str, resource_attribute: boto3.resources.base.ServiceResource) -> None:
+    def write_secondary_attribute(
+            self, urn: AwsUrn, attribute_type: str, secondary_attribute: boto3.resources.base.ServiceResource) -> None:
         """Write the specified resource attribute to DynamoDb.
 
         Arguments:
             urn (AwsUrn): The resource whose attribute to write.
             attribute_type (str): The type of the resource attribute to write (usually the boto3 client method name)
-            resource_attribute (boto3.resources.base.ServiceResource): The resource attribute to write to storage.
+            secondary_attribute (boto3.resources.base.ServiceResource): The resource attribute to write to storage.
 
         """
         self._data[str(urn)] = self._data.get(str(urn), {})
-        self._data[str(urn)][attribute_type] = resource_attribute.meta.data
+        self._data[str(urn)][attribute_type] = secondary_attribute.meta.data
 
     def delete_resource(self, urn: AwsUrn) -> None:
         """Delete the resource and all its resource attributes from memory."""

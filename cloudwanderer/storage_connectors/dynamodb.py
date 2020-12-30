@@ -133,20 +133,20 @@ class DynamoDbConnector(BaseStorageConnector):
             Item=item
         )
 
-    def write_resource_attribute(
-            self, urn: AwsUrn, attribute_type: str, resource_attribute: boto3.resources.base.ServiceResource) -> None:
+    def write_secondary_attribute(
+            self, urn: AwsUrn, attribute_type: str, secondary_attribute: boto3.resources.base.ServiceResource) -> None:
         """Write the specified resource attribute to DynamoDb.
 
         Arguments:
             urn (AwsUrn): The resource whose attribute to write.
             attribute_type (str): The type of the resource attribute to write (usually the boto3 client method name)
-            resource_attribute (boto3.resources.base.ServiceResource): The resource attribute to write to storage.
+            secondary_attribute (boto3.resources.base.ServiceResource): The resource attribute to write to storage.
 
         """
         logger.debug(f"Writing: {attribute_type} of {urn} to {self.table_name}")
         item = {
             **self._generate_index_values_for_write(urn, attribute_type),
-            **standardise_data_types(resource_attribute.meta.data or {})
+            **standardise_data_types(secondary_attribute.meta.data or {})
         }
         self.dynamodb_table.put_item(
             Item=item

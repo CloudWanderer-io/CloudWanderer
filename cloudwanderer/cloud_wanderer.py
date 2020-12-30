@@ -181,31 +181,31 @@ class CloudWanderer():
             return False
         return True
 
-    def write_resource_attributes(
+    def write_secondary_attributes(
             self, exclude_resources: List[str] = None, client_args: dict = None) -> None:
-        """Write all AWS resource attributes in this account from all regions and all services to storage.
+        """Write all secondary attributes in this account from all regions and all services to storage.
 
         Arguments:
             exclude_resources (list): A list of resource names to exclude (e.g. ``['instance']``)
             client_args (dict): Arguments to pass into the boto3 client.
                 See: :meth:`boto3.session.Session.client`
         """
-        logger.info('Writing resource attributes in all enabled regions')
+        logger.info('Writing secondary attributes in all enabled regions')
         for region_name in self.enabled_regions:
-            self.write_resource_attributes_in_region(
+            self.write_secondary_attributes_in_region(
                 region_name=region_name,
                 exclude_resources=exclude_resources,
                 client_args=client_args
             )
 
-    def write_resource_attributes_in_region(
+    def write_secondary_attributes_in_region(
             self, exclude_resources: List[str] = None, region_name: str = None, client_args: dict = None) -> None:
-        """Write all AWS resource attributes in this account in this region to storage.
+        """Write all secondary attributes in this account in this region to storage.
 
-        These custom resource attribute definitions allow us to fetch resource attributes that are not returned by the
+        These custom resource attribute definitions allow us to fetch secondary attributes that are not returned by the
         resource's default describe calls.
         Unlike :meth:`~CloudWanderer.write_resources` and :meth:`~CloudWanderer.write_resources_of_type_in_region`
-        this method does not clean up stale resource attributes from storage.
+        this method does not clean up stale secondary attributes from storage.
 
         Arguments:
             exclude_resources (list): A list of resources not to write attributes for (e.g. ``['vpc']``)
@@ -215,22 +215,22 @@ class CloudWanderer():
                 See: :meth:`boto3.session.Session.client`
         """
         for boto3_service in self.custom_attributes_interface.get_all_resource_services():
-            self.write_resource_attributes_of_service_in_region(
+            self.write_secondary_attributes_of_service_in_region(
                 service_name=boto3_service.meta.service_name,
                 exclude_resources=exclude_resources,
                 client_args=client_args,
                 region_name=region_name,
             )
 
-    def write_resource_attributes_of_service_in_region(
+    def write_secondary_attributes_of_service_in_region(
             self, service_name: str, exclude_resources: List[str] = None,
             region_name: str = None, client_args: dict = None) -> None:
-        """Write all AWS resource attributes in this account in this service to storage.
+        """Write all secondary attributes in this account in this service to storage.
 
-        These custom resource attribute definitions allow us to fetch resource attributes that are not returned by the
+        These custom resource attribute definitions allow us to fetch secondary attributes that are not returned by the
         resource's default describe calls.
         Unlike :meth:`~CloudWanderer.write_resources` and :meth:`~CloudWanderer.write_resources_of_type_in_region`
-        this method does not clean up stale resource attributes from storage.
+        this method does not clean up stale secondary attributes from storage.
 
         Arguments:
             service_name (str): The name of the service to write the attributes of (e.g. ``'ec2'``)
@@ -243,7 +243,7 @@ class CloudWanderer():
         client_args = client_args or {
             'region_name': region_name or self.boto3_session.region_name
         }
-        logger.info("Writing all %s resource attributes in %s", service_name, client_args['region_name'])
+        logger.info("Writing all %s secondary attributes in %s", service_name, client_args['region_name'])
         exclude_resources = exclude_resources or []
         service_map = self.global_service_maps.get_global_service_map(service_name=service_name)
         has_gobal_resources_in_this_region = service_map.has_global_resources_in_region(client_args['region_name'])
@@ -256,17 +256,17 @@ class CloudWanderer():
             if resource_type in exclude_resources:
                 logger.info('Skipping %s as per exclude_resources', resource_type)
                 continue
-            self.write_resource_attributes_of_type_in_region(
+            self.write_secondary_attributes_of_type_in_region(
                 service_name=service_name,
                 resource_type=resource_type,
                 client_args=client_args
             )
 
-    def write_resource_attributes_of_type_in_region(
+    def write_secondary_attributes_of_type_in_region(
             self, service_name: str, resource_type: str, region_name: str = None, client_args: dict = None) -> None:
-        """Write all AWS resource attributes in this account of this resource type to storage.
+        """Write all secondary attributes in this account of this resource type to storage.
 
-        These custom resource attribute definitions allow us to fetch resource attributes that are not returned by the
+        These custom resource attribute definitions allow us to fetch secondary attributes that are not returned by the
         resource's default describe calls.
 
         Arguments:
@@ -281,18 +281,18 @@ class CloudWanderer():
             'region_name': region_name or self.boto3_session.region_name
         }
         logger.info('--> Fetching %s %s in %s', service_name, resource_type, client_args['region_name'])
-        resource_attributes = self.custom_attributes_interface.get_resources_of_type(
+        secondary_attributes = self.custom_attributes_interface.get_resources_of_type(
             service_name=service_name,
             resource_type=resource_type,
             client_args=client_args
         )
-        for resource_attribute in resource_attributes:
-            urn = self._get_resource_urn(resource_attribute, client_args['region_name'])
+        for secondary_attribute in secondary_attributes:
+            urn = self._get_resource_urn(secondary_attribute, client_args['region_name'])
             for storage_connector in self.storage_connectors:
-                storage_connector.write_resource_attribute(
+                storage_connector.write_secondary_attribute(
                     urn=urn,
-                    resource_attribute=resource_attribute,
-                    attribute_type=xform_name(resource_attribute.meta.resource_model.name)
+                    secondary_attribute=secondary_attribute,
+                    attribute_type=xform_name(secondary_attribute.meta.resource_model.name)
                 )
 
     @property
