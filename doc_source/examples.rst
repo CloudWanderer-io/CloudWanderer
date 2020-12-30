@@ -99,15 +99,54 @@ You'll notice here we're calling a property ``urn`` in order to print the region
 :doc:`AwsUrns <reference/aws_urn>` are CloudWanderer's way of uniquely identifying a resource.
 
 You can also see we're printing the vpc's ``state`` and ``is_default`` attributes. It's very important to notice the
-:meth:`~cloudwanderer.cloud_wanderer.CloudWandererResource.load` call beforehand which loads the resource's data.
+:meth:`~cloudwanderer.cloud_wanderer_resource.CloudWandererResource.load` call beforehand which loads the resource's data.
 Resources returned from any :meth:`~cloudwanderer.storage_connectors.DynamoDbConnector.read_resources`
 call on :class:`~cloudwanderer.storage_connectors.DynamoDbConnector`
 are lazily loaded *unless* you specify the ``urn=`` argument.
 This is due to the sparsely populated global secondary indexes in the DynamoDB table schema.
 
-Once you've called :meth:`~cloudwanderer.cloud_wanderer.CloudWandererResource.load` you can access any property of
+Once you've called :meth:`~cloudwanderer.cloud_wanderer_resource.CloudWandererResource.load` you can access any property of
 the AWS resource that is returned by its describe method. E.g. for VPCs see :attr:`boto3:EC2.Client.describe_vpcs`.
 These attributes are stored as snake_case instead of the APIs camelCase, so ``isDefault`` becomes ``is_default``.
+
+Writing Secondary Resource Attributes
+---------------------------------------
+
+Some resources require additional API calls beyond the initial
+``list`` or ``describe`` call to retrieve all their metadata.
+For example, let's say we want to get the value of ``enableDnsSupport`` for a VPC.
+This value isn't captured when we write the VPC by default as it's not returned by
+:meth:`~boto3:EC2.Client.describe_vpcs`.
+
+.. doctest ::
+
+    >>> first_vpc = next(storage_connector.read_resources(service='ec2', resource_type='vpc'))
+    >>> first_vpc.enable_dns_support
+    Traceback (most recent call last):
+     ...
+    AttributeError: 'CloudWandererResource' object has no attribute 'enable_dns_support'
+
+
+Instead we have to find a way to call :meth:`~boto3:EC2.Client.describe_vpc_attribute`.
+
+To allow us to:
+
+#. Retrieve that additional information
+#. Put it in storage
+#. Return it in our :class:`~cloudwanderer.cloud_wanderer_resource.CloudWandererResource`
+
+in a standardised way, we implement our own custom Resource Attribute definitions.
+These are written using :meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resource_attributes`.
+
+.. doctest ::
+
+    >>> wanderer.write_resource_attributes()
+    >>> first_vpc.load()
+    >>> first_vpc.enable_dns_support
+    {'Value': True}
+
+Note that we have to call :meth:`~cloudwanderer.cloud_wanderer_resource.CloudWandererResource.load` to pull
+the new data into the object after calling :meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resource_attributes`.
 
 Deleting Stale Resources
 -------------------------

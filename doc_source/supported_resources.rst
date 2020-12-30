@@ -30,7 +30,7 @@ Additional Resource Attributes
 Some resources require additional API calls beyond the initial
 ``list`` or ``describe`` call to retrieve all their metadata.
 To allow us to retrieve that additional information and return it in our
-:class:`~cloudwanderer.cloud_wanderer.CloudWandererResource`, we implement our own
+:class:`~cloudwanderer.cloud_wanderer_resource.CloudWandererResource`, we implement our own
 custom Resource Attribute definitions.
 
 You can find the full list of supported Resource Attributes below.

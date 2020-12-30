@@ -96,6 +96,13 @@ os.environ['AWS_SECRET_ACCESS_KEY'] = '1111111'
 os.environ['AWS_SESSION_TOKEN'] = '1111111'
 os.environ['AWS_DEFAULT_REGION'] = 'eu-west-2'
 
+def generate_mock_collection(service, shape_name, collection_name):
+    collection = MagicMock(**{
+        'meta.service_name': service,
+        'resource.model.shape': shape_name
+    })
+    collection.configure_mock(name=collection_name)
+    return collection
 
 def limit_collections_list():
     collections_to_mock = {
@@ -104,18 +111,22 @@ def limit_collections_list():
         's3': ('bucket', 'buckets'),
         'iam': ('group', 'groups')
     }
-    mock_collections = []
-    for service, name_tuple in collections_to_mock.items():
-        collection = MagicMock(**{
-            'meta.service_name': service,
-            'resource.model.shape': name_tuple[0]
-        })
-        collection.configure_mock(name=name_tuple[1])
-        mock_collections.append(collection)
+    mock_collections = [
+        generate_mock_collection(service, name_tuple[0], name_tuple[1])
+        for service, name_tuple in collections_to_mock.items()
+    ]
+
     cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface.get_resource_collections = MagicMock(
         side_effect=lambda service_resource: [
             collection
             for collection in mock_collections
+            if service_resource.meta.service_name == collection.meta.service_name
+        ]
+    )
+    cloudwanderer.cloud_wanderer.CustomAttributesInterface.get_resource_collections = MagicMock(
+        side_effect=lambda service_resource: [
+            collection
+            for collection in [generate_mock_collection('ec2', 'vpc', 'vpc_enable_dns_support')]
             if service_resource.meta.service_name == collection.meta.service_name
         ]
     )
