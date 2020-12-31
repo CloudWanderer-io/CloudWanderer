@@ -17,6 +17,7 @@ def get_secondary_attribute_types(service_name):
 
 
 def generate_params():
+    setup_moto(restrict_collections=False)
     services = [
         ('ec2', 'eu-west-2'),
         ('iam', 'us-east-1')
