@@ -2,19 +2,20 @@
 """Setup CloudWanderer package."""
 from os import path
 from setuptools import setup, find_packages
+import re
 
 this_directory = path.abspath(path.dirname(__file__))
-with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
-    long_description = f.read()
+with open(path.join(this_directory, 'README.rst'), encoding='utf-8') as f:
+    long_description = re.sub(r'..\s+doctest\s+::', '.. code-block ::', f.read())
 
 setup(
-    version='0.9.0',
+    version='0.9.1',
     python_requires='>=3.6.0',
     name='cloudwanderer',
     packages=find_packages(include=['cloudwanderer', 'cloudwanderer.*']),
     description='A Python package which wanders across your AWS account and records your resources in DynamoDB',
     long_description=long_description,
-    long_description_content_type='text/markdown',
+    long_description_content_type='text/x-rst',
     author='Sam Martin',
     author_email='samjackmartin+cloudwanderer@gmail.com',
     url='https://github.com/CloudWanderer-io/CloudWanderer',
