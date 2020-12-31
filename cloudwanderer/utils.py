@@ -16,7 +16,7 @@ def exception_logging_wrapper(method: Callable, **kwargs) -> None:
     try:
         method(**kwargs)
     except Exception as ex:
-        logger.error(ex)
+        logger.exception(ex)
 
 
 def json_object_hook(dct: dict) -> dict:
