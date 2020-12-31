@@ -1,0 +1,60 @@
+{
+    "service": {
+        "hasMany": {
+            "RoleInlinePolicyAttachments": {
+                "request": { "operation": "ListRoles" },
+                "resource": {
+                    "type": "RoleInlinePolicyAttachments",
+                    "identifiers": [
+                        { "target": "Name", "source": "response", "path": "Roles[].RoleName" }
+                    ],
+                    "path": "Roles[]"
+                }
+            },
+            "RoleManagedPolicyAttachments": {
+                "request": { "operation": "ListRoles" },
+                "resource": {
+                    "type": "RoleManagedPolicyAttachments",
+                    "identifiers": [
+                        { "target": "Name", "source": "response", "path": "Roles[].RoleName" }
+                    ],
+                    "path": "Roles[]"
+                }
+            }
+        }
+    },
+    "resources": {
+        "RoleInlinePolicyAttachments": {
+            "identifiers": [{
+                "name": "Name",
+                "memberName": "Name"
+            }],
+            "shape": "Role",
+            "load": {
+                "request": {
+                    "operation": "ListRolePolicies",
+                    "params": [
+                        { "target": "RoleName", "source": "identifier", "name": "Name" }
+                    ]
+                },
+                "path": "@"
+            }
+        },
+        "RoleManagedPolicyAttachments": {
+            "identifiers": [{
+                "name": "Name",
+                "memberName": "Name"
+            }],
+            "shape": "Role",
+            "load": {
+                "request": {
+                    "operation": "ListAttachedRolePolicies",
+                    "params": [
+                        { "target": "RoleName", "source": "identifier", "name": "Name" }
+                    ]
+                },
+                "path": "@"
+            }
+        }
+    }
+}

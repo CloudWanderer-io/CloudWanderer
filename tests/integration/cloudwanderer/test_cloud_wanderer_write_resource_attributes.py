@@ -1,31 +1,24 @@
 import logging
 import unittest
 from unittest.mock import MagicMock
-from moto import mock_ec2, mock_sts, mock_iam, mock_s3
 from ..mocks import add_infra, generate_mock_session, ENABLED_REGIONS
-from ..helpers import MockStorageConnectorMixin
+from ..helpers import MockStorageConnectorMixin, setup_moto
 from cloudwanderer import CloudWanderer
 
 
-@mock_ec2
-@mock_sts
-@mock_iam
 class TestCloudWandererWriteResourceAttributes(unittest.TestCase, MockStorageConnectorMixin):
 
-    @mock_ec2
-    @mock_sts
-    @mock_iam
-    @mock_s3
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         logging.basicConfig(level='INFO')
+        setup_moto(restrict_regions=False, restrict_collections=False)
         add_infra()
         self.mock_storage_connector = MagicMock()
         self.wanderer = CloudWanderer(
             storage_connectors=[self.mock_storage_connector],
             boto3_session=generate_mock_session()
         )
-        definitions = self.wanderer.custom_attributes_interface.custom_secondary_attribute_definitions.definitions
+        definitions = self.wanderer.secondary_attributes_interface.custom_secondary_attribute_definitions.definitions
         self.supported_services = definitions.keys()
         self.expected_service_logs = [
             f'INFO:cloudwanderer:Writing all {service} secondary attributes in us-east-1'

@@ -6,7 +6,7 @@ import concurrent.futures
 from botocore import xform_name
 import boto3
 from .utils import exception_logging_wrapper
-from .boto3_interface import CloudWandererBoto3Interface, CustomAttributesInterface
+from .boto3_interface import CloudWandererBoto3Interface, SecondaryAttributesInterface
 from .aws_urn import AwsUrn
 from .global_service_mappings import GlobalServiceMappingCollection
 from boto3.resources.model import ResourceModel
@@ -32,7 +32,7 @@ class CloudWanderer():
         self.storage_connectors = storage_connectors
         self.boto3_session = boto3_session or boto3.session.Session()
         self.boto3_interface = CloudWandererBoto3Interface(boto3_session=self.boto3_session)
-        self.custom_attributes_interface = CustomAttributesInterface(boto3_session=self.boto3_session)
+        self.secondary_attributes_interface = SecondaryAttributesInterface(boto3_session=self.boto3_session)
         self.global_service_maps = GlobalServiceMappingCollection(boto3_session=self.boto3_session)
         self._account_id = None
         self._enabled_regions = None
@@ -214,7 +214,7 @@ class CloudWanderer():
             client_args (dict): Arguments to pass into the boto3 client.
                 See: :meth:`boto3.session.Session.client`
         """
-        for boto3_service in self.custom_attributes_interface.get_all_resource_services():
+        for boto3_service in self.secondary_attributes_interface.get_all_resource_services():
             self.write_secondary_attributes_of_service_in_region(
                 service_name=boto3_service.meta.service_name,
                 exclude_resources=exclude_resources,
@@ -252,7 +252,7 @@ class CloudWanderer():
                         service_name, client_args['region_name'])
             return
         exclude_resources = exclude_resources or []
-        for resource_type in self.custom_attributes_interface.get_service_resource_types(service_name):
+        for resource_type in self.secondary_attributes_interface.get_service_resource_types(service_name):
             if resource_type in exclude_resources:
                 logger.info('Skipping %s as per exclude_resources', resource_type)
                 continue
@@ -281,7 +281,7 @@ class CloudWanderer():
             'region_name': region_name or self.boto3_session.region_name
         }
         logger.info('--> Fetching %s %s in %s', service_name, resource_type, client_args['region_name'])
-        secondary_attributes = self.custom_attributes_interface.get_resources_of_type(
+        secondary_attributes = self.secondary_attributes_interface.get_resources_of_type(
             service_name=service_name,
             resource_type=resource_type,
             client_args=client_args

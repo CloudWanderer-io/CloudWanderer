@@ -173,16 +173,20 @@ def mock_services():
         mock.start()
 
 
-def setup_moto():
+def setup_moto(restrict_regions: bool = True, restrict_services: bool = True, restrict_collections: bool = True):
     os.environ['AWS_ACCESS_KEY_ID'] = '1111111'
     os.environ['AWS_SECRET_ACCESS_KEY'] = '1111111'
     os.environ['AWS_SESSION_TOKEN'] = '1111111'
     os.environ['AWS_DEFAULT_REGION'] = 'eu-west-2'
-    ec2.models.RegionsAndZonesBackend.regions = [
-        ec2.models.Region(region_name, "ec2.{region_name}.amazonaws.com", "opt-in-not-required")
-        for region_name in ['eu-west-2', 'us-east-1']
-    ]
-    cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface.get_all_resource_services = MagicMock(
-        return_value=[boto3.resource(service) for service in ['ec2', 's3', 'iam']])
-    limit_collections_list()
+
+    if restrict_regions:
+        ec2.models.RegionsAndZonesBackend.regions = [
+            ec2.models.Region(region_name, "ec2.{region_name}.amazonaws.com", "opt-in-not-required")
+            for region_name in ['eu-west-2', 'us-east-1']
+        ]
+    if restrict_services:
+        cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface.get_all_resource_services = MagicMock(
+            return_value=[boto3.resource(service) for service in ['ec2', 's3', 'iam']])
+    if restrict_collections:
+        limit_collections_list()
     mock_services()

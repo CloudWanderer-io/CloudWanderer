@@ -80,7 +80,7 @@ class CloudWandererResourceAttributesDirective(SphinxDirective):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.custom_attributes_interface = cloudwanderer.boto3_interface.CustomAttributesInterface(
+        self.secondary_attributes_interface = cloudwanderer.boto3_interface.SecondaryAttributesInterface(
             boto3.Session(region_name='eu-west-1'))
 
     def run(self) -> list:
@@ -91,11 +91,11 @@ class CloudWandererResourceAttributesDirective(SphinxDirective):
 
     def get_cloudwanderer_secondary_attributes(self) -> list:
         service_list = nodes.bullet_list()
-        services = self.custom_attributes_interface.custom_secondary_attribute_definitions.definitions
+        services = self.secondary_attributes_interface.custom_secondary_attribute_definitions.definitions
         for service_name, service in services.items():
 
             resource_list = nodes.bullet_list()
-            resource_collections = self.custom_attributes_interface.get_resource_collections(
+            resource_collections = self.secondary_attributes_interface.get_resource_collections(
                 service
             )
             for resource_collection in resource_collections:

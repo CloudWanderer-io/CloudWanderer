@@ -124,10 +124,8 @@ class CloudWandererBoto3Interface:
                 See: :meth:`boto3.session.Session.client`
         """
         for boto3_service in self.get_resource_service_by_name(service_name, client_args=client_args):
-            boto3_resource_collection = next(
-                self.get_resource_collection_by_resource_type(boto3_service, resource_type),
-                None)
-            if boto3_resource_collection is not None:
+            collections = self.get_resource_collection_by_resource_type(boto3_service, resource_type)
+            for boto3_resource_collection in collections:
                 try:
                     yield from self.get_resource_from_collection(
                         boto3_service=boto3_service,
@@ -171,7 +169,7 @@ class CloudWandererBoto3Interface:
                 yield from self.get_resource_collections(boto3_service)
 
 
-class CustomAttributesInterface(CloudWandererBoto3Interface):
+class SecondaryAttributesInterface(CloudWandererBoto3Interface):
     """Simplifies lookup of CloudWanderer custom attributes.
 
     Custom attributes use the :class:`boto3.resources.base.ServiceResource` model to load attribute information.

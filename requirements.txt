@@ -3,6 +3,7 @@ boto3
 git+git://github.com/spulec/moto.git@c9c30b82867294030833cef292db167955bc8240
 flake8
 pytest
+parameterized
 pydocstyle
 mock==4.0.2
 flake8-annotations

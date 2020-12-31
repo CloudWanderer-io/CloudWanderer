@@ -66,6 +66,8 @@ html_theme = 'sphinx_rtd_theme'
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
+html_favicon = 'logo.png'
+
 # -- intersphinx
 intersphinx_mapping = {
     'boto3': ('https://boto3.amazonaws.com/v1/documentation/api/latest/', None)
@@ -123,7 +125,7 @@ def limit_collections_list():
             if service_resource.meta.service_name == collection.meta.service_name
         ]
     )
-    cloudwanderer.cloud_wanderer.CustomAttributesInterface.get_resource_collections = MagicMock(
+    cloudwanderer.cloud_wanderer.SecondaryAttributesInterface.get_resource_collections = MagicMock(
         side_effect=lambda service_resource: [
             collection
             for collection in [generate_mock_collection('ec2', 'vpc', 'vpc_enable_dns_support')]

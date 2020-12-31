@@ -73,6 +73,9 @@ def add_infra(count=1, regions=ENABLED_REGIONS):
 
     iam_resource = boto3.resource('iam')
     iam_resource.Group('test-group').create()
+    iam_resource.create_role(RoleName='test-role', AssumeRolePolicyDocument='{}')
+    policies = list(iam_resource.policies.all())
+    iam_resource.Role('test-role').attach_policy(PolicyArn=policies[0].arn)
 
 
 def generate_urn(service, resource_type, id):
