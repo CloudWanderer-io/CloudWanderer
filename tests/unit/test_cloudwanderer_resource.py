@@ -19,28 +19,24 @@ class TestCloudWandererResource(unittest.TestCase):
         assert cwr.urn == urn
         assert cwr.cidr_block == '10.0.0.0/0'
         assert cwr.get_secondary_attribute('[].EnableDnsSupport.Value')[0] is True
-        assert cwr.enable_dns_support == {'Value': True}
+        self.assertRaises(AttributeError, getattr, cwr, 'enable_dns_support')
         assert cwr.is_inflated is True
 
     def test_clashing_attributes(self):
         urn = AwsUrn.from_string('urn:aws:111111111111:eu-west-2:ec2:vpc:vpc-11111111')
-        with self.assertLogs('cloudwanderer.cloud_wanderer_resource', level='WARNING') as cm:
-            cwr = CloudWandererResource(
-                urn=urn,
-                resource_data={
-                    'CidrBlock': '10.0.0.0/0'
-                },
-                secondary_attributes=[
-                    {'EnableDnsSupport': {'Value': True}},
-                    {'EnableDnsSupport': {'Value': False}}
-                ]
-            )
-        self.assertEqual(cm.output, [str(
-            'WARNING:cloudwanderer.cloud_wanderer_resource:EnableDnsSupport is already an '
-            'attribute on CloudWandererResource, EnableDnsSupport will only be accessible '
-            'via get_secondary_attributes')])
-        assert cwr.enable_dns_support == {'Value': True}
+        cwr = CloudWandererResource(
+            urn=urn,
+            resource_data={
+                'CidrBlock': '10.0.0.0/0'
+            },
+            secondary_attributes=[
+                {'EnableDnsSupport': {'Value': True}},
+                {'EnableDnsSupport': {'Value': False}}
+            ]
+        )
         assert cwr.get_secondary_attribute('[].EnableDnsSupport.Value') == [True, False]
+        self.assertRaises(AttributeError, getattr, cwr, 'enable_dns_support')
+        assert cwr.is_inflated is True
 
     def test_load_without_loader(self):
         urn = AwsUrn.from_string('urn:aws:111111111111:eu-west-2:ec2:vpc:vpc-11111111')
