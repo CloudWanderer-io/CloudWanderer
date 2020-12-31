@@ -11,4 +11,8 @@ class TestUtils(unittest.TestCase):
 
         with self.assertLogs(logging.getLogger('cloudwanderer.utils'), level='ERROR') as cm:
             exception_logging_wrapper(method)
-        self.assertEqual(cm.output, ['ERROR:cloudwanderer.utils:This exception should be logged'])
+        assert len(cm.output) == 1
+        assert cm.output[0].startswith(str(
+            'ERROR:cloudwanderer.utils:This exception should be logged\n'
+            'Traceback (most recent call last):\n'
+        ))
