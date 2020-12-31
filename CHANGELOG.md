@@ -8,6 +8,7 @@
     - Added `write_resource_attribute` to `BaseStorageConnector`
     - Added `write_resource_attribute` to `MemoryStorageConnector`
     - Renamed `resource_attributes` to `secondary_attributes`
+- Fixed bug where `write_secondary_attributes` would enumerate services which did not have secondary attributes.
 
 # 0.8.0
 
