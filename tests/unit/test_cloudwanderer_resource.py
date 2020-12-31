@@ -1,6 +1,5 @@
 import unittest
 from unittest.mock import MagicMock
-import warnings
 from cloudwanderer import AwsUrn
 from cloudwanderer.cloud_wanderer_resource import CloudWandererResource
 
@@ -68,12 +67,6 @@ class TestCloudWandererResource(unittest.TestCase):
         cwr.load()
         assert cwr.is_inflated is True
         assert cwr.cidr_block == '10.0.0.0/0'
-
-        with warnings.catch_warnings(record=True) as w:
-            """Loading a second time should not throw a warning."""
-            warnings.simplefilter("always")
-            cwr.load()
-            assert len(w) == 0
 
     def test_str(self):
         cwr = CloudWandererResource(

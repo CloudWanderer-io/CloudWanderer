@@ -1,6 +1,5 @@
 """Standardised dataclasses for returning resources from storage."""
 from typing import Callable, List
-from collections import namedtuple
 import logging
 import jmespath
 from botocore import xform_name
@@ -18,7 +17,8 @@ class ResourceMetadata:
         secondary_attributes (list): the list of raw dictionary representation of the Resource's secondary attributes.
     """
 
-    def __init__(self, resource_data, secondary_attributes):
+    def __init__(self, resource_data: dict, secondary_attributes: list) -> None:
+        """Initialise the data class."""
         self.resource_data = resource_data
         self.secondary_attributes = secondary_attributes
 
