@@ -190,6 +190,15 @@ class CustomAttributesInterface(CloudWandererBoto3Interface):
             definition_path='attribute_definitions'
         )
 
+    def get_all_resource_services(self, client_args: dict = None) -> Iterator[ServiceResource]:
+        """Return all the Service Resource objects that have Secondary Attribute Definitions.
+
+        Arguments:
+            client_args (dict): Arguments to pass into the boto3 client.
+                See: :meth:`boto3.session.Session.client`
+        """
+        yield from self.custom_secondary_attribute_definitions.definitions.values()
+
     def get_resource_from_collection(
             self, boto3_service: ServiceResource,
             boto3_resource_collection: Collection) -> Iterator[ResourceModel]:
