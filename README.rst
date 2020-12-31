@@ -1,5 +1,17 @@
 .. image :: https://user-images.githubusercontent.com/803607/101322139-7111b800-385e-11eb-9277-c6bf3a580987.png
 
+|version| |checks|
+
+.. |version|
+   image:: https://img.shields.io/pypi/v/cloudwanderer?style=flat-square
+      :alt: PyPI
+      :target: https://pypi.org/project/cloudwanderer/
+
+.. |checks|
+   image:: https://img.shields.io/github/workflow/status/cloudwanderer-io/cloudwanderer/Python%20package/main?style=flat-square
+      :alt: GitHub Workflow Status (branch)
+      :target: https://github.com/CloudWanderer-io/CloudWanderer/actions?query=branch%3Amain
+
 A Python package which wanders across your AWS account and records your resources in DynamoDB
 
 
