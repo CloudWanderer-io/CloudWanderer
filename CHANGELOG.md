@@ -1,7 +1,6 @@
 # 0.9.0
 
 - Added `get_secondary_attribute` to `CloudWandererResource`
-- Added secondary attributes to `CloudWandererResource` if they don't clash.
 - Added `is_inflated` to `CloudWandererResource`
 - Storage Standardisation improvements
     - Standardised storage connector write tests

@@ -8,7 +8,7 @@ from .aws_urn import AwsUrn
 logger = logging.getLogger(__name__)
 
 
-class ResourceMetadata(namedtuple('ResourceMetadata', ['resource_data', 'secondary_attributes'])):
+class ResourceMetadata:
     """Metadata for a :class:`CloudWandererResource`.
 
     Contains the original dictionaries of the resource and its attributes.
@@ -17,6 +17,10 @@ class ResourceMetadata(namedtuple('ResourceMetadata', ['resource_data', 'seconda
         resource_data (dict): The raw dictionary representation of the Resource.
         secondary_attributes (list): the list of raw dictionary representation of the Resource's secondary attributes.
     """
+
+    def __init__(self, resource_data, secondary_attributes):
+        self.resource_data = resource_data
+        self.secondary_attributes = secondary_attributes
 
 
 class CloudWandererResource():
@@ -68,14 +72,6 @@ class CloudWandererResource():
             jmes_path (str): A JMES path to the secondary attribute. e.g. ``[].EnableDnsSupport.Value``
         """
         return jmespath.search(jmes_path, self.cloudwanderer_metadata.secondary_attributes)
-
-    # @property
-    # def _clean_resource(self) -> dict:
-    #     return {
-    #         key: value
-    #         for key, value in self.metadata.items()
-    #         if not key.startswith('_')
-    #     }
 
     def _set_resource_data_attrs(self) -> None:
         for key, value in self.cloudwanderer_metadata.resource_data.items():
