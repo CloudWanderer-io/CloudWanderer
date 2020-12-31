@@ -1,8 +1,9 @@
 """Module containing abstract classes for CloudWanderer storage connectors."""
 from abc import ABC, abstractmethod
 from typing import List, Iterator
+import boto3
 from ..aws_urn import AwsUrn
-from ..cloud_wanderer import CloudWandererResource
+from ..cloud_wanderer_resource import CloudWandererResource
 
 
 class BaseStorageConnector(ABC):
@@ -41,4 +42,15 @@ class BaseStorageConnector(ABC):
         """Delete resources of type in account and region unless in list of URNs.
 
         This is used primarily to clean up old resources.
+        """
+    @abstractmethod
+    def write_secondary_attribute(
+            self, urn: AwsUrn, attribute_type: str, secondary_attribute: boto3.resources.base.ServiceResource) -> None:
+        """Write the specified resource attribute to DynamoDb.
+
+        Arguments:
+            urn (AwsUrn): The resource whose attribute to write.
+            attribute_type (str): The type of the resource attribute to write (usually the boto3 client method name)
+            secondary_attribute (boto3.resources.base.ServiceResource): The resource attribute to write to storage.
+
         """

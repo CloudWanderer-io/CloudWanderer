@@ -1,4 +1,4 @@
-CloudWanderer Reference
+CloudWanderer
 ========================
 
 .. automodule :: cloudwanderer.cloud_wanderer

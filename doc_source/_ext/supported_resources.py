@@ -87,11 +87,11 @@ class CloudWandererResourceAttributesDirective(SphinxDirective):
         targetid = 'cloudwanderer-%d' % self.env.new_serialno('cloudwanderer')
         targetnode = nodes.target('', '', ids=[targetid])
 
-        return [targetnode, self.get_cloudwanderer_resource_attributes()]
+        return [targetnode, self.get_cloudwanderer_secondary_attributes()]
 
-    def get_cloudwanderer_resource_attributes(self) -> list:
+    def get_cloudwanderer_secondary_attributes(self) -> list:
         service_list = nodes.bullet_list()
-        services = self.custom_attributes_interface.custom_resource_attribute_definitions.definitions
+        services = self.custom_attributes_interface.custom_secondary_attribute_definitions.definitions
         for service_name, service in services.items():
 
             resource_list = nodes.bullet_list()

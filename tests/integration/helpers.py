@@ -70,31 +70,31 @@ class MockStorageConnectorMixin:
                 matches.append((urn, resource))
         return matches
 
-    def assert_storage_connector_write_resource_attribute_not_called_with(self, **kwargs):
-        assert not self.storage_connector_write_resource_attribute_called_with(**kwargs)
+    def assert_storage_connector_write_secondary_attribute_not_called_with(self, **kwargs):
+        assert not self.storage_connector_write_secondary_attribute_called_with(**kwargs)
 
-    def assert_storage_connector_write_resource_attribute_called_with(self, **kwargs):
+    def assert_storage_connector_write_secondary_attribute_called_with(self, **kwargs):
         self.assertTrue(
-            self.storage_connector_write_resource_attribute_called_with(**kwargs),
-            f"No match for {kwargs} in {self.mock_storage_connector.write_resource_attribute.call_args_list}"
+            self.storage_connector_write_secondary_attribute_called_with(**kwargs),
+            f"No match for {kwargs} in {self.mock_storage_connector.write_secondary_attribute.call_args_list}"
         )
 
-    def storage_connector_write_resource_attribute_called_with(
+    def storage_connector_write_secondary_attribute_called_with(
             self, region, service, resource_type, response_dict, attribute_type):
         matches = []
-        for write_resource_attribute_call in self.mock_storage_connector.write_resource_attribute.call_args_list:
-            call_dict = write_resource_attribute_call[1]
+        for write_secondary_attribute_call in self.mock_storage_connector.write_secondary_attribute.call_args_list:
+            call_dict = write_secondary_attribute_call[1]
             comparisons = []
             for var in ['region', 'service', 'resource_type']:
                 comparisons.append(eval(var) == getattr(call_dict['urn'], var))
             for attr, value in response_dict.items():
                 try:
-                    comparisons.append(call_dict['resource_attribute'].meta.data[attr] == value)
+                    comparisons.append(call_dict['secondary_attribute'].meta.data[attr] == value)
                 except KeyError:
                     comparisons.append(False)
             comparisons.append(attribute_type == call_dict['attribute_type'])
             if all(comparisons):
-                matches.append((call_dict['urn'], call_dict['resource_attribute']))
+                matches.append((call_dict['urn'], call_dict['secondary_attribute']))
         return matches
 
 

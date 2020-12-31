@@ -3,18 +3,17 @@ from typing import Callable, Iterable, Iterator, List
 import operator
 from functools import reduce
 import itertools
+import json
 import logging
 import os
 import pathlib
 import boto3
-import json
-from datetime import datetime
 from random import randrange
-from decimal import Decimal
 from .base_connector import BaseStorageConnector
 from boto3.dynamodb.conditions import Key, Attr, ConditionBase
-from ..cloud_wanderer import CloudWandererResource
+from ..cloud_wanderer_resource import CloudWandererResource
 from ..aws_urn import AwsUrn
+from ..utils import standardise_data_types
 
 logger = logging.getLogger(__name__)
 
@@ -68,29 +67,9 @@ def dynamodb_items_to_resources(items: Iterable[dict], loader: Callable) -> Iter
         yield CloudWandererResource(
             urn=urn_from_primary_key(base_resource['_id']),
             resource_data=base_resource,
-            resource_attributes=attributes,
+            secondary_attributes=attributes,
             loader=loader
         )
-
-
-def json_object_hook(dct: dict) -> dict:
-    """Clean out empty strings to avoid ValidationException."""
-    for key, value in dct.items():
-        if value == '':
-            dct[key] = None
-    return dct
-
-
-def json_default(item: object) -> object:
-    """JSON object type converter that handles datetime objects."""
-    if isinstance(item, datetime):
-        return item.isoformat()
-
-
-def standardise_data_types(resource: dict) -> dict:
-    """Return a dictionary normalised to datatypes acceptable for DynamoDB."""
-    result = json.loads(json.dumps(resource, default=json_default), object_hook=json_object_hook, parse_float=Decimal)
-    return result
 
 
 class DynamoDbConnector(BaseStorageConnector):
@@ -154,13 +133,20 @@ class DynamoDbConnector(BaseStorageConnector):
             Item=item
         )
 
-    def write_resource_attribute(
-            self, urn: AwsUrn, attribute_type: str, resource_attribute: boto3.resources.base.ServiceResource) -> None:
-        """Write the specified resource attribute to DynamoDb."""
+    def write_secondary_attribute(
+            self, urn: AwsUrn, attribute_type: str, secondary_attribute: boto3.resources.base.ServiceResource) -> None:
+        """Write the specified resource attribute to DynamoDb.
+
+        Arguments:
+            urn (AwsUrn): The resource whose attribute to write.
+            attribute_type (str): The type of the resource attribute to write (usually the boto3 client method name)
+            secondary_attribute (boto3.resources.base.ServiceResource): The resource attribute to write to storage.
+
+        """
         logger.debug(f"Writing: {attribute_type} of {urn} to {self.table_name}")
         item = {
             **self._generate_index_values_for_write(urn, attribute_type),
-            **standardise_data_types(resource_attribute.meta.data or {})
+            **standardise_data_types(secondary_attribute.meta.data or {})
         }
         self.dynamodb_table.put_item(
             Item=item

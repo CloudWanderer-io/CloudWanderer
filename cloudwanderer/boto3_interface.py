@@ -185,10 +185,19 @@ class CustomAttributesInterface(CloudWandererBoto3Interface):
     def __init__(self, boto3_session: boto3.session.Session) -> None:
         """Simplifies lookup of CloudWanderer custom attributes."""
         super().__init__(boto3_session=boto3_session)
-        self.custom_resource_attribute_definitions = CustomResourceDefinitions(
+        self.custom_secondary_attribute_definitions = CustomResourceDefinitions(
             boto3_session=boto3_session,
             definition_path='attribute_definitions'
         )
+
+    def get_all_resource_services(self, client_args: dict = None) -> Iterator[ServiceResource]:
+        """Return all the Service Resource objects that have Secondary Attribute Definitions.
+
+        Arguments:
+            client_args (dict): Arguments to pass into the boto3 client.
+                See: :meth:`boto3.session.Session.client`
+        """
+        yield from self.custom_secondary_attribute_definitions.definitions.values()
 
     def get_resource_from_collection(
             self, boto3_service: ServiceResource,
@@ -200,22 +209,22 @@ class CustomAttributesInterface(CloudWandererBoto3Interface):
 
         Arguments:
             boto3_service: The boto3.resource service from
-                self.get_resource_attributes_service_by_name
+                self.get_secondary_attributes_service_by_name
             boto3_resource_collection: The boto3 collection of attributes we want to retrieve.
         """
-        resource_attributes = super().get_resource_from_collection(
+        secondary_attributes = super().get_resource_from_collection(
             boto3_service=boto3_service,
             boto3_resource_collection=boto3_resource_collection
         )
-        for resource_attribute in resource_attributes:
-            # A resource_attribute will initially be populated with its parent resource's data,
+        for secondary_attribute in secondary_attributes:
+            # A secondary_attribute will initially be populated with its parent resource's data,
             # the attribute data is loaded on .load()
-            resource_attribute.load()
+            secondary_attribute.load()
             # I'm fairly sure there must be a way to clean out the response metadata with botocore shapes but
             # I haven't figured out how yet.
-            if 'ResponseMetadata' in resource_attribute.meta.data:
-                del resource_attribute.meta.data['ResponseMetadata']
-            yield resource_attribute
+            if 'ResponseMetadata' in secondary_attribute.meta.data:
+                del secondary_attribute.meta.data['ResponseMetadata']
+            yield secondary_attribute
 
     def get_resource_service_by_name(
             self, service_name: str, client_args: dict = None) -> Iterator[ServiceResource]:
@@ -226,9 +235,9 @@ class CustomAttributesInterface(CloudWandererBoto3Interface):
             client_args (dict): Arguments to pass into the boto3 client.
                 See: :meth:`boto3.session.Session.client`
         """
-        yield from self.get_resource_attributes_service_by_name(service_name, client_args)
+        yield from self.get_secondary_attributes_service_by_name(service_name, client_args)
 
-    def get_resource_attributes_service_by_name(
+    def get_secondary_attributes_service_by_name(
             self, service_name: str, client_args: dict = None) -> Iterator[ResourceModel]:
         """Return the boto3.resource service containing a collection of resource attributes provided by CloudWanderer.
 
@@ -241,5 +250,5 @@ class CustomAttributesInterface(CloudWandererBoto3Interface):
                 See: :meth:`boto3.session.Session.client`
         """
         client_args = client_args or {}
-        yield self.custom_resource_attribute_definitions.resource(
+        yield self.custom_secondary_attribute_definitions.resource(
             service_name=service_name, **client_args)

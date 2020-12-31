@@ -85,7 +85,7 @@ def generate_urn(service, resource_type, id):
     )
 
 
-def generate_mock_resource_attribute(data):
+def generate_mock_secondary_attribute(data):
     return Mock(
         **{
             'meta.data': data
