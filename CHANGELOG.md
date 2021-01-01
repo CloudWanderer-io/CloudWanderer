@@ -1,3 +1,9 @@
+# 0.10.0
+
+- Added `role_managed_policy_attachments` secondary attribute
+- Added `role_inline_policy_attachments` secondary attribute
+- Fixed bug preventing multiple secondary attribute types from being populated for the same resource type
+
 # 0.9.0
 
 - Added `get_secondary_attribute` to `CloudWandererResource`

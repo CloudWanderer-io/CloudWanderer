@@ -26,8 +26,7 @@ class CloudWandererBoto3Interface:
     def _get_available_services(self) -> List[str]:
         return self.boto3_session.get_available_resources()
 
-    def get_all_resource_services(
-            self, client_args: dict = None) -> Iterator[ServiceResource]:
+    def get_all_resource_services(self, client_args: dict = None) -> Iterator[ServiceResource]:
         """Return all the boto3 service Resource objects that are available, both built-in and custom.
 
         Arguments:
@@ -36,6 +35,15 @@ class CloudWandererBoto3Interface:
         """
         for service_name in self._get_available_services():
             yield self.get_boto3_resource_service(service_name, client_args)
+        yield from self.get_all_custom_resource_services(client_args=client_args)
+
+    def get_all_custom_resource_services(self, client_args: dict = None) -> Iterator[ServiceResource]:
+        """Return all the CUSTOM boto3 service Resource objects.
+
+        Arguments:
+            client_args (dict): Arguments to pass into the boto3 client.
+                See: :meth:`boto3.session.Session.client`
+        """
         for service_name in self.custom_resource_definitions.definitions:
             yield self.get_custom_resource_service(service_name, client_args)
 
@@ -83,10 +91,16 @@ class CloudWandererBoto3Interface:
         if custom_resource_service:
             yield custom_resource_service
 
-    def get_resource_collections(
-            self, boto3_service: ServiceResource) -> List[Collection]:
+    def get_resource_collections(self, boto3_service: ServiceResource) -> List[Collection]:
         """Return all resource types in this service."""
         return boto3_service.meta.resource_model.collections
+
+    def get_resource_subresources(self, boto3_resource: ServiceResource) -> Iterator[Collection]:
+        """Return all subresources in this service."""
+        for subresource in boto3_resource.meta.resource_model.subresources:
+            subresource = getattr(boto3_resource, subresource.name)()
+            subresource.load()
+            yield subresource
 
     def get_resource_collection_by_resource_type(
             self, boto3_service: ServiceResource,
@@ -105,17 +119,16 @@ class CloudWandererBoto3Interface:
             boto3_resource_collection: Collection) -> Iterator[ResourceModel]:
         """Return all resources of this resource type (collection) from this service."""
         try:
-            for resource in getattr(boto3_service, boto3_resource_collection.name).all():
-                yield resource
+            yield from getattr(boto3_service, boto3_resource_collection.name).all()
         except ClientError as ex:
             if ex.response['Error']['Code'] == 'InvalidAction':
                 logger.warning(ex.response['Error']['Message'])
                 return
             raise ex
 
-    def get_resources_of_type(self, service_name: str,
-                              resource_type: str, client_args: dict) -> Iterator[ResourceModel]:
-        """Return all resources of resource_type.
+    def get_resources_of_type(
+            self, service_name: str, resource_type: str, client_args: dict) -> Iterator[ResourceModel]:
+        """Return all resources of resource_type from all definition sources.
 
         Arguments:
             service_name: The name of the service to get resource for (e.g. ``'ec2'``)
@@ -124,15 +137,28 @@ class CloudWandererBoto3Interface:
                 See: :meth:`boto3.session.Session.client`
         """
         for boto3_service in self.get_resource_service_by_name(service_name, client_args=client_args):
-            collections = self.get_resource_collection_by_resource_type(boto3_service, resource_type)
-            for boto3_resource_collection in collections:
-                try:
-                    yield from self.get_resource_from_collection(
-                        boto3_service=boto3_service,
-                        boto3_resource_collection=boto3_resource_collection
-                    )
-                except EndpointConnectionError as ex:
-                    logger.warning(ex)
+            yield from self.get_resources_of_type_from_service(
+                boto3_service=boto3_service,
+                resource_type=resource_type
+            )
+
+    def get_resources_of_type_from_service(self, boto3_service: ServiceResource, resource_type: str) -> None:
+        """Return all resources of resource_type from boto3_service.
+
+        Arguments:
+            boto3_service (ServiceResource): The :class:`boto3.resources.base.ServiceResource`
+                to retrieve resources from.
+            resource_type (str): The type of resource to get resources of (e.g. ``'instance'``
+        """
+        collections = self.get_resource_collection_by_resource_type(boto3_service, resource_type)
+        for boto3_resource_collection in collections:
+            try:
+                yield from self.get_resource_from_collection(
+                    boto3_service=boto3_service,
+                    boto3_resource_collection=boto3_resource_collection
+                )
+            except EndpointConnectionError as ex:
+                logger.warning(ex)
 
     def get_service_resource_collection_names(self, service_name: str) -> Iterator[str]:
         """Return all possible resource collection names for a given service.
@@ -154,6 +180,17 @@ class CloudWandererBoto3Interface:
             service_name: The name of the service to get resource types for (e.g. ``'ec2'``)
         """
         for collection in self.get_service_resource_collections(service_name):
+            yield xform_name(collection.resource.model.shape)
+
+    def get_service_resource_types_from_collections(self, collections: List[Collection]) -> Iterator[str]:
+        """Return all possible resource names for a given service.
+
+        Returns resources for both native boto3 resources and custom cloudwanderer resources.
+
+        Arguments:
+            collections (List[Collection]): The list of collections from which to get resource names.
+        """
+        for collection in collections:
             yield xform_name(collection.resource.model.shape)
 
     def get_service_resource_collections(self, service_name: str) -> Iterator[Collection]:
@@ -215,9 +252,7 @@ class SecondaryAttributesInterface(CloudWandererBoto3Interface):
             boto3_resource_collection=boto3_resource_collection
         )
         for secondary_attribute in secondary_attributes:
-            # A secondary_attribute will initially be populated with its parent resource's data,
-            # the attribute data is loaded on .load()
-            secondary_attribute.load()
+
             # I'm fairly sure there must be a way to clean out the response metadata with botocore shapes but
             # I haven't figured out how yet.
             if 'ResponseMetadata' in secondary_attribute.meta.data:

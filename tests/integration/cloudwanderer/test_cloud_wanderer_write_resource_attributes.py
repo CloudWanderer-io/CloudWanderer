@@ -11,15 +11,17 @@ class TestCloudWandererWriteResourceAttributes(unittest.TestCase, MockStorageCon
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         logging.basicConfig(level='INFO')
-        setup_moto(restrict_regions=False, restrict_collections=False)
+        setup_moto(restrict_regions=ENABLED_REGIONS, restrict_collections=False)
         add_infra()
         self.mock_storage_connector = MagicMock()
         self.wanderer = CloudWanderer(
             storage_connectors=[self.mock_storage_connector],
             boto3_session=generate_mock_session()
         )
-        definitions = self.wanderer.secondary_attributes_interface.custom_secondary_attribute_definitions.definitions
-        self.supported_services = definitions.keys()
+        self.supported_services = [
+            service.meta.service_name
+            for service in self.wanderer.boto3_interface.get_all_custom_resource_services()
+        ]
         self.expected_service_logs = [
             f'INFO:cloudwanderer:Writing all {service} secondary attributes in us-east-1'
             for service in self.supported_services
@@ -46,7 +48,7 @@ class TestCloudWandererWriteResourceAttributes(unittest.TestCase, MockStorageCon
                 attribute_type='vpc_enable_dns_support'
             )
 
-    def test_write_secondary_attributes_of_service_in_region_attributes(self):
+    def test_write_secondary_attributes_of_service_in_region(self):
         self.wanderer.write_secondary_attributes_of_service_in_region('ec2')
 
         self.assert_storage_connector_write_secondary_attribute_called_with(
@@ -96,7 +98,7 @@ class TestCloudWandererWriteResourceAttributes(unittest.TestCase, MockStorageCon
         with self.assertLogs('cloudwanderer', 'INFO') as cm:
             self.wanderer.write_secondary_attributes_in_region(region_name='us-east-1')
         service_logs = [entry for entry in cm.output if 'Writing all' in entry]
-        self.assertEqual(service_logs, self.expected_service_logs)
+        assert service_logs == self.expected_service_logs
 
         self.mock_storage_connector.write_secondary_attribute.assert_called()
         self.assert_storage_connector_write_secondary_attribute_called_with(

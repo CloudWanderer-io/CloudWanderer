@@ -6,7 +6,7 @@ import concurrent.futures
 from botocore import xform_name
 import boto3
 from .utils import exception_logging_wrapper
-from .boto3_interface import CloudWandererBoto3Interface, SecondaryAttributesInterface
+from .boto3_interface import CloudWandererBoto3Interface
 from .aws_urn import AwsUrn
 from .global_service_mappings import GlobalServiceMappingCollection
 from boto3.resources.model import ResourceModel
@@ -32,7 +32,6 @@ class CloudWanderer():
         self.storage_connectors = storage_connectors
         self.boto3_session = boto3_session or boto3.session.Session()
         self.boto3_interface = CloudWandererBoto3Interface(boto3_session=self.boto3_session)
-        self.secondary_attributes_interface = SecondaryAttributesInterface(boto3_session=self.boto3_session)
         self.global_service_maps = GlobalServiceMappingCollection(boto3_session=self.boto3_session)
         self._account_id = None
         self._enabled_regions = None
@@ -214,7 +213,7 @@ class CloudWanderer():
             client_args (dict): Arguments to pass into the boto3 client.
                 See: :meth:`boto3.session.Session.client`
         """
-        for boto3_service in self.secondary_attributes_interface.get_all_resource_services():
+        for boto3_service in self.boto3_interface.get_all_custom_resource_services():
             self.write_secondary_attributes_of_service_in_region(
                 service_name=boto3_service.meta.service_name,
                 exclude_resources=exclude_resources,
@@ -252,7 +251,13 @@ class CloudWanderer():
                         service_name, client_args['region_name'])
             return
         exclude_resources = exclude_resources or []
-        for resource_type in self.secondary_attributes_interface.get_service_resource_types(service_name):
+        collections = self.boto3_interface.get_resource_collections(
+            boto3_service=self.boto3_interface.get_custom_resource_service(
+                service_name=service_name,
+                client_args=client_args
+            )
+        )
+        for resource_type in self.boto3_interface.get_service_resource_types_from_collections(collections):
             if resource_type in exclude_resources:
                 logger.info('Skipping %s as per exclude_resources', resource_type)
                 continue
@@ -280,20 +285,47 @@ class CloudWanderer():
         client_args = client_args or {
             'region_name': region_name or self.boto3_session.region_name
         }
-        logger.info('--> Fetching %s %s in %s', service_name, resource_type, client_args['region_name'])
-        secondary_attributes = self.secondary_attributes_interface.get_resources_of_type(
-            service_name=service_name,
-            resource_type=resource_type,
-            client_args=client_args
+        # logger.info('--> Fetching %s %s in %s', service_name, resource_type, client_args['region_name'])
+        resources = self.boto3_interface.get_resources_of_type_from_service(
+            boto3_service=self.boto3_interface.get_custom_resource_service(
+                service_name=service_name,
+                client_args=client_args),
+            resource_type=resource_type
         )
-        for secondary_attribute in secondary_attributes:
-            urn = self._get_resource_urn(secondary_attribute, client_args['region_name'])
-            for storage_connector in self.storage_connectors:
-                storage_connector.write_secondary_attribute(
-                    urn=urn,
-                    secondary_attribute=secondary_attribute,
-                    attribute_type=xform_name(secondary_attribute.meta.resource_model.name)
-                )
+        for resource in resources:
+            # has
+            secondary_attributes = self.boto3_interface.get_resource_subresources(
+                boto3_resource=resource)
+            for secondary_attribute in secondary_attributes:
+
+                attribute_type = xform_name(secondary_attribute.meta.resource_model.name)
+                logger.info('--> Fetching %s %s %s in %s', service_name,
+                            resource_type, attribute_type, client_args['region_name'])
+                urn = self._get_resource_urn(resource, client_args['region_name'])
+                for storage_connector in self.storage_connectors:
+                    storage_connector.write_secondary_attribute(
+                        urn=urn,
+                        secondary_attribute=secondary_attribute,
+                        attribute_type=attribute_type
+                    )
+
+            # hasMany
+            for secondary_attribute_collection in self.boto3_interface.get_resource_collections(resource):
+                attribute_type = xform_name(secondary_attribute_collection.name)
+                logger.info('--> Fetching %s %s %s in %s', service_name,
+                            resource_type, attribute_type, client_args['region_name'])
+
+                secondary_attributes = self.boto3_interface.get_resource_from_collection(
+                    boto3_service=resource,
+                    boto3_resource_collection=secondary_attribute_collection)
+                for secondary_attribute in secondary_attributes:
+                    urn = self._get_resource_urn(secondary_attribute, client_args['region_name'])
+                    for storage_connector in self.storage_connectors:
+                        storage_connector.write_secondary_attribute(
+                            urn=urn,
+                            secondary_attribute=secondary_attribute,
+                            attribute_type=attribute_type
+                        )
 
     @property
     def account_id(self) -> str:

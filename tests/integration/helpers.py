@@ -3,7 +3,7 @@ from unittest.mock import patch, MagicMock
 import functools
 import cloudwanderer
 from .mocks import generate_mock_session
-from moto import ec2, mock_ec2, mock_iam, mock_sts, mock_s3, mock_dynamodb2
+from moto import ec2, mock_ec2, mock_iam, mock_sts, mock_s3, mock_dynamodb2, mock_lambda
 import boto3
 
 
@@ -168,21 +168,21 @@ def limit_collections_list():
 
 
 def mock_services():
-    for service in [mock_ec2, mock_iam, mock_sts, mock_s3, mock_dynamodb2]:
+    for service in [mock_ec2, mock_iam, mock_sts, mock_s3, mock_dynamodb2, mock_lambda]:
         mock = service()
         mock.start()
 
 
-def setup_moto(restrict_regions: bool = True, restrict_services: bool = True, restrict_collections: bool = True):
+def setup_moto(restrict_regions: list = None, restrict_services: bool = True, restrict_collections: bool = True):
     os.environ['AWS_ACCESS_KEY_ID'] = '1111111'
     os.environ['AWS_SECRET_ACCESS_KEY'] = '1111111'
     os.environ['AWS_SESSION_TOKEN'] = '1111111'
     os.environ['AWS_DEFAULT_REGION'] = 'eu-west-2'
-
+    restrict_regions = ['eu-west-2', 'us-east-1'] if restrict_regions is None else restrict_regions
     if restrict_regions:
         ec2.models.RegionsAndZonesBackend.regions = [
             ec2.models.Region(region_name, "ec2.{region_name}.amazonaws.com", "opt-in-not-required")
-            for region_name in ['eu-west-2', 'us-east-1']
+            for region_name in restrict_regions
         ]
     if restrict_services:
         cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface.get_all_resource_services = MagicMock(
