@@ -307,7 +307,6 @@ class CloudWanderer():
                         attribute_type=attribute_type
                     )
 
-
     @property
     def account_id(self) -> str:
         """Return the AWS Account ID our boto3 session is authenticated against."""

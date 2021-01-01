@@ -1,5 +1,4 @@
 import unittest
-import logging
 import boto3
 from botocore import xform_name
 from parameterized import parameterized
@@ -45,7 +44,7 @@ class TestSecondaryAttributes(unittest.TestCase):
 
     @parameterized.expand(generate_params())
     def test_query_secondary_attributes(self, _, service_name, region_name, resource_type, attribute_name):
-        results  = []
+        results = []
         boto3_interface = CloudWandererBoto3Interface(boto3_session=boto3.Session(region_name=region_name))
 
         resources = boto3_interface.get_resources_of_type_from_service(

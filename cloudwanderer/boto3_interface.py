@@ -123,6 +123,8 @@ class CloudWandererBoto3Interface:
             self, boto3_service: ServiceResource,
             boto3_resource_collection: Collection) -> Iterator[ResourceModel]:
         """Return all resources of this resource type (collection) from this service."""
+        if not hasattr(boto3_service, boto3_resource_collection.name):
+            return
         try:
             yield from getattr(boto3_service, boto3_resource_collection.name).all()
         except ClientError as ex:
@@ -210,28 +212,33 @@ class CloudWandererBoto3Interface:
             if boto3_service is not None:
                 yield from self.get_resource_collections(boto3_service)
 
-    def get_secondary_attributes(self, boto3_resource: ServiceResource):
-        """Return all secondary attributes for this resource.
+    def get_secondary_attributes(self, boto3_resource: ServiceResource) -> ServiceResource:
+        """Return all secondary attributes resources for this resource.
+
+        All sub resources and collections on custom service resources are *always* secondary attribute definitions.
 
         Arguments:
-            boto3_resource (ResourceModel): The :class:`boto3.resources.base.ResourceModel` to get secondary attributes from
+            boto3_resource (ServiceResource): The :class:`boto3.resources.base.ResourceModel`
+                to get secondary attributes from
         """
-
-        # has
         yield from self.get_resource_subresources(boto3_resource=boto3_resource)
 
-        # hasMany
         for secondary_attribute_collection in self.get_resource_collections(boto3_service=boto3_resource):
             yield from self.boto3_interface.get_resource_from_collection(
                 boto3_service=boto3_resource,
                 boto3_resource_collection=secondary_attribute_collection
             )
 
-    def get_secondary_attribute_definitions(self, boto3_resource_model: ResourceModel):
-        # has
-        for secondary_attribute_subresource in boto3_resource_model.subresources:
-            yield secondary_attribute_subresource
+    def get_secondary_attribute_definitions(self, boto3_resource_model: ResourceModel) -> ServiceResource:
+        """Return all secondary attributes models for this resource.
 
-        # hasMany
+        All sub resources and collections on custom service resources are *always* secondary attribute definitions.
+
+        Arguments:
+            boto3_resource_model (ResourceModel): The :class:`boto3.resources.base.ResourceModel`
+                to get secondary attributes models from
+        """
+        yield from boto3_resource_model.subresources
+
         for secondary_attribute_collection in boto3_resource_model.collections:
             yield secondary_attribute_collection
