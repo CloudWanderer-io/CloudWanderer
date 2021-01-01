@@ -1,22 +1,18 @@
 {
     "service": {
         "hasMany": {
-            "RoleInlinePolicyAttachments": {
-                "request": { "operation": "ListRoles" },
+            "Roles": {
+                "request": {
+                    "operation": "ListRoles"
+                },
                 "resource": {
-                    "type": "RoleInlinePolicyAttachments",
+                    "type": "Role",
                     "identifiers": [
-                        { "target": "Name", "source": "response", "path": "Roles[].RoleName" }
-                    ],
-                    "path": "Roles[]"
-                }
-            },
-            "RoleManagedPolicyAttachments": {
-                "request": { "operation": "ListRoles" },
-                "resource": {
-                    "type": "RoleManagedPolicyAttachments",
-                    "identifiers": [
-                        { "target": "Name", "source": "response", "path": "Roles[].RoleName" }
+                        {
+                            "target": "Name",
+                            "source": "response",
+                            "path": "Roles[].RoleName"
+                        }
                     ],
                     "path": "Roles[]"
                 }
@@ -24,33 +20,95 @@
         }
     },
     "resources": {
-        "RoleInlinePolicyAttachments": {
-            "identifiers": [{
-                "name": "Name",
-                "memberName": "Name"
-            }],
+        "Role": {
+            "identifiers": [
+                {
+                    "name": "Name",
+                    "memberName": "RoleName"
+                }
+            ],
             "shape": "Role",
+            "load": {
+                "request": {
+                    "operation": "GetRole",
+                    "params": [
+                        {
+                            "target": "RoleName",
+                            "source": "identifier",
+                            "name": "Name"
+                        }
+                    ]
+                },
+                "path": "Role"
+            },
+            "has": {
+                "RoleInlinePolicyAttachments": {
+                    "resource": {
+                        "type": "RoleInlinePolicyAttachments",
+                        "identifiers": [
+                            {
+                                "target": "Name",
+                                "source": "identifier",
+                                "name": "RoleName"
+                            }
+                        ],
+                        "path": "@"
+                    }
+                },
+                "RoleManagedPolicyAttachments": {
+                    "resource": {
+                        "type": "RoleManagedPolicyAttachments",
+                        "identifiers": [
+                            {
+                                "target": "Name",
+                                "source": "identifier",
+                                "name": "RoleName"
+                            }
+                        ],
+                        "path": "@"
+                    }
+                }
+            }
+        },
+        "RoleInlinePolicyAttachments": {
+            "identifiers": [
+                {
+                    "name": "Name",
+                    "memberName": "Name"
+                }
+            ],
+            "shape": "ListRolePoliciesResponse",
             "load": {
                 "request": {
                     "operation": "ListRolePolicies",
                     "params": [
-                        { "target": "RoleName", "source": "identifier", "name": "Name" }
+                        {
+                            "target": "RoleName",
+                            "source": "identifier",
+                            "name": "Name"
+                        }
                     ]
                 },
                 "path": "@"
             }
         },
         "RoleManagedPolicyAttachments": {
-            "identifiers": [{
-                "name": "Name",
-                "memberName": "Name"
-            }],
-            "shape": "Role",
+            "identifiers": [
+                {
+                    "name": "Name",
+                    "memberName": "Name"
+                }
+            ],
+            "shape": "ListAttachedRolePoliciesResponse",
             "load": {
                 "request": {
                     "operation": "ListAttachedRolePolicies",
                     "params": [
-                        { "target": "RoleName", "source": "identifier", "name": "Name" }
+                        {
+                            "target": "RoleName",
+                            "source": "identifier",
+                            "name": "Name"
+                        }
                     ]
                 },
                 "path": "@"

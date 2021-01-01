@@ -96,7 +96,12 @@ class CloudWandererBoto3Interface:
         return boto3_service.meta.resource_model.collections
 
     def get_resource_subresources(self, boto3_resource: ServiceResource) -> Iterator[Collection]:
-        """Return all subresources in this service."""
+        """Return all subresources in this service.
+
+        Arguments:
+            boto3_resource: ServiceResource to get subresources from.
+
+        """
         for subresource in boto3_resource.meta.resource_model.subresources:
             subresource = getattr(boto3_resource, subresource.name)()
             subresource.load()
@@ -205,83 +210,28 @@ class CloudWandererBoto3Interface:
             if boto3_service is not None:
                 yield from self.get_resource_collections(boto3_service)
 
-
-class SecondaryAttributesInterface(CloudWandererBoto3Interface):
-    """Simplifies lookup of CloudWanderer custom attributes.
-
-    Custom attributes use the :class:`boto3.resources.base.ServiceResource` model to load attribute information.
-    This means we can use a lot of the methods from :class:`.CloudWandererBoto3Interface`
-    in this class by inherting them. We simply have to override a few in order to load the attribute definitions.
-
-    Arguments:
-        boto3_session (boto3.session.Session): The :class:`boto3.session.Session` object to use for any queries.
-    """
-
-    def __init__(self, boto3_session: boto3.session.Session) -> None:
-        """Simplifies lookup of CloudWanderer custom attributes."""
-        super().__init__(boto3_session=boto3_session)
-        self.custom_secondary_attribute_definitions = CustomResourceDefinitions(
-            boto3_session=boto3_session,
-            definition_path='attribute_definitions'
-        )
-
-    def get_all_resource_services(self, client_args: dict = None) -> Iterator[ServiceResource]:
-        """Return all the Service Resource objects that have Secondary Attribute Definitions.
+    def get_secondary_attributes(self, boto3_resource: ServiceResource):
+        """Return all secondary attributes for this resource.
 
         Arguments:
-            client_args (dict): Arguments to pass into the boto3 client.
-                See: :meth:`boto3.session.Session.client`
+            boto3_resource (ResourceModel): The :class:`boto3.resources.base.ResourceModel` to get secondary attributes from
         """
-        yield from self.custom_secondary_attribute_definitions.definitions.values()
 
-    def get_resource_from_collection(
-            self, boto3_service: ServiceResource,
-            boto3_resource_collection: Collection) -> Iterator[ResourceModel]:
-        """Return a boto3.resource pertaining to a resource attribute defined by CloudWanderer.
+        # has
+        yield from self.get_resource_subresources(boto3_resource=boto3_resource)
 
-        These custom resource attribute definitions allow us to fetch resource attributes that are not returned by the
-        resource's default describe calls.
+        # hasMany
+        for secondary_attribute_collection in self.get_resource_collections(boto3_service=boto3_resource):
+            yield from self.boto3_interface.get_resource_from_collection(
+                boto3_service=boto3_resource,
+                boto3_resource_collection=secondary_attribute_collection
+            )
 
-        Arguments:
-            boto3_service: The boto3.resource service from
-                self.get_secondary_attributes_service_by_name
-            boto3_resource_collection: The boto3 collection of attributes we want to retrieve.
-        """
-        secondary_attributes = super().get_resource_from_collection(
-            boto3_service=boto3_service,
-            boto3_resource_collection=boto3_resource_collection
-        )
-        for secondary_attribute in secondary_attributes:
+    def get_secondary_attribute_definitions(self, boto3_resource_model: ResourceModel):
+        # has
+        for secondary_attribute_subresource in boto3_resource_model.subresources:
+            yield secondary_attribute_subresource
 
-            # I'm fairly sure there must be a way to clean out the response metadata with botocore shapes but
-            # I haven't figured out how yet.
-            if 'ResponseMetadata' in secondary_attribute.meta.data:
-                del secondary_attribute.meta.data['ResponseMetadata']
-            yield secondary_attribute
-
-    def get_resource_service_by_name(
-            self, service_name: str, client_args: dict = None) -> Iterator[ServiceResource]:
-        """Overrides method from CloudWandererBoto3Interface so we can reuse its methods which depend upon this one.
-
-        Arguments:
-            service_name (str): The name of the service (e.g. ``'ec2'``) to get.
-            client_args (dict): Arguments to pass into the boto3 client.
-                See: :meth:`boto3.session.Session.client`
-        """
-        yield from self.get_secondary_attributes_service_by_name(service_name, client_args)
-
-    def get_secondary_attributes_service_by_name(
-            self, service_name: str, client_args: dict = None) -> Iterator[ResourceModel]:
-        """Return the boto3.resource service containing a collection of resource attributes provided by CloudWanderer.
-
-        These custom resource attribute definitions allow us to fetch resource attributes that are not returned by the
-        resource's default describe calls.
-
-        Arguments:
-            service_name (str): The name of the service (e.g. ``'ec2'``) to get.
-            client_args (dict): Arguments to pass into the boto3 client.
-                See: :meth:`boto3.session.Session.client`
-        """
-        client_args = client_args or {}
-        yield self.custom_secondary_attribute_definitions.resource(
-            service_name=service_name, **client_args)
+        # hasMany
+        for secondary_attribute_collection in boto3_resource_model.collections:
+            yield secondary_attribute_collection

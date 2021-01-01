@@ -285,7 +285,6 @@ class CloudWanderer():
         client_args = client_args or {
             'region_name': region_name or self.boto3_session.region_name
         }
-        # logger.info('--> Fetching %s %s in %s', service_name, resource_type, client_args['region_name'])
         resources = self.boto3_interface.get_resources_of_type_from_service(
             boto3_service=self.boto3_interface.get_custom_resource_service(
                 service_name=service_name,
@@ -293,8 +292,7 @@ class CloudWanderer():
             resource_type=resource_type
         )
         for resource in resources:
-            # has
-            secondary_attributes = self.boto3_interface.get_resource_subresources(
+            secondary_attributes = self.boto3_interface.get_secondary_attributes(
                 boto3_resource=resource)
             for secondary_attribute in secondary_attributes:
 
@@ -309,23 +307,6 @@ class CloudWanderer():
                         attribute_type=attribute_type
                     )
 
-            # hasMany
-            for secondary_attribute_collection in self.boto3_interface.get_resource_collections(resource):
-                attribute_type = xform_name(secondary_attribute_collection.name)
-                logger.info('--> Fetching %s %s %s in %s', service_name,
-                            resource_type, attribute_type, client_args['region_name'])
-
-                secondary_attributes = self.boto3_interface.get_resource_from_collection(
-                    boto3_service=resource,
-                    boto3_resource_collection=secondary_attribute_collection)
-                for secondary_attribute in secondary_attributes:
-                    urn = self._get_resource_urn(secondary_attribute, client_args['region_name'])
-                    for storage_connector in self.storage_connectors:
-                        storage_connector.write_secondary_attribute(
-                            urn=urn,
-                            secondary_attribute=secondary_attribute,
-                            attribute_type=attribute_type
-                        )
 
     @property
     def account_id(self) -> str:
