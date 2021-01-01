@@ -119,19 +119,13 @@ def limit_collections_list():
     ]
 
     cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface.get_resource_collections = MagicMock(
-        side_effect=lambda service_resource: [
+        side_effect=lambda boto3_service: [
             collection
             for collection in mock_collections
-            if service_resource.meta.service_name == collection.meta.service_name
+            if boto3_service.meta.service_name == collection.meta.service_name
         ]
     )
-    cloudwanderer.cloud_wanderer.SecondaryAttributesInterface.get_resource_collections = MagicMock(
-        side_effect=lambda service_resource: [
-            collection
-            for collection in [generate_mock_collection('ec2', 'vpc', 'vpc_enable_dns_support')]
-            if service_resource.meta.service_name == collection.meta.service_name
-        ]
-    )
+
 
 def limit_services_list():
     cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface.get_all_resource_services = MagicMock(

@@ -153,7 +153,7 @@ class CloudWandererBoto3Interface:
         """Return all resources of resource_type from boto3_service.
 
         Arguments:
-            boto3_service (ServiceResource): The :class:`boto3.resources.base.ServiceResource`
+            boto3_service (boto3.resources.base.ServiceResource): The :class:`boto3.resources.base.ServiceResource`
                 to retrieve resources from.
             resource_type (str): The type of resource to get resources of (e.g. ``'instance'``
         """
@@ -218,13 +218,13 @@ class CloudWandererBoto3Interface:
         All sub resources and collections on custom service resources are *always* secondary attribute definitions.
 
         Arguments:
-            boto3_resource (ServiceResource): The :class:`boto3.resources.base.ResourceModel`
+            boto3_resource (boto3.resources.base.ServiceResource): The :class:`boto3.resources.base.ServiceResource`
                 to get secondary attributes from
         """
         yield from self.get_resource_subresources(boto3_resource=boto3_resource)
 
         for secondary_attribute_collection in self.get_resource_collections(boto3_service=boto3_resource):
-            yield from self.boto3_interface.get_resource_from_collection(
+            yield from self.get_resource_from_collection(
                 boto3_service=boto3_resource,
                 boto3_resource_collection=secondary_attribute_collection
             )
@@ -235,8 +235,8 @@ class CloudWandererBoto3Interface:
         All sub resources and collections on custom service resources are *always* secondary attribute definitions.
 
         Arguments:
-            boto3_resource_model (ResourceModel): The :class:`boto3.resources.base.ResourceModel`
-                to get secondary attributes models from
+            boto3_resource_model (boto3.resources.model.ResourceModel): The
+                :class:`boto3.resources.model.ResourceModel` to get secondary attributes models from
         """
         yield from boto3_resource_model.subresources
 
