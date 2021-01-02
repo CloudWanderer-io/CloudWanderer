@@ -1,0 +1,14 @@
+{
+    "service": {
+        "globalService": false,
+        "regionalResources": true
+    },
+    "resources": {
+        "Vpc": {
+            "type": "resource"
+        },
+        "VpcEnableDnsSupport": {
+            "type": "secondaryAttribute"
+        }
+    }
+}

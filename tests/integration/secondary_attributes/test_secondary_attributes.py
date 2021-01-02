@@ -1,4 +1,5 @@
 import unittest
+import logging
 import boto3
 from botocore import xform_name
 from parameterized import parameterized
@@ -11,7 +12,9 @@ def get_secondary_attribute_types(service_name):
     boto3_interface = CloudWandererBoto3Interface()
     service = boto3_interface.get_custom_resource_service(service_name, {})
     for collection in boto3_interface.get_resource_collections(service):
-        for secondary_attribute in boto3_interface.get_secondary_attribute_definitions(collection.resource.model):
+        secondary_attributes = boto3_interface.get_secondary_attribute_definitions(
+            service_name, collection.resource.model)
+        for secondary_attribute in secondary_attributes:
             yield (
                 xform_name(collection.resource.model.name),
                 xform_name(secondary_attribute.name)
@@ -25,6 +28,7 @@ def generate_params():
         ('iam', 'us-east-1')
     ]
     for service_name, region_name in services:
+        logging.warning(service_name)
         for resource_name, attribute_name in get_secondary_attribute_types(service_name):
             yield (
                 f"{service_name}-{resource_name}-{attribute_name}",

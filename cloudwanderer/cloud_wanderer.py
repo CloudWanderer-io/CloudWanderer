@@ -8,7 +8,7 @@ import boto3
 from .utils import exception_logging_wrapper
 from .boto3_interface import CloudWandererBoto3Interface
 from .aws_urn import AwsUrn
-from .global_service_mappings import GlobalServiceMappingCollection
+from .service_mappings import ServiceMappingCollection
 from boto3.resources.model import ResourceModel
 
 logger = logging.getLogger('cloudwanderer')
@@ -32,7 +32,7 @@ class CloudWanderer():
         self.storage_connectors = storage_connectors
         self.boto3_session = boto3_session or boto3.session.Session()
         self.boto3_interface = CloudWandererBoto3Interface(boto3_session=self.boto3_session)
-        self.global_service_maps = GlobalServiceMappingCollection(boto3_session=self.boto3_session)
+        self.service_maps = ServiceMappingCollection(boto3_session=self.boto3_session)
         self._account_id = None
         self._enabled_regions = None
 
@@ -107,7 +107,7 @@ class CloudWanderer():
 
         logger.info("Writing all %s resources in %s", service_name, client_args['region_name'])
         exclude_resources = exclude_resources or []
-        service_map = self.global_service_maps.get_global_service_map(service_name=service_name)
+        service_map = self.service_maps.get_service_mapping(service_name=service_name)
         has_global_resources_in_this_region = service_map.has_global_resources_in_region(client_args['region_name'])
         if not has_global_resources_in_this_region and not service_map.has_regional_resources:
             logger.info("Skipping %s as it does not have resources in %s",
@@ -244,7 +244,7 @@ class CloudWanderer():
         }
         logger.info("Writing all %s secondary attributes in %s", service_name, client_args['region_name'])
         exclude_resources = exclude_resources or []
-        service_map = self.global_service_maps.get_global_service_map(service_name=service_name)
+        service_map = self.service_maps.get_service_mapping(service_name=service_name)
         has_gobal_resources_in_this_region = service_map.has_global_resources_in_region(client_args['region_name'])
         if not has_gobal_resources_in_this_region and not service_map.has_regional_resources:
             logger.info("Skipping %s as it does not have resources in %s",
@@ -332,10 +332,10 @@ class CloudWanderer():
         resource_id = getattr(resource, id_member_name)
         if resource_id.startswith('arn:'):
             resource_id = ''.join(resource_id.split(':')[5:])
-        global_service_map = self.global_service_maps.get_global_service_map(resource.meta.service_name)
+        service_map = self.service_maps.get_service_mapping(resource.meta.service_name)
         return AwsUrn(
             account_id=self.account_id,
-            region=global_service_map.get_resource_region(resource, region_name),
+            region=service_map.get_resource_region(resource, region_name),
             service=resource.meta.service_name,
             resource_type=xform_name(resource.meta.resource_model.shape),
             resource_id=resource_id

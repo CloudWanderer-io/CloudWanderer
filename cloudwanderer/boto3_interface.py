@@ -11,7 +11,7 @@ from boto3.exceptions import ResourceNotExistsError
 from boto3.resources.base import ServiceResource
 from boto3.resources.model import Collection, ResourceModel
 from .custom_resource_definitions import CustomResourceDefinitions
-
+from .service_mappings import ServiceMappingCollection
 logger = logging.getLogger(__name__)
 
 
@@ -21,6 +21,7 @@ class CloudWandererBoto3Interface:
     def __init__(self, boto3_session: boto3.session.Session = None) -> None:
         """Simplifies lookup of boto3 services and resources."""
         self.boto3_session = boto3_session or boto3.Session()
+        self.service_maps = ServiceMappingCollection(boto3_session=self.boto3_session)
         self.custom_resource_definitions = CustomResourceDefinitions(boto3_session=boto3_session)
 
     def _get_available_services(self) -> List[str]:
@@ -215,30 +216,56 @@ class CloudWandererBoto3Interface:
     def get_secondary_attributes(self, boto3_resource: ServiceResource) -> ServiceResource:
         """Return all secondary attributes resources for this resource.
 
-        All sub resources and collections on custom service resources are *always* secondary attribute definitions.
+        Subresources and collections on custom service resources may be secondary attribute definitions if
+        specified in metadata.
 
         Arguments:
             boto3_resource (boto3.resources.base.ServiceResource): The :class:`boto3.resources.base.ServiceResource`
                 to get secondary attributes from
         """
-        yield from self.get_resource_subresources(boto3_resource=boto3_resource)
+        service_mapping = self.service_maps.get_service_mapping(boto3_resource.meta.service_name)
+        resource_mapping = service_mapping.get_resource_mapping(boto3_resource.meta.resource_model.name)
+
+        for subresource in boto3_resource.meta.resource_model.subresources:
+            resource_mapping = service_mapping.get_resource_mapping(subresource.name)
+            if resource_mapping.resource_type != 'secondaryAttribute':
+                continue
+            subresource = getattr(boto3_resource, subresource.name)()
+            subresource.load()
+            yield subresource
 
         for secondary_attribute_collection in self.get_resource_collections(boto3_service=boto3_resource):
+            resource_mapping = service_mapping.get_resource_mapping(secondary_attribute_collection.name)
+            if resource_mapping.resource_type != 'secondaryAttribute':
+                continue
             yield from self.get_resource_from_collection(
                 boto3_service=boto3_resource,
                 boto3_resource_collection=secondary_attribute_collection
             )
 
-    def get_secondary_attribute_definitions(self, boto3_resource_model: ResourceModel) -> ServiceResource:
+    def get_secondary_attribute_definitions(
+            self, service_name: str, boto3_resource_model: ResourceModel) -> ServiceResource:
         """Return all secondary attributes models for this resource.
 
-        All sub resources and collections on custom service resources are *always* secondary attribute definitions.
+        Subresources and collections on custom service resources may be secondary attribute definitions if
+        specified in metadata.
 
         Arguments:
+            service_name (str): The name of the service this model resides in (e.g. ``'ec2'``)
             boto3_resource_model (boto3.resources.model.ResourceModel): The
                 :class:`boto3.resources.model.ResourceModel` to get secondary attributes models from
         """
-        yield from boto3_resource_model.subresources
+        service_mapping = self.service_maps.get_service_mapping(service_name)
+
+        for subresource in boto3_resource_model.subresources:
+            resource_mapping = service_mapping.get_resource_mapping(subresource.name)
+            if resource_mapping.resource_type != 'secondaryAttribute':
+                continue
+            yield subresource
 
         for secondary_attribute_collection in boto3_resource_model.collections:
+            resource_mapping = service_mapping.get_resource_mapping(secondary_attribute_collection.name)
+            if resource_mapping.resource_type != 'secondaryAttribute':
+                print(service_name, secondary_attribute_collection.name, ' is not a secondary attribute')
+                return
             yield secondary_attribute_collection

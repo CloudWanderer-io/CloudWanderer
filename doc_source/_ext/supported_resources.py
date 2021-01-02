@@ -1,4 +1,3 @@
-import logging
 from docutils import nodes
 from sphinx.util.docutils import SphinxDirective
 from sphinx.domains import Domain
@@ -59,10 +58,9 @@ class CloudWandererResourcesDirective(SphinxDirective):
 
         return [targetnode, self.get_cloudwanderer_resources()]
 
-    def get_boto3_default_services(self):
+    def get_boto3_default_services(self) -> list:
         boto3_services = self.boto3_interface._get_available_services()
         for service_name in boto3_services:
-            resource_list = nodes.bullet_list()
             resource_collections = self.boto3_interface.get_resource_collections(
                 self.boto3_interface.get_boto3_resource_service(service_name)
             )
@@ -109,10 +107,14 @@ class CloudWandererResourceAttributesDirective(SphinxDirective):
         for boto3_service in self.boto3_interface.get_all_custom_resource_services():
             for collection in self.boto3_interface.get_resource_collections(boto3_service):
                 resource_list = nodes.bullet_list()
-                for secondary_attribute in self.boto3_interface.get_secondary_attribute_definitions(collection.resource.model):
+                secondary_attributes = self.boto3_interface.get_secondary_attribute_definitions(
+                    collection.resource.model)
+                for secondary_attribute in secondary_attributes:
                     resource_list += nodes.list_item('', nodes.Text(secondary_attribute.name))
                 if resource_list.children:
-                    service_list += nodes.list_item('', nodes.Text(capitalize_snake_case(collection.name)), resource_list)
+                    service_list += nodes.list_item(
+                        '',
+                        nodes.Text(capitalize_snake_case(collection.name)), resource_list)
         return service_list
 
 
