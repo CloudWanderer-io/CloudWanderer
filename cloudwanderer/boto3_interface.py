@@ -238,7 +238,7 @@ class CloudWandererBoto3Interface:
         """
         yield from self._get_child_resources(boto3_resource=boto3_resource, resource_type='secondaryAttribute')
 
-    def _get_child_resources(self, boto3_resource: ServiceResource, resource_type: str):
+    def _get_child_resources(self, boto3_resource: ServiceResource, resource_type: str) -> ServiceResource:
         """Return all child resources of resource_type for this resource.
 
         Arguments:
@@ -264,10 +264,8 @@ class CloudWandererBoto3Interface:
             try:
                 resource_mapping = service_mapping.get_resource_mapping(child_resource_collection.resource.model.name)
             except GlobalServiceResourceMappingNotFound:
-                logging.warning('resource mapping not found for %s', child_resource_collection.resource.model.name)
                 continue
             if resource_mapping.resource_type != resource_type:
-                logging.warning('resource type %s for %s', resource_mapping.resource_type, child_resource_collection.resource.model.name)
                 continue
             yield from self.get_resource_from_collection(
                 boto3_service=boto3_resource,

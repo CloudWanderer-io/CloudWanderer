@@ -182,8 +182,6 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
             }
         )
 
-
-
     @patch_resource_collections(collections=[
         MOCK_COLLECTION_INSTANCES, MOCK_COLLECTION_BUCKETS,
         MOCK_COLLECTION_IAM_GROUPS])

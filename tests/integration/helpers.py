@@ -7,6 +7,7 @@ from .mocks import generate_mock_session
 from moto import ec2, mock_ec2, mock_iam, mock_sts, mock_s3, mock_dynamodb2, mock_lambda
 import boto3
 
+
 def filter_collections(collections, service_resource):
     for collection in collections:
         if service_resource.meta.resource_model.name == collection.meta.service_name:

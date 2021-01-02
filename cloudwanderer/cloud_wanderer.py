@@ -339,7 +339,7 @@ class CloudWanderer():
         for id_member in id_members:
             id_part = getattr(resource, id_member)
             if id_part.startswith('arn:'):
-                id_part = ''.join(resource_id.split(':')[5:])
+                id_part = ''.join(id_part.split(':')[5:])
             resource_ids.append(id_part)
         compound_resource_id = ':'.join(resource_ids)
         service_map = self.service_maps.get_service_mapping(resource.meta.service_name)
