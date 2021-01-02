@@ -8,6 +8,7 @@ the :class:`~boto3.session.Session`'s region is used.
 Additionally this is used to expose information about whether custom resources
 should be stored as secondary attributes or resources.
 """
+import logging
 from typing import Any, List
 import os
 import pathlib
@@ -100,7 +101,7 @@ class ServiceMapping:
 
         Also returns True if there is no service_mapping (i.e. this is not a known service).
         """
-        if self.service_mapping is None:
+        if self.service_mapping == {}:
             return True
         try:
             return self._service_details['regionalResources']
@@ -115,6 +116,8 @@ class ServiceMapping:
     @property
     def is_global_service(self) -> bool:
         """Return whether this mapping is for a global service."""
+        if self._service_details == {}:
+            return False
         try:
             return self._service_details['globalService']
         except KeyError:
@@ -129,7 +132,7 @@ class ServiceMapping:
                 to find the region of.
             default_region (str): The region to return if there is no gloabl service mapping for this resource type.
         """
-        if self.service_mapping is None:
+        if self.service_mapping == {}:
             return default_region
         if self.has_regional_resources and not self.is_global_service:
             return default_region

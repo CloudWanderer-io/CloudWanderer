@@ -179,6 +179,7 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
             resource_type='role_policy',
             attributes_dict={
                 'policy_name': 'test-role-policy',
+                'policy_document': ANY
             }
         )
 

@@ -154,6 +154,7 @@ class CloudWanderer():
             urns.append(urn)
 
             for subresource in self.boto3_interface.get_subresources(boto3_resource=boto3_resource):
+                subresource.load()
                 urn = self._get_resource_urn(subresource, client_args['region_name'])
                 urns.append(urn)
                 for storage_connector in self.storage_connectors:

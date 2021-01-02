@@ -32,7 +32,7 @@ class TestFunctional(unittest.TestCase):
 
     def test_write_resources_in_region(self):
         self.storage_connector.init()
-        self.wanderer.write_resources_in_region(exclude_resources=['image', 'snapshot', 'policy'])
+        self.wanderer.write_resources_in_region(region_name='us-east-1', exclude_resources=['image', 'snapshot', 'policy'])
 
     def test_write_custom_resource_definition(self):
         self.storage_connector.init()
