@@ -108,7 +108,8 @@ class CloudWandererResourceAttributesDirective(SphinxDirective):
             for collection in self.boto3_interface.get_resource_collections(boto3_service):
                 resource_list = nodes.bullet_list()
                 secondary_attributes = self.boto3_interface.get_secondary_attribute_definitions(
-                    collection.resource.model)
+                    service_name=boto3_service.meta.service_name,
+                    boto3_resource_model=collection.resource.model)
                 for secondary_attribute in secondary_attributes:
                     resource_list += nodes.list_item('', nodes.Text(secondary_attribute.name))
                 if resource_list.children:

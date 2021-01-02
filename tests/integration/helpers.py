@@ -9,12 +9,6 @@ import boto3
 
 def filter_collections(collections, service_resource):
     for collection in collections:
-
-        logging.warning('%s == %s: %s',
-            service_resource.meta.resource_model.name,
-            collection.meta.service_name,
-            service_resource.meta.resource_model.name == collection.meta.service_name
-        )
         if service_resource.meta.resource_model.name == collection.meta.service_name:
             yield collection
 
