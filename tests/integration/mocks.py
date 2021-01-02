@@ -1,23 +1,27 @@
 import os
+import json
 from unittest.mock import MagicMock, Mock
 import boto3
 from cloudwanderer import AwsUrn
 
-MOCK_COLLECTION_INSTANCES = MagicMock(**{
-    'meta.service_name': 'ec2',
-    'resource.model.shape': 'instance'
-})
-MOCK_COLLECTION_INSTANCES.configure_mock(name='instances')
-MOCK_COLLECTION_BUCKETS = MagicMock(**{
-    'meta.service_name': 's3',
-    'resource.model.shape': 'bucket'
-})
-MOCK_COLLECTION_BUCKETS.configure_mock(name='buckets')
-MOCK_COLLECTION_IAM_GROUPS = MagicMock(**{
-    'meta.service_name': 'iam',
-    'resource.model.shape': 'group'
-})
-MOCK_COLLECTION_IAM_GROUPS.configure_mock(name='groups')
+
+def generate_mock_collection(service, shape_name, collection_name):
+    resource_model = MagicMock(shape=shape_name)
+    resource_model.configure_mock(name=shape_name)
+    collection = MagicMock(**{
+        'meta.service_name': service,
+        'resource.model': resource_model
+    })
+    collection.configure_mock(name=collection_name)
+    return collection
+
+
+MOCK_COLLECTION_INSTANCES = generate_mock_collection('ec2', 'Instance', 'instances')
+MOCK_COLLECTION_BUCKETS = generate_mock_collection('s3', 'Bucket', 'buckets')
+MOCK_COLLECTION_IAM_GROUPS = generate_mock_collection('iam', 'Group', 'groups')
+MOCK_COLLECTION_IAM_ROLES = generate_mock_collection('iam', 'Role', 'roles')
+MOCK_COLLECTION_IAM_ROLE_POLICIES = generate_mock_collection('Role', 'RolePolicy', 'policies')
+
 ENABLED_REGIONS = [
     'af-south-1',
     'ap-northeast-1',
@@ -76,6 +80,14 @@ def add_infra(count=1, regions=ENABLED_REGIONS):
     iam_resource.create_role(RoleName='test-role', AssumeRolePolicyDocument='{}')
     policies = list(iam_resource.policies.all())
     iam_resource.Role('test-role').attach_policy(PolicyArn=policies[0].arn)
+    iam_resource.Role('test-role').Policy('test-role-policy').put(PolicyDocument=json.dumps({
+        "Version": "2012-10-17",
+        "Statement": {
+            "Effect": "Allow",
+            "Action": "s3:ListBucket",
+            "Resource": "arn:aws:s3:::example_bucket"
+        }
+    }))
 
 
 def generate_urn(service, resource_type, id):

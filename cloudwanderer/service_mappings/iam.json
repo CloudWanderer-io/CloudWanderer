@@ -8,6 +8,9 @@
         "Role": {
             "type": "resource"
         },
+        "RolePolicy": {
+            "type": "resource"
+        },
         "RoleInlinePolicyAttachments": {
             "type": "secondaryAttribute"
         },

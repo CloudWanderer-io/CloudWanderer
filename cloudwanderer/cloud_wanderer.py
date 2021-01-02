@@ -152,6 +152,12 @@ class CloudWanderer():
             for storage_connector in self.storage_connectors:
                 storage_connector.write_resource(urn, boto3_resource)
             urns.append(urn)
+
+            for subresource in self.boto3_interface.get_subresources(boto3_resource=boto3_resource):
+                urn = self._get_resource_urn(subresource, client_args['region_name'])
+                urns.append(urn)
+                for storage_connector in self.storage_connectors:
+                    storage_connector.write_resource(urn, subresource)
         self._clean_resources_in_region(
             service_name, resource_type, client_args['region_name'], urns)
 
@@ -328,15 +334,19 @@ class CloudWanderer():
         return self._enabled_regions
 
     def _get_resource_urn(self, resource: ResourceModel, region_name: str) -> 'AwsUrn':
-        id_member_name = resource.meta.resource_model.identifiers[0].name
-        resource_id = getattr(resource, id_member_name)
-        if resource_id.startswith('arn:'):
-            resource_id = ''.join(resource_id.split(':')[5:])
+        id_members = [x.name for x in resource.meta.resource_model.identifiers]
+        resource_ids = []
+        for id_member in id_members:
+            id_part = getattr(resource, id_member)
+            if id_part.startswith('arn:'):
+                id_part = ''.join(resource_id.split(':')[5:])
+            resource_ids.append(id_part)
+        compound_resource_id = ':'.join(resource_ids)
         service_map = self.service_maps.get_service_mapping(resource.meta.service_name)
         return AwsUrn(
             account_id=self.account_id,
             region=service_map.get_resource_region(resource, region_name),
             service=resource.meta.service_name,
-            resource_type=xform_name(resource.meta.resource_model.shape),
-            resource_id=resource_id
+            resource_type=xform_name(resource.meta.resource_model.name),
+            resource_id=compound_resource_id
         )

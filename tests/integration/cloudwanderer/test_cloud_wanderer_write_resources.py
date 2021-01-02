@@ -8,6 +8,8 @@ from ..mocks import (
     MOCK_COLLECTION_INSTANCES,
     MOCK_COLLECTION_BUCKETS,
     MOCK_COLLECTION_IAM_GROUPS,
+    MOCK_COLLECTION_IAM_ROLES,
+    MOCK_COLLECTION_IAM_ROLE_POLICIES,
     ENABLED_REGIONS,
     generate_mock_session
 )
@@ -42,7 +44,7 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
     @patch_services(['ec2', 's3', 'iam'])
     @patch_resource_collections(collections=[
         MOCK_COLLECTION_INSTANCES, MOCK_COLLECTION_BUCKETS,
-        MOCK_COLLECTION_IAM_GROUPS])
+        MOCK_COLLECTION_IAM_GROUPS, MOCK_COLLECTION_IAM_ROLES])
     def test_write_resources(self):
 
         self.wanderer.write_resources()
@@ -128,7 +130,8 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
     @patch_services(['ec2', 's3', 'iam'])
     @patch_resource_collections(collections=[
         MOCK_COLLECTION_INSTANCES, MOCK_COLLECTION_BUCKETS,
-        MOCK_COLLECTION_IAM_GROUPS])
+        MOCK_COLLECTION_IAM_GROUPS, MOCK_COLLECTION_IAM_ROLES,
+        MOCK_COLLECTION_IAM_ROLE_POLICIES])
     def test_write_resources_in_region_specify_region(self):
 
         self.wanderer.write_resources_in_region(region_name='us-east-1')
@@ -161,6 +164,25 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
                 'path': '/'
             }
         )
+        self.assert_storage_connector_write_resource_called_with(
+            region='us-east-1',
+            service='iam',
+            resource_type='role',
+            attributes_dict={
+                'role_name': 'test-role',
+                'path': '/'
+            }
+        )
+        self.assert_storage_connector_write_resource_called_with(
+            region='us-east-1',
+            service='iam',
+            resource_type='role_policy',
+            attributes_dict={
+                'policy_name': 'test-role-policy',
+            }
+        )
+
+
 
     @patch_resource_collections(collections=[
         MOCK_COLLECTION_INSTANCES, MOCK_COLLECTION_BUCKETS,

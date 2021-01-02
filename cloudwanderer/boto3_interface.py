@@ -11,7 +11,7 @@ from boto3.exceptions import ResourceNotExistsError
 from boto3.resources.base import ServiceResource
 from boto3.resources.model import Collection, ResourceModel
 from .custom_resource_definitions import CustomResourceDefinitions
-from .service_mappings import ServiceMappingCollection
+from .service_mappings import ServiceMappingCollection, GlobalServiceResourceMappingNotFound
 logger = logging.getLogger(__name__)
 
 
@@ -125,6 +125,7 @@ class CloudWandererBoto3Interface:
             boto3_resource_collection: Collection) -> Iterator[ResourceModel]:
         """Return all resources of this resource type (collection) from this service."""
         if not hasattr(boto3_service, boto3_resource_collection.name):
+            logging.warning('%s does not have %s', boto3_service.__class__.__name__, boto3_resource_collection.name)
             return
         try:
             yield from getattr(boto3_service, boto3_resource_collection.name).all()
@@ -213,6 +214,18 @@ class CloudWandererBoto3Interface:
             if boto3_service is not None:
                 yield from self.get_resource_collections(boto3_service)
 
+    def get_subresources(self, boto3_resource: ServiceResource) -> ServiceResource:
+        """Return all subresources for this resource.
+
+        Subresources and collections on custom service resources may be subresources we want to collect if
+        they are specified in our custom resource definitions.
+
+        Arguments:
+            boto3_resource (boto3.resources.base.ServiceResource): The :class:`boto3.resources.base.ServiceResource`
+                to get secondary attributes from
+        """
+        yield from self._get_child_resources(boto3_resource=boto3_resource, resource_type='resource')
+
     def get_secondary_attributes(self, boto3_resource: ServiceResource) -> ServiceResource:
         """Return all secondary attributes resources for this resource.
 
@@ -223,24 +236,42 @@ class CloudWandererBoto3Interface:
             boto3_resource (boto3.resources.base.ServiceResource): The :class:`boto3.resources.base.ServiceResource`
                 to get secondary attributes from
         """
+        yield from self._get_child_resources(boto3_resource=boto3_resource, resource_type='secondaryAttribute')
+
+    def _get_child_resources(self, boto3_resource: ServiceResource, resource_type: str):
+        """Return all child resources of resource_type for this resource.
+
+        Arguments:
+            boto3_resource (boto3.resources.base.ServiceResource): The :class:`boto3.resources.base.ServiceResource`
+                to get secondary attributes from
+            resource_type (str): The resource types to return (either 'secondaryAttribute' or 'resource')
+        """
         service_mapping = self.service_maps.get_service_mapping(boto3_resource.meta.service_name)
-        resource_mapping = service_mapping.get_resource_mapping(boto3_resource.meta.resource_model.name)
 
         for subresource in boto3_resource.meta.resource_model.subresources:
-            resource_mapping = service_mapping.get_resource_mapping(subresource.name)
-            if resource_mapping.resource_type != 'secondaryAttribute':
+            try:
+                resource_mapping = service_mapping.get_resource_mapping(subresource.name)
+            except GlobalServiceResourceMappingNotFound:
+                continue
+
+            if resource_mapping.resource_type != resource_type:
                 continue
             subresource = getattr(boto3_resource, subresource.name)()
             subresource.load()
             yield subresource
 
-        for secondary_attribute_collection in self.get_resource_collections(boto3_service=boto3_resource):
-            resource_mapping = service_mapping.get_resource_mapping(secondary_attribute_collection.resource_model.name)
-            if resource_mapping.resource_type != 'secondaryAttribute':
+        for child_resource_collection in self.get_resource_collections(boto3_resource):
+            try:
+                resource_mapping = service_mapping.get_resource_mapping(child_resource_collection.resource.model.name)
+            except GlobalServiceResourceMappingNotFound:
+                logging.warning('resource mapping not found for %s', child_resource_collection.resource.model.name)
+                continue
+            if resource_mapping.resource_type != resource_type:
+                logging.warning('resource type %s for %s', resource_mapping.resource_type, child_resource_collection.resource.model.name)
                 continue
             yield from self.get_resource_from_collection(
                 boto3_service=boto3_resource,
-                boto3_resource_collection=secondary_attribute_collection
+                boto3_resource_collection=child_resource_collection
             )
 
     def get_secondary_attribute_definitions(

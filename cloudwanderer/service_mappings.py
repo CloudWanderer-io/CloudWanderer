@@ -102,7 +102,10 @@ class ServiceMapping:
         """
         if self.service_mapping is None:
             return True
-        return self._service_details.get('regionalResources', False)
+        try:
+            return self._service_details['regionalResources']
+        except KeyError:
+            raise AttributeError(f"{self.__class__.__name__} {self.service_name} does not have a regionalResources key")
 
     @property
     def _service_details(self) -> dict:

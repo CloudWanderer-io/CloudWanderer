@@ -1,5 +1,4 @@
 import unittest
-import logging
 import boto3
 from botocore import xform_name
 from parameterized import parameterized
@@ -28,7 +27,6 @@ def generate_params():
         ('iam', 'us-east-1')
     ]
     for service_name, region_name in services:
-        logging.warning(service_name)
         for resource_name, attribute_name in get_secondary_attribute_types(service_name):
             yield (
                 f"{service_name}-{resource_name}-{attribute_name}",

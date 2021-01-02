@@ -103,8 +103,7 @@ def generate_mock_collection(service, shape_name, collection_name):
     resource_model.configure_mock(name=shape_name)
     collection = MagicMock(**{
         'meta.service_name': service,
-        'resource.model': resource_model,
-        'resource_model': resource_model
+        'resource.model': resource_model
     })
     collection.configure_mock(name=collection_name)
     return collection

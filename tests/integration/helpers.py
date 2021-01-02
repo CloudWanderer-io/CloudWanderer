@@ -1,4 +1,5 @@
 import os
+import logging
 from unittest.mock import patch, MagicMock
 import functools
 import cloudwanderer
@@ -6,19 +7,28 @@ from .mocks import generate_mock_session
 from moto import ec2, mock_ec2, mock_iam, mock_sts, mock_s3, mock_dynamodb2, mock_lambda
 import boto3
 
+def filter_collections(collections, service_resource):
+    for collection in collections:
+
+        logging.warning('%s == %s: %s',
+            service_resource.meta.resource_model.name,
+            collection.meta.service_name,
+            service_resource.meta.resource_model.name == collection.meta.service_name
+        )
+        if service_resource.meta.resource_model.name == collection.meta.service_name:
+            yield collection
+
 
 def patch_resource_collections(collections):
     def decorator_patch_resource_collections(func):
         @functools.wraps(func)
         def wrapper_patch_resource_collections(*args, **kwargs):
+            for collection in collections:
+                logging.warning(collection.meta.service_name)
             with patch.object(
                 cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface,
                 'get_resource_collections',
-                new=MagicMock(side_effect=lambda service_resource: [
-                    collection
-                    for collection in collections
-                    if service_resource.meta.service_name == collection.meta.service_name
-                ])
+                new=MagicMock(side_effect=lambda service_resource: filter_collections(collections, service_resource))
             ):
                 return func(*args, **kwargs)
         return wrapper_patch_resource_collections
