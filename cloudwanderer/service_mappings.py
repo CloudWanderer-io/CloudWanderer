@@ -155,20 +155,35 @@ class ServiceMapping:
 
 
 class CloudWandererResourceMapping:
+    """CloudWanderer specific information about a boto3 resource.
+
+    Arguments:
+        name (str): The name of the resource
+        mapping (dict): The resource's cloudwanderer mapping data
+        boto3_client: The boto3 client for this resource
+    """
 
     def __init__(self, name: str, mapping: dict, boto3_client: ClientCreator) -> None:
+        """Initialise the CloudWandererResourceMapping."""
         self.name = name
         self._mapping = mapping
         self.boto3_client = boto3_client
 
     @property
     def resource_type(self) -> str:
+        """The resource type (e.g. Resource, SecondaryAttribute)."""
         try:
             return self._mapping['type']
         except KeyError:
             raise AttributeError(f"{self.__class__.__name__} - {self.name} does not have a type")
 
     def get_region(self, resource: ResourceModel) -> str:
+        """Return the resource passed in.
+
+        Arguments:
+            resource (boto3.resources.model.ResourceModel): The :class:`boto3.resources.model.ResourceModel`
+                to get the region for
+        """
         method = getattr(self.boto3_client, self._request_mapping['operation'])
         result = method(**self._build_params(resource))
         return jmespath.search(
