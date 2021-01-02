@@ -235,7 +235,7 @@ class CloudWandererBoto3Interface:
             yield subresource
 
         for secondary_attribute_collection in self.get_resource_collections(boto3_service=boto3_resource):
-            resource_mapping = service_mapping.get_resource_mapping(secondary_attribute_collection.name)
+            resource_mapping = service_mapping.get_resource_mapping(secondary_attribute_collection.resource_model.name)
             if resource_mapping.resource_type != 'secondaryAttribute':
                 continue
             yield from self.get_resource_from_collection(
@@ -266,6 +266,5 @@ class CloudWandererBoto3Interface:
         for secondary_attribute_collection in boto3_resource_model.collections:
             resource_mapping = service_mapping.get_resource_mapping(secondary_attribute_collection.name)
             if resource_mapping.resource_type != 'secondaryAttribute':
-                print(service_name, secondary_attribute_collection.name, ' is not a secondary attribute')
                 return
             yield secondary_attribute_collection

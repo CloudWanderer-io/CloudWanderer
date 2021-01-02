@@ -99,19 +99,22 @@ os.environ['AWS_SESSION_TOKEN'] = '1111111'
 os.environ['AWS_DEFAULT_REGION'] = 'eu-west-2'
 
 def generate_mock_collection(service, shape_name, collection_name):
+    resource_model = MagicMock(shape=shape_name)
+    resource_model.configure_mock(name=shape_name)
     collection = MagicMock(**{
         'meta.service_name': service,
-        'resource.model.shape': shape_name
+        'resource.model': resource_model,
+        'resource_model': resource_model
     })
     collection.configure_mock(name=collection_name)
     return collection
 
 def limit_collections_list():
     collections_to_mock = {
-        'ec2': ('instance', 'instances'),
-        'ec2': ('vpc', 'vpcs'),
-        's3': ('bucket', 'buckets'),
-        'iam': ('group', 'groups')
+        'ec2': ('Instance', 'instances'),
+        'ec2': ('Vpc', 'vpcs'),
+        's3': ('Bucket', 'buckets'),
+        'iam': ('Group', 'groups')
     }
     mock_collections = [
         generate_mock_collection(service, name_tuple[0], name_tuple[1])
