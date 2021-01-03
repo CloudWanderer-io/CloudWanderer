@@ -37,7 +37,25 @@ class CloudWanderer():
         self._enabled_regions = None
 
     def write_resources(
-            self, exclude_resources: List[str] = None, client_args: dict = None, concurrency: int = 1) -> None:
+            self, exclude_resources: List[str] = None, client_args: dict = None) -> None:
+        """Write all AWS resources in this account from all regions and all services to storage.
+
+        Arguments:
+            exclude_resources (list): A list of resource names to exclude (e.g. ``['instance']``)
+            client_args (dict): Arguments to pass into the boto3 client.
+                See: :meth:`boto3.session.Session.client`
+        """
+        logger.info('Writing resources in all regions')
+        for region_name in self.enabled_regions:
+            self.write_resources_in_region(
+                exclude_resources=exclude_resources,
+                region_name=region_name,
+                client_args=client_args
+            )
+
+    def write_resources_concurrently(
+            self, session_generator: callable, exclude_resources: List[str] = None, client_args: dict = None,
+            concurrency: int = 10) -> None:
         """Write all AWS resources in this account from all regions and all services to storage.
 
         Arguments:
@@ -49,15 +67,22 @@ class CloudWanderer():
                 multiple services to be queried concurrently in each region.
                 **WARNING:** Experimental. Complete data capture depends heavily on the thread safeness of the
                 storage connector and has not been thoroughly tested!
+            session_generator (callable): A method which returns a new boto3 session when called.
+                You're usually safe to pass in ``boto3.session.Session``
         """
         logger.info('Writing resources in all regions')
-        if concurrency > 1:
-            logger.warning('Using concurrency of: %s - CONCURRENCY IS EXPERIMENTAL', concurrency)
+        logger.warning('Using concurrency of: %s - CONCURRENCY IS EXPERIMENTAL', concurrency)
         with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency) as executor:
             for region_name in self.enabled_regions:
+                boto3_session = session_generator() if session_generator else self.boto3_session
+                cw = CloudWanderer(
+                    storage_connectors=self.storage_connectors,
+                    boto3_session=boto3_session
+                )
+
                 executor.submit(
                     exception_logging_wrapper,
-                    method=self.write_resources_in_region,
+                    method=cw.write_resources_in_region,
                     exclude_resources=exclude_resources,
                     region_name=region_name,
                     client_args=client_args
