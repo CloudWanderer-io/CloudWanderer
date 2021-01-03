@@ -24,11 +24,10 @@ class TestFunctional(unittest.TestCase):
 
     def test_write_resources(self):
         self.storage_connector.init()
-        self.wanderer.write_resources(exclude_resources=['image', 'snapshot', 'policy'], concurrency=128, client_args={
-            'config': botocore.config.Config(
-                max_pool_connections=100,
-            )
-        })
+        self.wanderer.write_resources_concurrently(
+            exclude_resources=['image', 'snapshot', 'policy'],
+            concurrency=128
+        )
 
     def test_write_resources_in_region(self):
         self.storage_connector.init()

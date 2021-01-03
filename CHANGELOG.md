@@ -6,6 +6,7 @@
 - Collapsed boto3 resources into custom resource definitions
 - Abstracted GlobalServiceMaps to ServiceMaps as supporting metadata CloudWanderer needs to understand resources
 - Resources with multple identifiers now include all identifiers as part of the AWSUrn
+- Split out experimental concurrency into separate `write_resources_concurrently` method.
 
 # 0.9.0
 
