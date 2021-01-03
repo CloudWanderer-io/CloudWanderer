@@ -10,6 +10,7 @@ Use Cases
 CloudWanderer makes it easy to answer questions like:
 
 * Is S3 bucket name one in my organisation?
+* Which roles have the ``AdministratorAccess`` policy attached?
 
 
 Objectives

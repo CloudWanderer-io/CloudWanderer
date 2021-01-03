@@ -299,11 +299,10 @@ class CloudWanderer():
         client_args = client_args or {
             'region_name': region_name or self.boto3_session.region_name
         }
-        resources = self.boto3_interface.get_resources_of_type_from_service(
-            boto3_service=self.boto3_interface.get_resource_service_by_name(
-                service_name=service_name,
-                client_args=client_args),
-            resource_type=resource_type
+        resources = self.boto3_interface.get_resources_of_type(
+            service_name=service_name,
+            resource_type=resource_type,
+            client_args=client_args
         )
         service_map = self.service_maps.get_service_mapping(service_name=service_name)
         try:
