@@ -220,7 +220,7 @@ class CloudWanderer():
             client_args (dict): Arguments to pass into the boto3 client.
                 See: :meth:`boto3.session.Session.client`
         """
-        for boto3_service in self.boto3_interface.get_all_custom_resource_services():
+        for boto3_service in self.boto3_interface.get_all_resource_services():
             self.write_secondary_attributes_of_service_in_region(
                 service_name=boto3_service.meta.service_name,
                 exclude_resources=exclude_resources,
@@ -259,7 +259,7 @@ class CloudWanderer():
             return
         exclude_resources = exclude_resources or []
         collections = self.boto3_interface.get_resource_collections(
-            boto3_service=self.boto3_interface.get_custom_resource_service(
+            boto3_service=self.boto3_interface.get_resource_service_by_name(
                 service_name=service_name,
                 client_args=client_args
             )
@@ -293,7 +293,7 @@ class CloudWanderer():
             'region_name': region_name or self.boto3_session.region_name
         }
         resources = self.boto3_interface.get_resources_of_type_from_service(
-            boto3_service=self.boto3_interface.get_custom_resource_service(
+            boto3_service=self.boto3_interface.get_resource_service_by_name(
                 service_name=service_name,
                 client_args=client_args),
             resource_type=resource_type

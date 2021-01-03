@@ -24,27 +24,18 @@ class CloudWandererBoto3Interface:
         self.custom_resource_definitions = CustomResourceDefinitions(boto3_session=boto3_session)
 
     def get_all_resource_services(self, client_args: dict = None) -> Iterator[ServiceResource]:
-        """Return all the boto3 service Resource objects that are available, both built-in and custom.
-
-        Arguments:
-            client_args (dict): Arguments to pass into the boto3 client.
-                See: :meth:`boto3.session.Session.client`
-        """
-        yield from self.get_all_custom_resource_services(client_args=client_args)
-
-    def get_all_custom_resource_services(self, client_args: dict = None) -> Iterator[ServiceResource]:
-        """Return all the CUSTOM boto3 service Resource objects.
+        """Return all boto3 service Resource objects.
 
         Arguments:
             client_args (dict): Arguments to pass into the boto3 client.
                 See: :meth:`boto3.session.Session.client`
         """
         for service_name in self.custom_resource_definitions.definitions:
-            yield self.get_custom_resource_service(service_name, client_args)
+            yield self.get_resource_service_by_name(service_name, client_args)
 
-    def get_custom_resource_service(
-            self, service_name: str, client_args: dict) -> ResourceModel:
-        """Get the custom resource definition matching this service name.
+    def get_resource_service_by_name(
+            self, service_name: str, client_args: dict = None) -> ResourceModel:
+        """Get the resource definition matching this service name.
 
         Arguments:
             service_name (str): The name of the service (e.g. ``'ec2'``) to get.
@@ -54,35 +45,9 @@ class CloudWandererBoto3Interface:
         client_args = client_args or {}
         return self.custom_resource_definitions.resource(service_name, **client_args)
 
-    def get_resource_service_by_name(
-            self, service_name: str, client_args: dict = None) -> Iterator[ServiceResource]:
-        """Return all services matching name, boto3 or custom.
-
-        Arguments:
-            service_name (str): The name of the service (e.g. ``'ec2'``) to get.
-            client_args (dict): Arguments to pass into the boto3 client.
-                See: :meth:`boto3.session.Session.client`
-        """
-        client_args = client_args or {}
-        custom_resource_service = self.get_custom_resource_service(service_name, client_args)
-        if custom_resource_service:
-            yield custom_resource_service
-
     def get_resource_collections(self, boto3_service: ServiceResource) -> List[Collection]:
         """Return all resource types in this service."""
         return boto3_service.meta.resource_model.collections
-
-    def get_resource_subresources(self, boto3_resource: ServiceResource) -> Iterator[Collection]:
-        """Return all subresources in this service.
-
-        Arguments:
-            boto3_resource: ServiceResource to get subresources from.
-
-        """
-        for subresource in boto3_resource.meta.resource_model.subresources:
-            subresource = getattr(boto3_resource, subresource.name)()
-            subresource.load()
-            yield subresource
 
     def get_resource_collection_by_resource_type(
             self, boto3_service: ServiceResource,
@@ -121,11 +86,11 @@ class CloudWandererBoto3Interface:
             client_args (dict): Arguments to pass into the boto3 client.
                 See: :meth:`boto3.session.Session.client`
         """
-        for boto3_service in self.get_resource_service_by_name(service_name, client_args=client_args):
-            yield from self.get_resources_of_type_from_service(
-                boto3_service=boto3_service,
-                resource_type=resource_type
-            )
+        boto3_service = self.get_resource_service_by_name(service_name, client_args=client_args)
+        yield from self.get_resources_of_type_from_service(
+            boto3_service=boto3_service,
+            resource_type=resource_type
+        )
 
     def get_resources_of_type_from_service(self, boto3_service: ServiceResource, resource_type: str) -> None:
         """Return all resources of resource_type from boto3_service.
@@ -135,26 +100,15 @@ class CloudWandererBoto3Interface:
                 to retrieve resources from.
             resource_type (str): The type of resource to get resources of (e.g. ``'instance'``
         """
-        collections = self.get_resource_collection_by_resource_type(boto3_service, resource_type)
-        for boto3_resource_collection in collections:
-            try:
-                yield from self.get_resource_from_collection(
-                    boto3_service=boto3_service,
-                    boto3_resource_collection=boto3_resource_collection
-                )
-            except EndpointConnectionError as ex:
-                logger.warning(ex)
+        boto3_resource_collection = next(self.get_resource_collection_by_resource_type(boto3_service, resource_type))
 
-    def get_service_resource_collection_names(self, service_name: str) -> Iterator[str]:
-        """Return all possible resource collection names for a given service.
-
-        Returns collection names for both native boto3 resources and custom cloudwanderer resources.
-
-        Arguments:
-            service_name: The name of the service to get resource types for (e.g. ``'ec2'``)
-        """
-        for collection in self.get_service_resource_collections(service_name):
-            yield collection.name
+        try:
+            yield from self.get_resource_from_collection(
+                boto3_service=boto3_service,
+                boto3_resource_collection=boto3_resource_collection
+            )
+        except EndpointConnectionError as ex:
+            logger.warning(ex)
 
     def get_service_resource_types(self, service_name: str) -> Iterator[str]:
         """Return all possible resource names for a given service.
@@ -186,9 +140,9 @@ class CloudWandererBoto3Interface:
         Arguments:
             service_name: The name of the service to get resource types for (e.g. ``'ec2'``)
         """
-        for boto3_service in self.get_resource_service_by_name(service_name):
-            if boto3_service is not None:
-                yield from self.get_resource_collections(boto3_service)
+        boto3_service = self.get_resource_service_by_name(service_name)
+        if boto3_service is not None:
+            yield from self.get_resource_collections(boto3_service)
 
     def get_subresources(self, boto3_resource: ServiceResource) -> ServiceResource:
         """Return all subresources for this resource.
@@ -200,7 +154,7 @@ class CloudWandererBoto3Interface:
             boto3_resource (boto3.resources.base.ServiceResource): The :class:`boto3.resources.base.ServiceResource`
                 to get secondary attributes from
         """
-        yield from self._get_child_resources(boto3_resource=boto3_resource, resource_type='resource')
+        yield from self.get_child_resources(boto3_resource=boto3_resource, resource_type='resource')
 
     def get_secondary_attributes(self, boto3_resource: ServiceResource) -> ServiceResource:
         """Return all secondary attributes resources for this resource.
@@ -212,9 +166,9 @@ class CloudWandererBoto3Interface:
             boto3_resource (boto3.resources.base.ServiceResource): The :class:`boto3.resources.base.ServiceResource`
                 to get secondary attributes from
         """
-        yield from self._get_child_resources(boto3_resource=boto3_resource, resource_type='secondaryAttribute')
+        yield from self.get_child_resources(boto3_resource=boto3_resource, resource_type='secondaryAttribute')
 
-    def _get_child_resources(self, boto3_resource: ServiceResource, resource_type: str) -> ServiceResource:
+    def get_child_resources(self, boto3_resource: ServiceResource, resource_type: str) -> ServiceResource:
         """Return all child resources of resource_type for this resource.
 
         Arguments:
@@ -248,8 +202,8 @@ class CloudWandererBoto3Interface:
                 boto3_resource_collection=child_resource_collection
             )
 
-    def get_secondary_attribute_definitions(
-            self, service_name: str, boto3_resource_model: ResourceModel) -> ServiceResource:
+    def get_child_resource_definitions(
+            self, service_name: str, boto3_resource_model: ResourceModel, resource_type: str) -> ServiceResource:
         """Return all secondary attributes models for this resource.
 
         Subresources and collections on custom service resources may be secondary attribute definitions if
@@ -259,6 +213,7 @@ class CloudWandererBoto3Interface:
             service_name (str): The name of the service this model resides in (e.g. ``'ec2'``)
             boto3_resource_model (boto3.resources.model.ResourceModel): The
                 :class:`boto3.resources.model.ResourceModel` to get secondary attributes models from
+            resource_type (str): The resource types to return (either 'secondaryAttribute' or 'resource')
         """
         service_mapping = self.service_maps.get_service_mapping(service_name)
 
@@ -267,7 +222,7 @@ class CloudWandererBoto3Interface:
                 resource_mapping = service_mapping.get_resource_mapping(subresource.name)
             except GlobalServiceResourceMappingNotFound:
                 continue
-            if resource_mapping.resource_type != 'secondaryAttribute':
+            if resource_mapping.resource_type != resource_type:
                 continue
             yield subresource
 
@@ -277,6 +232,6 @@ class CloudWandererBoto3Interface:
                     secondary_attribute_collection.resource.model.name)
             except GlobalServiceResourceMappingNotFound:
                 continue
-            if resource_mapping.resource_type != 'secondaryAttribute':
+            if resource_mapping.resource_type != resource_type:
                 continue
             yield secondary_attribute_collection

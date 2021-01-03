@@ -20,7 +20,7 @@ class TestCloudWandererWriteResourceAttributes(unittest.TestCase, MockStorageCon
         )
         self.supported_services = [
             service.meta.service_name
-            for service in self.wanderer.boto3_interface.get_all_custom_resource_services()
+            for service in self.wanderer.boto3_interface.get_all_resource_services()
         ]
         self.expected_service_logs = [
             f'INFO:cloudwanderer:Writing all {service} secondary attributes in us-east-1'

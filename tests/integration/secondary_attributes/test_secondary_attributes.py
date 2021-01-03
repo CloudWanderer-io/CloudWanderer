@@ -9,10 +9,10 @@ from ..helpers import setup_moto
 
 def get_secondary_attribute_types(service_name):
     boto3_interface = CloudWandererBoto3Interface()
-    service = boto3_interface.get_custom_resource_service(service_name, {})
+    service = boto3_interface.get_resource_service_by_name(service_name, {})
     for collection in boto3_interface.get_resource_collections(service):
-        secondary_attributes = boto3_interface.get_secondary_attribute_definitions(
-            service_name, collection.resource.model)
+        secondary_attributes = boto3_interface.get_child_resource_definitions(
+            service_name, collection.resource.model, resource_type='secondaryAttribute')
         for secondary_attribute in secondary_attributes:
             yield (
                 xform_name(collection.resource.model.name),
@@ -50,7 +50,7 @@ class TestSecondaryAttributes(unittest.TestCase):
         boto3_interface = CloudWandererBoto3Interface(boto3_session=boto3.Session(region_name=region_name))
 
         resources = boto3_interface.get_resources_of_type_from_service(
-            boto3_service=boto3_interface.get_custom_resource_service(
+            boto3_service=boto3_interface.get_resource_service_by_name(
                 service_name=service_name,
                 client_args={}),
             resource_type=resource_type

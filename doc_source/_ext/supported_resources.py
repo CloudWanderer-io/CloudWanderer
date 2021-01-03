@@ -106,12 +106,13 @@ class CloudWandererResourceAttributesDirective(SphinxDirective):
     def get_cloudwanderer_secondary_attributes(self) -> list:
         service_list = nodes.bullet_list()
 
-        for boto3_service in self.boto3_interface.get_all_custom_resource_services():
+        for boto3_service in self.boto3_interface.get_all_resource_services():
             for collection in self.boto3_interface.get_resource_collections(boto3_service):
                 resource_list = nodes.bullet_list()
-                secondary_attributes = self.boto3_interface.get_secondary_attribute_definitions(
+                secondary_attributes = self.boto3_interface.get_child_resource_definitions(
                     service_name=boto3_service.meta.service_name,
-                    boto3_resource_model=collection.resource.model)
+                    boto3_resource_model=collection.resource.model,
+                    resource_type='secondaryAttribute')
                 for secondary_attribute in secondary_attributes:
                     resource_list += nodes.list_item('', nodes.Text(secondary_attribute.name))
                 if resource_list.children:
