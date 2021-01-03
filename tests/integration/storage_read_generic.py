@@ -1,4 +1,5 @@
 from itertools import combinations
+from time import sleep
 import logging
 from .helpers import TestStorageConnectorReadMixin, setup_moto
 from .mocks import add_infra, generate_mock_session
@@ -28,6 +29,8 @@ class StorageReadTestMixin(TestStorageConnectorReadMixin):
         self.wanderer.write_resources()
         self.expected_urns = []
         self.not_expected_urns = []
+        # Occasionally moto needs a second to finish writing.
+        sleep(0.1)
 
     def test_no_args(self):
         try:
