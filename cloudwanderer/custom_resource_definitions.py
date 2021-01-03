@@ -8,7 +8,9 @@ from typing import List
 import os
 import json
 import pathlib
+import botocore
 import boto3
+from botocore.exceptions import UnknownServiceError
 from boto3.resources.model import ResourceModel
 from boto3.resources.factory import ResourceFactory
 from boto3.utils import ServiceContext
@@ -77,6 +79,9 @@ class CustomResourceDefinitions():
         self.boto3_session = boto3_session or boto3.session.Session()
         self.factory = CustomResourceFactory(boto3_session=self.boto3_session)
         self._custom_resource_definitions = None
+        self._custom_resources = None
+        self.botocore_session = botocore.session.get_session()
+        self._setup_boto3_loader()
 
     @property
     def definitions(self) -> List[ResourceModel]:
@@ -85,27 +90,66 @@ class CustomResourceDefinitions():
             self._custom_resource_definitions = {}
             for service_name in self._list_service_definitions():
                 service_definition = self._load_service_definition(service_name)
-                self._custom_resource_definitions[service_name] = self.factory.load(
+                self._custom_resource_definitions[service_name] = service_definition
+        return self._custom_resource_definitions
+
+    @property
+    def services(self) -> List[ResourceModel]:
+        """Return our custom service resources."""
+        if self._custom_resources is None:
+            self._custom_resources = {}
+            for service_name, service_definition in self.definitions.items():
+                self._custom_resources[service_name] = self.factory.load(
                     service_name=service_name,
                     service_definition=service_definition['service'],
                     resource_definitions=service_definition['resources'],
                 )
-        return self._custom_resource_definitions
+        return self._custom_resources
 
     def resource(self, service_name: str, **kwargs) -> ResourceModel:
         """Instantiate and return the boto3 Resource object for our custom resource definition."""
-        if service_name in self.definitions:
-            return self.definitions[service_name](
+        if service_name in self.services:
+            return self.services[service_name](
                 client=self.boto3_session.client(service_name, **kwargs))
         return None
 
     def _load_service_definition(self, service_name: str) -> dict:
-        with open(os.path.join(self.service_definitions_path, f"{service_name}.json")) as definition_path:
-            return json.load(definition_path)
+        boto3_definition = self._get_boto3_definition(service_name)
+        try:
+            with open(os.path.join(self.service_definitions_path, f"{service_name}.json")) as definition_path:
+                cloudwanderer_definition = json.load(definition_path)
+        except FileNotFoundError:
+            cloudwanderer_definition = {'service': {}, 'resources': {}}
+        return {
+            'service': {
+                **boto3_definition['service'],
+                **cloudwanderer_definition['service']
+            },
+            'resources': {
+                **boto3_definition['resources'],
+                **cloudwanderer_definition['resources']
+            }
+        }
 
     def _list_service_definitions(self) -> List[str]:
-        return [
+        custom_definitions = [
             file_name.replace('.json', '')
             for file_name in os.listdir(self.service_definitions_path)
             if os.path.isfile(os.path.join(self.service_definitions_path, file_name))
         ]
+        boto3_definitions = self.boto3_session.get_available_resources()
+        return set(custom_definitions + boto3_definitions)
+
+    def _get_boto3_definition(self, service_name: str) -> dict:
+        """Get the boto3 definition for service_name so we can build on top of it."""
+        try:
+            return self._boto3_loader.load_service_model(service_name, 'resources-1', None)
+        except UnknownServiceError:
+            return {
+                'service': {},
+                'resources': {}
+            }
+
+    def _setup_boto3_loader(self) -> None:
+        self._boto3_loader = self.botocore_session.get_component('data_loader')
+        self._boto3_loader.search_paths.append(os.path.join(os.path.dirname(boto3.__file__), 'data'))

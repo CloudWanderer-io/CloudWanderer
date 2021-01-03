@@ -66,9 +66,12 @@ html_theme = 'sphinx_rtd_theme'
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
+html_favicon = 'logo.png'
+
 # -- intersphinx
 intersphinx_mapping = {
-    'boto3': ('https://boto3.amazonaws.com/v1/documentation/api/latest/', None)
+    'boto3': ('https://boto3.amazonaws.com/v1/documentation/api/latest/', None),
+    'botocore': ('https://botocore.amazonaws.com/v1/documentation/api/latest/', None)
 }
 
 # -- Autodoc
@@ -97,19 +100,21 @@ os.environ['AWS_SESSION_TOKEN'] = '1111111'
 os.environ['AWS_DEFAULT_REGION'] = 'eu-west-2'
 
 def generate_mock_collection(service, shape_name, collection_name):
+    resource_model = MagicMock(shape=shape_name)
+    resource_model.configure_mock(name=shape_name)
     collection = MagicMock(**{
         'meta.service_name': service,
-        'resource.model.shape': shape_name
+        'resource.model': resource_model
     })
     collection.configure_mock(name=collection_name)
     return collection
 
 def limit_collections_list():
     collections_to_mock = {
-        'ec2': ('instance', 'instances'),
-        'ec2': ('vpc', 'vpcs'),
-        's3': ('bucket', 'buckets'),
-        'iam': ('group', 'groups')
+        'ec2': ('Instance', 'instances'),
+        'ec2': ('Vpc', 'vpcs'),
+        's3': ('Bucket', 'buckets'),
+        'iam': ('Group', 'groups')
     }
     mock_collections = [
         generate_mock_collection(service, name_tuple[0], name_tuple[1])
@@ -117,19 +122,13 @@ def limit_collections_list():
     ]
 
     cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface.get_resource_collections = MagicMock(
-        side_effect=lambda service_resource: [
+        side_effect=lambda boto3_service: [
             collection
             for collection in mock_collections
-            if service_resource.meta.service_name == collection.meta.service_name
+            if boto3_service.meta.service_name == collection.meta.service_name
         ]
     )
-    cloudwanderer.cloud_wanderer.CustomAttributesInterface.get_resource_collections = MagicMock(
-        side_effect=lambda service_resource: [
-            collection
-            for collection in [generate_mock_collection('ec2', 'vpc', 'vpc_enable_dns_support')]
-            if service_resource.meta.service_name == collection.meta.service_name
-        ]
-    )
+
 
 def limit_services_list():
     cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface.get_all_resource_services = MagicMock(

@@ -1,10 +1,20 @@
 import os
 from unittest.mock import patch, MagicMock
 import functools
+from botocore import xform_name
 import cloudwanderer
+from cloudwanderer.service_mappings import ServiceMappingCollection, GlobalServiceResourceMappingNotFound
 from .mocks import generate_mock_session
 from moto import ec2, mock_ec2, mock_iam, mock_sts, mock_s3, mock_dynamodb2
 import boto3
+
+DEFAULT_SESSION = boto3.Session()
+
+
+def filter_collections(collections, service_resource):
+    for collection in collections:
+        if service_resource.meta.resource_model.name == collection.meta.service_name:
+            yield collection
 
 
 def patch_resource_collections(collections):
@@ -14,11 +24,7 @@ def patch_resource_collections(collections):
             with patch.object(
                 cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface,
                 'get_resource_collections',
-                new=MagicMock(side_effect=lambda service_resource: [
-                    collection
-                    for collection in collections
-                    if service_resource.meta.service_name == collection.meta.service_name
-                ])
+                new=MagicMock(side_effect=lambda boto3_service: filter_collections(collections, boto3_service))
             ):
                 return func(*args, **kwargs)
         return wrapper_patch_resource_collections
@@ -148,7 +154,9 @@ def limit_collections_list():
         ('ec2', ('instance', 'instances')),
         ('ec2', ('vpc', 'vpcs')),
         ('s3', ('bucket', 'buckets')),
-        ('iam', ('group', 'groups'))
+        ('iam', ('group', 'groups')),
+        ('iam', ('Role', 'roles')),
+        ('Role', ('RolePolicy', 'role_policies'))
     ]
     mock_collections = []
     for service, name_tuple in collections_to_mock:
@@ -159,11 +167,7 @@ def limit_collections_list():
         collection.configure_mock(name=name_tuple[1])
         mock_collections.append(collection)
     cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface.get_resource_collections = MagicMock(
-        side_effect=lambda service_resource: [
-            collection
-            for collection in mock_collections
-            if service_resource.meta.service_name == collection.meta.service_name
-        ]
+        side_effect=lambda boto3_service: filter_collections(mock_collections, boto3_service)
     )
 
 
@@ -173,16 +177,44 @@ def mock_services():
         mock.start()
 
 
-def setup_moto():
+def setup_moto(restrict_regions: list = None, restrict_services: bool = True, restrict_collections: bool = True):
     os.environ['AWS_ACCESS_KEY_ID'] = '1111111'
     os.environ['AWS_SECRET_ACCESS_KEY'] = '1111111'
     os.environ['AWS_SESSION_TOKEN'] = '1111111'
     os.environ['AWS_DEFAULT_REGION'] = 'eu-west-2'
-    ec2.models.RegionsAndZonesBackend.regions = [
-        ec2.models.Region(region_name, "ec2.{region_name}.amazonaws.com", "opt-in-not-required")
-        for region_name in ['eu-west-2', 'us-east-1']
-    ]
-    cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface.get_all_resource_services = MagicMock(
-        return_value=[boto3.resource(service) for service in ['ec2', 's3', 'iam']])
-    limit_collections_list()
+    restrict_regions = ['eu-west-2', 'us-east-1'] if restrict_regions is None else restrict_regions
+    if restrict_regions:
+        ec2.models.RegionsAndZonesBackend.regions = [
+            ec2.models.Region(region_name, "ec2.{region_name}.amazonaws.com", "opt-in-not-required")
+            for region_name in restrict_regions
+        ]
+    if restrict_services:
+        cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface.get_all_resource_services = MagicMock(
+            return_value=[boto3.resource(service) for service in ['ec2', 's3', 'iam']])
+    if restrict_collections:
+        limit_collections_list()
     mock_services()
+
+
+def get_secondary_attribute_types(service_name):
+    boto3_interface = cloudwanderer.boto3_interface.CloudWandererBoto3Interface(boto3_session=DEFAULT_SESSION)
+    service_maps = ServiceMappingCollection(boto3_session=DEFAULT_SESSION)
+    service_map = service_maps.get_service_mapping(service_name=service_name)
+    resource_types = boto3_interface.get_service_resource_types_from_collections(
+        boto3_interface.get_resource_collections(
+            boto3_service=boto3_interface.get_resource_service_by_name(
+                service_name=service_name,
+                client_args={}
+            )
+        )
+    )
+    for resource_type in resource_types:
+        try:
+            resource_map = service_map.get_resource_mapping(resource_type=resource_type)
+        except GlobalServiceResourceMappingNotFound:
+            continue
+        for secondary_attribute in resource_map.secondary_attributes:
+            yield (
+                xform_name(resource_type),
+                xform_name(secondary_attribute)
+            )

@@ -1,0 +1,6 @@
+{
+    "service":{
+        "globalService": false,
+        "regionalResources": true
+    }
+}

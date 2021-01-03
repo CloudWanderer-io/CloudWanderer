@@ -1,0 +1,152 @@
+{
+    "service": {
+    },
+    "resources": {
+        "Role": {
+            "identifiers": [
+                {
+                    "name": "Name",
+                    "memberName": "RoleName"
+                }
+            ],
+            "shape": "Role",
+            "load": {
+                "request": {
+                    "operation": "GetRole",
+                    "params": [
+                        {
+                            "target": "RoleName",
+                            "source": "identifier",
+                            "name": "Name"
+                        }
+                    ]
+                },
+                "path": "Role"
+            },
+            "has": {
+                "RoleInlinePolicyAttachments": {
+                    "resource": {
+                        "type": "RoleInlinePolicyAttachments",
+                        "identifiers": [
+                            {
+                                "target": "Name",
+                                "source": "identifier",
+                                "name": "RoleName"
+                            }
+                        ],
+                        "path": "@"
+                    }
+                },
+                "RoleManagedPolicyAttachments": {
+                    "resource": {
+                        "type": "RoleManagedPolicyAttachments",
+                        "identifiers": [
+                            {
+                                "target": "Name",
+                                "source": "identifier",
+                                "name": "RoleName"
+                            }
+                        ],
+                        "path": "@"
+                    }
+                }
+            },
+            "hasMany": {
+                "Policies": {
+                    "request": {
+                        "operation": "ListRolePolicies",
+                        "params": [
+                            {
+                                "target": "RoleName",
+                                "source": "identifier",
+                                "name": "Name"
+                            }
+                        ]
+                    },
+                    "resource": {
+                        "type": "RolePolicy",
+                        "identifiers": [
+                            {
+                                "target": "RoleName",
+                                "source": "identifier",
+                                "name": "Name"
+                            },
+                            {
+                                "target": "Name",
+                                "source": "response",
+                                "path": "PolicyNames[]"
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        "RoleInlinePolicyAttachments": {
+            "identifiers": [
+                {
+                    "name": "Name",
+                    "memberName": "Name"
+                }
+            ],
+            "shape": "ListRolePoliciesResponse",
+            "load": {
+                "request": {
+                    "operation": "ListRolePolicies",
+                    "params": [
+                        {
+                            "target": "RoleName",
+                            "source": "identifier",
+                            "name": "Name"
+                        }
+                    ]
+                },
+                "path": "@"
+            }
+        },
+        "RoleManagedPolicyAttachments": {
+            "identifiers": [
+                {
+                    "name": "Name",
+                    "memberName": "Name"
+                }
+            ],
+            "shape": "ListAttachedRolePoliciesResponse",
+            "load": {
+                "request": {
+                    "operation": "ListAttachedRolePolicies",
+                    "params": [
+                        {
+                            "target": "RoleName",
+                            "source": "identifier",
+                            "name": "Name"
+                        }
+                    ]
+                },
+                "path": "@"
+            }
+        },
+        "RolePolicy": {
+            "identifiers": [
+              {
+                "name": "RoleName",
+                "memberName": "RoleName"
+              },
+              {
+                "name": "Name",
+                "memberName": "PolicyName"
+              }
+            ],
+            "shape": "GetRolePolicyResponse",
+            "load": {
+              "request": {
+                "operation": "GetRolePolicy",
+                "params": [
+                  { "target": "RoleName", "source": "identifier", "name": "RoleName" },
+                  { "target": "PolicyName", "source": "identifier", "name": "Name" }
+                ]
+              },
+              "path": "@"
+            }
+        }
+    }
+}
