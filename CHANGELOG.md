@@ -2,7 +2,10 @@
 
 - Added `role_managed_policy_attachments` secondary attribute
 - Added `role_inline_policy_attachments` secondary attribute
-- Fixed bug preventing multiple secondary attribute types from being populated for the same resource type
+- Collapsed secondary attribute definitions into custom resource definitions
+- Collapsed boto3 resources into custom resource definitions
+- Abstracted GlobalServiceMaps to ServiceMaps as supporting metadata CloudWanderer needs to understand resources
+- Resources with multple identifiers now include all identifiers as part of the AWSUrn
 
 # 0.9.0
 

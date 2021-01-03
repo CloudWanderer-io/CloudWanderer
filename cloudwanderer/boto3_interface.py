@@ -87,19 +87,6 @@ class CloudWandererBoto3Interface:
                 See: :meth:`boto3.session.Session.client`
         """
         boto3_service = self.get_resource_service_by_name(service_name, client_args=client_args)
-        yield from self.get_resources_of_type_from_service(
-            boto3_service=boto3_service,
-            resource_type=resource_type
-        )
-
-    def get_resources_of_type_from_service(self, boto3_service: ServiceResource, resource_type: str) -> None:
-        """Return all resources of resource_type from boto3_service.
-
-        Arguments:
-            boto3_service (boto3.resources.base.ServiceResource): The :class:`boto3.resources.base.ServiceResource`
-                to retrieve resources from.
-            resource_type (str): The type of resource to get resources of (e.g. ``'instance'``
-        """
         boto3_resource_collection = next(self.get_resource_collection_by_resource_type(boto3_service, resource_type))
 
         try:
