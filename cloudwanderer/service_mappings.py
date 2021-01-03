@@ -8,7 +8,6 @@ the :class:`~boto3.session.Session`'s region is used.
 Additionally this is used to expose information about whether custom resources
 should be stored as secondary attributes or resources.
 """
-import logging
 from typing import Any, List
 import os
 import pathlib

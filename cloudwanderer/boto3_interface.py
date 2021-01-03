@@ -7,7 +7,6 @@ import logging
 import boto3
 from botocore import xform_name
 from botocore.exceptions import ClientError, EndpointConnectionError
-from boto3.exceptions import ResourceNotExistsError
 from boto3.resources.base import ServiceResource
 from boto3.resources.model import Collection, ResourceModel
 from .custom_resource_definitions import CustomResourceDefinitions
@@ -24,9 +23,6 @@ class CloudWandererBoto3Interface:
         self.service_maps = ServiceMappingCollection(boto3_session=self.boto3_session)
         self.custom_resource_definitions = CustomResourceDefinitions(boto3_session=boto3_session)
 
-    def _get_available_services(self) -> List[str]:
-        return self.boto3_session.get_available_resources()
-
     def get_all_resource_services(self, client_args: dict = None) -> Iterator[ServiceResource]:
         """Return all the boto3 service Resource objects that are available, both built-in and custom.
 
@@ -34,8 +30,6 @@ class CloudWandererBoto3Interface:
             client_args (dict): Arguments to pass into the boto3 client.
                 See: :meth:`boto3.session.Session.client`
         """
-        for service_name in self._get_available_services():
-            yield self.get_boto3_resource_service(service_name, client_args)
         yield from self.get_all_custom_resource_services(client_args=client_args)
 
     def get_all_custom_resource_services(self, client_args: dict = None) -> Iterator[ServiceResource]:
@@ -47,21 +41,6 @@ class CloudWandererBoto3Interface:
         """
         for service_name in self.custom_resource_definitions.definitions:
             yield self.get_custom_resource_service(service_name, client_args)
-
-    def get_boto3_resource_service(
-            self, service_name: str, client_args: dict = None) -> ServiceResource:
-        """Return the boto3 service Resource object matching this service_name.
-
-        Arguments:
-            service_name (str): The name of the service (e.g. ``'ec2'``) to get.
-            client_args (dict): Arguments to pass into the boto3 client.
-                See: :meth:`boto3.session.Session.client`
-        """
-        client_args = client_args or {}
-        try:
-            return self.boto3_session.resource(service_name, **client_args)
-        except ResourceNotExistsError:
-            return None
 
     def get_custom_resource_service(
             self, service_name: str, client_args: dict) -> ResourceModel:
@@ -85,9 +64,6 @@ class CloudWandererBoto3Interface:
                 See: :meth:`boto3.session.Session.client`
         """
         client_args = client_args or {}
-        boto3_resource_service = self.get_boto3_resource_service(service_name, client_args)
-        if boto3_resource_service:
-            yield boto3_resource_service
         custom_resource_service = self.get_custom_resource_service(service_name, client_args)
         if custom_resource_service:
             yield custom_resource_service
@@ -125,7 +101,7 @@ class CloudWandererBoto3Interface:
             boto3_resource_collection: Collection) -> Iterator[ResourceModel]:
         """Return all resources of this resource type (collection) from this service."""
         if not hasattr(boto3_service, boto3_resource_collection.name):
-            logging.warning('%s does not have %s', boto3_service.__class__.__name__, boto3_resource_collection.name)
+            logger.warning('%s does not have %s', boto3_service.__class__.__name__, boto3_resource_collection.name)
             return
         try:
             yield from getattr(boto3_service, boto3_resource_collection.name).all()
@@ -287,13 +263,20 @@ class CloudWandererBoto3Interface:
         service_mapping = self.service_maps.get_service_mapping(service_name)
 
         for subresource in boto3_resource_model.subresources:
-            resource_mapping = service_mapping.get_resource_mapping(subresource.name)
+            try:
+                resource_mapping = service_mapping.get_resource_mapping(subresource.name)
+            except GlobalServiceResourceMappingNotFound:
+                continue
             if resource_mapping.resource_type != 'secondaryAttribute':
                 continue
             yield subresource
 
         for secondary_attribute_collection in boto3_resource_model.collections:
-            resource_mapping = service_mapping.get_resource_mapping(secondary_attribute_collection.resource.model.name)
+            try:
+                resource_mapping = service_mapping.get_resource_mapping(
+                    secondary_attribute_collection.resource.model.name)
+            except GlobalServiceResourceMappingNotFound:
+                continue
             if resource_mapping.resource_type != 'secondaryAttribute':
-                return
+                continue
             yield secondary_attribute_collection

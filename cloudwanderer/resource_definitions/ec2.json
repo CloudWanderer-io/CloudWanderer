@@ -1,23 +1,5 @@
 {
     "service": {
-        "hasMany": {
-            "Vpcs": {
-                "request": {
-                    "operation": "DescribeVpcs"
-                },
-                "resource": {
-                    "type": "Vpc",
-                    "identifiers": [
-                        {
-                            "target": "Id",
-                            "source": "response",
-                            "path": "Vpcs[].VpcId"
-                        }
-                    ],
-                    "path": "Vpcs[]"
-                }
-            }
-        }
     },
     "resources": {
         "Vpc": {

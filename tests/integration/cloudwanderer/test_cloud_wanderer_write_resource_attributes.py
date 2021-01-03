@@ -11,7 +11,7 @@ class TestCloudWandererWriteResourceAttributes(unittest.TestCase, MockStorageCon
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         logging.basicConfig(level='INFO')
-        setup_moto(restrict_regions=ENABLED_REGIONS, restrict_collections=False)
+        setup_moto(restrict_regions=ENABLED_REGIONS)
         add_infra()
         self.mock_storage_connector = MagicMock()
         self.wanderer = CloudWanderer(

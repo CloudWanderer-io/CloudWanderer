@@ -41,7 +41,7 @@ class TestSecondaryAttributes(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        setup_moto(restrict_collections=False)
+        setup_moto()
         add_infra()
 
     @parameterized.expand(generate_params())

@@ -1,23 +1,5 @@
 {
     "service": {
-        "hasMany": {
-            "Roles": {
-                "request": {
-                    "operation": "ListRoles"
-                },
-                "resource": {
-                    "type": "Role",
-                    "identifiers": [
-                        {
-                            "target": "Name",
-                            "source": "response",
-                            "path": "Roles[].RoleName"
-                        }
-                    ],
-                    "path": "Roles[]"
-                }
-            }
-        }
     },
     "resources": {
         "Role": {

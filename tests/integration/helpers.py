@@ -1,5 +1,4 @@
 import os
-import logging
 from unittest.mock import patch, MagicMock
 import functools
 import cloudwanderer
@@ -18,12 +17,10 @@ def patch_resource_collections(collections):
     def decorator_patch_resource_collections(func):
         @functools.wraps(func)
         def wrapper_patch_resource_collections(*args, **kwargs):
-            for collection in collections:
-                logging.warning(collection.meta.service_name)
             with patch.object(
                 cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface,
                 'get_resource_collections',
-                new=MagicMock(side_effect=lambda service_resource: filter_collections(collections, service_resource))
+                new=MagicMock(side_effect=lambda boto3_service: filter_collections(collections, boto3_service))
             ):
                 return func(*args, **kwargs)
         return wrapper_patch_resource_collections
@@ -153,7 +150,9 @@ def limit_collections_list():
         ('ec2', ('instance', 'instances')),
         ('ec2', ('vpc', 'vpcs')),
         ('s3', ('bucket', 'buckets')),
-        ('iam', ('group', 'groups'))
+        ('iam', ('group', 'groups')),
+        ('iam', ('Role', 'roles')),
+        ('Role', ('RolePolicy', 'role_policies'))
     ]
     mock_collections = []
     for service, name_tuple in collections_to_mock:
@@ -164,11 +163,7 @@ def limit_collections_list():
         collection.configure_mock(name=name_tuple[1])
         mock_collections.append(collection)
     cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface.get_resource_collections = MagicMock(
-        side_effect=lambda service_resource: [
-            collection
-            for collection in mock_collections
-            if service_resource.meta.service_name == collection.meta.service_name
-        ]
+        side_effect=lambda boto3_service: filter_collections(mock_collections, boto3_service)
     )
 
 

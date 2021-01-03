@@ -16,8 +16,9 @@ class Boto3ResourcesDirective(SphinxDirective):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
+        self.boto3_session = boto3.Session(region_name='eu-west-2')
         self.boto3_interface = cloudwanderer.boto3_interface.CloudWandererBoto3Interface(
-            boto3_session=boto3.Session(region_name='eu-west-2')
+            boto3_session=self.boto3_session
         )
 
     def run(self) -> list:
@@ -28,11 +29,11 @@ class Boto3ResourcesDirective(SphinxDirective):
 
     def get_boto3_default_resources(self) -> list:
         service_list = nodes.bullet_list()
-        boto3_services = self.boto3_interface._get_available_services()
+        boto3_services = self.boto3_session.get_available_resources()
         for service_name in boto3_services:
             resource_list = nodes.bullet_list()
             resource_collections = self.boto3_interface.get_resource_collections(
-                self.boto3_interface.get_boto3_resource_service(service_name)
+                self.boto3_session.resource(service_name)
             )
             for resource_collection in resource_collections:
                 resource_list += nodes.list_item('', nodes.Text(capitalize_snake_case(resource_collection.name)))
@@ -47,8 +48,9 @@ class CloudWandererResourcesDirective(SphinxDirective):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
+        self.boto3_session = boto3.Session(region_name='eu-west-2')
         self.boto3_interface = cloudwanderer.boto3_interface.CloudWandererBoto3Interface(
-            boto3_session=boto3.Session(region_name='eu-west-2')
+            boto3_session=self.boto3_session
         )
         self.boto3_services = list(self.get_boto3_default_services())
 
@@ -59,10 +61,10 @@ class CloudWandererResourcesDirective(SphinxDirective):
         return [targetnode, self.get_cloudwanderer_resources()]
 
     def get_boto3_default_services(self) -> list:
-        boto3_services = self.boto3_interface._get_available_services()
+        boto3_services = self.boto3_session.get_available_resources()
         for service_name in boto3_services:
             resource_collections = self.boto3_interface.get_resource_collections(
-                self.boto3_interface.get_boto3_resource_service(service_name)
+                self.boto3_session.resource(service_name)
             )
             for resource_collection in resource_collections:
                 yield (service_name, resource_collection.name)
