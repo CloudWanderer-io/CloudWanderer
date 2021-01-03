@@ -4,7 +4,7 @@ import functools
 from botocore import xform_name
 import cloudwanderer
 from cloudwanderer.service_mappings import ServiceMappingCollection, GlobalServiceResourceMappingNotFound
-from .mocks import generate_mock_session
+from .mocks import generate_mock_session, generate_mock_collection
 from moto import ec2, mock_ec2, mock_iam, mock_sts, mock_s3, mock_dynamodb2
 import boto3
 
@@ -156,16 +156,11 @@ def limit_collections_list():
         ('s3', ('bucket', 'buckets')),
         ('iam', ('group', 'groups')),
         ('iam', ('Role', 'roles')),
-        ('Role', ('RolePolicy', 'role_policies'))
+        ('Role', ('RolePolicy', 'policies'))
     ]
     mock_collections = []
     for service, name_tuple in collections_to_mock:
-        collection = MagicMock(**{
-            'meta.service_name': service,
-            'resource.model.shape': name_tuple[0]
-        })
-        collection.configure_mock(name=name_tuple[1])
-        mock_collections.append(collection)
+        mock_collections.append(generate_mock_collection(service, name_tuple[0], name_tuple[1]))
     cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface.get_resource_collections = MagicMock(
         side_effect=lambda boto3_service: filter_collections(mock_collections, boto3_service)
     )
