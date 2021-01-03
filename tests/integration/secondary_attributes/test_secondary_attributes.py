@@ -36,11 +36,10 @@ class TestSecondaryAttributes(unittest.TestCase):
         results = []
         boto3_interface = CloudWandererBoto3Interface(boto3_session=boto3.Session(region_name=region_name))
 
-        resources = boto3_interface.get_resources_of_type_from_service(
-            boto3_service=boto3_interface.get_resource_service_by_name(
-                service_name=service_name,
-                client_args={}),
-            resource_type=resource_type
+        resources = boto3_interface.get_resources_of_type(
+            service_name=service_name,
+            resource_type=resource_type,
+            client_args={}
         )
         for resource in resources:
             secondary_attributes = boto3_interface.get_secondary_attributes(
