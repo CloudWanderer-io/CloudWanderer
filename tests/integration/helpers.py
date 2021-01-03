@@ -5,7 +5,7 @@ from botocore import xform_name
 import cloudwanderer
 from cloudwanderer.service_mappings import ServiceMappingCollection, GlobalServiceResourceMappingNotFound
 from .mocks import generate_mock_session
-from moto import ec2, mock_ec2, mock_iam, mock_sts, mock_s3, mock_dynamodb2, mock_lambda
+from moto import ec2, mock_ec2, mock_iam, mock_sts, mock_s3, mock_dynamodb2
 import boto3
 
 DEFAULT_SESSION = boto3.Session()
@@ -172,7 +172,7 @@ def limit_collections_list():
 
 
 def mock_services():
-    for service in [mock_ec2, mock_iam, mock_sts, mock_s3, mock_dynamodb2, mock_lambda]:
+    for service in [mock_ec2, mock_iam, mock_sts, mock_s3, mock_dynamodb2]:
         mock = service()
         mock.start()
 
