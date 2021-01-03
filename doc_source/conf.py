@@ -150,6 +150,7 @@ def limit_collections_list():
         ('s3', ('bucket', 'buckets')),
         ('iam', ('group', 'groups')),
         ('iam', ('Role', 'roles')),
+        # ('iam', ('Policy', 'policies')),
         ('Role', ('RolePolicy', 'policies'))
     ]
     mock_collections = []

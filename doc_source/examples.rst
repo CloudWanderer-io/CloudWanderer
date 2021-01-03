@@ -176,10 +176,8 @@ Next we need to find out what policies are attached.
 
     >>> role.get_secondary_attribute('[].PolicyNames[0]')
     ['test-role-policy']
-    >>> role.get_secondary_attribute('[].AttachedPolicies[0]')
-    [{'PolicyName': 'APIGatewayServiceRolePolicy', 'PolicyArn': 'arn:aws:iam::aws:policy/aws-service-role/APIGatewayServiceRolePolicy'}]
 
-Then we can lookup the policies!
+Then we can lookup the inline policy
 
 .. doctest ::
 
@@ -193,6 +191,7 @@ Then we can lookup the policies!
     >>> inline_policy = storage_connector.read_resource(urn=inline_policy_urn)
     >>> inline_policy.policy_document
     {'Version': '2012-10-17', 'Statement': {'Effect': 'Allow', 'Action': 's3:ListBucket', 'Resource': 'arn:aws:s3:::example_bucket'}}
+
 
 Deleting Stale Resources
 -------------------------
