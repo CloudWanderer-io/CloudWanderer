@@ -79,6 +79,7 @@ class CustomResourceDefinitions():
         self.boto3_session = boto3_session or boto3.session.Session()
         self.factory = CustomResourceFactory(boto3_session=self.boto3_session)
         self._custom_resource_definitions = None
+        self._custom_resources = None
         self.botocore_session = botocore.session.get_session()
         self._setup_boto3_loader()
 
@@ -89,17 +90,26 @@ class CustomResourceDefinitions():
             self._custom_resource_definitions = {}
             for service_name in self._list_service_definitions():
                 service_definition = self._load_service_definition(service_name)
-                self._custom_resource_definitions[service_name] = self.factory.load(
+                self._custom_resource_definitions[service_name] = service_definition
+        return self._custom_resource_definitions
+
+    @property
+    def services(self) -> List[ResourceModel]:
+        """Return our custom service resources."""
+        if self._custom_resources is None:
+            self._custom_resources = {}
+            for service_name, service_definition in self.definitions.items():
+                self._custom_resources[service_name] = self.factory.load(
                     service_name=service_name,
                     service_definition=service_definition['service'],
                     resource_definitions=service_definition['resources'],
                 )
-        return self._custom_resource_definitions
+        return self._custom_resources
 
     def resource(self, service_name: str, **kwargs) -> ResourceModel:
         """Instantiate and return the boto3 Resource object for our custom resource definition."""
-        if service_name in self.definitions:
-            return self.definitions[service_name](
+        if service_name in self.services:
+            return self.services[service_name](
                 client=self.boto3_session.client(service_name, **kwargs))
         return None
 

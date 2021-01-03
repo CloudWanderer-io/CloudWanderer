@@ -8,7 +8,7 @@ import boto3
 from .utils import exception_logging_wrapper
 from .boto3_interface import CloudWandererBoto3Interface
 from .aws_urn import AwsUrn
-from .service_mappings import ServiceMappingCollection
+from .service_mappings import ServiceMappingCollection, GlobalServiceResourceMappingNotFound
 from boto3.resources.model import ResourceModel
 
 logger = logging.getLogger('cloudwanderer')
@@ -249,7 +249,6 @@ class CloudWanderer():
         client_args = client_args or {
             'region_name': region_name or self.boto3_session.region_name
         }
-        logger.info("Writing all %s secondary attributes in %s", service_name, client_args['region_name'])
         exclude_resources = exclude_resources or []
         service_map = self.service_maps.get_service_mapping(service_name=service_name)
         has_gobal_resources_in_this_region = service_map.has_global_resources_in_region(client_args['region_name'])
@@ -265,6 +264,14 @@ class CloudWanderer():
             )
         )
         for resource_type in self.boto3_interface.get_service_resource_types_from_collections(collections):
+            try:
+                resource_map = service_map.get_resource_mapping(resource_type=resource_type)
+            except GlobalServiceResourceMappingNotFound:
+                continue
+            if not resource_map.has_secondary_attributes:
+                continue
+            logger.info("Writing all %s %s secondary attributes in %s",
+                        service_name, resource_type, client_args['region_name'])
             if resource_type in exclude_resources:
                 logger.info('Skipping %s as per exclude_resources', resource_type)
                 continue
@@ -298,11 +305,19 @@ class CloudWanderer():
                 client_args=client_args),
             resource_type=resource_type
         )
+        service_map = self.service_maps.get_service_mapping(service_name=service_name)
+        try:
+            resource_map = service_map.get_resource_mapping(resource_type=resource_type)
+        except GlobalServiceResourceMappingNotFound:
+            logger.warning('Skipping %s %s as it does not have secondary attributes', service_name, resource_type)
+            return
+        if not resource_map.has_secondary_attributes:
+            logger.warning('Skipping %s %s as it does not have secondary attributes', service_name, resource_type)
+            return
         for resource in resources:
             secondary_attributes = self.boto3_interface.get_secondary_attributes(
                 boto3_resource=resource)
             for secondary_attribute in secondary_attributes:
-
                 attribute_type = xform_name(secondary_attribute.meta.resource_model.name)
                 logger.info('--> Fetching %s %s %s in %s', service_name,
                             resource_type, attribute_type, client_args['region_name'])

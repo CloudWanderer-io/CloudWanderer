@@ -71,7 +71,7 @@ class CloudWandererResourcesDirective(SphinxDirective):
 
     def get_cloudwanderer_resources(self) -> list:
         service_list = nodes.bullet_list()
-        cloudwanderer_services = self.boto3_interface.custom_resource_definitions.definitions
+        cloudwanderer_services = self.boto3_interface.custom_resource_definitions.services
         for service_name, service in cloudwanderer_services.items():
 
             resource_list = nodes.bullet_list()

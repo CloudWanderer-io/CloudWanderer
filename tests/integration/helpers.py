@@ -1,10 +1,14 @@
 import os
 from unittest.mock import patch, MagicMock
 import functools
+from botocore import xform_name
 import cloudwanderer
+from cloudwanderer.service_mappings import ServiceMappingCollection, GlobalServiceResourceMappingNotFound
 from .mocks import generate_mock_session
 from moto import ec2, mock_ec2, mock_iam, mock_sts, mock_s3, mock_dynamodb2, mock_lambda
 import boto3
+
+DEFAULT_SESSION = boto3.Session()
 
 
 def filter_collections(collections, service_resource):
@@ -190,3 +194,27 @@ def setup_moto(restrict_regions: list = None, restrict_services: bool = True, re
     if restrict_collections:
         limit_collections_list()
     mock_services()
+
+
+def get_secondary_attribute_types(service_name):
+    boto3_interface = cloudwanderer.boto3_interface.CloudWandererBoto3Interface(boto3_session=DEFAULT_SESSION)
+    service_maps = ServiceMappingCollection(boto3_session=DEFAULT_SESSION)
+    service_map = service_maps.get_service_mapping(service_name=service_name)
+    resource_types = boto3_interface.get_service_resource_types_from_collections(
+        boto3_interface.get_resource_collections(
+            boto3_service=boto3_interface.get_resource_service_by_name(
+                service_name=service_name,
+                client_args={}
+            )
+        )
+    )
+    for resource_type in resource_types:
+        try:
+            resource_map = service_map.get_resource_mapping(resource_type=resource_type)
+        except GlobalServiceResourceMappingNotFound:
+            continue
+        for secondary_attribute in resource_map.secondary_attributes:
+            yield (
+                xform_name(resource_type),
+                xform_name(secondary_attribute)
+            )

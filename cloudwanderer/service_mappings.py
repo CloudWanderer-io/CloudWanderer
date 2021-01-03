@@ -16,6 +16,7 @@ import boto3
 from botocore.client import ClientCreator
 import jmespath
 from boto3.resources.model import ResourceModel
+from .custom_resource_definitions import CustomResourceDefinitions
 
 
 class ServiceMappingCollection:
@@ -41,7 +42,7 @@ class ServiceMappingCollection:
         default_service_map = ServiceMapping(
             service_name=service_name,
             service_mapping={},
-            boto3_session=self.boto3_session
+            boto3_session=self.boto3_session,
         )
         return self._service_maps.get(service_name, default_service_map)
 
@@ -79,12 +80,15 @@ class ServiceMapping:
             to use to query for resource region information.
     """
 
-    def __init__(self, service_name: str, service_mapping: dict, boto3_session: boto3.session.Session = None) -> None:
+    def __init__(
+            self, service_name: str, service_mapping: dict, boto3_session: boto3.session.Session = None) -> None:
         """Instantiate the ServiceMapping."""
         self.boto3_session = boto3_session or boto3.Session()
         self.service_name = service_name
         self.service_mapping = service_mapping
         self.boto3_client = self.boto3_session.client(service_name)
+        custom_resource_definitions = CustomResourceDefinitions()
+        self.boto3_service_definition = custom_resource_definitions.definitions[service_name]
 
     def has_global_resources_in_region(self, region: str) -> bool:
         """Return ``True`` if service has **only** resources and their primary endpoint is this region."""
@@ -143,17 +147,38 @@ class ServiceMapping:
             return self.service_mapping.get('service', {}).get('region')
         return resource_mapping.get_region(resource)
 
+    @property
+    def resources(self) -> List[str]:
+        """Return a list of resources we have mappings for."""
+        return [resource.lower() for resource in self.service_mapping.get('resources', {}).keys()]
+
     def get_resource_mapping(self, resource_type: str) -> ResourceModel:
         """Get the resource mapping for resource_type.
 
         Arguments:
             resource_type (str): The resource type in PascalCase (e.g. ``'Vpc'``).
         """
-        if resource_type not in self.service_mapping.get('resources', []):
+        resource_name = self._lookup_resource_name(resource_type)
+        if resource_name is None:
             raise GlobalServiceResourceMappingNotFound(
                 f"Global resource mapping not found for {self.service_name} {resource_type}")
         return CloudWandererResourceMapping(
-            resource_type, self.service_mapping['resources'][resource_type], self.boto3_client)
+            service_mapping=self,
+            name=resource_name,
+            mapping=self.service_mapping['resources'][resource_name],
+            resource_definition=self.boto3_service_definition['resources'][resource_name],
+            boto3_client=self.boto3_client)
+
+    def _lookup_resource_name(self, resource_name: str) -> str:
+        """Returns a PascalCase resource name from the resources mapping given a lowercase resource name.
+
+        Arguments:
+            resource_name (str): the lowercase resource name to lookup
+        """
+        resource_names = [(key, key.lower()) for key in self.service_mapping.get('resources', {})]
+        return next(iter(
+            resource_tuple[0] for resource_tuple in resource_names if resource_tuple[1] == resource_name.lower()
+        ), None)
 
 
 class CloudWandererResourceMapping:
@@ -162,14 +187,19 @@ class CloudWandererResourceMapping:
     Arguments:
         name (str): The name of the resource
         mapping (dict): The resource's cloudwanderer mapping data
+        resource_definition (dict): The boto3 resource definition
         boto3_client: The boto3 client for this resource
     """
 
-    def __init__(self, name: str, mapping: dict, boto3_client: ClientCreator) -> None:
+    def __init__(
+            self, service_mapping: ServiceMapping, name: str, mapping: dict, resource_definition: dict,
+            boto3_client: ClientCreator) -> None:
         """Initialise the CloudWandererResourceMapping."""
+        self.service_mapping = service_mapping
         self.name = name
         self._mapping = mapping
         self.boto3_client = boto3_client
+        self.resource_definition = resource_definition
 
     @property
     def resource_type(self) -> str:
@@ -190,6 +220,22 @@ class CloudWandererResourceMapping:
         result = method(**self._build_params(resource))
         return jmespath.search(
             self._request_mapping['pathToRegion'], result) or self._request_mapping.get('defaultValue', None)
+
+    @property
+    def secondary_attributes(self) -> List[str]:
+        """Returns a list of secondary attributes for this resource."""
+        for subresource_name in self.resource_definition.get('has', []):
+            try:
+                resource_mapping = self.service_mapping.get_resource_mapping(subresource_name)
+            except GlobalServiceResourceMappingNotFound:
+                continue
+            if resource_mapping.resource_type == 'secondaryAttribute':
+                yield subresource_name
+
+    @property
+    def has_secondary_attributes(self) -> bool:
+        """Return True if this resource has secondary attributes."""
+        return bool(next(self.secondary_attributes, None))
 
     @property
     def _request_mapping(self) -> dict:

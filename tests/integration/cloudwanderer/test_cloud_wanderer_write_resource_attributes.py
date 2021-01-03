@@ -1,16 +1,29 @@
-import logging
 import unittest
 from unittest.mock import MagicMock
 from ..mocks import add_infra, generate_mock_session, ENABLED_REGIONS
-from ..helpers import MockStorageConnectorMixin, setup_moto
+from ..helpers import MockStorageConnectorMixin, setup_moto, get_secondary_attribute_types
 from cloudwanderer import CloudWanderer
+from cloudwanderer.boto3_interface import CloudWandererBoto3Interface
+
+
+def expected_service_logs():
+    boto3_interface = CloudWandererBoto3Interface()
+    supported_services = [
+        service.meta.service_name
+        for service in boto3_interface.get_all_resource_services()
+    ]
+    for service_name in supported_services:
+        secondary_attribute_resources = set(
+            resource_name
+            for resource_name, _ in get_secondary_attribute_types(service_name))
+        for resource_name in secondary_attribute_resources:
+            yield f'INFO:cloudwanderer:Writing all {service_name} {resource_name} secondary attributes in us-east-1'
 
 
 class TestCloudWandererWriteResourceAttributes(unittest.TestCase, MockStorageConnectorMixin):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        logging.basicConfig(level='INFO')
         setup_moto(restrict_regions=ENABLED_REGIONS)
         add_infra()
         self.mock_storage_connector = MagicMock()
@@ -18,14 +31,7 @@ class TestCloudWandererWriteResourceAttributes(unittest.TestCase, MockStorageCon
             storage_connectors=[self.mock_storage_connector],
             boto3_session=generate_mock_session()
         )
-        self.supported_services = [
-            service.meta.service_name
-            for service in self.wanderer.boto3_interface.get_all_resource_services()
-        ]
-        self.expected_service_logs = [
-            f'INFO:cloudwanderer:Writing all {service} secondary attributes in us-east-1'
-            for service in self.supported_services
-        ]
+        self.expected_service_logs = expected_service_logs()
 
     def setUp(self):
         self.mock_storage_connector = MagicMock()
@@ -98,7 +104,7 @@ class TestCloudWandererWriteResourceAttributes(unittest.TestCase, MockStorageCon
         with self.assertLogs('cloudwanderer', 'INFO') as cm:
             self.wanderer.write_secondary_attributes_in_region(region_name='us-east-1')
         service_logs = [entry for entry in cm.output if 'Writing all' in entry]
-        assert service_logs == self.expected_service_logs
+        assert sorted(service_logs) == sorted(self.expected_service_logs)
 
         self.mock_storage_connector.write_secondary_attribute.assert_called()
         self.assert_storage_connector_write_secondary_attribute_called_with(

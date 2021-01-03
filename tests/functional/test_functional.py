@@ -63,3 +63,10 @@ class TestFunctional(unittest.TestCase):
 
     def test_write_secondary_attributes_in_region(self):
         self.wanderer.write_secondary_attributes_in_region('ec2')
+
+    def test_write_secondary_attributes_of_type_in_region(self):
+        self.wanderer.write_secondary_attributes_of_type_in_region(
+            region_name='eu-west-2', service_name='ec2', resource_type='image')
+
+        self.wanderer.write_secondary_attributes_of_type_in_region(
+            region_name='eu-west-2', service_name='lambda', resource_type='function')

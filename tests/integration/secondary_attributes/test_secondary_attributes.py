@@ -4,20 +4,7 @@ from botocore import xform_name
 from parameterized import parameterized
 from cloudwanderer.boto3_interface import CloudWandererBoto3Interface
 from ..mocks import add_infra
-from ..helpers import setup_moto
-
-
-def get_secondary_attribute_types(service_name):
-    boto3_interface = CloudWandererBoto3Interface()
-    service = boto3_interface.get_resource_service_by_name(service_name, {})
-    for collection in boto3_interface.get_resource_collections(service):
-        secondary_attributes = boto3_interface.get_child_resource_definitions(
-            service_name, collection.resource.model, resource_type='secondaryAttribute')
-        for secondary_attribute in secondary_attributes:
-            yield (
-                xform_name(collection.resource.model.name),
-                xform_name(secondary_attribute.name)
-            )
+from ..helpers import setup_moto, get_secondary_attribute_types
 
 
 def generate_params():
