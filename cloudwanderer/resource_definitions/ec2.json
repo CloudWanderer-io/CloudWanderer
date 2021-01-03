@@ -1,0 +1,57 @@
+{
+    "service": {
+    },
+    "resources": {
+        "Vpc": {
+            "identifiers": [
+                {
+                    "name": "Id",
+                    "memberName": "VpcId"
+                }
+            ],
+            "shape": "Vpc",
+            "has": {
+                "VpcEnableDnsSupport": {
+                    "resource": {
+                        "type": "VpcEnableDnsSupport",
+                        "identifiers": [
+                            {
+                                "target": "VpcId",
+                                "source": "identifier",
+                                "name": "Id"
+                            }
+                        ],
+                        "path": "@"
+                    }
+                }
+            }
+        },
+        "VpcEnableDnsSupport": {
+            "shape": "DescribeVpcAttributeResult",
+            "identifiers": [
+                {
+                    "name": "VpcId",
+                    "memberName": "VpcId"
+                }
+            ],
+            "load": {
+                "request": {
+                    "operation": "DescribeVpcAttribute",
+                    "params": [
+                        {
+                            "target": "VpcId",
+                            "source": "identifier",
+                            "name": "VpcId"
+                        },
+                        {
+                            "target": "Attribute",
+                            "source": "string",
+                            "value": "enableDnsSupport"
+                        }
+                    ]
+                },
+                "path": "@"
+            }
+        }
+    }
+}
