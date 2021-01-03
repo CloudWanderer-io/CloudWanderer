@@ -1,6 +1,7 @@
 import unittest
 import logging
 import botocore
+import boto3
 from cloudwanderer import CloudWanderer
 from cloudwanderer.storage_connectors import DynamoDbConnector
 
@@ -26,7 +27,8 @@ class TestFunctional(unittest.TestCase):
         self.storage_connector.init()
         self.wanderer.write_resources_concurrently(
             exclude_resources=['image', 'snapshot', 'policy'],
-            concurrency=128
+            concurrency=128,
+            session_generator=boto3.session.Session
         )
 
     def test_write_resources_in_region(self):
