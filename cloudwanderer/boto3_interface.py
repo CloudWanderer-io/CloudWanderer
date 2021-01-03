@@ -57,7 +57,7 @@ class CloudWandererBoto3Interface:
         This is as opposed to the collection name (e.g. instances)
         """
         for boto3_resource_collection in self.get_resource_collections(boto3_service):
-            if xform_name(boto3_resource_collection.resource.model.shape) != resource_type:
+            if xform_name(boto3_resource_collection.resource.model.name) != resource_type:
                 continue
             yield boto3_resource_collection
 
@@ -106,7 +106,7 @@ class CloudWandererBoto3Interface:
             service_name: The name of the service to get resource types for (e.g. ``'ec2'``)
         """
         for collection in self.get_service_resource_collections(service_name):
-            yield xform_name(collection.resource.model.shape)
+            yield xform_name(collection.resource.model.name)
 
     def get_service_resource_types_from_collections(self, collections: List[Collection]) -> Iterator[str]:
         """Return all possible resource names for a given service.
@@ -117,7 +117,7 @@ class CloudWandererBoto3Interface:
             collections (List[Collection]): The list of collections from which to get resource names.
         """
         for collection in collections:
-            yield xform_name(collection.resource.model.shape)
+            yield xform_name(collection.resource.model.name)
 
     def get_service_resource_collections(self, service_name: str) -> Iterator[Collection]:
         """Return all the resource collections for a given service_name.
