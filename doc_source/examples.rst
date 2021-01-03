@@ -160,6 +160,39 @@ the new data into the object after calling :meth:`~cloudwanderer.cloud_wanderer.
     >>> first_vpc.get_secondary_attribute('[].EnableDnsSupport.Value')
     [True]
 
+Reading Resources
+--------------------
+
+Let's say we want to get a list of role policies. We can start by getting the role
+
+.. doctest ::
+
+    >>> role = next(storage_connector.read_resources(service_name='iam', resource_type='role'))
+    >>> role.load()
+
+Next we need to find out what policies are attached.
+
+.. doctest ::
+
+    >>> role.get_secondary_attribute('[].PolicyNames[0]')
+    ['test-role-policy']
+    >>> role.get_secondary_attribute('[].AttachedPolicies[0]')
+    [{'PolicyName': 'APIGatewayServiceRolePolicy', 'PolicyArn': 'arn:aws:iam::aws:policy/aws-service-role/APIGatewayServiceRolePolicy'}]
+
+Then we can lookup the policies!
+
+.. doctest ::
+
+    >>> inline_policy_urn = cloudwanderer.AwsUrn(
+    ...     account_id = role.urn.account_id,
+    ...     region=role.urn.region,
+    ...     service='iam',
+    ...     resource_type='role_policy',
+    ...     resource_id=f"{role.urn.resource_id}:test-role-policy"
+    ... )
+    >>> inline_policy = storage_connector.read_resource(urn=inline_policy_urn)
+    >>> inline_policy.policy_document
+    {'Version': '2012-10-17', 'Statement': {'Effect': 'Allow', 'Action': 's3:ListBucket', 'Resource': 'arn:aws:s3:::example_bucket'}}
 
 Deleting Stale Resources
 -------------------------

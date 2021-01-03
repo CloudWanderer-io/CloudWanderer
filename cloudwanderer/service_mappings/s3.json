@@ -6,6 +6,7 @@
     },
     "resources": {
         "Bucket": {
+            "type": "resource",
             "regionRequest": {
                 "operation": "get_bucket_location",
                 "params": [
