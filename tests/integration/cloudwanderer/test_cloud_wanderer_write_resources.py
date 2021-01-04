@@ -109,7 +109,7 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
                 'instance_id': ANY
             }
         )
-        self.assert_storage_connector_write_resource_called_with(
+        self.assert_storage_connector_write_resource_not_called_with(
             region='eu-west-2',
             service='s3',
             resource_type='bucket',
@@ -201,7 +201,7 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
                 'instance_id': ANY
             }
         )
-        self.assert_storage_connector_write_resource_called_with(
+        self.assert_storage_connector_write_resource_not_called_with(
             region='eu-west-2',
             service='s3',
             resource_type='bucket',
@@ -271,7 +271,7 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
                 'instance_id': ANY
             }
         )
-        self.assert_storage_connector_write_resource_called_with(
+        self.assert_storage_connector_write_resource_not_called_with(
             region='eu-west-2',
             service='s3',
             resource_type='bucket',

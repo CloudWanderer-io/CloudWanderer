@@ -1,6 +1,7 @@
 {
     "service": {
         "globalService": true,
+        "globalServiceRegion": "us-east-1",
         "region": "us-east-1",
         "regionalResources": true
     },

@@ -1,8 +1,9 @@
 """Main cloudwanderer module."""
 from typing import List
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterator
 import concurrent.futures
+from boto3.resources.base import ServiceResource
 from botocore import xform_name
 import boto3
 from .utils import exception_logging_wrapper
@@ -132,12 +133,6 @@ class CloudWanderer():
 
         logger.info("Writing all %s resources in %s", service_name, client_args['region_name'])
         exclude_resources = exclude_resources or []
-        service_map = self.service_maps.get_service_mapping(service_name=service_name)
-        has_global_resources_in_this_region = service_map.has_global_resources_in_region(client_args['region_name'])
-        if not has_global_resources_in_this_region and not service_map.has_regional_resources:
-            logger.info("Skipping %s as it does not have resources in %s",
-                        service_name, client_args['region_name'])
-            return
 
         for resource_type in self.boto3_interface.get_service_resource_types(service_name=service_name):
             if resource_type in exclude_resources:
@@ -167,25 +162,30 @@ class CloudWanderer():
         client_args = client_args or {
             'region_name': region_name or self.boto3_session.region_name
         }
+        service_map = self.service_maps.get_service_mapping(service_name=service_name)
+        if service_map.is_global_service and service_map.global_service_region != client_args['region_name']:
+            logger.info("Skipping %s as it does not have resources in %s",
+                        service_name, client_args['region_name'])
+            return
         logger.info('--> Fetching %s %s from %s', service_name, resource_type, client_args['region_name'])
         resources = self.boto3_interface.get_resources_of_type(service_name, resource_type, client_args)
         urns = []
         for boto3_resource in resources:
-            urn = self._get_resource_urn(boto3_resource, client_args['region_name'])
-            if not self._should_write_resource_in_region(urn, client_args['region_name']):
-                continue
-            for storage_connector in self.storage_connectors:
-                storage_connector.write_resource(urn, boto3_resource)
-            urns.append(urn)
+            urns.extend(list(self._write_resource(boto3_resource, client_args['region_name'])))
+            self._clean_resources_in_region(service_name, resource_type, client_args['region_name'], urns)
 
-            for subresource in self.boto3_interface.get_subresources(boto3_resource=boto3_resource):
-                subresource.load()
-                urn = self._get_resource_urn(subresource, client_args['region_name'])
-                urns.append(urn)
-                for storage_connector in self.storage_connectors:
-                    storage_connector.write_resource(urn, subresource)
-        self._clean_resources_in_region(
-            service_name, resource_type, client_args['region_name'], urns)
+    def _write_resource(self, boto3_resource: ServiceResource, region_name: str) -> Iterator[AwsUrn]:
+        urn = self._get_resource_urn(boto3_resource, region_name)
+        for storage_connector in self.storage_connectors:
+            storage_connector.write_resource(urn, boto3_resource)
+        yield urn
+
+        for subresource in self.boto3_interface.get_subresources(boto3_resource=boto3_resource):
+            subresource.load()
+            urn = self._get_resource_urn(subresource, region_name)
+            yield urn
+            for storage_connector in self.storage_connectors:
+                storage_connector.write_resource(urn, subresource)
 
     def _clean_resources_in_region(
             self, service_name: str, resource_type: str, region_name: str, current_urns: List[AwsUrn]) -> None:
@@ -198,19 +198,6 @@ class CloudWanderer():
                 region=region_name,
                 urns_to_keep=current_urns
             )
-
-    def _should_write_resource_in_region(self, urn: AwsUrn, write_region: str) -> bool:
-        """Return True if this is a resource we should write in this region and log the result."""
-        if urn.region != write_region:
-            logger.debug(
-                "Skipping %s %s in %s because it is not in %s",
-                urn.resource_type,
-                urn.resource_id,
-                urn.region,
-                write_region
-            )
-            return False
-        return True
 
     def write_secondary_attributes(
             self, exclude_resources: List[str] = None, client_args: dict = None) -> None:
@@ -276,8 +263,7 @@ class CloudWanderer():
         }
         exclude_resources = exclude_resources or []
         service_map = self.service_maps.get_service_mapping(service_name=service_name)
-        has_gobal_resources_in_this_region = service_map.has_global_resources_in_region(client_args['region_name'])
-        if not has_gobal_resources_in_this_region and not service_map.has_regional_resources:
+        if service_map.is_global_service and service_map.global_service_region != client_args['region_name']:
             logger.info("Skipping %s as it does not have resources in %s",
                         service_name, client_args['region_name'])
             return

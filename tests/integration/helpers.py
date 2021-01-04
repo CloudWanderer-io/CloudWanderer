@@ -52,7 +52,10 @@ class MockStorageConnectorMixin:
     """
 
     def assert_storage_connector_write_resource_not_called_with(self, **kwargs):
-        assert not self.storage_connector_write_resource_called_with(**kwargs)
+        self.assertFalse(
+            self.storage_connector_write_resource_called_with(**kwargs),
+            f"Found match for {kwargs} in {self.mock_storage_connector.write_resource.call_args_list}"
+        )
 
     def assert_storage_connector_write_resource_called_with(self, **kwargs):
         self.assertTrue(
