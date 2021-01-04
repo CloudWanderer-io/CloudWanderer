@@ -172,7 +172,7 @@ class CloudWanderer():
         urns = []
         for boto3_resource in resources:
             urns.extend(list(self._write_resource(boto3_resource, client_args['region_name'])))
-            self._clean_resources_in_region(service_name, resource_type, client_args['region_name'], urns)
+        self._clean_resources_in_region(service_name, resource_type, client_args['region_name'], urns)
 
     def _write_resource(self, boto3_resource: ServiceResource, region_name: str) -> Iterator[AwsUrn]:
         urn = self._get_resource_urn(boto3_resource, region_name)
