@@ -36,8 +36,7 @@ class TestServiceMappings(unittest.TestCase):
     def test_s3_has_resources_in_regions(self):
         gsm = self.maps.get_service_mapping('s3')
 
-        assert gsm.has_global_resources_in_region('us-east-1') is False
-        assert gsm.has_global_resources_in_region('eu-west-1') is False
+        assert gsm.global_service_region == 'us-east-1'
         assert gsm.has_regional_resources
 
     def test_non_global_resource(self):
@@ -45,8 +44,7 @@ class TestServiceMappings(unittest.TestCase):
         gsm = self.maps.get_service_mapping('ec2')
 
         assert gsm.get_resource_region(vpc, self.mock_session.region_name) == 'eu-west-2'
-        assert gsm.has_global_resources_in_region('us-east-1') is False
-        assert gsm.has_global_resources_in_region('eu-west-1') is False
+        assert gsm.global_service_region is None
         assert gsm.has_regional_resources
 
     def test_service_single_region_resource(self):
@@ -54,5 +52,5 @@ class TestServiceMappings(unittest.TestCase):
         gsm = self.maps.get_service_mapping('iam')
 
         assert gsm.get_resource_region(iam_group, self.mock_session.region_name) == 'us-east-1'
-        assert gsm.has_global_resources_in_region('us-east-1')
+        assert gsm.global_service_region == 'us-east-1'
         assert gsm.has_regional_resources is False

@@ -1,8 +1,6 @@
-import logging
 import unittest
-from unittest.mock import MagicMock, ANY
-from moto import mock_ec2, mock_sts, mock_iam, mock_s3
-from ..helpers import patch_resource_collections, patch_services, MockStorageConnectorMixin
+from unittest.mock import ANY
+from ..helpers import patch_resource_collections, patch_services, MockStorageConnectorMixin, mock_services
 from ..mocks import (
     add_infra,
     MOCK_COLLECTION_INSTANCES,
@@ -14,29 +12,22 @@ from ..mocks import (
     generate_mock_session
 )
 from cloudwanderer import CloudWanderer
+from cloudwanderer.storage_connectors import MemoryStorageConnector
 
 
-@mock_ec2
-@mock_sts
-@mock_iam
-@mock_s3
 class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMixin):
 
-    @mock_ec2
-    @mock_sts
-    @mock_iam
-    @mock_s3
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        logging.basicConfig(level='INFO')
+        mock_services()
         add_infra()
         self.mock_session = generate_mock_session()
         self.enabled_regions = ENABLED_REGIONS
 
     def setUp(self):
-        self.mock_storage_connector = MagicMock()
+        self.storage_connector = MemoryStorageConnector()
         self.wanderer = CloudWanderer(
-            storage_connectors=[self.mock_storage_connector],
+            storage_connectors=[self.storage_connector],
             boto3_session=self.mock_session
         )
         self.wanderer._enabled_regions = ENABLED_REGIONS
@@ -50,7 +41,7 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
         self.wanderer.write_resources()
 
         for region_name in self.enabled_regions:
-            self.assert_storage_connector_write_resource_called_with(
+            self.assert_resource_exists(
                 region=region_name,
                 service='ec2',
                 resource_type='instance',
@@ -61,7 +52,7 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
                 }
             )
 
-            self.assert_storage_connector_write_resource_called_with(
+            self.assert_resource_exists(
                 region=region_name,
                 service='s3',
                 resource_type='bucket',
@@ -70,7 +61,7 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
                 }
             )
             if region_name == 'us-east-1':
-                self.assert_storage_connector_write_resource_called_with(
+                self.assert_resource_exists(
                     region=region_name,
                     service='iam',
                     resource_type='group',
@@ -80,7 +71,7 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
                     }
                 )
             else:
-                self.assert_storage_connector_write_resource_not_called_with(
+                self.assert_resource_not_exists(
                     region=region_name,
                     service='iam',
                     resource_type='group',
@@ -98,8 +89,7 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
 
         self.wanderer.write_resources_in_region()
 
-        self.mock_storage_connector.write_resource.assert_called()
-        self.assert_storage_connector_write_resource_called_with(
+        self.assert_resource_exists(
             region='eu-west-2',
             service='ec2',
             resource_type='instance',
@@ -109,7 +99,7 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
                 'instance_id': ANY
             }
         )
-        self.assert_storage_connector_write_resource_called_with(
+        self.assert_resource_not_exists(
             region='eu-west-2',
             service='s3',
             resource_type='bucket',
@@ -117,7 +107,7 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
                 'name': 'test-eu-west-2'
             }
         )
-        self.assert_storage_connector_write_resource_not_called_with(
+        self.assert_resource_not_exists(
             region='us-east-1',
             service='iam',
             resource_type='group',
@@ -133,11 +123,9 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
         MOCK_COLLECTION_IAM_GROUPS, MOCK_COLLECTION_IAM_ROLES,
         MOCK_COLLECTION_IAM_ROLE_POLICIES])
     def test_write_resources_in_region_specify_region(self):
-
         self.wanderer.write_resources_in_region(region_name='us-east-1')
 
-        self.mock_storage_connector.write_resource.assert_called()
-        self.assert_storage_connector_write_resource_called_with(
+        self.assert_resource_exists(
             region='us-east-1',
             service='ec2',
             resource_type='instance',
@@ -147,7 +135,7 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
                 'instance_id': ANY
             }
         )
-        self.assert_storage_connector_write_resource_called_with(
+        self.assert_resource_exists(
             region='us-east-1',
             service='s3',
             resource_type='bucket',
@@ -155,7 +143,7 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
                 'name': 'test-us-east-1'
             }
         )
-        self.assert_storage_connector_write_resource_called_with(
+        self.assert_resource_exists(
             region='us-east-1',
             service='iam',
             resource_type='group',
@@ -164,7 +152,7 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
                 'path': '/'
             }
         )
-        self.assert_storage_connector_write_resource_called_with(
+        self.assert_resource_exists(
             region='us-east-1',
             service='iam',
             resource_type='role',
@@ -173,7 +161,7 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
                 'path': '/'
             }
         )
-        self.assert_storage_connector_write_resource_called_with(
+        self.assert_resource_exists(
             region='us-east-1',
             service='iam',
             resource_type='role_policy',
@@ -190,8 +178,7 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
         self.wanderer.write_resources_of_service_in_region(service_name='ec2')
         self.wanderer.write_resources_of_service_in_region(service_name='s3')
 
-        self.mock_storage_connector.write_resource.assert_called()
-        self.assert_storage_connector_write_resource_called_with(
+        self.assert_resource_exists(
             region='eu-west-2',
             service='ec2',
             resource_type='instance',
@@ -201,7 +188,7 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
                 'instance_id': ANY
             }
         )
-        self.assert_storage_connector_write_resource_called_with(
+        self.assert_resource_not_exists(
             region='eu-west-2',
             service='s3',
             resource_type='bucket',
@@ -209,7 +196,7 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
                 'name': 'test-eu-west-2'
             }
         )
-        self.assert_storage_connector_write_resource_not_called_with(
+        self.assert_resource_not_exists(
             region='us-east-1',
             service='iam',
             resource_type='group',
@@ -227,8 +214,7 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
         self.wanderer.write_resources_of_service_in_region(service_name='s3', region_name='us-east-1')
         self.wanderer.write_resources_of_service_in_region(service_name='iam', region_name='us-east-1')
 
-        self.mock_storage_connector.write_resource.assert_called()
-        self.assert_storage_connector_write_resource_called_with(
+        self.assert_resource_exists(
             region='us-east-1',
             service='ec2',
             resource_type='instance',
@@ -238,7 +224,7 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
                 'instance_id': ANY
             }
         )
-        self.assert_storage_connector_write_resource_called_with(
+        self.assert_resource_exists(
             region='us-east-1',
             service='s3',
             resource_type='bucket',
@@ -246,7 +232,7 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
                 'name': 'test-us-east-1'
             }
         )
-        self.assert_storage_connector_write_resource_called_with(
+        self.assert_resource_exists(
             region='us-east-1',
             service='iam',
             resource_type='group',
@@ -261,7 +247,7 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
         self.wanderer.write_resources_of_type_in_region(service_name='ec2', resource_type='instance')
         self.wanderer.write_resources_of_type_in_region(service_name='iam', resource_type='group')
 
-        self.assert_storage_connector_write_resource_called_with(
+        self.assert_resource_exists(
             region='eu-west-2',
             service='ec2',
             resource_type='instance',
@@ -271,7 +257,7 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
                 'instance_id': ANY
             }
         )
-        self.assert_storage_connector_write_resource_called_with(
+        self.assert_resource_not_exists(
             region='eu-west-2',
             service='s3',
             resource_type='bucket',
@@ -279,7 +265,7 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
                 'name': 'test-eu-west-2'
             }
         )
-        self.assert_storage_connector_write_resource_not_called_with(
+        self.assert_resource_not_exists(
             region='us-east-1',
             service='iam',
             resource_type='group',
@@ -298,7 +284,7 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
         self.wanderer.write_resources_of_type_in_region(
             service_name='iam', resource_type='group', region_name='us-east-1')
 
-        self.assert_storage_connector_write_resource_called_with(
+        self.assert_resource_exists(
             region='us-east-1',
             service='ec2',
             resource_type='instance',
@@ -308,7 +294,7 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
                 'instance_id': ANY
             }
         )
-        self.assert_storage_connector_write_resource_called_with(
+        self.assert_resource_exists(
             region='us-east-1',
             service='s3',
             resource_type='bucket',
@@ -316,7 +302,7 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
                 'name': 'test-us-east-1'
             }
         )
-        self.assert_storage_connector_write_resource_called_with(
+        self.assert_resource_exists(
             region='us-east-1',
             service='iam',
             resource_type='group',
@@ -325,3 +311,31 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
                 'path': '/'
             }
         )
+
+    def assert_resource_exists(self, *args, **kwargs):
+        result = self.resource_exists(*args, **kwargs)
+        assert len(result) > 0
+        assert all(x[0] for x in result)
+
+    def assert_resource_not_exists(self, *args, **kwargs):
+        result = self.resource_exists(*args, **kwargs)
+        assert all(x[0] for x in result)
+
+    def resource_exists(self, region, service, resource_type, attributes_dict):
+        resources = list(self.storage_connector.read_resources(
+            region=region,
+            service=service,
+            resource_type=resource_type
+        ))
+
+        matches = []
+        for resource in resources:
+            resource.load()
+            for attribute, value in attributes_dict.items():
+                result = False
+                try:
+                    result = getattr(resource, attribute) == value
+                except AttributeError:
+                    pass
+                matches.append((result, resource.urn, attribute, value))
+        return matches

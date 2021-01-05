@@ -90,13 +90,10 @@ class ServiceMapping:
         custom_resource_definitions = CustomResourceDefinitions()
         self.boto3_service_definition = custom_resource_definitions.definitions[service_name]
 
-    def has_global_resources_in_region(self, region: str) -> bool:
-        """Return ``True`` if service has **only** resources and their primary endpoint is this region."""
-        if not self.is_global_service:
-            return False
-        if self.has_regional_resources:
-            return False
-        return self._service_details.get('region') == region
+    @property
+    def global_service_region(self) -> bool:
+        """Return the primary region for this global service (if it not one, return None)."""
+        return self._service_details.get('globalServiceRegion')
 
     @property
     def has_regional_resources(self) -> bool:
@@ -140,11 +137,11 @@ class ServiceMapping:
         if self.has_regional_resources and not self.is_global_service:
             return default_region
         if not self.has_regional_resources and self.is_global_service:
-            return self.service_mapping.get('service', {}).get('region')
+            return self.service_mapping.get('service', {}).get('globalServiceRegion')
         try:
             resource_mapping = self.get_resource_mapping(resource.meta.resource_model.name)
         except GlobalServiceResourceMappingNotFound:
-            return self.service_mapping.get('service', {}).get('region')
+            return self.service_mapping.get('service', {}).get('globalServiceRegion')
         return resource_mapping.get_region(resource)
 
     @property
