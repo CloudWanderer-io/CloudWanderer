@@ -1,3 +1,9 @@
+# 0.10.1
+
+- S3 buckets and other regional resources of global services will now only be written in their service's globalRegion
+- Fixed bug where AWSUrn did not parse subresources URNs correctly
+- Improved cloudwanderer tests by leveraging `MemoryStorageConnector`
+
 # 0.10.0
 
 - Added `role_managed_policy_attachments` secondary attribute
