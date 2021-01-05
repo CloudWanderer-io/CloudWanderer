@@ -51,7 +51,7 @@ class CloudWandererResource():
             raise ValueError(f'Could not inflate {self}, storage connector loader not populated')
         updated_resource = self._loader(urn=self.urn)
         if updated_resource is None:
-            logger.error('Could not inflate %s, does not exist in storage', self)
+            raise ValueError(f'Could not inflate {self}, does not exist in storage')
             return
         self.cloudwanderer_metadata = updated_resource.cloudwanderer_metadata
         self._set_resource_data_attrs()
