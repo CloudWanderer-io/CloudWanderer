@@ -14,7 +14,8 @@ class TestAwsUrn(unittest.TestCase):
         )
 
     def test_from_string(self):
-        assert AwsUrn.from_string('urn:aws:111111111111:us-east-1:ec2:role_policy:test-role:test-policy') == self.test_urn
+        assert AwsUrn.from_string(
+            'urn:aws:111111111111:us-east-1:ec2:role_policy:test-role:test-policy') == self.test_urn
 
     def test_str(self):
         assert str(self.test_urn) == 'urn:aws:111111111111:us-east-1:ec2:role_policy:test-role:test-policy'
