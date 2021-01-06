@@ -39,12 +39,12 @@ class ServiceMappingCollection:
         """Returns the mapping for service_name."""
         if self._service_maps is None:
             self._service_maps = self.get_service_maps()
-        default_service_map = ServiceMapping(
+
+        return self._service_maps.get(service_name, ServiceMapping(
             service_name=service_name,
             service_mapping={},
             boto3_session=self.boto3_session,
-        )
-        return self._service_maps.get(service_name, default_service_map)
+        ))
 
     def get_service_maps(self) -> List['ServiceMapping']:
         """Return our custom resource definitions."""
