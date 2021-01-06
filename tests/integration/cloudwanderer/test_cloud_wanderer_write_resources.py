@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import ANY
-from ..helpers import patch_resource_collections, patch_services, MockStorageConnectorMixin, mock_services, setup_moto
+from ..helpers import MockStorageConnectorMixin, setup_moto
 from ..mocks import (
     add_infra,
     MOCK_COLLECTION_INSTANCES,
@@ -8,7 +8,6 @@ from ..mocks import (
     MOCK_COLLECTION_IAM_GROUPS,
     MOCK_COLLECTION_IAM_ROLES,
     MOCK_COLLECTION_IAM_ROLE_POLICIES,
-    ENABLED_REGIONS,
     generate_mock_session
 )
 from cloudwanderer import CloudWanderer

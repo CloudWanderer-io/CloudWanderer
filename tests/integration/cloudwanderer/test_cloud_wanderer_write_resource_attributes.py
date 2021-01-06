@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import MagicMock
-from ..mocks import add_infra, generate_mock_session, ENABLED_REGIONS
+from ..mocks import add_infra, generate_mock_session
 from ..helpers import MockStorageConnectorMixin, setup_moto, get_secondary_attribute_types
 from cloudwanderer import CloudWanderer
 from cloudwanderer.boto3_interface import CloudWandererBoto3Interface

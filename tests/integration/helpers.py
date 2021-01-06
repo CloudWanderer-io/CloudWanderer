@@ -12,6 +12,7 @@ import boto3
 DEFAULT_SESSION = boto3.Session()
 logger = logging.getLogger(__file__)
 
+
 def filter_collections(collections, service_resource):
     for collection in collections:
         if service_resource.meta.resource_model.name == collection.meta.service_name:
