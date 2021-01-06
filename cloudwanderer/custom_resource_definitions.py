@@ -153,3 +153,6 @@ class CustomResourceDefinitions():
     def _setup_boto3_loader(self) -> None:
         self._boto3_loader = self.botocore_session.get_component('data_loader')
         self._boto3_loader.search_paths.append(os.path.join(os.path.dirname(boto3.__file__), 'data'))
+
+
+DEFAULT_RESOURCE_DEFINITIONS = CustomResourceDefinitions()
