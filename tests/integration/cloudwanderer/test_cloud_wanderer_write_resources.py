@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import ANY
-from ..helpers import patch_resource_collections, patch_services, MockStorageConnectorMixin, mock_services
+from ..helpers import patch_resource_collections, patch_services, MockStorageConnectorMixin, mock_services, setup_moto
 from ..mocks import (
     add_infra,
     MOCK_COLLECTION_INSTANCES,
@@ -19,10 +19,18 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        mock_services()
-        add_infra()
+        self.enabled_regions = ['eu-west-2', 'us-east-1', 'ap-east-1']
+        setup_moto(
+            restrict_regions=self.enabled_regions,
+            restrict_services=['ec2', 's3', 'iam'],
+            restrict_collections=[
+                MOCK_COLLECTION_INSTANCES, MOCK_COLLECTION_BUCKETS,
+                MOCK_COLLECTION_IAM_GROUPS, MOCK_COLLECTION_IAM_ROLES,
+                MOCK_COLLECTION_IAM_ROLE_POLICIES
+            ]
+        )
         self.mock_session = generate_mock_session()
-        self.enabled_regions = ENABLED_REGIONS
+        add_infra(regions=self.enabled_regions)
 
     def setUp(self):
         self.storage_connector = MemoryStorageConnector()
@@ -30,12 +38,7 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
             storage_connectors=[self.storage_connector],
             boto3_session=self.mock_session
         )
-        self.wanderer._enabled_regions = ENABLED_REGIONS
 
-    @patch_services(['ec2', 's3', 'iam'])
-    @patch_resource_collections(collections=[
-        MOCK_COLLECTION_INSTANCES, MOCK_COLLECTION_BUCKETS,
-        MOCK_COLLECTION_IAM_GROUPS, MOCK_COLLECTION_IAM_ROLES])
     def test_write_resources(self):
 
         self.wanderer.write_resources()
@@ -81,10 +84,6 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
                     }
                 )
 
-    @patch_services(['ec2', 's3', 'iam'])
-    @patch_resource_collections(collections=[
-        MOCK_COLLECTION_INSTANCES, MOCK_COLLECTION_BUCKETS,
-        MOCK_COLLECTION_IAM_GROUPS])
     def test_write_resources_in_region_default_region(self):
 
         self.wanderer.write_resources_in_region()
@@ -117,11 +116,6 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
             }
         )
 
-    @patch_services(['ec2', 's3', 'iam'])
-    @patch_resource_collections(collections=[
-        MOCK_COLLECTION_INSTANCES, MOCK_COLLECTION_BUCKETS,
-        MOCK_COLLECTION_IAM_GROUPS, MOCK_COLLECTION_IAM_ROLES,
-        MOCK_COLLECTION_IAM_ROLE_POLICIES])
     def test_write_resources_in_region_specify_region(self):
         self.wanderer.write_resources_in_region(region_name='us-east-1')
 
@@ -171,9 +165,6 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
             }
         )
 
-    @patch_resource_collections(collections=[
-        MOCK_COLLECTION_INSTANCES, MOCK_COLLECTION_BUCKETS,
-        MOCK_COLLECTION_IAM_GROUPS])
     def test_write_resources_of_service_default_region(self):
         self.wanderer.write_resources_of_service_in_region(service_name='ec2')
         self.wanderer.write_resources_of_service_in_region(service_name='s3')
@@ -206,9 +197,6 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
             }
         )
 
-    @patch_resource_collections(collections=[
-        MOCK_COLLECTION_INSTANCES, MOCK_COLLECTION_BUCKETS,
-        MOCK_COLLECTION_IAM_GROUPS])
     def test_write_resources_of_service_specify_region(self):
         self.wanderer.write_resources_of_service_in_region(service_name='ec2', region_name='us-east-1')
         self.wanderer.write_resources_of_service_in_region(service_name='s3', region_name='us-east-1')
@@ -275,7 +263,6 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
             }
         )
 
-    @patch_services(['iam'])
     def test_write_resources_of_type_in_region_specify_region(self):
         self.wanderer.write_resources_of_type_in_region(
             service_name='s3', resource_type='bucket', region_name='us-east-1')
