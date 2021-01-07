@@ -16,6 +16,10 @@ from boto3.resources.factory import ResourceFactory
 from boto3.utils import ServiceContext
 
 
+# Default resource definitions, loaded when needed
+DEFAULT_RESOURCE_DEFINITIONS = None
+
+
 class CustomResourceFactory():
     """Factory class for generating custom boto3 Resource objects.
 
@@ -80,17 +84,22 @@ class CustomResourceDefinitions():
         self.factory = CustomResourceFactory(boto3_session=self.boto3_session)
         self._custom_resource_definitions = None
         self._custom_resources = None
+        self._service_definitions = None
         self.botocore_session = botocore.session.get_session()
         self._setup_boto3_loader()
+        self._populate_service_definitions()
+        self._populate_resource_definitions()
+
+    def _populate_resource_definitions(self) -> None:
+        """Populate resource definitions."""
+        self._custom_resource_definitions = {}
+        for service_name in self._service_definitions:
+            service_definition = self._load_service_definition(service_name)
+            self._custom_resource_definitions[service_name] = service_definition
 
     @property
     def definitions(self) -> List[ResourceModel]:
         """Return our custom resource definitions."""
-        if self._custom_resource_definitions is None:
-            self._custom_resource_definitions = {}
-            for service_name in self._list_service_definitions():
-                service_definition = self._load_service_definition(service_name)
-                self._custom_resource_definitions[service_name] = service_definition
         return self._custom_resource_definitions
 
     @property
@@ -131,14 +140,13 @@ class CustomResourceDefinitions():
             }
         }
 
-    def _list_service_definitions(self) -> List[str]:
+    def _populate_service_definitions(self) -> None:
         custom_definitions = [
             file_name.replace('.json', '')
             for file_name in os.listdir(self.service_definitions_path)
             if os.path.isfile(os.path.join(self.service_definitions_path, file_name))
         ]
-        boto3_definitions = self.boto3_session.get_available_resources()
-        return set(custom_definitions + boto3_definitions)
+        self._service_definitions = set(custom_definitions + self.boto3_session.get_available_resources())
 
     def _get_boto3_definition(self, service_name: str) -> dict:
         """Get the boto3 definition for service_name so we can build on top of it."""
@@ -155,4 +163,10 @@ class CustomResourceDefinitions():
         self._boto3_loader.search_paths.append(os.path.join(os.path.dirname(boto3.__file__), 'data'))
 
 
-DEFAULT_RESOURCE_DEFINITIONS = CustomResourceDefinitions()
+def _get_resource_definitions() -> CustomResourceDefinitions:
+    """Return a default set of resource definitions."""
+    global DEFAULT_RESOURCE_DEFINITIONS
+
+    if DEFAULT_RESOURCE_DEFINITIONS is None:
+        DEFAULT_RESOURCE_DEFINITIONS = CustomResourceDefinitions()
+    return DEFAULT_RESOURCE_DEFINITIONS
