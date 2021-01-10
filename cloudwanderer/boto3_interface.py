@@ -232,7 +232,6 @@ class CloudWandererBoto3Interface:
         if self._account_id is None:
             sts = self.boto3_session.client('sts')
             self._account_id = sts.get_caller_identity()['Account']
-        logger.info(self._account_id)
         return self._account_id
 
     @property

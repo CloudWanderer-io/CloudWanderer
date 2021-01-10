@@ -66,21 +66,21 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
                 self.assert_resource_exists(
                     region=region_name,
                     service='iam',
-                    resource_type='group',
+                    resource_type='role',
                     attributes_dict={
-                        'group_name': 'test-group',
+                        'role_name': 'test-role',
                         'path': '/'
+                    },
+                    secondary_attributes_dict={
+                        "[].PolicyNames[0]": ['test-role-policy'],
+                        "[].AttachedPolicies[0].PolicyName": ['APIGatewayServiceRolePolicy']
                     }
                 )
             else:
                 self.assert_resource_not_exists(
                     region=region_name,
                     service='iam',
-                    resource_type='group',
-                    attributes_dict={
-                        'group_name': 'test-group',
-                        'path': '/'
-                    }
+                    resource_type='role',
                 )
 
     def test_write_resources_in_region_default_region(self):
@@ -299,7 +299,7 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
         )
 
     def assert_resource_exists(self, *args, **kwargs):
-        result = self.resource_exists(*args, **kwargs)
+        result = list(self.resource_exists(*args, **kwargs))
         assert len(result) > 0
         assert all(x[0] for x in result)
 
@@ -307,7 +307,9 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
         result = self.resource_exists(*args, **kwargs)
         assert all(x[0] for x in result)
 
-    def resource_exists(self, region, service, resource_type, attributes_dict):
+    def resource_exists(self, region, service, resource_type, attributes_dict=None, secondary_attributes_dict=None):
+        attributes_dict = attributes_dict or {}
+        secondary_attributes_dict = secondary_attributes_dict or {}
         resources = list(self.storage_connector.read_resources(
             region=region,
             service=service,
@@ -324,4 +326,11 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
                 except AttributeError:
                     pass
                 matches.append((result, resource.urn, attribute, value))
+            for jmes_path, value in secondary_attributes_dict.items():
+                result = False
+                matches.append((
+                    resource.get_secondary_attribute(jmes_path=jmes_path) == value,
+                    jmes_path,
+                    value
+                ))
         return matches
