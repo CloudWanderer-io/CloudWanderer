@@ -164,20 +164,17 @@ class CloudWanderer():
         for boto3_resource in resources:
             urns.extend(list(self._write_resource(boto3_resource, client_args['region_name'])))
             urns.extend(list(self._write_secondary_attributes(boto3_resource, client_args['region_name'])))
-        regions_returned = self.boto3_interface.resource_regions_returned_from_api_region(
-            service_name,
-            client_args['region_name']
-        )
-        for region_name in regions_returned:
-            logger.info('--> Deleting %s %s from %s', service_name, resource_type, region_name)
-            self._clean_resources_in_region(service_name, resource_type, region_name, urns)
+
+        self._clean_resources_in_region(service_name, resource_type, region_name, urns)
 
     def _write_resource(self, boto3_resource: ServiceResource, region_name: str) -> Iterator[AwsUrn]:
         urn = self.boto3_interface._get_resource_urn(boto3_resource, region_name)
         for storage_connector in self.storage_connectors:
             storage_connector.write_resource(urn, boto3_resource)
         yield urn
+        yield from self._write_subresources(boto3_resource, region_name)
 
+    def _write_subresources(self, boto3_resource: ServiceResource, region_name: str) -> Iterator[AwsUrn]:
         for subresource in self.boto3_interface.get_subresources(boto3_resource=boto3_resource):
             subresource.load()
             urn = self.boto3_interface._get_resource_urn(subresource, region_name)
@@ -203,11 +200,14 @@ class CloudWanderer():
     def _clean_resources_in_region(
             self, service_name: str, resource_type: str, region_name: str, current_urns: List[AwsUrn]) -> None:
         """Remove all resources of this type in this region which no longer exist."""
-        for storage_connector in self.storage_connectors:
-            storage_connector.delete_resource_of_type_in_account_region(
-                service=service_name,
-                resource_type=resource_type,
-                account_id=self.boto3_interface.account_id,
-                region=region_name,
-                urns_to_keep=current_urns
-            )
+        regions_returned = self.boto3_interface.resource_regions_returned_from_api_region(service_name, region_name)
+        for region_name in regions_returned:
+            logger.info('---> Deleting %s %s from %s', service_name, resource_type, region_name)
+            for storage_connector in self.storage_connectors:
+                storage_connector.delete_resource_of_type_in_account_region(
+                    service=service_name,
+                    resource_type=resource_type,
+                    account_id=self.boto3_interface.account_id,
+                    region=region_name,
+                    urns_to_keep=current_urns
+                )
