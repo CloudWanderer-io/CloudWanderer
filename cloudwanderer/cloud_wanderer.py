@@ -10,7 +10,6 @@ from .utils import exception_logging_wrapper
 from .boto3_interface import CloudWandererBoto3Interface
 from .aws_urn import AwsUrn
 from .service_mappings import ServiceMappingCollection, GlobalServiceResourceMappingNotFound
-from boto3.resources.model import ResourceModel
 
 logger = logging.getLogger('cloudwanderer')
 
@@ -35,7 +34,6 @@ class CloudWanderer():
         self.boto3_interface = CloudWandererBoto3Interface(boto3_session=self.boto3_session)
         self.service_maps = ServiceMappingCollection(boto3_session=self.boto3_session)
         self._account_id = None
-        self._enabled_regions = None
 
     def write_resources(
             self, exclude_resources: List[str] = None, client_args: dict = None) -> None:
@@ -47,7 +45,7 @@ class CloudWanderer():
                 See: :meth:`boto3.session.Session.client`
         """
         logger.info('Writing resources in all regions')
-        for region_name in self.enabled_regions:
+        for region_name in self.boto3_interface.enabled_regions:
             self.write_resources_in_region(
                 exclude_resources=exclude_resources,
                 region_name=region_name,
@@ -74,7 +72,7 @@ class CloudWanderer():
         logger.info('Writing resources in all regions')
         logger.warning('Using concurrency of: %s - CONCURRENCY IS EXPERIMENTAL', concurrency)
         with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency) as executor:
-            for region_name in self.enabled_regions:
+            for region_name in self.boto3_interface.enabled_regions:
                 boto3_session = session_generator() if session_generator else self.boto3_session
                 cw = CloudWanderer(
                     storage_connectors=self.storage_connectors,
@@ -175,14 +173,14 @@ class CloudWanderer():
         self._clean_resources_in_region(service_name, resource_type, client_args['region_name'], urns)
 
     def _write_resource(self, boto3_resource: ServiceResource, region_name: str) -> Iterator[AwsUrn]:
-        urn = self._get_resource_urn(boto3_resource, region_name)
+        urn = self.boto3_interface._get_resource_urn(boto3_resource, region_name)
         for storage_connector in self.storage_connectors:
             storage_connector.write_resource(urn, boto3_resource)
         yield urn
 
         for subresource in self.boto3_interface.get_subresources(boto3_resource=boto3_resource):
             subresource.load()
-            urn = self._get_resource_urn(subresource, region_name)
+            urn = self.boto3_interface._get_resource_urn(subresource, region_name)
             yield urn
             for storage_connector in self.storage_connectors:
                 storage_connector.write_resource(urn, subresource)
@@ -194,7 +192,7 @@ class CloudWanderer():
             storage_connector.delete_resource_of_type_in_account_region(
                 service=service_name,
                 resource_type=resource_type,
-                account_id=self.account_id,
+                account_id=self.boto3_interface.account_id,
                 region=region_name,
                 urns_to_keep=current_urns
             )
@@ -331,48 +329,10 @@ class CloudWanderer():
                 attribute_type = xform_name(secondary_attribute.meta.resource_model.name)
                 logger.info('--> Fetching %s %s %s in %s', service_name,
                             resource_type, attribute_type, client_args['region_name'])
-                urn = self._get_resource_urn(resource, client_args['region_name'])
+                urn = self.boto3_interface._get_resource_urn(resource, client_args['region_name'])
                 for storage_connector in self.storage_connectors:
                     storage_connector.write_secondary_attribute(
                         urn=urn,
                         secondary_attribute=secondary_attribute,
                         attribute_type=attribute_type
                     )
-
-    @property
-    def account_id(self) -> str:
-        """Return the AWS Account ID our boto3 session is authenticated against."""
-        if self._account_id is None:
-            sts = self.boto3_session.client('sts')
-            self._account_id = sts.get_caller_identity()['Account']
-        return self._account_id
-
-    @property
-    def enabled_regions(self) -> List[str]:
-        """Return a list of enabled regions in this account."""
-        if not self._enabled_regions:
-            regions = self.boto3_session.client('ec2').describe_regions()['Regions']
-            self._enabled_regions = [
-                region['RegionName']
-                for region in regions
-                if region['OptInStatus'] != 'not-opted-in'
-            ]
-        return self._enabled_regions
-
-    def _get_resource_urn(self, resource: ResourceModel, region_name: str) -> 'AwsUrn':
-        id_members = [x.name for x in resource.meta.resource_model.identifiers]
-        resource_ids = []
-        for id_member in id_members:
-            id_part = getattr(resource, id_member)
-            if id_part.startswith('arn:'):
-                id_part = ''.join(id_part.split(':')[5:])
-            resource_ids.append(id_part)
-        compound_resource_id = ':'.join(resource_ids)
-        service_map = self.service_maps.get_service_mapping(resource.meta.service_name)
-        return AwsUrn(
-            account_id=self.account_id,
-            region=service_map.get_resource_region(resource, region_name),
-            service=resource.meta.service_name,
-            resource_type=xform_name(resource.meta.resource_model.name),
-            resource_id=compound_resource_id
-        )

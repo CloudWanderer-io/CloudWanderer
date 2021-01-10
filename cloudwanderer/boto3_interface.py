@@ -11,6 +11,7 @@ from boto3.resources.base import ServiceResource
 from boto3.resources.model import Collection, ResourceModel
 from .custom_resource_definitions import CustomResourceDefinitions
 from .service_mappings import ServiceMappingCollection, GlobalServiceResourceMappingNotFound
+from .aws_urn import AwsUrn
 logger = logging.getLogger(__name__)
 
 
@@ -22,6 +23,8 @@ class CloudWandererBoto3Interface:
         self.boto3_session = boto3_session or boto3.Session()
         self.service_maps = ServiceMappingCollection(boto3_session=self.boto3_session)
         self.custom_resource_definitions = CustomResourceDefinitions(boto3_session=boto3_session)
+        self._enabled_regions = None
+        self._account_id = None
 
     def get_all_resource_services(self, client_args: dict = None) -> Iterator[ServiceResource]:
         """Return all boto3 service Resource objects.
@@ -222,3 +225,42 @@ class CloudWandererBoto3Interface:
             if resource_mapping.resource_type != resource_type:
                 continue
             yield secondary_attribute_collection
+
+    @property
+    def account_id(self) -> str:
+        """Return the AWS Account ID our boto3 session is authenticated against."""
+        if self._account_id is None:
+            sts = self.boto3_session.client('sts')
+            self._account_id = sts.get_caller_identity()['Account']
+        logger.info(self._account_id)
+        return self._account_id
+
+    @property
+    def enabled_regions(self) -> List[str]:
+        """Return a list of enabled regions in this account."""
+        if not self._enabled_regions:
+            regions = self.boto3_session.client('ec2').describe_regions()['Regions']
+            self._enabled_regions = [
+                region['RegionName']
+                for region in regions
+                if region['OptInStatus'] != 'not-opted-in'
+            ]
+        return self._enabled_regions
+
+    def _get_resource_urn(self, resource: ResourceModel, region_name: str) -> 'AwsUrn':
+        id_members = [x.name for x in resource.meta.resource_model.identifiers]
+        resource_ids = []
+        for id_member in id_members:
+            id_part = getattr(resource, id_member)
+            if id_part.startswith('arn:'):
+                id_part = ''.join(id_part.split(':')[5:])
+            resource_ids.append(id_part)
+        compound_resource_id = ':'.join(resource_ids)
+        service_map = self.service_maps.get_service_mapping(resource.meta.service_name)
+        return AwsUrn(
+            account_id=self.account_id,
+            region=service_map.get_resource_region(resource, region_name),
+            service=resource.meta.service_name,
+            resource_type=xform_name(resource.meta.resource_model.name),
+            resource_id=compound_resource_id
+        )
