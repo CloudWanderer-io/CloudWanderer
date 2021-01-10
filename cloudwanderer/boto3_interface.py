@@ -89,6 +89,12 @@ class CloudWandererBoto3Interface:
             client_args (dict): Arguments to pass into the boto3 client.
                 See: :meth:`boto3.session.Session.client`
         """
+        service_map = self.service_maps.get_service_mapping(service_name=service_name)
+        region_name = client_args.get('region_name', self.boto3_session.region_name)
+        if service_map.is_global_service and service_map.global_service_region != region_name:
+            logger.info("Skipping %s as it does not have resources in %s",
+                        service_name, client_args['region_name'])
+            return
         boto3_service = self.get_resource_service_by_name(service_name, client_args=client_args)
         boto3_resource_collection = next(self.get_resource_collection_by_resource_type(boto3_service, resource_type))
 
@@ -263,3 +269,27 @@ class CloudWandererBoto3Interface:
             resource_type=xform_name(resource.meta.resource_model.name),
             resource_id=compound_resource_id
         )
+
+    def resource_regions_returned_from_api_region(
+            self, service_name: str, region_name: str) -> List[str]:
+        """Return a list of regions which will be discovered for this resource type in this region.
+
+        Usually this will just return the region which is passed in, but some resources are only queryable
+        from a single region despite having resources from multiple regions (e.g. s3 buckets)
+
+        Arguments:
+            service_name (str): The name of the service to check (e.g. ``'ec2'``)
+            region_name (str): The name of the region to check (e.g. ``'eu-west-1'``)
+
+        """
+        service_map = self.service_maps.get_service_mapping(service_name=service_name)
+        if not service_map.is_global_service:
+            yield region_name
+            return
+
+        if service_map.global_service_region != region_name:
+            return
+        elif not service_map.has_regional_resources:
+            yield region_name
+        else:
+            yield from self.enabled_regions
