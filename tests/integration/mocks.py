@@ -57,7 +57,7 @@ def generate_mock_session(region='eu-west-2'):
     )
 
 
-def add_infra(count=1, regions=ENABLED_REGIONS):
+def add_infra(count=1, regions=['us-east-1', 'eu-west-1', 'ap-east-1']):
     os.environ['AWS_ACCESS_KEY_ID'] = 'testing'
     os.environ['AWS_SECRET_ACCESS_KEY'] = 'testing'
     os.environ['AWS_SECURITY_TOKEN'] = 'testing'

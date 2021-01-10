@@ -1,4 +1,5 @@
 import os
+import logging
 from unittest.mock import patch, MagicMock
 import functools
 from botocore import xform_name
@@ -9,6 +10,7 @@ from moto import ec2, mock_ec2, mock_iam, mock_sts, mock_s3, mock_dynamodb2
 import boto3
 
 DEFAULT_SESSION = boto3.Session()
+logger = logging.getLogger(__file__)
 
 
 def filter_collections(collections, service_resource):
@@ -151,21 +153,23 @@ class TestStorageConnectorReadMixin:
             )
 
 
-def limit_collections_list():
+def limit_collections_list(restrict_collections):
     """Limit the boto3 resource collections we service to a subset we use for testing."""
-    collections_to_mock = [
-        ('ec2', ('instance', 'instances')),
-        ('ec2', ('vpc', 'vpcs')),
-        ('s3', ('bucket', 'buckets')),
-        ('iam', ('group', 'groups')),
-        ('iam', ('Role', 'roles')),
-        ('Role', ('RolePolicy', 'policies'))
-    ]
-    mock_collections = []
-    for service, name_tuple in collections_to_mock:
-        mock_collections.append(generate_mock_collection(service, name_tuple[0], name_tuple[1]))
+    if not restrict_collections:
+        collections_to_mock = [
+            ('ec2', ('instance', 'instances')),
+            ('ec2', ('vpc', 'vpcs')),
+            ('s3', ('bucket', 'buckets')),
+            ('iam', ('group', 'groups')),
+            ('iam', ('Role', 'roles')),
+            ('Role', ('RolePolicy', 'policies'))
+        ]
+        restrict_collections = []
+        for service, name_tuple in collections_to_mock:
+            restrict_collections.append(generate_mock_collection(service, name_tuple[0], name_tuple[1]))
+    logger.debug('Mocking collections: %s', restrict_collections)
     cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface.get_resource_collections = MagicMock(
-        side_effect=lambda boto3_service: filter_collections(mock_collections, boto3_service)
+        side_effect=lambda boto3_service: filter_collections(restrict_collections, boto3_service)
     )
 
 
@@ -175,7 +179,8 @@ def mock_services():
         mock.start()
 
 
-def setup_moto(restrict_regions: list = None, restrict_services: bool = True, restrict_collections: bool = True):
+def setup_moto(restrict_regions: list = None, restrict_services: bool = True,
+               restrict_collections: list = None):
     os.environ['AWS_ACCESS_KEY_ID'] = '1111111'
     os.environ['AWS_SECRET_ACCESS_KEY'] = '1111111'
     os.environ['AWS_SESSION_TOKEN'] = '1111111'
@@ -189,8 +194,8 @@ def setup_moto(restrict_regions: list = None, restrict_services: bool = True, re
     if restrict_services:
         cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface.get_all_resource_services = MagicMock(
             return_value=[boto3.resource(service) for service in ['ec2', 's3', 'iam']])
-    if restrict_collections:
-        limit_collections_list()
+    if restrict_collections is not False:
+        limit_collections_list(restrict_collections)
     mock_services()
 
 

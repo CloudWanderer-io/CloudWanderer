@@ -1,3 +1,9 @@
+# 0.10.2
+
+ - Reuse service definition objects via `_get_resource_definitions` to save on time spent reinstantiating identical objects
+ - Only instantiate the default `ServiceMapping` from `get_service_mapping` if it's required.
+ - Reduced number of regions tested from _all_ to 3.
+
 # 0.10.1
 
 - S3 buckets and other regional resources of global services will now only be written in their service's globalRegion

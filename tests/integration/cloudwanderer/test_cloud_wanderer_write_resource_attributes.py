@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import MagicMock
-from ..mocks import add_infra, generate_mock_session, ENABLED_REGIONS
+from ..mocks import add_infra, generate_mock_session
 from ..helpers import MockStorageConnectorMixin, setup_moto, get_secondary_attribute_types
 from cloudwanderer import CloudWanderer
 from cloudwanderer.boto3_interface import CloudWandererBoto3Interface
@@ -24,13 +24,12 @@ class TestCloudWandererWriteResourceAttributes(unittest.TestCase, MockStorageCon
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        setup_moto(restrict_regions=ENABLED_REGIONS)
-        add_infra()
-        self.mock_storage_connector = MagicMock()
-        self.wanderer = CloudWanderer(
-            storage_connectors=[self.mock_storage_connector],
-            boto3_session=generate_mock_session()
+        self.enabled_regions = ['eu-west-2', 'us-east-1', 'ap-east-1']
+        setup_moto(
+            restrict_regions=self.enabled_regions,
         )
+        self.mock_session = generate_mock_session()
+        add_infra(regions=self.enabled_regions)
         self.expected_service_logs = expected_service_logs()
 
     def setUp(self):
@@ -43,7 +42,7 @@ class TestCloudWandererWriteResourceAttributes(unittest.TestCase, MockStorageCon
     def test_write_secondary_attributes(self):
         self.wanderer.write_secondary_attributes()
 
-        for region_name in ENABLED_REGIONS:
+        for region_name in self.enabled_regions:
             self.assert_storage_connector_write_secondary_attribute_called_with(
                 region=region_name,
                 service='ec2',

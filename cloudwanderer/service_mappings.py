@@ -16,7 +16,7 @@ import boto3
 from botocore.client import ClientCreator
 import jmespath
 from boto3.resources.model import ResourceModel
-from .custom_resource_definitions import CustomResourceDefinitions
+from .custom_resource_definitions import _get_resource_definitions
 
 
 class ServiceMappingCollection:
@@ -39,12 +39,12 @@ class ServiceMappingCollection:
         """Returns the mapping for service_name."""
         if self._service_maps is None:
             self._service_maps = self.get_service_maps()
-        default_service_map = ServiceMapping(
+
+        return self._service_maps.get(service_name, ServiceMapping(
             service_name=service_name,
             service_mapping={},
             boto3_session=self.boto3_session,
-        )
-        return self._service_maps.get(service_name, default_service_map)
+        ))
 
     def get_service_maps(self) -> List['ServiceMapping']:
         """Return our custom resource definitions."""
@@ -87,8 +87,7 @@ class ServiceMapping:
         self.service_name = service_name
         self.service_mapping = service_mapping
         self.boto3_client = self.boto3_session.client(service_name)
-        custom_resource_definitions = CustomResourceDefinitions()
-        self.boto3_service_definition = custom_resource_definitions.definitions[service_name]
+        self.boto3_service_definition = _get_resource_definitions().definitions[service_name]
 
     @property
     def global_service_region(self) -> bool:
