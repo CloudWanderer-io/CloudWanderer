@@ -1,7 +1,7 @@
 """Main cloudwanderer module."""
 from typing import List
 import logging
-from typing import TYPE_CHECKING, Iterator
+from typing import TYPE_CHECKING, Iterator, Callable
 import concurrent.futures
 from boto3.resources.base import ServiceResource
 from botocore import xform_name
@@ -53,7 +53,7 @@ class CloudWanderer():
             )
 
     def write_resources_concurrently(
-            self, session_generator: callable, exclude_resources: List[str] = None, client_args: dict = None,
+            self, session_generator: Callable, exclude_resources: List[str] = None, client_args: dict = None,
             concurrency: int = 10) -> None:
         """Write all AWS resources in this account from all regions and all services to storage.
 
@@ -66,7 +66,7 @@ class CloudWanderer():
                 multiple services to be queried concurrently in each region.
                 **WARNING:** Experimental. Complete data capture depends heavily on the thread safeness of the
                 storage connector and has not been thoroughly tested!
-            session_generator (callable): A method which returns a new boto3 session when called.
+            session_generator (Callable): A method which returns a new boto3 session when called.
                 You're usually safe to pass in ``boto3.session.Session``
         """
         logger.info('Writing resources in all regions')
