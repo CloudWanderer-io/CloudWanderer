@@ -20,7 +20,7 @@ class CloudWanderer():
 
     Args:
         storage_connectors: CloudWanderer storage connector objects.
-        boto3_session (boto3.session.Session): A boto3 :class:`~boto3.session.Session` object.
+        cloud_interface (CloudWandererBoto3Interface): The cloud interface
     """
 
     def __init__(
@@ -31,15 +31,13 @@ class CloudWanderer():
         self.cloud_interface = cloud_interface or CloudWandererBoto3Interface()
 
     def write_resources(
-            self, exclude_resources: List[str] = None, client_args: dict = None, **kwargs) -> None:
+            self, exclude_resources: List[str] = None, **kwargs) -> None:
         """Write all AWS resources in this account from all regions and all services to storage.
 
         Any additional args will be passed into the cloud interface's ``get_`` methods.
 
         Arguments:
             exclude_resources (list): A list of resource names to exclude (e.g. ``['instance']``)
-            client_args (dict): Arguments to pass into the boto3 client.
-                See: :meth:`boto3.session.Session.client`
         """
         logger.info('Writing resources in all regions')
         for region_name in self.cloud_interface.enabled_regions:
@@ -58,8 +56,6 @@ class CloudWanderer():
 
         Arguments:
             exclude_resources (list): A list of resource names to exclude (e.g. ``['instance']``)
-            client_args (dict): Arguments to pass into the boto3 client.
-                See: :meth:`boto3.session.Session.client`
             concurrency (int): Number of query threads to invoke concurrently.
                 If the number of threads exceeds the number of regions by at least two times
                 multiple services to be queried concurrently in each region.
@@ -95,8 +91,6 @@ class CloudWanderer():
             exclude_resources (list): A list of resource names to exclude (e.g. ``['instance']``)
             region_name (str): The name of the region to get resources from
                 (defaults to session default if not specified)
-            client_args (dict): Arguments to pass into the boto3 client.
-                See: :meth:`boto3.session.Session.client`
         """
         exclude_resources = exclude_resources or []
         for boto3_service in self.cloud_interface.get_all_resource_services():
@@ -121,8 +115,6 @@ class CloudWanderer():
             exclude_resources (list): A list of resource names to exclude (e.g. ``['instance']``)
             region_name (str): The name of the region to get resources from
                 (defaults to session default if not specified)
-            client_args (dict): Arguments to pass into the boto3 client.
-                See: :meth:`boto3.session.Session.client`
         """
         region_name = region_name or self.cloud_interface.region_name
 
@@ -154,8 +146,6 @@ class CloudWanderer():
             resource_type (str): The name of the type of the resource to write (e.g. ``'instance'``)
             region_name (str): The name of the region to get resources from
                 (defaults to session default if not specified)
-            client_args (dict): Arguments to pass into the boto3 client.
-                See: :meth:`boto3.session.Session.client`
         """
         region_name = region_name or self.cloud_interface.region_name
         logger.info('--> Fetching %s %s from %s', service_name, resource_type, region_name)
