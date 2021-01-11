@@ -1,3 +1,4 @@
+from cloudwanderer.boto3_interface import CloudWandererBoto3Interface
 import unittest
 import logging
 import botocore
@@ -28,7 +29,7 @@ class TestFunctional(unittest.TestCase):
         self.wanderer.write_resources_concurrently(
             exclude_resources=['image', 'snapshot', 'policy'],
             concurrency=128,
-            session_generator=boto3.session.Session
+            cloud_interface_generator=lambda: CloudWandererBoto3Interface(boto3_session=boto3.session.Session())
         )
 
     def test_write_resources_in_region(self):

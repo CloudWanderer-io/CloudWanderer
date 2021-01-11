@@ -26,15 +26,10 @@ class CloudWandererBoto3Interface:
         self._enabled_regions = None
         self._account_id = None
 
-    def get_all_resource_services(self, client_args: dict = None) -> Iterator[ServiceResource]:
-        """Return all boto3 service Resource objects.
-
-        Arguments:
-            client_args (dict): Arguments to pass into the boto3 client.
-                See: :meth:`boto3.session.Session.client`
-        """
+    def get_all_resource_services(self, **kwargs) -> Iterator[ServiceResource]:
+        """Return all boto3 service Resource objects."""
         for service_name in self.custom_resource_definitions.definitions:
-            yield self.get_resource_service_by_name(service_name, client_args)
+            yield self.get_resource_service_by_name(service_name, **kwargs)
 
     def get_resource_service_by_name(
             self, service_name: str, **kwargs) -> ResourceModel:

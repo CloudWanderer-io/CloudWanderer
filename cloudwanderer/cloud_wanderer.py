@@ -159,7 +159,8 @@ class CloudWanderer():
         """
         region_name = region_name or self.cloud_interface.region_name
         logger.info('--> Fetching %s %s from %s', service_name, resource_type, region_name)
-        resources = self.cloud_interface.get_resources_of_type(service_name, resource_type, region_name, **kwargs)
+        resources = self.cloud_interface.get_resources_of_type(
+            service_name=service_name, resource_type=resource_type, region_name=region_name, **kwargs)
         urns = []
         for boto3_resource in resources:
             urns.extend(list(self._write_resource(boto3_resource, region_name)))
@@ -169,7 +170,6 @@ class CloudWanderer():
 
     def _write_resource(self, boto3_resource: ServiceResource, region_name: str) -> Iterator[AwsUrn]:
         urn = self.cloud_interface._get_resource_urn(boto3_resource, region_name)
-        print(urn)
         for storage_connector in self.storage_connectors:
             storage_connector.write_resource(urn, boto3_resource)
         yield urn
