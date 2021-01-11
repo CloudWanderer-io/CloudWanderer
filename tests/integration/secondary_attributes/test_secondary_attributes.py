@@ -38,8 +38,7 @@ class TestSecondaryAttributes(unittest.TestCase):
 
         resources = boto3_interface.get_resources_of_type(
             service_name=service_name,
-            resource_type=resource_type,
-            client_args={}
+            resource_type=resource_type
         )
         for resource in resources:
             secondary_attributes = boto3_interface.get_secondary_attributes(

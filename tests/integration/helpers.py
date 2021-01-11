@@ -206,8 +206,7 @@ def get_secondary_attribute_types(service_name):
     resource_types = boto3_interface.get_service_resource_types_from_collections(
         boto3_interface.get_resource_collections(
             boto3_service=boto3_interface.get_resource_service_by_name(
-                service_name=service_name,
-                client_args={}
+                service_name=service_name
             )
         )
     )

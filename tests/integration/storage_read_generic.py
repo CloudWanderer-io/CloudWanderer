@@ -3,7 +3,7 @@ from time import sleep
 from unittest.mock import patch
 import logging
 from .helpers import TestStorageConnectorReadMixin, setup_moto
-from .mocks import add_infra, generate_mock_session
+from .mocks import add_infra
 import cloudwanderer
 
 
@@ -22,13 +22,11 @@ class StorageReadTestMixin(TestStorageConnectorReadMixin):
         self.memory_storage_connector = cloudwanderer.storage_connectors.MemoryStorageConnector()
         with patch('moto.sts.responses.ACCOUNT_ID', new='111111111111'):
             self.wanderer = cloudwanderer.CloudWanderer(
-                boto3_session=generate_mock_session(),
                 storage_connectors=[self.connector, self.memory_storage_connector]
             )
             self.wanderer.write_resources()
         with patch('moto.sts.responses.ACCOUNT_ID', new='222222222222'):
             self.wanderer = cloudwanderer.CloudWanderer(
-                boto3_session=generate_mock_session(),
                 storage_connectors=[self.connector, self.memory_storage_connector]
             )
             self.wanderer.write_resources()

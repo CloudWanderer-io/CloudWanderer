@@ -6,6 +6,7 @@
     This was due to cleanup only happening in the global service region, and being limited to
     cleaning up resources in that region. E.g. it would write buckets from all regions from `us-east-1`
     and then _only_ cleanup `us-east-1` s3 buckets.
+- Removed `client_args` as an explicit argument on cloudwanderer resources, any keywords args supplied to `write_` methods are now passed into the `get_` methods of the `cloud_interface`
 
 # 0.10.2
 

@@ -7,8 +7,7 @@ from ..mocks import (
     MOCK_COLLECTION_BUCKETS,
     MOCK_COLLECTION_IAM_GROUPS,
     MOCK_COLLECTION_IAM_ROLES,
-    MOCK_COLLECTION_IAM_ROLE_POLICIES,
-    generate_mock_session
+    MOCK_COLLECTION_IAM_ROLE_POLICIES
 )
 from cloudwanderer import CloudWanderer
 from cloudwanderer.storage_connectors import MemoryStorageConnector
@@ -28,14 +27,12 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
                 MOCK_COLLECTION_IAM_ROLE_POLICIES
             ]
         )
-        self.mock_session = generate_mock_session()
         add_infra(regions=self.enabled_regions)
 
     def setUp(self):
         self.storage_connector = MemoryStorageConnector()
         self.wanderer = CloudWanderer(
-            storage_connectors=[self.storage_connector],
-            boto3_session=self.mock_session
+            storage_connectors=[self.storage_connector]
         )
 
     def test_write_resources(self):

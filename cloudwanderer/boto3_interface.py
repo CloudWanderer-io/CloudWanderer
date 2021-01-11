@@ -37,7 +37,7 @@ class CloudWandererBoto3Interface:
             yield self.get_resource_service_by_name(service_name, client_args)
 
     def get_resource_service_by_name(
-            self, service_name: str, client_args: dict = None) -> ResourceModel:
+            self, service_name: str, **kwargs) -> ResourceModel:
         """Get the resource definition matching this service name.
 
         Arguments:
@@ -45,8 +45,7 @@ class CloudWandererBoto3Interface:
             client_args (dict): Arguments to pass into the boto3 client.
                 See: :meth:`boto3.session.Session.client`
         """
-        client_args = client_args or {}
-        return self.custom_resource_definitions.resource(service_name, **client_args)
+        return self.custom_resource_definitions.resource(service_name, **kwargs)
 
     def get_resource_collections(self, boto3_service: ServiceResource) -> List[Collection]:
         """Return all resource types in this service."""
@@ -80,22 +79,20 @@ class CloudWandererBoto3Interface:
             raise ex
 
     def get_resources_of_type(
-            self, service_name: str, resource_type: str, client_args: dict) -> Iterator[ResourceModel]:
+            self, service_name: str, resource_type: str, region_name: str = None, **kwargs) -> Iterator[ResourceModel]:
         """Return all resources of resource_type from all definition sources.
 
         Arguments:
-            service_name: The name of the service to get resource for (e.g. ``'ec2'``)
-            resource_type: The type of resource to get resources of (e.g. ``'instance'``
-            client_args (dict): Arguments to pass into the boto3 client.
-                See: :meth:`boto3.session.Session.client`
+            service_name (str): The name of the service to get resource for (e.g. ``'ec2'``)
+            resource_type (str): The type of resource to get resources of (e.g. ``'instance'``)
+            region_name (str): The region to get resources of (e.g. ``'eu-west-1'``)
         """
         service_map = self.service_maps.get_service_mapping(service_name=service_name)
-        region_name = client_args.get('region_name', self.boto3_session.region_name)
+        region_name = region_name or self.region_name
         if service_map.is_global_service and service_map.global_service_region != region_name:
-            logger.info("Skipping %s as it does not have resources in %s",
-                        service_name, client_args['region_name'])
+            logger.info("Skipping %s as it does not have resources in %s", service_name, region_name)
             return
-        boto3_service = self.get_resource_service_by_name(service_name, client_args=client_args)
+        boto3_service = self.get_resource_service_by_name(service_name, **kwargs)
         boto3_resource_collection = next(self.get_resource_collection_by_resource_type(boto3_service, resource_type))
 
         try:
@@ -239,6 +236,11 @@ class CloudWandererBoto3Interface:
             sts = self.boto3_session.client('sts')
             self._account_id = sts.get_caller_identity()['Account']
         return self._account_id
+
+    @property
+    def region_name(self) -> str:
+        """Return the default AWS region."""
+        return self.boto3_session.region_name
 
     @property
     def enabled_regions(self) -> List[str]:
