@@ -122,6 +122,7 @@ class TestStorageConnectorReadMixin:
 
     def assert_has_matching_aws_urns(self, iterable, aws_urns):
         """Assert that iterable has AwsUrns that match the list of dicts in aws_urns
+
         Arguments:
             iterable (iterable):
                 An iterable containing AwsUrn objects
@@ -138,6 +139,7 @@ class TestStorageConnectorReadMixin:
 
     def assert_does_not_have_matching_aws_urns(self, iterable, aws_urns):
         """Assert that iterable does not have AwsUrns that match the list of dicts in aws_urns
+
         Arguments:
             iterable (iterable):
                 An iterable containing AwsUrn objects

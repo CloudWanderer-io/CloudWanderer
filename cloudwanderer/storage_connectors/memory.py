@@ -28,7 +28,7 @@ class MemoryStorageConnector(BaseStorageConnector):
         self._data = {}
 
     def init(self) -> None:
-        """Dummy method to fulfil interface requirements."""
+        """Do nothing. Dummy method to fulfil interface requirements."""
 
     def read_resource(self, urn: AwsUrn) -> CloudWandererResource:
         """Return the resource with the specified :class:`cloudwanderer.aws_urn.AwsUrn`.

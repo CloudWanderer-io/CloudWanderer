@@ -5,6 +5,7 @@ Provides simpler methods for :class:`~.cloud_wanderer.CloudWanderer` to call.
 from typing import List, Iterator
 import logging
 import boto3
+import botocore
 from botocore import xform_name
 from botocore.exceptions import ClientError, EndpointConnectionError
 from boto3.resources.base import ServiceResource
@@ -19,7 +20,12 @@ class CloudWandererBoto3Interface:
     """Simplifies lookup of boto3 services and resources."""
 
     def __init__(self, boto3_session: boto3.session.Session = None) -> None:
-        """Simplifies lookup of boto3 services and resources."""
+        """Simplifies lookup of boto3 services and resources.
+
+        Arguments:
+            boto3_session (boto3.session.Session):
+                A boto3 session, if not provided the default will be used.
+        """
         self.boto3_session = boto3_session or boto3.Session()
         self.service_maps = ServiceMappingCollection(boto3_session=self.boto3_session)
         self.custom_resource_definitions = CustomResourceDefinitions(boto3_session=boto3_session)
@@ -27,31 +33,56 @@ class CloudWandererBoto3Interface:
         self._account_id = None
 
     def get_all_resource_services(self, **kwargs) -> Iterator[ServiceResource]:
-        """Return all boto3 service Resource objects."""
+        """Return all boto3 service Resource objects.
+
+        Arguments:
+            **kwargs: Additional keyword argumentss will be passed down to the Boto3 client.
+
+        Yields:
+            boto3.resources.base.ServiceResource: The service resources available in boto3
+        """
         for service_name in self.custom_resource_definitions.definitions:
             yield self.get_resource_service_by_name(service_name, **kwargs)
 
     def get_resource_service_by_name(
-            self, service_name: str, **kwargs) -> ResourceModel:
+            self, service_name: str, **kwargs) -> boto3.resources.model.ResourceModel:
         """Get the resource definition matching this service name.
 
         Arguments:
-            service_name (str): The name of the service (e.g. ``'ec2'``) to get.
-            client_args (dict): Arguments to pass into the boto3 client.
-                See: :meth:`boto3.session.Session.client`
+            service_name (str):
+                The name of the service (e.g. ``'ec2'``) to get.
+            **kwargs: Additional keyword argumentss will be passed down to the Boto3 client.
+
+        Returns:
+            boto3.resources.model.ResourceModel: The instantiated Resource service of this name.
         """
         return self.custom_resource_definitions.resource(service_name, **kwargs)
 
-    def get_resource_collections(self, boto3_service: ServiceResource) -> List[Collection]:
-        """Return all resource types in this service."""
+    def get_resource_collections(self, boto3_service: boto3.resources.base.ServiceResource) -> List[Collection]:
+        """Return all resource types in this service.
+
+        Arguments:
+            boto3_service (boto3.resources.base.ServiceResource): The service resource from which to return collections
+
+        Returns:
+            List[Collection]: The collections in the supplied boto3_service resource.
+        """
         return boto3_service.meta.resource_model.collections
 
     def get_resource_collection_by_resource_type(
-            self, boto3_service: ServiceResource,
-            resource_type: str) -> Iterator[Collection]:
-        """Return the resource collection that matches the resource_type (e.g. instance).
+            self, boto3_service: boto3.resources.base.ServiceResource, resource_type: str) -> Iterator[Collection]:
+        """Yield the resource collection that matches the resource_type (e.g. instance).
 
         This is as opposed to the collection name (e.g. instances)
+
+        Arguments:
+            boto3_service (boto3.resources.base.ServiceResource):
+                The service resource from which to return collections
+            resource_type (str):
+                The resource type for which to return collections
+
+        Yields:
+            boto3.resources.model.Collection: The collection that matches the resource_type.
         """
         for boto3_resource_collection in self.get_resource_collections(boto3_service):
             if xform_name(boto3_resource_collection.resource.model.name) != resource_type:
@@ -59,19 +90,30 @@ class CloudWandererBoto3Interface:
             yield boto3_resource_collection
 
     def get_resource_from_collection(
-            self, boto3_service: ServiceResource,
-            boto3_resource_collection: Collection) -> Iterator[ResourceModel]:
-        """Return all resources of this resource type (collection) from this service."""
+            self, boto3_service: boto3.resources.base.ServiceResource,
+            boto3_resource_collection: boto3.resources.model.Collection) -> Iterator[ResourceModel]:
+        """Return all resources of this resource type (collection) from this service.
+
+        Arguments:
+            boto3_service (boto3.resources.base.ServiceResource): The service resource from which to return resources.
+            boto3_resource_collection (boto3.resources.model.Collection): The resource collection to get.
+
+        Yields:
+            boto3.resource.base.ResourceModel: The next resource from this collection.
+
+        Raises:
+            botocore.exceptions.ClientError: A Boto3 client error.
+        """
         if not hasattr(boto3_service, boto3_resource_collection.name):
             logger.warning('%s does not have %s', boto3_service.__class__.__name__, boto3_resource_collection.name)
             return
         try:
             yield from getattr(boto3_service, boto3_resource_collection.name).all()
-        except ClientError as ex:
+        except botocore.exceptions.ClientError as ex:
             if ex.response['Error']['Code'] == 'InvalidAction':
                 logger.warning(ex.response['Error']['Message'])
                 return
-            raise ex
+            raise
 
     def get_resources_of_type(
             self, service_name: str, resource_type: str, region_name: str = None, **kwargs) -> Iterator[ResourceModel]:
@@ -81,6 +123,10 @@ class CloudWandererBoto3Interface:
             service_name (str): The name of the service to get resource for (e.g. ``'ec2'``)
             resource_type (str): The type of resource to get resources of (e.g. ``'instance'``)
             region_name (str): The region to get resources of (e.g. ``'eu-west-1'``)
+            **kwargs: Additional keyword argumentss will be passed down to the Boto3 client.
+
+        Yields:
+            ResourceModel: The next resource of resource_type in region_name.
         """
         service_map = self.service_maps.get_service_mapping(service_name=service_name)
         region_name = region_name or self.region_name
@@ -105,6 +151,9 @@ class CloudWandererBoto3Interface:
 
         Arguments:
             service_name: The name of the service to get resource types for (e.g. ``'ec2'``)
+
+        Yields:
+            str: Next resource type in service_name.
         """
         for collection in self.get_service_resource_collections(service_name):
             yield xform_name(collection.resource.model.name)
@@ -116,6 +165,9 @@ class CloudWandererBoto3Interface:
 
         Arguments:
             collections (List[Collection]): The list of collections from which to get resource names.
+
+        Yields:
+            str: Next resource type from collection
         """
         for collection in collections:
             yield xform_name(collection.resource.model.name)
@@ -127,12 +179,16 @@ class CloudWandererBoto3Interface:
 
         Arguments:
             service_name: The name of the service to get resource types for (e.g. ``'ec2'``)
+
+        Yields:
+            Collection: Next resource collection in service_name
         """
         boto3_service = self.get_resource_service_by_name(service_name)
         if boto3_service is not None:
             yield from self.get_resource_collections(boto3_service)
 
-    def get_subresources(self, boto3_resource: ServiceResource) -> ServiceResource:
+    def get_subresources(
+            self, boto3_resource: boto3.resources.base.ServiceResource) -> boto3.resources.base.ServiceResource:
         """Return all subresources for this resource.
 
         Subresources and collections on custom service resources may be subresources we want to collect if
@@ -141,10 +197,13 @@ class CloudWandererBoto3Interface:
         Arguments:
             boto3_resource (boto3.resources.base.ServiceResource): The :class:`boto3.resources.base.ServiceResource`
                 to get secondary attributes from
+
+        Yields:
+            boto3.resources.base.ServiceResource: Next sub resource in boto3_resource.
         """
         yield from self.get_child_resources(boto3_resource=boto3_resource, resource_type='resource')
 
-    def get_secondary_attributes(self, boto3_resource: ServiceResource) -> ServiceResource:
+    def get_secondary_attributes(self, boto3_resource: boto3.resources.base.ServiceResource) -> ServiceResource:
         """Return all secondary attributes resources for this resource.
 
         Subresources and collections on custom service resources may be secondary attribute definitions if
@@ -153,16 +212,26 @@ class CloudWandererBoto3Interface:
         Arguments:
             boto3_resource (boto3.resources.base.ServiceResource): The :class:`boto3.resources.base.ServiceResource`
                 to get secondary attributes from
+
+        Yields:
+            boto3.resources.base.ServiceResource: Next secondary attribute from boto3_resource.
         """
         yield from self.get_child_resources(boto3_resource=boto3_resource, resource_type='secondaryAttribute')
 
-    def get_child_resources(self, boto3_resource: ServiceResource, resource_type: str) -> ServiceResource:
+    def get_child_resources(
+            self, boto3_resource: boto3.resources.base.ServiceResource,
+            resource_type: str) -> boto3.resources.base.ServiceResource:
         """Return all child resources of resource_type for this resource.
 
         Arguments:
-            boto3_resource (boto3.resources.base.ServiceResource): The :class:`boto3.resources.base.ServiceResource`
+            boto3_resource (boto3.resources.base.ServiceResource):
+                The :class:`boto3.resources.base.ServiceResource`
                 to get secondary attributes from
-            resource_type (str): The resource types to return (either 'secondaryAttribute' or 'resource')
+            resource_type (str):
+                The resource types to return (either 'secondaryAttribute' or 'resource')
+
+        Yields:
+            boto3.resources.base.ServiceResource: Next child resource of boto3_resource.
         """
         service_mapping = self.service_maps.get_service_mapping(boto3_resource.meta.service_name)
 
@@ -191,17 +260,23 @@ class CloudWandererBoto3Interface:
             )
 
     def get_child_resource_definitions(
-            self, service_name: str, boto3_resource_model: ResourceModel, resource_type: str) -> ServiceResource:
+            self, service_name: str, boto3_resource_model: boto3.resources.model.ResourceModel,
+            resource_type: str) -> boto3.resources.model.ResourceModel:
         """Return all secondary attributes models for this resource.
 
         Subresources and collections on custom service resources may be secondary attribute definitions if
         specified in metadata.
 
         Arguments:
-            service_name (str): The name of the service this model resides in (e.g. ``'ec2'``)
-            boto3_resource_model (boto3.resources.model.ResourceModel): The
-                :class:`boto3.resources.model.ResourceModel` to get secondary attributes models from
-            resource_type (str): The resource types to return (either 'secondaryAttribute' or 'resource')
+            service_name (str):
+                The name of the service this model resides in (e.g. ``'ec2'``)
+            boto3_resource_model (boto3.resources.model.ResourceModel):
+                The :class:`boto3.resources.model.ResourceModel` to get secondary attributes models from
+            resource_type (str):
+                The resource types to return (either 'secondaryAttribute' or 'resource')
+
+        Yields:
+            boto3.resources.model.ResourceModel: Next child resource of ``resource_type`` in ``service_name``.
         """
         service_mapping = self.service_maps.get_service_mapping(service_name)
 
@@ -226,7 +301,11 @@ class CloudWandererBoto3Interface:
 
     @property
     def account_id(self) -> str:
-        """Return the AWS Account ID our boto3 session is authenticated against."""
+        """Return the AWS Account ID our Boto3 session is authenticated against.
+
+        Returns:
+            str: AWS Account ID of our current Boto3 session.
+        """
         if self._account_id is None:
             sts = self.boto3_session.client('sts')
             self._account_id = sts.get_caller_identity()['Account']
@@ -234,12 +313,21 @@ class CloudWandererBoto3Interface:
 
     @property
     def region_name(self) -> str:
-        """Return the default AWS region."""
+        """Return the default AWS region.
+
+        Returns:
+            str: Name of the region our Boto3 session defaults to.
+        """
         return self.boto3_session.region_name
 
     @property
     def enabled_regions(self) -> List[str]:
-        """Return a list of enabled regions in this account."""
+        """Return a list of enabled regions in this account.
+
+        Returns:
+            List[str]: A list of region names that are enabled for the account
+                against which our Boto3 session is authenticated.
+        """
         if not self._enabled_regions:
             regions = self.boto3_session.client('ec2').describe_regions()['Regions']
             self._enabled_regions = [
@@ -268,7 +356,7 @@ class CloudWandererBoto3Interface:
         )
 
     def resource_regions_returned_from_api_region(
-            self, service_name: str, region_name: str) -> List[str]:
+            self, service_name: str, region_name: str) -> Iterator[str]:
         """Return a list of regions which will be discovered for this resource type in this region.
 
         Usually this will just return the region which is passed in, but some resources are only queryable
@@ -277,6 +365,9 @@ class CloudWandererBoto3Interface:
         Arguments:
             service_name (str): The name of the service to check (e.g. ``'ec2'``)
             region_name (str): The name of the region to check (e.g. ``'eu-west-1'``)
+
+        Yields:
+            str: Next region which will be discovered for this resource type in ``region_name``.
 
         """
         service_map = self.service_maps.get_service_mapping(service_name=service_name)

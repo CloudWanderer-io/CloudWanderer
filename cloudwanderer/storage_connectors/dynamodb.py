@@ -76,8 +76,10 @@ class DynamoDbConnector(BaseStorageConnector):
     """CloudWanderer Storage Connector for DynamoDB.
 
     Arguments:
-        table_name (str): The name of the table to store resources in.
-        endpoint_url (str): Optional override endpoint url for DynamoDB.
+        table_name (str):
+            The name of the table to store resources in.
+        endpoint_url (str):
+            Optional override endpoint url for DynamoDB.
         boto3_session (boto3.session.Session):
             Optional boto3 session to use to interact with DynamoDB.
             Useful if your DynamoDB table is in a different account/region to your configured defaults.
@@ -373,4 +375,3 @@ class DynamoDbTableCreator():
 
 class IndexNotAvailableException(Exception):
     """There is no DynamoDB index available for this type of query."""
-    pass

@@ -38,10 +38,13 @@ class CustomResourceFactory():
         """Load the specified resource definition dictionaries into a Resource object.
 
         Arguments:
-            service_name (str): The name of the service to load (e.g. ``'ec2'``)
-            resource_definitions (list): A list of dicts describing the resource definitions.
+            service_name (str):
+                The name of the service to load (e.g. ``'ec2'``)
+            resource_definitions (list):
+                A list of dicts describing the resource definitions.
                 This is the ``'resources'`` key in each ``resource_definition`` json.
-            service_definition (dict): A dict describing the service definition.
+            service_definition (dict):
+                A dict describing the service definition.
                 This is the ``'service'`` key in each ``resource_definition`` json.
         """
         service_context = ServiceContext(

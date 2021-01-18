@@ -36,7 +36,7 @@ class ServiceMappingCollection:
         self._service_maps = None
 
     def get_service_mapping(self, service_name: str) -> List['ServiceMapping']:
-        """Returns the mapping for service_name."""
+        """Return the mapping for service_name."""
         if self._service_maps is None:
             self._service_maps = self.get_service_maps()
 
@@ -74,9 +74,12 @@ class ServiceMapping:
     """Expose additional metadata about services and resources that isn't supported in boto3's model.
 
     Arguments:
-        service_name (str): The name of the service mapping to instantiate.
-        service_mapping (dict): The service mapping to instantiate.
-        boto3_session (boto3.session.Session): The :class:`~boto3.session.Session`
+        service_name (str):
+            The name of the service mapping to instantiate.
+        service_mapping (dict):
+            The service mapping to instantiate.
+        boto3_session (boto3.session.Session):
+            The :class:`~boto3.session.Session`
             to use to query for resource region information.
     """
 
@@ -96,7 +99,7 @@ class ServiceMapping:
 
     @property
     def has_regional_resources(self) -> bool:
-        """Returns ``True`` if this service has resources in regions other than the primary service region.
+        """Return ``True`` if this service has resources in regions other than the primary service region.
 
         Also returns True if there is no service_mapping (i.e. this is not a known service).
         """
@@ -127,9 +130,10 @@ class ServiceMapping:
         """Get the region of a :class:`boto3.resources.base.ServiceResource` object.
 
         Arguments:
-            resource (boto3.resources.base.ServiceResource): The :class:`~boto3.resources.base.ServiceResource`
-                to find the region of.
-            default_region (str): The region to return if there is no gloabl service mapping for this resource type.
+            resource (boto3.resources.base.ServiceResource):
+                The :class:`~boto3.resources.base.ServiceResource` to find the region of.
+            default_region (str):
+                The region to return if there is no gloabl service mapping for this resource type.
         """
         if self.service_mapping == {}:
             return default_region
@@ -166,7 +170,7 @@ class ServiceMapping:
             boto3_client=self.boto3_client)
 
     def _lookup_resource_name(self, resource_name: str) -> str:
-        """Returns a PascalCase resource name from the resources mapping given a lowercase resource name.
+        """Return a PascalCase resource name from the resources mapping given a lowercase resource name.
 
         Arguments:
             resource_name (str): the lowercase resource name to lookup
@@ -199,7 +203,7 @@ class CloudWandererResourceMapping:
 
     @property
     def resource_type(self) -> str:
-        """The resource type (e.g. Resource, SecondaryAttribute)."""
+        """Return the resource type (e.g. Resource, SecondaryAttribute)."""
         try:
             return self._mapping['type']
         except KeyError:
@@ -219,7 +223,7 @@ class CloudWandererResourceMapping:
 
     @property
     def secondary_attributes(self) -> List[str]:
-        """Returns a list of secondary attributes for this resource."""
+        """Return a list of secondary attributes for this resource."""
         for subresource_name in self.resource_definition.get('has', []):
             try:
                 resource_mapping = self.service_mapping.get_resource_mapping(subresource_name)
@@ -255,4 +259,3 @@ class CloudWandererResourceMapping:
 
 class GlobalServiceResourceMappingNotFound(Exception):
     """Global Service Resource Mapping not Found."""
-    pass

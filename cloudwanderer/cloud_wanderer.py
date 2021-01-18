@@ -16,17 +16,20 @@ if TYPE_CHECKING:
 
 
 class CloudWanderer():
-    """CloudWanderer.
-
-    Args:
-        storage_connectors: CloudWanderer storage connector objects.
-        cloud_interface (CloudWandererBoto3Interface): The cloud interface
-    """
+    """CloudWanderer."""
 
     def __init__(
             self, storage_connectors: List['BaseStorageConnector'],
             cloud_interface: CloudWandererBoto3Interface = None) -> None:
-        """Initialise CloudWanderer."""
+        """Initialise CloudWanderer.
+
+        Args:
+            storage_connectors:
+                CloudWanderer storage connector objects.
+            cloud_interface (CloudWandererBoto3Interface):
+                The cloud interface to get resources from.
+                Defaults to :class:`~cloudwanderer.boto3_interface.CloudWandererBoto3Interface`.
+        """
         self.storage_connectors = storage_connectors
         self.cloud_interface = cloud_interface or CloudWandererBoto3Interface()
 
@@ -38,6 +41,7 @@ class CloudWanderer():
 
         Arguments:
             exclude_resources (list): A list of resource names to exclude (e.g. ``['instance']``)
+            **kwargs: Additional keyword argumentss will be passed down to the cloud interface methods.
         """
         logger.info('Writing resources in all regions')
         for region_name in self.cloud_interface.enabled_regions:
@@ -55,14 +59,17 @@ class CloudWanderer():
         Any additional args will be passed into the cloud interface's ``get_`` methods.
 
         Arguments:
-            exclude_resources (list): A list of resource names to exclude (e.g. ``['instance']``)
-            concurrency (int): Number of query threads to invoke concurrently.
+            exclude_resources (list):
+                A list of resource names to exclude (e.g. ``['instance']``)
+            concurrency (int):
+                Number of query threads to invoke concurrently.
                 If the number of threads exceeds the number of regions by at least two times
                 multiple services to be queried concurrently in each region.
                 **WARNING:** Experimental. Complete data capture depends heavily on the thread safeness of the
                 storage connector and has not been thoroughly tested!
             cloud_interface_generator (Callable): A method which returns a new cloud interface session when called.
                 This helps prevent non-threadsafe cloud interfaces from interfering with each others.
+            **kwargs: Additional keyword argumentss will be passed down to the cloud interface methods.
         """
         logger.info('Writing resources in all regions')
         logger.warning('Using concurrency of: %s - CONCURRENCY IS EXPERIMENTAL', concurrency)
@@ -88,9 +95,12 @@ class CloudWanderer():
         Any additional args will be passed into the cloud interface's ``get_`` methods.
 
         Arguments:
-            exclude_resources (list): A list of resource names to exclude (e.g. ``['instance']``)
-            region_name (str): The name of the region to get resources from
+            exclude_resources (list):
+                A list of resource names to exclude (e.g. ``['instance']``)
+            region_name (str):
+                The name of the region to get resources from
                 (defaults to session default if not specified)
+            **kwargs: Additional keyword argumentss will be passed down to the cloud interface methods.
         """
         exclude_resources = exclude_resources or []
         for boto3_service in self.cloud_interface.get_all_resource_services():
@@ -111,10 +121,14 @@ class CloudWanderer():
         Any additional args will be passed into the cloud interface's ``get_`` methods.
 
         Arguments:
-            service_name (str): The name of the service to write resources for (e.g. ``'ec2'``)
-            exclude_resources (list): A list of resource names to exclude (e.g. ``['instance']``)
-            region_name (str): The name of the region to get resources from
+            service_name (str):
+                The name of the service to write resources for (e.g. ``'ec2'``)
+            exclude_resources (list):
+                A list of resource names to exclude (e.g. ``['instance']``)
+            region_name (str):
+                The name of the region to get resources from
                 (defaults to session default if not specified)
+            **kwargs: Additional keyword argumentss will be passed down to the cloud interface methods.
         """
         region_name = region_name or self.cloud_interface.region_name
 
@@ -142,10 +156,14 @@ class CloudWanderer():
         Any additional args will be passed into the cloud interface's ``get_`` methods.
 
         Arguments:
-            service_name (str): The name of the service to write resources for (e.g. ``'ec2'``)
-            resource_type (str): The name of the type of the resource to write (e.g. ``'instance'``)
-            region_name (str): The name of the region to get resources from
+            service_name (str):
+                The name of the service to write resources for (e.g. ``'ec2'``)
+            resource_type (str):
+                The name of the type of the resource to write (e.g. ``'instance'``)
+            region_name (str):
+                The name of the region to get resources from
                 (defaults to session default if not specified)
+            **kwargs: Additional keyword argumentss will be passed down to the cloud interface methods.
         """
         region_name = region_name or self.cloud_interface.region_name
         logger.info('--> Fetching %s %s from %s', service_name, resource_type, region_name)
@@ -190,7 +208,19 @@ class CloudWanderer():
 
     def _clean_resources_in_region(
             self, service_name: str, resource_type: str, region_name: str, current_urns: List[AwsUrn]) -> None:
-        """Remove all resources of this type in this region which no longer exist."""
+        """Remove all resources of this type in this region which no longer exist.
+
+        Arguments:
+            service_name (str):
+                The name of the service to write resources for (e.g. ``'ec2'``)
+            resource_type (str):
+                The name of the type of the resource to write (e.g. ``'instance'``)
+            region_name (str):
+                The name of the region to get resources from
+                (defaults to session default if not specified)
+            current_urns (List[AwsUrn]):
+                A list of URNs which are still current and should not be deleted.
+        """
         regions_returned = self.cloud_interface.resource_regions_returned_from_api_region(service_name, region_name)
         for region_name in regions_returned:
             logger.info('---> Deleting %s %s from %s', service_name, resource_type, region_name)

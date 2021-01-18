@@ -58,7 +58,7 @@ class CloudWandererResource():
 
     @property
     def is_inflated(self) -> bool:
-        """Returns whether this resource has all the attributes from storage."""
+        """Return whether this resource has all the attributes from storage."""
         return bool([
             key
             for key in self.cloudwanderer_metadata.resource_data
