@@ -12,6 +12,10 @@ def exception_logging_wrapper(method: Callable, **kwargs) -> None:
     """Log exceptions raised by method_name.
 
     Increases visibility of multi-threaded exceptions.
+
+    Arguments:
+        method (Callable): A method to wrap, for which will we handle and log any exceptions.
+        **kwargs: Arguments to pass to the method
     """
     try:
         method(**kwargs)

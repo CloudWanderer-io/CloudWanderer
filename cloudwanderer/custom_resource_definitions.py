@@ -70,15 +70,16 @@ class CustomResourceDefinitions():
 
     Allows us to specify :class:`~boto3.resources.base.ServiceResource` definitions
     where they are not supplied by boto3.
-
-    Arguments:
-        boto3_session (boto3.session.Session): The :class:`boto3.session.Session` object to use for any queries.
-        definition_path (str): The path to the ``*.json`` files containing the custom resource definitions.
     """
 
     def __init__(self, boto3_session: boto3.session.Session = None,
                  definition_path: str = 'resource_definitions') -> None:
-        """Initialise the CustomResourceDefinition."""
+        """Initialise the CustomResourceDefinition.
+
+        Arguments:
+        boto3_session (boto3.session.Session): The :class:`boto3.session.Session` object to use for any queries.
+        definition_path (str): The path to the ``*.json`` files containing the custom resource definitions.
+        """
         self.service_definitions_path = os.path.join(
             pathlib.Path(__file__).parent.absolute(),
             definition_path

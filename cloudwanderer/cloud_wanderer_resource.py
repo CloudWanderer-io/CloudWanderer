@@ -18,7 +18,14 @@ class ResourceMetadata:
     """
 
     def __init__(self, resource_data: dict, secondary_attributes: list) -> None:
-        """Initialise the data class."""
+        """Initialise the data class.
+
+        Arguments:
+            resource_data (dict):
+                The raw dictionary representation of the Resource.
+            secondary_attributes (list):
+                the list of raw dictionary representation of the Resource's secondary attributes.
+        """
         self.resource_data = resource_data
         self.secondary_attributes = secondary_attributes
 

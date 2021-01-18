@@ -14,8 +14,13 @@ class BaseStorageConnector(ABC):
         """Initialise the storage backend whatever it is."""
 
     @abstractmethod
-    def write_resource(self, urn: AwsUrn, resource: str) -> None:
-        """Persist a single resource to storage."""
+    def write_resource(self, urn: AwsUrn, resource: boto3.resources.model.ResourceModel) -> None:
+        """Persist a single resource to storage.
+
+        Arguments:
+            urn (AwsUrn): The URN of the resource to write.
+            resource (boto3.resources.model.ResourceModel)): The boto3 resource to write.
+        """
 
     @abstractmethod
     def read_all(self) -> Iterator[dict]:

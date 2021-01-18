@@ -7,7 +7,7 @@ import logging
 import boto3
 import botocore
 from botocore import xform_name
-from botocore.exceptions import ClientError, EndpointConnectionError
+from botocore.exceptions import EndpointConnectionError
 from boto3.resources.base import ServiceResource
 from boto3.resources.model import Collection, ResourceModel
 from .custom_resource_definitions import CustomResourceDefinitions
