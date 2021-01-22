@@ -24,35 +24,18 @@ class MemoryStorageConnector(BaseStorageConnector):
     """
 
     def __init__(self, *args, **kwargs) -> None:
-        """Initialise MemoryStorageConnector."""
         self._data = {}
 
     def init(self) -> None:
-        """Dummy method to fulfil interface requirements."""
+        """Do nothing. Dummy method to fulfil interface requirements."""
 
     def read_resource(self, urn: AwsUrn) -> CloudWandererResource:
-        """Return the resource with the specified :class:`cloudwanderer.aws_urn.AwsUrn`.
-
-        Arguments:
-            urn (cloudwanderer.aws_urn.AwsUrn): The AWS URN of the resource to return
-        """
         try:
             return memory_item_to_resource(urn, self._data[str(urn)], loader=self.read_resource)
         except KeyError:
             return None
 
     def read_resources(self, **kwargs) -> Iterator['CloudWandererResource']:
-        """Return the resources matching the arguments.
-
-        All arguments are optional
-
-        Arguments:
-            urn (cloudwanderer.aws_urn.AwsUrn): The AWS URN of the resource to return
-            account_id (str): AWS Account ID
-            region (str): AWS region (e.g. ``'eu-west-2'``)
-            service (str): Service name (e.g. ``'ec2'``)
-            resource_type (str): Resource Type (e.g. ``'instance'``)
-        """
         for urn_str, items in self._data.items():
             urn = AwsUrn.from_string(urn_str)
             if kwargs.get('urn') is not None:
@@ -82,12 +65,6 @@ class MemoryStorageConnector(BaseStorageConnector):
                 }
 
     def write_resource(self, urn: AwsUrn, resource: boto3.resources.base.ServiceResource) -> None:
-        """Write the specified resource to memory.
-
-        Arguments:
-            urn (cloudwanderer.aws_urn.AwsUrn): The URN of the resource.
-            resource: The boto3 Resource object representing the resource.
-        """
         self._data[str(urn)] = self._data.get(str(urn), {})
         self._data[str(urn)]['BaseResource'] = standardise_data_types(resource.meta.data)
 
@@ -105,7 +82,6 @@ class MemoryStorageConnector(BaseStorageConnector):
         self._data[str(urn)][attribute_type] = secondary_attribute.meta.data
 
     def delete_resource(self, urn: AwsUrn) -> None:
-        """Delete the resource and all its resource attributes from memory."""
         try:
             del self._data[str(urn)]
         except KeyError:
@@ -114,7 +90,6 @@ class MemoryStorageConnector(BaseStorageConnector):
     def delete_resource_of_type_in_account_region(
             self, service: str, resource_type: str, account_id: str,
             region: str, urns_to_keep: List[AwsUrn] = None) -> None:
-        """Delete resources of type in account id unless in list of URNs."""
         urns_to_delete = []
         for urn_str, items in self._data.items():
             urn = AwsUrn.from_string(urn_str)
@@ -134,7 +109,14 @@ class MemoryStorageConnector(BaseStorageConnector):
 
 
 def memory_item_to_resource(urn: AwsUrn, items: dict = None, loader: Callable = None) -> CloudWandererResource:
-    """Convert a resource and its attributes to a CloudWandererResource."""
+    """Convert a resource and its attributes to a CloudWandererResource.
+
+    Arguments:
+        urn (AwsUrn): The URN of the resource.
+        items (dict): The dictionary of items stored under this URN. (Secondary Attributs, BaseResource)
+        loader (Callable): The method which can be used to fulfil the :meth:`CloudWandererResource.load`
+
+    """
     items = items or {}
     attributes = [attribute for item_type, attribute in items.items() if item_type != 'BaseResource']
     base_resource = next(iter(resource for item_type, resource in items.items() if item_type == 'BaseResource'), {})

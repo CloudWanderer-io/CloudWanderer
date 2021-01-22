@@ -28,6 +28,9 @@ author = 'Sam Martin'
 release = '0.10.2'
 
 nitpicky = True
+nitpick_ignore = [
+    ('py:exc', 'botocore.exceptions.ClientError')
+]
 
 
 # -- General configuration ---------------------------------------------------
