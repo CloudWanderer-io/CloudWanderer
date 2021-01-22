@@ -9,7 +9,7 @@ with open(path.join(this_directory, 'README.rst'), encoding='utf-8') as f:
     long_description = re.sub(r'..\s+doctest\s+::', '.. code-block ::', f.read())
 
 setup(
-    version='0.10.2',
+    version='0.11.0',
     python_requires='>=3.6.0',
     name='cloudwanderer',
     packages=find_packages(include=['cloudwanderer', 'cloudwanderer.*']),

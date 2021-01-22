@@ -18,7 +18,14 @@ class ResourceMetadata:
     """
 
     def __init__(self, resource_data: dict, secondary_attributes: list) -> None:
-        """Initialise the data class."""
+        """Initialise the data class.
+
+        Arguments:
+            resource_data (dict):
+                The raw dictionary representation of the Resource.
+            secondary_attributes (list):
+                the list of raw dictionary representation of the Resource's secondary attributes.
+        """
         self.resource_data = resource_data
         self.secondary_attributes = secondary_attributes
 
@@ -26,17 +33,21 @@ class ResourceMetadata:
 class CloudWandererResource():
     """A simple representation of a resource that prevents any storage metadata polluting the resource dictionary.
 
-    Use ``dict(my_resource_dict)`` to convert this object into a dictionary that
-    contains *only* the resource's metadata.
-
     Attributes:
-        urn (cloudwanderer.aws_urn.AwsUrn): The AWS URN of the resource.
-        cloudwanderer_metadata (dict): The original storage representation of the resource as it was passed in.
+        urn (AwsUrn): The URN of the resource.
+        cloudwanderer_metadata (ResourceMetadata): The raw metadata of this resource.
     """
 
     def __init__(self, urn: AwsUrn, resource_data: dict,
                  secondary_attributes: List[dict] = None, loader: Callable = None) -> None:
-        """Initialise the resource."""
+        """Initialise the resource.
+
+        Arguments:
+            urn (AwsUrn): The AWS URN of the resource.
+            resource_data (dict): The dictionary containing the raw data about this resource.
+            secondary_attributes (List[dict]): A list of secondary attribute raw dictionaries.
+            loader (Callable): The method which can be used to fulfil the :meth:`CloudWandererResource.load`.
+        """
         self.urn = urn
         self.cloudwanderer_metadata = ResourceMetadata(
             resource_data=resource_data,
@@ -46,7 +57,12 @@ class CloudWandererResource():
         self._set_resource_data_attrs()
 
     def load(self) -> None:
-        """Inflate this resource with all data from the original storage connector it was spawned from.."""
+        """Inflate this resource with all data from the original storage connector it was spawned from.
+
+        Raises:
+            ValueError: Occurs if the storage connector loader isn't populated or the resource no longer exists
+                in the StorageConnector's storage.
+        """
         if self._loader is None:
             raise ValueError(f'Could not inflate {self}, storage connector loader not populated')
         updated_resource = self._loader(urn=self.urn)
@@ -58,7 +74,7 @@ class CloudWandererResource():
 
     @property
     def is_inflated(self) -> bool:
-        """Returns whether this resource has all the attributes from storage."""
+        """Return whether this resource has all the attributes from storage."""
         return bool([
             key
             for key in self.cloudwanderer_metadata.resource_data

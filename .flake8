@@ -1,5 +1,10 @@
 [flake8]
 max-line-length=120
-ignore=ANN101,ANN102,ANN002,ANN003
+ignore=ANN101,ANN102,ANN002,ANN003,RST203,DAR301,DAR201
 per-file-ignores=
-    tests/**: ANN001, ANN201, ANN204
+    tests/**: ANN001, ANN201, ANN204, DAR101
+rst-roles =
+    class,
+    func,
+    ref,
+    meth,

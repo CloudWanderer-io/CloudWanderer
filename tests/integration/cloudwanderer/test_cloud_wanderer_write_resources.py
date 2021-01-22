@@ -7,8 +7,7 @@ from ..mocks import (
     MOCK_COLLECTION_BUCKETS,
     MOCK_COLLECTION_IAM_GROUPS,
     MOCK_COLLECTION_IAM_ROLES,
-    MOCK_COLLECTION_IAM_ROLE_POLICIES,
-    generate_mock_session
+    MOCK_COLLECTION_IAM_ROLE_POLICIES
 )
 from cloudwanderer import CloudWanderer
 from cloudwanderer.storage_connectors import MemoryStorageConnector
@@ -28,14 +27,12 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
                 MOCK_COLLECTION_IAM_ROLE_POLICIES
             ]
         )
-        self.mock_session = generate_mock_session()
         add_infra(regions=self.enabled_regions)
 
     def setUp(self):
         self.storage_connector = MemoryStorageConnector()
         self.wanderer = CloudWanderer(
-            storage_connectors=[self.storage_connector],
-            boto3_session=self.mock_session
+            storage_connectors=[self.storage_connector]
         )
 
     def test_write_resources(self):
@@ -66,21 +63,25 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
                 self.assert_resource_exists(
                     region=region_name,
                     service='iam',
-                    resource_type='group',
+                    resource_type='role',
                     attributes_dict={
-                        'group_name': 'test-group',
+                        'role_name': 'test-role',
                         'path': '/'
+                    },
+                    secondary_attributes_dict={
+                        "[].PolicyNames[0]": ['test-role-policy'],
+                        "[].AttachedPolicies[0].PolicyName": ['APIGatewayServiceRolePolicy']
                     }
                 )
             else:
                 self.assert_resource_not_exists(
                     region=region_name,
                     service='iam',
-                    resource_type='group',
+                    resource_type='role',
                     attributes_dict={
-                        'group_name': 'test-group',
+                        'role_name': 'test-role',
                         'path': '/'
-                    }
+                    },
                 )
 
     def test_write_resources_in_region_default_region(self):
@@ -108,11 +109,11 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
         self.assert_resource_not_exists(
             region='us-east-1',
             service='iam',
-            resource_type='group',
+            resource_type='role',
             attributes_dict={
-                'group_name': 'test-group',
+                'role_name': 'test-role',
                 'path': '/'
-            }
+            },
         )
 
     def test_write_resources_in_region_specify_region(self):
@@ -139,10 +140,14 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
         self.assert_resource_exists(
             region='us-east-1',
             service='iam',
-            resource_type='group',
+            resource_type='role',
             attributes_dict={
-                'group_name': 'test-group',
+                'role_name': 'test-role',
                 'path': '/'
+            },
+            secondary_attributes_dict={
+                "[].PolicyNames[0]": ['test-role-policy'],
+                "[].AttachedPolicies[0].PolicyName": ['APIGatewayServiceRolePolicy']
             }
         )
         self.assert_resource_exists(
@@ -152,7 +157,20 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
             attributes_dict={
                 'role_name': 'test-role',
                 'path': '/'
+            },
+            secondary_attributes_dict={
+                "[].PolicyNames[0]": ['test-role-policy'],
+                "[].AttachedPolicies[0].PolicyName": ['APIGatewayServiceRolePolicy']
             }
+        )
+        self.assert_resource_not_exists(
+            region='us-east-1',
+            service='iam',
+            resource_type='role',
+            attributes_dict={
+                'role_name': 'test-role',
+                'path': '/'
+            },
         )
         self.assert_resource_exists(
             region='us-east-1',
@@ -189,11 +207,11 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
         self.assert_resource_not_exists(
             region='us-east-1',
             service='iam',
-            resource_type='group',
+            resource_type='role',
             attributes_dict={
-                'group_name': 'test-group',
+                'role_name': 'test-role',
                 'path': '/'
-            }
+            },
         )
 
     def test_write_resources_of_service_specify_region(self):
@@ -222,17 +240,21 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
         self.assert_resource_exists(
             region='us-east-1',
             service='iam',
-            resource_type='group',
+            resource_type='role',
             attributes_dict={
-                'group_name': 'test-group',
+                'role_name': 'test-role',
                 'path': '/'
+            },
+            secondary_attributes_dict={
+                "[].PolicyNames[0]": ['test-role-policy'],
+                "[].AttachedPolicies[0].PolicyName": ['APIGatewayServiceRolePolicy']
             }
         )
 
     def test_write_resources_of_type_in_region_default_region(self):
         self.wanderer.write_resources_of_type_in_region(service_name='s3', resource_type='bucket')
         self.wanderer.write_resources_of_type_in_region(service_name='ec2', resource_type='instance')
-        self.wanderer.write_resources_of_type_in_region(service_name='iam', resource_type='group')
+        self.wanderer.write_resources_of_type_in_region(service_name='iam', resource_type='role')
 
         self.assert_resource_exists(
             region='eu-west-2',
@@ -255,11 +277,11 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
         self.assert_resource_not_exists(
             region='us-east-1',
             service='iam',
-            resource_type='group',
+            resource_type='role',
             attributes_dict={
-                'group_name': 'test-group',
+                'role_name': 'test-role',
                 'path': '/'
-            }
+            },
         )
 
     def test_write_resources_of_type_in_region_specify_region(self):
@@ -268,7 +290,7 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
         self.wanderer.write_resources_of_type_in_region(
             service_name='ec2', resource_type='instance', region_name='us-east-1')
         self.wanderer.write_resources_of_type_in_region(
-            service_name='iam', resource_type='group', region_name='us-east-1')
+            service_name='iam', resource_type='role', region_name='us-east-1')
 
         self.assert_resource_exists(
             region='us-east-1',
@@ -291,10 +313,14 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
         self.assert_resource_exists(
             region='us-east-1',
             service='iam',
-            resource_type='group',
+            resource_type='role',
             attributes_dict={
-                'group_name': 'test-group',
+                'role_name': 'test-role',
                 'path': '/'
+            },
+            secondary_attributes_dict={
+                "[].PolicyNames[0]": ['test-role-policy'],
+                "[].AttachedPolicies[0].PolicyName": ['APIGatewayServiceRolePolicy']
             }
         )
 
@@ -307,7 +333,8 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
         result = self.resource_exists(*args, **kwargs)
         assert all(x[0] for x in result)
 
-    def resource_exists(self, region, service, resource_type, attributes_dict):
+    def resource_exists(self, region, service, resource_type, attributes_dict, secondary_attributes_dict=None):
+        secondary_attributes_dict = secondary_attributes_dict or {}
         resources = list(self.storage_connector.read_resources(
             region=region,
             service=service,
@@ -324,4 +351,11 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
                 except AttributeError:
                     pass
                 matches.append((result, resource.urn, attribute, value))
+            for jmes_path, value in secondary_attributes_dict.items():
+                result = False
+                matches.append((
+                    resource.get_secondary_attribute(jmes_path=jmes_path) == value,
+                    jmes_path,
+                    value
+                ))
         return matches

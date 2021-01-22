@@ -21,19 +21,19 @@ from typing import Any
 
 
 class AwsUrn():
-    """A dataclass for building and querying AWS URNs.
-
-    Args:
-        account_id (str): AWS Account ID (e.g. ``111111111111``).
-        region (str): AWS region (e.g. ``eu-west-1``).
-        service (str): AWS Service (e.g. ``ec2``).
-        resource_type (str): AWS Resource Type (e.g. ``instance``)
-        resource_id (str): AWS Resource Id (e.g. ``i-11111111``)
-    """
+    """A dataclass for building and querying AWS URNs."""
 
     def __init__(
             self, account_id: str, region: str, service: str, resource_type: str, resource_id: str) -> None:
-        """Initialise an AWS Urn."""
+        """Initialise an AWS Urn.
+
+        Arguments:
+            account_id (str): AWS Account ID (e.g. ``111111111111``).
+            region (str): AWS region (e.g. ``eu-west-1``).
+            service (str): AWS Service (e.g. ``ec2``).
+            resource_type (str): AWS Resource Type (e.g. ``instance``)
+            resource_id (str): AWS Resource Id (e.g. ``i-11111111``)
+        """
         self.account_id = account_id
         self.region = region
         self.service = service
@@ -42,18 +42,29 @@ class AwsUrn():
 
     @classmethod
     def from_string(cls, urn_string: str) -> 'AwsUrn':
-        """Create an AwsUrn Object from an AwsUrn string."""
+        """Create an AwsUrn Object from an AwsUrn string.
+
+        Arguments:
+            urn_string (str): The string version of an AWSUrn to convert into an object.
+
+        Returns:
+            AwsUrn: The instantiated AWS URN.
+        """
         parts = urn_string.split(':')
         return cls(
             account_id=parts[2],
             region=parts[3],
             service=parts[4],
             resource_type=parts[5],
-            resource_id=':'.join(parts[6:])
+            resource_id=parts[6]
         )
 
     def __eq__(self, other: Any) -> bool:
-        """Allow comparison of one AwsUrn to another."""
+        """Allow comparison of one AwsUrn to another.
+
+        Arguments:
+            other (Any): The other object to compare this one with.
+        """
         return str(self) == str(other)
 
     def __repr__(self) -> str:

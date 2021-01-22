@@ -1,3 +1,15 @@
+# 0.11.0
+
+- Collapsed all `write_secondary_attributes` methods into `write_resources` so secondary attributes are written automatically.
+- Moved AWS specific methods to `CloudWandererBoto3Interface`
+- Fixed bug that would have prevented global services with regional resources being cleaned properly.
+    This was due to cleanup only happening in the global service region, and being limited to
+    cleaning up resources in that region. E.g. it would write buckets from all regions from `us-east-1`
+    and then _only_ cleanup `us-east-1` s3 buckets.
+- Removed `client_args` as an explicit argument on cloudwanderer resources, any keywords args supplied to `write_` methods are now passed into the `get_` methods of the `cloud_interface`
+- Subresources now build their compound id using a `/` separator rather than a `:` separator. This ensures that
+    `:` remains the primary separator for URN parts.
+
 # 0.10.2
 
  - Reuse service definition objects via `_get_resource_definitions` to save on time spent reinstantiating identical objects
