@@ -60,7 +60,11 @@ class AwsUrn():
         )
 
     def __eq__(self, other: Any) -> bool:
-        """Allow comparison of one AwsUrn to another."""
+        """Allow comparison of one AwsUrn to another.
+
+        Arguments:
+            other (Any): The other object to compare this one with.
+        """
         return str(self) == str(other)
 
     def __repr__(self) -> str:

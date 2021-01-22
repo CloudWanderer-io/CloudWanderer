@@ -21,14 +21,14 @@ DEFAULT_RESOURCE_DEFINITIONS = None
 
 
 class CustomResourceFactory():
-    """Factory class for generating custom boto3 Resource objects.
-
-    Arguments:
-        boto3_session (boto3.session.Session): The :class:`boto3.session.Session` object to use for any queries.
-    """
+    """Factory class for generating custom boto3 Resource objects."""
 
     def __init__(self, boto3_session: boto3.session.Session) -> None:
-        """Initialise the ResourceFactory."""
+        """Initialise the ResourceFactory.
+
+        Arguments:
+            boto3_session (boto3.session.Session): The :class:`boto3.session.Session` object to use for any queries.
+        """
         self.boto3_session = boto3_session or boto3.Session()
         self.emitter = self.boto3_session.events
         self.factory = ResourceFactory(self.emitter)
@@ -40,8 +40,8 @@ class CustomResourceFactory():
         Arguments:
             service_name (str):
                 The name of the service to load (e.g. ``'ec2'``)
-            resource_definitions (list):
-                A list of dicts describing the resource definitions.
+            resource_definitions (dict):
+                A dict describing the resource definitions.
                 This is the ``'resources'`` key in each ``resource_definition`` json.
             service_definition (dict):
                 A dict describing the service definition.
@@ -77,8 +77,8 @@ class CustomResourceDefinitions():
         """Initialise the CustomResourceDefinition.
 
         Arguments:
-        boto3_session (boto3.session.Session): The :class:`boto3.session.Session` object to use for any queries.
-        definition_path (str): The path to the ``*.json`` files containing the custom resource definitions.
+            boto3_session (boto3.session.Session): The :class:`boto3.session.Session` object to use for any queries.
+            definition_path (str): The path to the ``*.json`` files containing the custom resource definitions.
         """
         self.service_definitions_path = os.path.join(
             pathlib.Path(__file__).parent.absolute(),
@@ -132,7 +132,11 @@ class CustomResourceDefinitions():
         }
 
     def _get_boto3_definition(self, service_name: str) -> dict:
-        """Get the boto3 definition for service_name so we can build on top of it."""
+        """Get the boto3 definition for service_name so we can build on top of it.
+
+        Arguments:
+            service_name (str): The name of the service (e.g. ``'ec2'``)
+        """
         try:
             return self._boto3_loader.load_service_model(service_name, 'resources-1', None)
         except UnknownServiceError:
@@ -160,7 +164,11 @@ class CustomResourceDefinitions():
         return self._custom_resources
 
     def resource(self, service_name: str, **kwargs) -> ResourceModel:
-        """Instantiate and return the boto3 Resource object for our custom resource definition."""
+        """Instantiate and return the boto3 Resource object for our custom resource definition.
+
+        Arguments:
+            service_name (str): The name of the service (e.g. ``'ec2'``)
+            kwargs: Any additional keyword aguments will be passed to the Boto3 client."""
         if service_name in self.services:
             return self.services[service_name](
                 client=self.boto3_session.client(service_name, **kwargs))
