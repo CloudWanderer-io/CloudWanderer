@@ -33,8 +33,9 @@ class ResourceMetadata:
 class CloudWandererResource():
     """A simple representation of a resource that prevents any storage metadata polluting the resource dictionary.
 
-    Use ``dict(my_resource_dict)`` to convert this object into a dictionary that
-    contains *only* the resource's metadata.
+    Attributes:
+        urn (AwsUrn): The URN of the resource.
+        cloudwanderer_metadata (ResourceMetadata): The raw metadata of this resource.
     """
 
     def __init__(self, urn: AwsUrn, resource_data: dict,
