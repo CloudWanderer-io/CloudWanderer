@@ -168,7 +168,8 @@ class CustomResourceDefinitions():
 
         Arguments:
             service_name (str): The name of the service (e.g. ``'ec2'``)
-            kwargs: Any additional keyword aguments will be passed to the Boto3 client."""
+            kwargs: Any additional keyword aguments will be passed to the Boto3 client.
+        """
         if service_name in self.services:
             return self.services[service_name](
                 client=self.boto3_session.client(service_name, **kwargs))

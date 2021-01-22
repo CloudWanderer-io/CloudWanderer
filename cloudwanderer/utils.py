@@ -27,7 +27,8 @@ def json_object_hook(dct: dict) -> dict:
     """Clean out empty strings to avoid DynamoDB ValidationExceptions.
 
     Arguments:
-        dct (dict): The dictionary to clean."""
+        dct (dict): The dictionary to clean.
+    """
     for key, value in dct.items():
         if value == '':
             dct[key] = None

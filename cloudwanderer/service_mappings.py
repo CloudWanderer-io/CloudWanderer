@@ -227,7 +227,8 @@ class CloudWandererResourceMapping:
         """Return the resource type (e.g. Resource, SecondaryAttribute).
 
         Raises:
-            AttributeError: Occurs if this resource's mapping does not have a type."""
+            AttributeError: Occurs if this resource's mapping does not have a type.
+        """
         try:
             return self._mapping['type']
         except KeyError:

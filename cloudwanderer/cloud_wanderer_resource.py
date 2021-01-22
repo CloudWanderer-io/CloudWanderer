@@ -60,7 +60,8 @@ class CloudWandererResource():
 
         Raises:
             ValueError: Occurs if the storage connector loader isn't populated or the resource no longer exists
-                in the StorageConnector's storage."""
+                in the StorageConnector's storage.
+        """
         if self._loader is None:
             raise ValueError(f'Could not inflate {self}, storage connector loader not populated')
         updated_resource = self._loader(urn=self.urn)
