@@ -155,6 +155,26 @@ class TestStorageConnectorReadMixin:
             )
 
 
+class GenericAssertionHelpers:
+
+    def assert_dictionary_overlap(self, received, expected):
+        """Asserts every item in expected has an equivalent item in received.
+
+        Where all key/values from the received item exist in the expected item.
+        """
+        remaining = expected.copy()
+        for received_item in received:
+            for expected_item in expected:
+                matching = [
+                    received_item.get(k) == v
+                    for k, v in expected_item.items()
+                ]
+                if all(matching):
+                    remaining.remove(expected_item)
+                    break
+        self.assertEqual(remaining, [], f"{remaining} was not found in {received}")
+
+
 def limit_collections_list(restrict_collections):
     """Limit the boto3 resource collections we service to a subset we use for testing."""
     if not restrict_collections:
@@ -181,12 +201,16 @@ def mock_services():
         mock.start()
 
 
-def setup_moto(restrict_regions: list = None, restrict_services: bool = True,
-               restrict_collections: list = None):
+def clear_aws_credentials():
     os.environ['AWS_ACCESS_KEY_ID'] = '1111111'
     os.environ['AWS_SECRET_ACCESS_KEY'] = '1111111'
     os.environ['AWS_SESSION_TOKEN'] = '1111111'
     os.environ['AWS_DEFAULT_REGION'] = 'eu-west-2'
+
+
+def setup_moto(restrict_regions: list = None, restrict_services: bool = True,
+               restrict_collections: list = None):
+    clear_aws_credentials()
     restrict_regions = ['eu-west-2', 'us-east-1'] if restrict_regions is None else restrict_regions
     if restrict_regions:
         ec2.models.RegionsAndZonesBackend.regions = [
