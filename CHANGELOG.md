@@ -7,6 +7,8 @@
     cleaning up resources in that region. E.g. it would write buckets from all regions from `us-east-1`
     and then _only_ cleanup `us-east-1` s3 buckets.
 - Removed `client_args` as an explicit argument on cloudwanderer resources, any keywords args supplied to `write_` methods are now passed into the `get_` methods of the `cloud_interface`
+- Subresources now build their compound id using a `/` separator rather than a `:` separator. This ensures that
+    `:` remains the primary separator for URN parts.
 
 # 0.10.2
 

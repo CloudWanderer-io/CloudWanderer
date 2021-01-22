@@ -56,7 +56,7 @@ class AwsUrn():
             region=parts[3],
             service=parts[4],
             resource_type=parts[5],
-            resource_id=':'.join(parts[6:])
+            resource_id=parts[6]
         )
 
     def __eq__(self, other: Any) -> bool:

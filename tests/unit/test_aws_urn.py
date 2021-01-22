@@ -10,15 +10,20 @@ class TestAwsUrn(unittest.TestCase):
             region='us-east-1',
             service='ec2',
             resource_type='role_policy',
-            resource_id='test-role:test-policy'
+            resource_id='test-role/test-policy'
         )
 
     def test_from_string(self):
         assert AwsUrn.from_string(
-            'urn:aws:111111111111:us-east-1:ec2:role_policy:test-role:test-policy') == self.test_urn
+            'urn:aws:111111111111:us-east-1:ec2:role_policy:test-role/test-policy') == self.test_urn
+
+    def test_from_string_with_nonstandard_extra_parts(self):
+        assert AwsUrn.from_string(
+            'urn:aws:111111111111:us-east-1:ec2:'
+            'role_policy:test-role/test-policy:this:should:not:be:included') == self.test_urn
 
     def test_str(self):
-        assert str(self.test_urn) == 'urn:aws:111111111111:us-east-1:ec2:role_policy:test-role:test-policy'
+        assert str(self.test_urn) == 'urn:aws:111111111111:us-east-1:ec2:role_policy:test-role/test-policy'
 
     def test_repr(self):
         assert repr(self.test_urn) == str(
@@ -27,5 +32,5 @@ class TestAwsUrn(unittest.TestCase):
             "region='us-east-1', "
             "service='ec2', "
             "resource_type='role_policy', "
-            "resource_id='test-role:test-policy')"
+            "resource_id='test-role/test-policy')"
         )

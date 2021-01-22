@@ -136,7 +136,7 @@ Then we can lookup the inline policy
     ...     region=role.urn.region,
     ...     service='iam',
     ...     resource_type='role_policy',
-    ...     resource_id=f"{role.urn.resource_id}:test-role-policy"
+    ...     resource_id=f"{role.urn.resource_id}/test-role-policy"
     ... )
     >>> inline_policy = storage_connector.read_resource(urn=inline_policy_urn)
     >>> inline_policy.policy_document
