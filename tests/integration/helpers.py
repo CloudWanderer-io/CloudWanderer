@@ -163,6 +163,7 @@ class GenericAssertionHelpers:
 
         Where all key/values from the received item exist in the expected item.
         """
+        received = received if isinstance(received, list) else list(received)
         remaining = expected.copy()
         for received_item in received:
             for expected_item in expected:
@@ -214,7 +215,7 @@ class SetupMocking():
         self.stop_limit_collections_list()
 
     def start_moto_services(self, services=None):
-        services = services or self.default_moto_services
+        services = self.default_moto_services + (services or [])
         for service in services:
             if service not in self.service_mocks:
                 self.service_mocks[service] = getattr(moto, service)()
