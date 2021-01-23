@@ -11,7 +11,10 @@ class TestSecretsManagerResources(unittest.TestCase, GenericAssertionHelpers):
     @classmethod
     def setUpClass(cls):
         get_default_mocker().start_moto_services(['mock_sts', 'mock_secretsmanager'])
-        cls.addClassCleanup(get_default_mocker().stop_moto_services)
+
+    @classmethod
+    def tearDownClass(cls):
+        get_default_mocker().stop_moto_services
 
     def setUp(self):
         self.storage_connector = MemoryStorageConnector()
