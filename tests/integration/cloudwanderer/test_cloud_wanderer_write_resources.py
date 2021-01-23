@@ -28,7 +28,10 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
             ]
         )
         add_infra(regions=cls.enabled_regions)
-        cls.addClassCleanup(get_default_mocker().stop_general_mock)
+
+    @classmethod
+    def tearDownClass(cls):
+        get_default_mocker().stop_general_mock
 
     def setUp(self):
         self.storage_connector = MemoryStorageConnector()

@@ -16,7 +16,10 @@ class StorageReadTestMixin(TestStorageConnectorReadMixin):
         generate_mock_session()
         add_infra(regions=['eu-west-2', 'us-east-1'])
         cls.maxDiff = 10000
-        cls.addClassCleanup(get_default_mocker().stop_general_mock)
+
+    @classmethod
+    def tearDownClass(cls):
+        get_default_mocker().stop_general_mock
 
     def setUp(self):
         self.connector = self.connector_class()
