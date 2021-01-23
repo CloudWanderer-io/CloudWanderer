@@ -207,11 +207,12 @@ class SetupMocking():
             cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface.get_all_resource_services = MagicMock(
                 return_value=[boto3.resource(service) for service in ['ec2', 's3', 'iam']])
         if restrict_collections is not False:
-            self.limit_collections_list(restrict_collections)
+            self.start_limit_collections_list(restrict_collections)
         self.start_moto_services()
 
     def stop_general_mock(self):
         self.stop_moto_services()
+        self.stop_limit_collections_list()
 
     def start_moto_services(self, services=None):
         services = services or self.default_moto_services
@@ -224,7 +225,7 @@ class SetupMocking():
         for service in self.service_mocks.values():
             service.stop()
 
-    def limit_collections_list(self, restrict_collections):
+    def start_limit_collections_list(self, restrict_collections):
         """Limit the boto3 resource collections we service to a subset we use for testing."""
         if not restrict_collections:
             collections_to_mock = [
@@ -242,6 +243,9 @@ class SetupMocking():
         self.collections_mock.side_effect = lambda boto3_service: filter_collections(
             restrict_collections, boto3_service)
         self.collections_patcher.start()
+
+    def stop_limit_collections_list(self):
+        self.collections_patcher.stop()
 
 
 DEFAULT_MOCKER = None

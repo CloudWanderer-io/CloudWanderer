@@ -30,7 +30,10 @@ class TestSecondaryAttributes(unittest.TestCase):
     def setUpClass(cls):
         get_default_mocker().start_general_mock()
         add_infra()
-        cls.addClassCleanup(get_default_mocker().stop_general_mock)
+
+    @classmethod
+    def tearDownClass(cls):
+        get_default_mocker().stop_general_mock
 
     @parameterized.expand(generate_params())
     def test_query_secondary_attributes(self, _, service_name, region_name, resource_type, attribute_name):

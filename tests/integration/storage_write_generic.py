@@ -15,7 +15,10 @@ class StorageWriteTestMixin:
         add_infra(count=100, regions=['eu-west-2'])
         cls.ec2_instances = list(cls.mock_session.resource('ec2').instances.all())
         cls.vpcs = list(cls.mock_session.resource('ec2').vpcs.all())
-        cls.addClassCleanup(get_default_mocker().stop_general_mock)
+
+    @classmethod
+    def tearDownClass(cls):
+        get_default_mocker().stop_general_mock
 
     def test_write_resource_and_attribute(self):
         urn = generate_urn(service='ec2', resource_type='instance', id=self.ec2_instances[0].instance_id)
