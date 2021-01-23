@@ -162,6 +162,7 @@ class GenericAssertionHelpers:
 
         Where all key/values from the received item exist in the expected item.
         """
+        received = received if isinstance(received, list) else list(received)
         remaining = expected.copy()
         for received_item in received:
             for expected_item in expected:
