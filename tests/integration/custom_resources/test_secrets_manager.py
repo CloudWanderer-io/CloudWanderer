@@ -13,7 +13,7 @@ class TestSecretsManagerResources(unittest.TestCase, GenericAssertionHelpers):
 
     @classmethod
     def tearDownClass(cls):
-        get_default_mocker().stop_moto_services
+        get_default_mocker().stop_moto_services()
 
     def setUp(self):
         self.storage_connector = MemoryStorageConnector()
