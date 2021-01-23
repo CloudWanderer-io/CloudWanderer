@@ -2,7 +2,6 @@ import unittest
 import boto3
 from cloudwanderer import CloudWanderer
 from cloudwanderer.storage_connectors import MemoryStorageConnector
-import moto
 from ..helpers import get_default_mocker, GenericAssertionHelpers
 
 
