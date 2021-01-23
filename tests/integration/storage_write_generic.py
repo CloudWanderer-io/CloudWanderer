@@ -1,17 +1,21 @@
 from .mocks import generate_mock_session, add_infra, generate_urn, generate_mock_secondary_attribute
-from .helpers import mock_services
+from .helpers import get_default_mocker
 
 
 class StorageWriteTestMixin:
+    ec2_instances = None
+    vpcs = None
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        mock_services()
-        self.mock_session = generate_mock_session()
+    @classmethod
+    def setUpClass(cls):
+        mocker = get_default_mocker()
+        mocker.start_general_mock()
+        cls.mock_session = generate_mock_session()
 
         add_infra(count=100, regions=['eu-west-2'])
-        self.ec2_instances = list(self.mock_session.resource('ec2').instances.all())
-        self.vpcs = list(self.mock_session.resource('ec2').vpcs.all())
+        cls.ec2_instances = list(cls.mock_session.resource('ec2').instances.all())
+        cls.vpcs = list(cls.mock_session.resource('ec2').vpcs.all())
+        cls.addClassCleanup(get_default_mocker().stop_general_mock)
 
     def test_write_resource_and_attribute(self):
         urn = generate_urn(service='ec2', resource_type='instance', id=self.ec2_instances[0].instance_id)

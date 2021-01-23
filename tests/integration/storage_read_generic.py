@@ -2,7 +2,7 @@ from itertools import combinations
 from time import sleep
 from unittest.mock import patch
 import logging
-from .helpers import TestStorageConnectorReadMixin, setup_moto
+from .helpers import TestStorageConnectorReadMixin, get_default_mocker, generate_mock_session
 from .mocks import add_infra
 import cloudwanderer
 
@@ -10,11 +10,13 @@ import cloudwanderer
 class StorageReadTestMixin(TestStorageConnectorReadMixin):
     """Class which handles testing the various possible argument combinations."""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        setup_moto()
+    @classmethod
+    def setUpClass(cls):
+        get_default_mocker().start_general_mock()
+        generate_mock_session()
         add_infra(regions=['eu-west-2', 'us-east-1'])
-        self.maxDiff = 10000
+        cls.maxDiff = 10000
+        cls.addClassCleanup(get_default_mocker().stop_general_mock)
 
     def setUp(self):
         self.connector = self.connector_class()
