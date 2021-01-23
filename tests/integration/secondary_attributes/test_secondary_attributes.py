@@ -4,11 +4,11 @@ from botocore import xform_name
 from parameterized import parameterized
 from cloudwanderer.boto3_interface import CloudWandererBoto3Interface
 from ..mocks import add_infra
-from ..helpers import setup_moto, get_secondary_attribute_types
+from ..helpers import get_default_mocker, get_secondary_attribute_types
 
 
 def generate_params():
-    setup_moto(restrict_collections=False)
+    get_default_mocker().start_general_mock(restrict_collections=False)
     services = [
         ('ec2', 'eu-west-2'),
         ('iam', 'us-east-1')
@@ -26,10 +26,11 @@ def generate_params():
 
 class TestSecondaryAttributes(unittest.TestCase):
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        setup_moto()
+    @classmethod
+    def setUpClass(cls):
+        get_default_mocker().start_general_mock()
         add_infra()
+        cls.addClassCleanup(get_default_mocker().stop_general_mock)
 
     @parameterized.expand(generate_params())
     def test_query_secondary_attributes(self, _, service_name, region_name, resource_type, attribute_name):

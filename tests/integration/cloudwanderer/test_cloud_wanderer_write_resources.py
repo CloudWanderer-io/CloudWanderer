@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import ANY
-from ..helpers import MockStorageConnectorMixin, setup_moto
+from ..helpers import MockStorageConnectorMixin, get_default_mocker
 from ..mocks import (
     add_infra,
     MOCK_COLLECTION_INSTANCES,
@@ -15,11 +15,11 @@ from cloudwanderer.storage_connectors import MemoryStorageConnector
 
 class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMixin):
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.enabled_regions = ['eu-west-2', 'us-east-1', 'ap-east-1']
-        setup_moto(
-            restrict_regions=self.enabled_regions,
+    @classmethod
+    def setUpClass(cls):
+        cls.enabled_regions = ['eu-west-2', 'us-east-1', 'ap-east-1']
+        get_default_mocker().start_general_mock(
+            restrict_regions=cls.enabled_regions,
             restrict_services=['ec2', 's3', 'iam'],
             restrict_collections=[
                 MOCK_COLLECTION_INSTANCES, MOCK_COLLECTION_BUCKETS,
@@ -27,7 +27,8 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
                 MOCK_COLLECTION_IAM_ROLE_POLICIES
             ]
         )
-        add_infra(regions=self.enabled_regions)
+        add_infra(regions=cls.enabled_regions)
+        cls.addClassCleanup(get_default_mocker().stop_general_mock)
 
     def setUp(self):
         self.storage_connector = MemoryStorageConnector()
