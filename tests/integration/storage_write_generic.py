@@ -18,7 +18,7 @@ class StorageWriteTestMixin:
 
     @classmethod
     def tearDownClass(cls):
-        get_default_mocker().stop_general_mock
+        get_default_mocker().stop_general_mock()
 
     def test_write_resource_and_attribute(self):
         urn = generate_urn(service='ec2', resource_type='instance', id=self.ec2_instances[0].instance_id)
