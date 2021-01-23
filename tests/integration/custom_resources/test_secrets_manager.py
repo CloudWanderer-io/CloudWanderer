@@ -3,7 +3,7 @@ import boto3
 from cloudwanderer import CloudWanderer
 from cloudwanderer.storage_connectors import MemoryStorageConnector
 import moto
-from ..helpers import clear_aws_credentials, get_default_mocker, GenericAssertionHelpers
+from ..helpers import get_default_mocker, GenericAssertionHelpers
 
 
 class TestSecretsManagerResources(unittest.TestCase, GenericAssertionHelpers):
