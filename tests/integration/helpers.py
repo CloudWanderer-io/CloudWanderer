@@ -215,7 +215,7 @@ class SetupMocking():
         self.stop_limit_collections_list()
 
     def start_moto_services(self, services=None):
-        services = self.default_moto_services + services
+        services = self.default_moto_services + (services or [])
         for service in services:
             if service not in self.service_mocks:
                 self.service_mocks[service] = getattr(moto, service)()
