@@ -3,16 +3,15 @@ import boto3
 from cloudwanderer import CloudWanderer
 from cloudwanderer.storage_connectors import MemoryStorageConnector
 import moto
-from ..helpers import clear_aws_credentials, mock_services, GenericAssertionHelpers
+from ..helpers import clear_aws_credentials, get_default_mocker, GenericAssertionHelpers
 
 
 class TestSecretsManagerResources(unittest.TestCase, GenericAssertionHelpers):
 
     @classmethod
     def setUpClass(cls):
-        mock_services()
-        moto.mock_secretsmanager().start()
-        clear_aws_credentials()
+        get_default_mocker().start_moto_services(['mock_sts', 'mock_secretsmanager'])
+        cls.addClassCleanup(get_default_mocker().stop_moto_services)
 
     def setUp(self):
         self.storage_connector = MemoryStorageConnector()
