@@ -7,9 +7,9 @@ import logging
 import boto3
 import botocore
 from botocore import xform_name
-from botocore.exceptions import EndpointConnectionError
 from boto3.resources.base import ServiceResource
 from boto3.resources.model import Collection, ResourceModel
+from .cloud_wanderer_resource import CloudWandererResource, SecondaryAttribute
 from .custom_resource_definitions import CustomResourceDefinitions
 from .service_mappings import ServiceMappingCollection, GlobalServiceResourceMappingNotFound
 from .aws_urn import AwsUrn
@@ -94,6 +94,8 @@ class CloudWandererBoto3Interface:
             return
         try:
             yield from getattr(boto3_service, boto3_resource_collection.name).all()
+        except botocore.exceptions.EndpointConnectionError as ex:
+            logger.warning(ex)
         except botocore.exceptions.ClientError as ex:
             if ex.response['Error']['Code'] == 'InvalidAction':
                 logger.warning(ex.response['Error']['Message'])
@@ -117,14 +119,23 @@ class CloudWandererBoto3Interface:
             return
         boto3_service = self.get_resource_service_by_name(service_name, **kwargs)
         boto3_resource_collection = next(self.get_resource_collection_by_resource_type(boto3_service, resource_type))
+        resources = self.get_resource_from_collection(
+            boto3_service=boto3_service,
+            boto3_resource_collection=boto3_resource_collection
+        )
 
-        try:
-            yield from self.get_resource_from_collection(
-                boto3_service=boto3_service,
-                boto3_resource_collection=boto3_resource_collection
+        for resource in resources:
+            yield CloudWandererResource(
+                urn=self._get_resource_urn(resource, region_name),
+                resource_data=resource.meta.data,
+                secondary_attributes=self.get_secondary_attributes(resource),
             )
-        except EndpointConnectionError as ex:
-            logger.warning(ex)
+            for subresource in self.get_subresources(resource):
+                yield CloudWandererResource(
+                    urn=self._get_resource_urn(subresource, region_name),
+                    resource_data=subresource.meta.data,
+                    secondary_attributes=self.get_secondary_attributes(subresource),
+                )
 
     def get_service_resource_types(self, service_name: str) -> Iterator[str]:
         """Return all possible resource names for a given service.
@@ -173,7 +184,7 @@ class CloudWandererBoto3Interface:
         """
         yield from self.get_child_resources(boto3_resource=boto3_resource, resource_type='resource')
 
-    def get_secondary_attributes(self, boto3_resource: boto3.resources.base.ServiceResource) -> ServiceResource:
+    def get_secondary_attributes(self, boto3_resource: boto3.resources.base.ServiceResource) -> SecondaryAttribute:
         """Return all secondary attributes resources for this resource.
 
         Subresources and collections on custom service resources may be secondary attribute definitions if
@@ -183,7 +194,12 @@ class CloudWandererBoto3Interface:
             boto3_resource (boto3.resources.base.ServiceResource): The :class:`boto3.resources.base.ServiceResource`
                 to get secondary attributes from
         """
-        yield from self.get_child_resources(boto3_resource=boto3_resource, resource_type='secondaryAttribute')
+        secondary_attributes = self.get_child_resources(
+            boto3_resource=boto3_resource, resource_type='secondaryAttribute')
+        for secondary_attribute in secondary_attributes:
+            yield SecondaryAttribute(
+                attribute_name=xform_name(secondary_attribute.meta.resource_model.name),
+                **secondary_attribute.meta.data)
 
     def get_child_resources(
             self, boto3_resource: boto3.resources.base.ServiceResource,
@@ -218,10 +234,13 @@ class CloudWandererBoto3Interface:
                 continue
             if resource_mapping.resource_type != resource_type:
                 continue
-            yield from self.get_resource_from_collection(
+            child_resources = self.get_resource_from_collection(
                 boto3_service=boto3_resource,
                 boto3_resource_collection=child_resource_collection
             )
+            for resource in child_resources:
+                resource.load()
+                yield resource
 
     def get_child_resource_definitions(
             self, service_name: str, boto3_resource_model: boto3.resources.model.ResourceModel,

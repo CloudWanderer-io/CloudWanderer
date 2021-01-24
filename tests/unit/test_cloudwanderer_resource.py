@@ -101,3 +101,15 @@ class TestCloudWandererResource(unittest.TestCase):
             "resource_data={'CidrBlock': '10.0.0.0/0'}, secondary_attributes=[{'EnableDnsSupport': {'Value': True}}]"
             ")"
         )
+
+    def test_empty(self):
+        """Do not throw when there is no resource data.
+
+        This scenario occurs for some older AWS resources like sns topics as
+        their ``describe_`` methods can return no data.
+        """
+        CloudWandererResource(
+            urn=AwsUrn.from_string('urn:aws:111111111111:eu-west-2:ec2:vpc:vpc-11111111'),
+            resource_data=None,
+            secondary_attributes=[]
+        )

@@ -329,13 +329,17 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
         )
 
     def assert_resource_exists(self, *args, **kwargs):
-        result = self.resource_exists(*args, **kwargs)
-        assert len(result) > 0
-        assert all(x[0] for x in result)
+        results, resources = self.resource_exists(*args, **kwargs)
+        assert len(results) > 0
+        for comparison in results:
+            self.assertTrue(
+                comparison[0],
+                f"{comparison[2]} was not found at '{comparison[1]}' in any of {resources}"
+            )
 
     def assert_resource_not_exists(self, *args, **kwargs):
-        result = self.resource_exists(*args, **kwargs)
-        assert all(x[0] for x in result)
+        results, resources = self.resource_exists(*args, **kwargs)
+        assert all(x[0] for x in results)
 
     def resource_exists(self, region, service, resource_type, attributes_dict, secondary_attributes_dict=None):
         secondary_attributes_dict = secondary_attributes_dict or {}
@@ -362,4 +366,4 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
                     jmes_path,
                     value
                 ))
-        return matches
+        return matches, resources

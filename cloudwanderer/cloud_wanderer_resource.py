@@ -50,7 +50,7 @@ class CloudWandererResource():
         """
         self.urn = urn
         self.cloudwanderer_metadata = ResourceMetadata(
-            resource_data=resource_data,
+            resource_data=resource_data or {},
             secondary_attributes=secondary_attributes or []
         )
         self._loader = loader
@@ -107,3 +107,21 @@ class CloudWandererResource():
     def __str__(self) -> str:
         """Return the string representation of this Resource."""
         return repr(self)
+
+
+class SecondaryAttribute(dict):
+    """Partially formalised SecondaryAttribute for resources.
+
+    Allows us to store unstructured data in a dict-like object while maintaining the
+    attribute_name attribute.
+    """
+
+    def __init__(self, attribute_name: str, **kwargs) -> None:
+        """Initialise the Secondary Attribute.
+
+        Arguments:
+            attribute_name (str): The name of the attribute
+            **kwargs: The attributes keys and values
+        """
+        super().__init__(**kwargs)
+        self.attribute_name = attribute_name

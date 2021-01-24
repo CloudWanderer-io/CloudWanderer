@@ -64,13 +64,20 @@ class MemoryStorageConnector(BaseStorageConnector):
                     **item
                 }
 
-    def write_resource(self, urn: AwsUrn, resource: boto3.resources.base.ServiceResource) -> None:
-        self._data[str(urn)] = self._data.get(str(urn), {})
-        self._data[str(urn)]['BaseResource'] = standardise_data_types(resource.meta.data)
+    def write_resource(self, resource: CloudWandererResource) -> None:
+        self._data[str(resource.urn)] = self._data.get(str(resource.urn), {})
+        self._data[str(resource.urn)]['BaseResource'] = standardise_data_types(
+            resource.cloudwanderer_metadata.resource_data)
+        for secondary_attribute in resource.cloudwanderer_metadata.secondary_attributes:
+            self._write_secondary_attribute(
+                urn=resource.urn,
+                attribute_type=secondary_attribute.attribute_name,
+                secondary_attribute=secondary_attribute
+            )
 
-    def write_secondary_attribute(
+    def _write_secondary_attribute(
             self, urn: AwsUrn, attribute_type: str, secondary_attribute: boto3.resources.base.ServiceResource) -> None:
-        """Write the specified resource attribute to DynamoDb.
+        """Write the specified resource attribute to storage.
 
         Arguments:
             urn (AwsUrn): The resource whose attribute to write.
@@ -79,7 +86,7 @@ class MemoryStorageConnector(BaseStorageConnector):
 
         """
         self._data[str(urn)] = self._data.get(str(urn), {})
-        self._data[str(urn)][attribute_type] = secondary_attribute.meta.data
+        self._data[str(urn)][attribute_type] = secondary_attribute
 
     def delete_resource(self, urn: AwsUrn) -> None:
         try:
