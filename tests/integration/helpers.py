@@ -1,4 +1,5 @@
 import os
+import re
 import logging
 from unittest.mock import patch, MagicMock
 import functools
@@ -46,68 +47,6 @@ def patch_services(services):
                 return func(*args, **kwargs)
         return wrapper_patch_services
     return decorator_patch_services
-
-
-class MockStorageConnectorMixin:
-    """Mixin to simplify assertions against a mock storage connector.
-
-    Expects the storage connector to be a ``MagicMock`` set as ``self.storage_connector``.
-    """
-
-    def assert_storage_connector_write_resource_not_called_with(self, **kwargs):
-        self.assertFalse(
-            self.storage_connector_write_resource_called_with(**kwargs),
-            f"Found match for {kwargs} in {self.mock_storage_connector.write_resource.call_args_list}"
-        )
-
-    def assert_storage_connector_write_resource_called_with(self, **kwargs):
-        self.assertTrue(
-            self.storage_connector_write_resource_called_with(**kwargs),
-            f"No match for {kwargs} in {self.mock_storage_connector.write_resource.call_args_list}"
-        )
-
-    def storage_connector_write_resource_called_with(self, region, service, resource_type, attributes_dict):
-        matches = []
-        for write_resource_call in self.mock_storage_connector.write_resource.call_args_list:
-            urn, resource = write_resource_call[0]
-            comparisons = []
-            for var in ['region', 'service', 'resource_type']:
-                comparisons.append(eval(var) == getattr(urn, var))
-            for attr, value in attributes_dict.items():
-                try:
-                    comparisons.append(getattr(resource, attr) == value)
-                except AttributeError:
-                    comparisons.append(False)
-            if all(comparisons):
-                matches.append((urn, resource))
-        return matches
-
-    def assert_storage_connector_write_secondary_attribute_not_called_with(self, **kwargs):
-        assert not self.storage_connector_write_secondary_attribute_called_with(**kwargs)
-
-    def assert_storage_connector_write_secondary_attribute_called_with(self, **kwargs):
-        self.assertTrue(
-            self.storage_connector_write_secondary_attribute_called_with(**kwargs),
-            f"No match for {kwargs} in {self.mock_storage_connector.write_secondary_attribute.call_args_list}"
-        )
-
-    def storage_connector_write_secondary_attribute_called_with(
-            self, region, service, resource_type, response_dict, attribute_type):
-        matches = []
-        for write_secondary_attribute_call in self.mock_storage_connector.write_secondary_attribute.call_args_list:
-            call_dict = write_secondary_attribute_call[1]
-            comparisons = []
-            for var in ['region', 'service', 'resource_type']:
-                comparisons.append(eval(var) == getattr(call_dict['urn'], var))
-            for attr, value in response_dict.items():
-                try:
-                    comparisons.append(call_dict['secondary_attribute'].meta.data[attr] == value)
-                except KeyError:
-                    comparisons.append(False)
-            comparisons.append(attribute_type == call_dict['attribute_type'])
-            if all(comparisons):
-                matches.append((call_dict['urn'], call_dict['secondary_attribute']))
-        return matches
 
 
 class TestStorageConnectorReadMixin:
@@ -159,22 +98,37 @@ class TestStorageConnectorReadMixin:
 class GenericAssertionHelpers:
 
     def assert_dictionary_overlap(self, received, expected):
-        """Asserts every item in expected has an equivalent item in received.
+        """Asserts that every item in expected has an equivalent item in received.
 
         Where all key/values from the received item exist in the expected item.
         """
         received = received if isinstance(received, list) else list(received)
+        unmatched, _ = self.get_dictionary_overlap(received, expected)
+        self.assertEqual(unmatched, [], f"{unmatched} was not found in {received}")
+
+    def assert_no_dictionary_overlap(self, received, expected):
+        """Asserts that NO item in expected has an equivalent item in received."""
+        received = received if isinstance(received, list) else list(received)
+        _, matched = self.get_dictionary_overlap(received, expected)
+        self.assertEqual(matched, [], f"{matched} was found in {received}")
+
+    def get_dictionary_overlap(self, received, expected):
         remaining = expected.copy()
+        matched = []
         for received_item in received:
             for expected_item in expected:
-                matching = [
-                    received_item.get(k) == v
-                    for k, v in expected_item.items()
-                ]
+                matching = []
+                for key, value in expected_item.items():
+                    if isinstance(value, str) and isinstance(received_item.get(key), str):
+                        matching.append(re.match(value, received_item.get(key)))
+                    else:
+                        matching.append(received_item.get(key) == value)
+
                 if all(matching):
                     remaining.remove(expected_item)
+                    matched.append(expected_item)
                     break
-        self.assertEqual(remaining, [], f"{remaining} was not found in {received}")
+        return remaining, matched
 
 
 def clear_aws_credentials():
