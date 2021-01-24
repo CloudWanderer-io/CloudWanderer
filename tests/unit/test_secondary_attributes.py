@@ -1,6 +1,7 @@
 import unittest
 from cloudwanderer.cloud_wanderer_resource import SecondaryAttribute
 
+
 class TestSecondaryAttribute(unittest.TestCase):
 
     def test_vpc_secondary_attribute(self):
@@ -17,5 +18,5 @@ class TestSecondaryAttribute(unittest.TestCase):
             attribute_name=None
         )
 
-        assert secondary_attribute.attribute_name == None
+        assert secondary_attribute.attribute_name is None
         assert dict(secondary_attribute) == {}
