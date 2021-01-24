@@ -5,8 +5,8 @@ Provides simpler methods for :class:`~.cloud_wanderer.CloudWanderer` to call.
 from typing import List, Iterator
 import logging
 import boto3
+import botocore
 from botocore import xform_name
-from botocore.exceptions import EndpointConnectionError, ClientError
 from boto3.resources.base import ServiceResource
 from boto3.resources.model import Collection, ResourceModel
 from .cloud_wanderer_resource import CloudWandererResource, SecondaryAttribute
@@ -87,16 +87,16 @@ class CloudWandererBoto3Interface:
             boto3_resource_collection (boto3.resources.model.Collection): The resource collection to get.
 
         Raises:
-            ClientError: A Boto3 client error.
+            botocore.exceptions.ClientError: A Boto3 client error.
         """
         if not hasattr(boto3_service, boto3_resource_collection.name):
             logger.warning('%s does not have %s', boto3_service.__class__.__name__, boto3_resource_collection.name)
             return
         try:
             yield from getattr(boto3_service, boto3_resource_collection.name).all()
-        except EndpointConnectionError as ex:
+        except botocore.exceptions.EndpointConnectionError as ex:
             logger.warning(ex)
-        except ClientError as ex:
+        except botocore.exceptions.ClientError as ex:
             if ex.response['Error']['Code'] == 'InvalidAction':
                 logger.warning(ex.response['Error']['Message'])
                 return
