@@ -117,12 +117,11 @@ class SecondaryAttribute(dict):
     """
 
     def __init__(self, attribute_name: str, **kwargs) -> None:
-        """Initialise the Secondary Attribute
+        """Initialise the Secondary Attribute.
 
         Arguments:
             attribute_name (str): The name of the attribute
             **kwargs: The attributes keys and values
         """
-
         super().__init__(**kwargs)
         self.attribute_name = attribute_name
