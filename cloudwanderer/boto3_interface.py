@@ -128,23 +128,13 @@ class CloudWandererBoto3Interface:
             yield CloudWandererResource(
                 urn=self._get_resource_urn(resource, region_name),
                 resource_data=resource.meta.data,
-                secondary_attributes=[
-                    SecondaryAttribute(
-                        attribute_name=xform_name(secondary_attribute.meta.resource_model.name),
-                        **secondary_attribute.meta.data)
-                    for secondary_attribute in self.get_secondary_attributes(resource)
-                ]
+                secondary_attributes=self.get_secondary_attributes(resource),
             )
             for subresource in self.get_subresources(resource):
                 yield CloudWandererResource(
                     urn=self._get_resource_urn(subresource, region_name),
                     resource_data=subresource.meta.data,
-                    secondary_attributes=[
-                        SecondaryAttribute(
-                            attribute_name=xform_name(secondary_attribute.meta.resource_model.name),
-                            **secondary_attribute.meta.data)
-                        for secondary_attribute in self.get_secondary_attributes(subresource)
-                    ]
+                    secondary_attributes=self.get_secondary_attributes(subresource),
                 )
 
     def get_service_resource_types(self, service_name: str) -> Iterator[str]:
@@ -196,7 +186,7 @@ class CloudWandererBoto3Interface:
             subresource.load()
             yield subresource
 
-    def get_secondary_attributes(self, boto3_resource: boto3.resources.base.ServiceResource) -> ServiceResource:
+    def get_secondary_attributes(self, boto3_resource: boto3.resources.base.ServiceResource) -> SecondaryAttribute:
         """Return all secondary attributes resources for this resource.
 
         Subresources and collections on custom service resources may be secondary attribute definitions if
@@ -206,7 +196,12 @@ class CloudWandererBoto3Interface:
             boto3_resource (boto3.resources.base.ServiceResource): The :class:`boto3.resources.base.ServiceResource`
                 to get secondary attributes from
         """
-        yield from self.get_child_resources(boto3_resource=boto3_resource, resource_type='secondaryAttribute')
+        secondary_attributes = self.get_child_resources(
+            boto3_resource=boto3_resource, resource_type='secondaryAttribute')
+        for secondary_attribute in secondary_attributes:
+            yield SecondaryAttribute(
+                attribute_name=xform_name(secondary_attribute.meta.resource_model.name),
+                **secondary_attribute.meta.data)
 
     def get_child_resources(
             self, boto3_resource: boto3.resources.base.ServiceResource,
