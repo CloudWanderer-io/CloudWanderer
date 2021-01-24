@@ -113,6 +113,7 @@ class TestCloudWandererWriteResources(unittest.TestCase, GenericAssertionHelpers
         self.wanderer.write_resources_in_region(region_name='us-east-1')
 
         self.assert_dictionary_overlap(self.storage_connector.read_all(), self.us_east_1_resources)
+        self.assert_no_dictionary_overlap(self.storage_connector.read_all(), self.eu_west_2_resources)
 
     def test_write_resources_of_service_default_region(self):
         self.wanderer.write_resources_of_service_in_region(service_name='ec2')
