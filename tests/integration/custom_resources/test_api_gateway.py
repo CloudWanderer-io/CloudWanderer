@@ -26,7 +26,6 @@ class TestSecretsManagerResources(unittest.TestCase, GenericAssertionHelpers):
         apigateway.create_rest_api(
             name='TestApi',
         )
-        print(apigateway.get_rest_apis())
 
         self.wanderer.write_resources_of_service_in_region(region_name='eu-west-2', service_name='apigateway')
 

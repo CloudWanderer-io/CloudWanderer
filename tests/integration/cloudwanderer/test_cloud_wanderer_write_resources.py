@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import ANY
-from ..helpers import MockStorageConnectorMixin, get_default_mocker
+import re
+from ..helpers import get_default_mocker, GenericAssertionHelpers
 from ..mocks import (
     add_infra,
     MOCK_COLLECTION_INSTANCES,
@@ -13,7 +14,42 @@ from cloudwanderer import CloudWanderer
 from cloudwanderer.storage_connectors import MemoryStorageConnector
 
 
-class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMixin):
+class TestCloudWandererWriteResources(unittest.TestCase, GenericAssertionHelpers):
+    eu_west_2_resources = [{
+        'urn': 'urn:aws:.*:eu-west-2:ec2:instance:.*',
+        'attr': 'BaseResource',
+        'VpcId': 'vpc-.*',
+        'SubnetId': 'subnet-.*',
+        'InstanceId': 'i-.*'
+    }]
+    us_east_1_resources = [{
+        'urn': 'urn:aws:.*:us-east-1:iam:role:.*',
+        'attr': 'BaseResource',
+        'RoleName': 'test-role',
+        'Path': re.escape('/')
+    }, {
+        'urn': 'urn:aws:.*:us-east-1:iam:role:.*',
+        'attr': 'role_inline_policy_attachments',
+        'PolicyNames': ['test-role-policy'],
+    }, {
+        'urn': 'urn:aws:.*:us-east-1:iam:role:.*',
+        'attr': 'role_managed_policy_attachments',
+        'AttachedPolicies': [{
+                'PolicyName': 'APIGatewayServiceRolePolicy',
+                'PolicyArn': 'arn:aws:iam::aws:policy/aws-service-role/APIGatewayServiceRolePolicy'
+        }],
+        'IsTruncated': False
+    }, {
+        'urn': 'urn:aws:.*:us-east-1:iam:role_policy:.*',
+        'attr': 'BaseResource',
+        'PolicyName': 'test-role-policy',
+        'PolicyDocument': ANY
+    }, {
+        # This is a us-east-1 resource because s3 buckets are discovered from us-east-1 irrespective of their region.
+        'urn': 'urn:aws:.*:eu-west-2:s3:bucket:.*',
+        'attr': 'BaseResource',
+        'Name': 'test-eu-west-2',
+    }]
 
     @classmethod
     def setUpClass(cls):
@@ -44,249 +80,62 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
         self.wanderer.write_resources()
 
         for region_name in self.enabled_regions:
-            self.assert_resource_exists(
-                region=region_name,
-                service='ec2',
-                resource_type='instance',
-                attributes_dict={
-                    'vpc_id': ANY,
-                    'subnet_id': ANY,
-                    'instance_id': ANY
-                }
-            )
+            self.assert_dictionary_overlap(self.storage_connector.read_all(), [{
+                'urn': f'urn:aws:.*:{region_name}:ec2:instance:.*',
+                'attr': 'BaseResource',
+                'VpcId': 'vpc-.*',
+                'SubnetId': 'subnet-.*',
+                'InstanceId': 'i-.*'
+            }, {
+                'urn': f'urn:aws:.*:{region_name}:s3:bucket:.*',
+                'attr': 'BaseResource',
+                'Name': f'test-{region_name}',
+            }])
 
-            self.assert_resource_exists(
-                region=region_name,
-                service='s3',
-                resource_type='bucket',
-                attributes_dict={
-                    'name': f'test-{region_name}'
-                }
-            )
             if region_name == 'us-east-1':
-                self.assert_resource_exists(
-                    region=region_name,
-                    service='iam',
-                    resource_type='role',
-                    attributes_dict={
-                        'role_name': 'test-role',
-                        'path': '/'
-                    },
-                    secondary_attributes_dict={
-                        "[].PolicyNames[0]": ['test-role-policy'],
-                        "[].AttachedPolicies[0].PolicyName": ['APIGatewayServiceRolePolicy']
-                    }
-                )
+                self.assert_dictionary_overlap(self.storage_connector.read_all(), self.us_east_1_resources)
             else:
-                self.assert_resource_not_exists(
-                    region=region_name,
-                    service='iam',
-                    resource_type='role',
-                    attributes_dict={
-                        'role_name': 'test-role',
-                        'path': '/'
-                    },
-                )
+                self.assert_no_dictionary_overlap(self.storage_connector.read_all(), [{
+                    'urn': f'urn:aws:.*:{region_name}:iam:role:.*',
+                    'attr': 'BaseResource',
+                    'RoleName': 'test-role',
+                    'Path': re.escape('/')
+                }])
 
     def test_write_resources_in_region_default_region(self):
 
         self.wanderer.write_resources_in_region()
 
-        self.assert_resource_exists(
-            region='eu-west-2',
-            service='ec2',
-            resource_type='instance',
-            attributes_dict={
-                'vpc_id': ANY,
-                'subnet_id': ANY,
-                'instance_id': ANY
-            }
-        )
-        self.assert_resource_not_exists(
-            region='eu-west-2',
-            service='s3',
-            resource_type='bucket',
-            attributes_dict={
-                'name': 'test-eu-west-2'
-            }
-        )
-        self.assert_resource_not_exists(
-            region='us-east-1',
-            service='iam',
-            resource_type='role',
-            attributes_dict={
-                'role_name': 'test-role',
-                'path': '/'
-            },
-        )
+        self.assert_dictionary_overlap(self.storage_connector.read_all(), self.eu_west_2_resources)
+        self.assert_no_dictionary_overlap(self.storage_connector.read_all(), self.us_east_1_resources)
 
     def test_write_resources_in_region_specify_region(self):
         self.wanderer.write_resources_in_region(region_name='us-east-1')
 
-        self.assert_resource_exists(
-            region='us-east-1',
-            service='ec2',
-            resource_type='instance',
-            attributes_dict={
-                'vpc_id': ANY,
-                'subnet_id': ANY,
-                'instance_id': ANY
-            }
-        )
-        self.assert_resource_exists(
-            region='us-east-1',
-            service='s3',
-            resource_type='bucket',
-            attributes_dict={
-                'name': 'test-us-east-1'
-            }
-        )
-        self.assert_resource_exists(
-            region='us-east-1',
-            service='iam',
-            resource_type='role',
-            attributes_dict={
-                'role_name': 'test-role',
-                'path': '/'
-            },
-            secondary_attributes_dict={
-                "[].PolicyNames[0]": ['test-role-policy'],
-                "[].AttachedPolicies[0].PolicyName": ['APIGatewayServiceRolePolicy']
-            }
-        )
-        self.assert_resource_exists(
-            region='us-east-1',
-            service='iam',
-            resource_type='role',
-            attributes_dict={
-                'role_name': 'test-role',
-                'path': '/'
-            },
-            secondary_attributes_dict={
-                "[].PolicyNames[0]": ['test-role-policy'],
-                "[].AttachedPolicies[0].PolicyName": ['APIGatewayServiceRolePolicy']
-            }
-        )
-        self.assert_resource_not_exists(
-            region='us-east-1',
-            service='iam',
-            resource_type='role',
-            attributes_dict={
-                'role_name': 'test-role',
-                'path': '/'
-            },
-        )
-        self.assert_resource_exists(
-            region='us-east-1',
-            service='iam',
-            resource_type='role_policy',
-            attributes_dict={
-                'policy_name': 'test-role-policy',
-                'policy_document': ANY
-            }
-        )
+        self.assert_dictionary_overlap(self.storage_connector.read_all(), self.us_east_1_resources)
 
     def test_write_resources_of_service_default_region(self):
         self.wanderer.write_resources_of_service_in_region(service_name='ec2')
         self.wanderer.write_resources_of_service_in_region(service_name='s3')
 
-        self.assert_resource_exists(
-            region='eu-west-2',
-            service='ec2',
-            resource_type='instance',
-            attributes_dict={
-                'vpc_id': ANY,
-                'subnet_id': ANY,
-                'instance_id': ANY
-            }
-        )
-        self.assert_resource_not_exists(
-            region='eu-west-2',
-            service='s3',
-            resource_type='bucket',
-            attributes_dict={
-                'name': 'test-eu-west-2'
-            }
-        )
-        self.assert_resource_not_exists(
-            region='us-east-1',
-            service='iam',
-            resource_type='role',
-            attributes_dict={
-                'role_name': 'test-role',
-                'path': '/'
-            },
-        )
+        self.assert_dictionary_overlap(self.storage_connector.read_all(), self.eu_west_2_resources)
+        self.assert_no_dictionary_overlap(self.storage_connector.read_all(), self.us_east_1_resources)
 
     def test_write_resources_of_service_specify_region(self):
         self.wanderer.write_resources_of_service_in_region(service_name='ec2', region_name='us-east-1')
         self.wanderer.write_resources_of_service_in_region(service_name='s3', region_name='us-east-1')
         self.wanderer.write_resources_of_service_in_region(service_name='iam', region_name='us-east-1')
 
-        self.assert_resource_exists(
-            region='us-east-1',
-            service='ec2',
-            resource_type='instance',
-            attributes_dict={
-                'vpc_id': ANY,
-                'subnet_id': ANY,
-                'instance_id': ANY
-            }
-        )
-        self.assert_resource_exists(
-            region='us-east-1',
-            service='s3',
-            resource_type='bucket',
-            attributes_dict={
-                'name': 'test-us-east-1'
-            }
-        )
-        self.assert_resource_exists(
-            region='us-east-1',
-            service='iam',
-            resource_type='role',
-            attributes_dict={
-                'role_name': 'test-role',
-                'path': '/'
-            },
-            secondary_attributes_dict={
-                "[].PolicyNames[0]": ['test-role-policy'],
-                "[].AttachedPolicies[0].PolicyName": ['APIGatewayServiceRolePolicy']
-            }
-        )
+        self.assert_dictionary_overlap(self.storage_connector.read_all(), self.us_east_1_resources)
+        self.assert_no_dictionary_overlap(self.storage_connector.read_all(), self.eu_west_2_resources)
 
     def test_write_resources_of_type_in_region_default_region(self):
         self.wanderer.write_resources_of_type_in_region(service_name='s3', resource_type='bucket')
         self.wanderer.write_resources_of_type_in_region(service_name='ec2', resource_type='instance')
         self.wanderer.write_resources_of_type_in_region(service_name='iam', resource_type='role')
 
-        self.assert_resource_exists(
-            region='eu-west-2',
-            service='ec2',
-            resource_type='instance',
-            attributes_dict={
-                'vpc_id': ANY,
-                'subnet_id': ANY,
-                'instance_id': ANY
-            }
-        )
-        self.assert_resource_not_exists(
-            region='eu-west-2',
-            service='s3',
-            resource_type='bucket',
-            attributes_dict={
-                'name': 'test-eu-west-2'
-            }
-        )
-        self.assert_resource_not_exists(
-            region='us-east-1',
-            service='iam',
-            resource_type='role',
-            attributes_dict={
-                'role_name': 'test-role',
-                'path': '/'
-            },
-        )
+        self.assert_dictionary_overlap(self.storage_connector.read_all(), self.eu_west_2_resources)
+        self.assert_no_dictionary_overlap(self.storage_connector.read_all(), self.us_east_1_resources)
 
     def test_write_resources_of_type_in_region_specify_region(self):
         self.wanderer.write_resources_of_type_in_region(
@@ -296,76 +145,5 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
         self.wanderer.write_resources_of_type_in_region(
             service_name='iam', resource_type='role', region_name='us-east-1')
 
-        self.assert_resource_exists(
-            region='us-east-1',
-            service='ec2',
-            resource_type='instance',
-            attributes_dict={
-                'vpc_id': ANY,
-                'subnet_id': ANY,
-                'instance_id': ANY
-            }
-        )
-        self.assert_resource_exists(
-            region='us-east-1',
-            service='s3',
-            resource_type='bucket',
-            attributes_dict={
-                'name': 'test-us-east-1'
-            }
-        )
-        self.assert_resource_exists(
-            region='us-east-1',
-            service='iam',
-            resource_type='role',
-            attributes_dict={
-                'role_name': 'test-role',
-                'path': '/'
-            },
-            secondary_attributes_dict={
-                "[].PolicyNames[0]": ['test-role-policy'],
-                "[].AttachedPolicies[0].PolicyName": ['APIGatewayServiceRolePolicy']
-            }
-        )
-
-    def assert_resource_exists(self, *args, **kwargs):
-        results, resources = self.resource_exists(*args, **kwargs)
-        assert len(results) > 0
-        for comparison in results:
-            self.assertTrue(
-                comparison[0],
-                f"{comparison[2]} was not found at '{comparison[1]}' in any of {resources}"
-            )
-
-    def assert_resource_not_exists(self, *args, **kwargs):
-        results, resources = self.resource_exists(*args, **kwargs)
-        assert all(x[0] for x in results)
-
-    def resource_exists(self, region, service, resource_type, attributes_dict, secondary_attributes_dict=None):
-        secondary_attributes_dict = secondary_attributes_dict or {}
-        resources = list(self.storage_connector.read_resources(
-            region=region,
-            service=service,
-            resource_type=resource_type
-        ))
-
-        matches = []
-        for resource in resources:
-            resource.load()
-            # No resource should have the ResponseMetadata attribute recorded.
-            self.assertRaises(AttributeError, getattr, resource, 'response_metadata')
-            for attribute, value in attributes_dict.items():
-                result = False
-                try:
-                    result = getattr(resource, attribute) == value
-                except AttributeError:
-                    pass
-                matches.append((result, resource.urn, attribute, value))
-            for jmes_path, value in secondary_attributes_dict.items():
-                result = False
-                matches.append((
-                    resource.get_secondary_attribute(jmes_path=jmes_path) == value,
-                    jmes_path,
-                    value
-                ))
-        return matches, resources
+        self.assert_dictionary_overlap(self.storage_connector.read_all(), self.us_east_1_resources)
+        self.assert_no_dictionary_overlap(self.storage_connector.read_all(), self.eu_west_2_resources)

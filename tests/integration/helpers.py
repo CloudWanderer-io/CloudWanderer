@@ -1,4 +1,5 @@
 import os
+import re
 import logging
 from unittest.mock import patch, MagicMock
 import functools
@@ -159,22 +160,37 @@ class TestStorageConnectorReadMixin:
 class GenericAssertionHelpers:
 
     def assert_dictionary_overlap(self, received, expected):
-        """Asserts every item in expected has an equivalent item in received.
+        """Asserts that every item in expected has an equivalent item in received.
 
         Where all key/values from the received item exist in the expected item.
         """
         received = received if isinstance(received, list) else list(received)
+        unmatched, _ = self.get_dictionary_overlap(received, expected)
+        self.assertEqual(unmatched, [], f"{unmatched} was not found in {received}")
+
+    def assert_no_dictionary_overlap(self, received, expected):
+        """Asserts that NO item in expected has an equivalent item in received."""
+        received = received if isinstance(received, list) else list(received)
+        _, matched = self.get_dictionary_overlap(received, expected)
+        self.assertEqual(matched, [], f"{matched} was found in {received}")
+
+    def get_dictionary_overlap(self, received, expected):
         remaining = expected.copy()
+        matched = []
         for received_item in received:
             for expected_item in expected:
-                matching = [
-                    received_item.get(k) == v
-                    for k, v in expected_item.items()
-                ]
+                matching = []
+                for key, value in expected_item.items():
+                    if isinstance(value, str) and isinstance(received_item.get(key), str):
+                        matching.append(re.match(value, received_item.get(key)))
+                    else:
+                        matching.append(received_item.get(key) == value)
+
                 if all(matching):
                     remaining.remove(expected_item)
+                    matched.append(expected_item)
                     break
-        self.assertEqual(remaining, [], f"{remaining} was not found in {received}")
+        return remaining, matched
 
 
 def clear_aws_credentials():
