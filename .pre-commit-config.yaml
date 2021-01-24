@@ -7,3 +7,4 @@ repos:
     rev: 5.1.1
     hooks:
       - id: pydocstyle
+        exclude: ^(tests|doc_source).*
