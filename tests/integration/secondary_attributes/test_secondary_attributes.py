@@ -1,6 +1,5 @@
 import unittest
 import boto3
-from botocore import xform_name
 from parameterized import parameterized
 from cloudwanderer.boto3_interface import CloudWandererBoto3Interface
 from ..mocks import add_infra
@@ -45,11 +44,9 @@ class TestSecondaryAttributes(unittest.TestCase):
             resource_type=resource_type
         )
         for resource in resources:
-            secondary_attributes = boto3_interface.get_secondary_attributes(
-                boto3_resource=resource)
-            for secondary_attribute in secondary_attributes:
-                if attribute_name == xform_name(secondary_attribute.meta.resource_model.name):
+            for secondary_attribute in resource.cloudwanderer_metadata.secondary_attributes:
+                if attribute_name == secondary_attribute.attribute_name:
                     results.append(secondary_attribute)
 
         assert len(results) > 0
-        assert results[-1].meta.data
+        assert dict(results[-1]) != {}

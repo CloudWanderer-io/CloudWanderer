@@ -116,7 +116,7 @@ class SecondaryAttribute(dict):
     attribute_name attribute.
     """
 
-    def __init__(self, attribute_name: str, **kwargs):
+    def __init__(self, attribute_name: str, **kwargs) -> None:
         """Initialise the Secondary Attribute
 
         Arguments:

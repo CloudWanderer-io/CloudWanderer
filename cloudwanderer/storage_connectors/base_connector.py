@@ -1,7 +1,6 @@
 """Module containing abstract classes for CloudWanderer storage connectors."""
 from abc import ABC, abstractmethod
 from typing import List, Iterator
-import boto3
 from ..aws_urn import AwsUrn
 from ..cloud_wanderer_resource import CloudWandererResource
 

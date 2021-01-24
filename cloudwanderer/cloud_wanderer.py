@@ -4,8 +4,6 @@ from typing import List
 import logging
 from typing import TYPE_CHECKING, Iterator, Callable
 import concurrent.futures
-from boto3.resources.base import ServiceResource
-from botocore import xform_name
 from .utils import exception_logging_wrapper
 from .boto3_interface import CloudWandererBoto3Interface
 from .aws_urn import AwsUrn
