@@ -35,4 +35,4 @@ custom Resource Attribute definitions.
 
 You can find the full list of supported Resource Attributes below.
 
-.. supported-resources:cloudwanderer-resource-attributes ::
+.. supported-resources:cloudwanderer-secondary-attributes ::

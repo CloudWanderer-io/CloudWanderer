@@ -1,6 +1,7 @@
 from docutils import nodes
 from sphinx.util.docutils import SphinxDirective
 from sphinx.domains import Domain
+from botocore import xform_name
 import boto3
 import cloudwanderer
 
@@ -10,7 +11,7 @@ def capitalize_snake_case(snake: str) -> str:
 
 
 class Boto3ResourcesDirective(SphinxDirective):
-    """A custom directive that describes boto3's default resources."""
+    """A custom directive that lists boto3's default resources."""
 
     has_content = True
 
@@ -42,7 +43,7 @@ class Boto3ResourcesDirective(SphinxDirective):
 
 
 class CloudWandererResourcesDirective(SphinxDirective):
-    """A custom directive that describes CloudWanderers added resources."""
+    """A custom directive that lists CloudWanderers added resources."""
 
     has_content = True
 
@@ -86,8 +87,8 @@ class CloudWandererResourcesDirective(SphinxDirective):
         return service_list
 
 
-class CloudWandererResourceAttributesDirective(SphinxDirective):
-    """A custom directive that describes CloudWanderers additional resource attribute definitions."""
+class CloudWandererSecondaryAttributesDirective(SphinxDirective):
+    """A custom directive that lists CloudWanderers secondary attribute definitions."""
 
     has_content = True
 
@@ -122,6 +123,61 @@ class CloudWandererResourceAttributesDirective(SphinxDirective):
         return service_list
 
 
+class CloudWandererResourceDefinitionsDirective(SphinxDirective):
+    """A custom directive that describes CloudWanderers respources."""
+
+    has_content = True
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.boto3_interface = cloudwanderer.boto3_interface.CloudWandererBoto3Interface(
+            boto3_session=boto3.Session(region_name='eu-west-2')
+        )
+
+    def run(self) -> list:
+        services_section = nodes.section(ids=['cloudwanderer_resources'])
+        services_section += nodes.title('', 'CloudWanderer Resources')
+        services_section.extend(self.get_cloudwanderer_services())
+        return [services_section]
+
+    def get_cloudwanderer_services(self) -> list:
+        sections = []
+        boto3_services = sorted(
+            self.boto3_interface.get_all_resource_services(),
+            key=lambda x: x.meta.resource_model.name)
+        for boto3_service in boto3_services:
+            service_name = boto3_service.meta.resource_model.name
+            service_id = f"cloudwanderer_resources_{service_name}"
+            service_section = nodes.section(ids=[service_id])
+            service_section += nodes.title('', service_name)
+
+            service_section.extend(self.get_collections(boto3_service, service_id))
+            sections.append(service_section)
+        return sections
+
+    def get_collections(self, boto3_service: boto3.resources.base.ServiceResource, service_id: str) -> list:
+
+        result = []
+        collections = sorted(
+            self.boto3_interface.get_resource_collections(boto3_service),
+            key=lambda x: x.resource.model.name)
+        for collection in collections:
+            resource_name = xform_name(collection.resource.model.name)
+            resource_section = nodes.section(ids=[f"{service_id}_{resource_name}"])
+            resource_section += nodes.title('', resource_name)
+            resource_section += nodes.paragraph('', f"{resource_name} has the following attributes:")
+            attributes_list = nodes.bullet_list()
+            service_model = boto3_service.meta.client.meta.service_model
+            shape = service_model.shape_for(collection.resource.model.shape)
+            attributes = collection.resource.model.get_attributes(shape)
+            for attribute in sorted(attributes.keys()):
+                attributes_list += nodes.list_item('', nodes.Text(attribute))
+            resource_section += attributes_list
+
+            result.append(resource_section)
+        return result
+
+
 class SupportedResources(Domain):
 
     name = 'supported-resources'
@@ -129,7 +185,8 @@ class SupportedResources(Domain):
     directives = {
         'boto3-default-resources': Boto3ResourcesDirective,
         'cloudwanderer-resources': CloudWandererResourcesDirective,
-        'cloudwanderer-resource-attributes': CloudWandererResourceAttributesDirective
+        'cloudwanderer-secondary-attributes': CloudWandererSecondaryAttributesDirective,
+        'resource-definitions': CloudWandererResourceDefinitionsDirective,
     }
 
 
