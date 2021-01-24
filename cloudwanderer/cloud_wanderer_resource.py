@@ -50,7 +50,7 @@ class CloudWandererResource():
         """
         self.urn = urn
         self.cloudwanderer_metadata = ResourceMetadata(
-            resource_data=resource_data,
+            resource_data=resource_data or {},
             secondary_attributes=secondary_attributes or []
         )
         self._loader = loader

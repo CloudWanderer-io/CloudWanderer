@@ -182,9 +182,7 @@ class CloudWandererBoto3Interface:
             boto3_resource (boto3.resources.base.ServiceResource): The :class:`boto3.resources.base.ServiceResource`
                 to get secondary attributes from
         """
-        for subresource in self.get_child_resources(boto3_resource=boto3_resource, resource_type='resource'):
-            subresource.load()
-            yield subresource
+        yield from self.get_child_resources(boto3_resource=boto3_resource, resource_type='resource')
 
     def get_secondary_attributes(self, boto3_resource: boto3.resources.base.ServiceResource) -> SecondaryAttribute:
         """Return all secondary attributes resources for this resource.
@@ -236,10 +234,13 @@ class CloudWandererBoto3Interface:
                 continue
             if resource_mapping.resource_type != resource_type:
                 continue
-            yield from self.get_resource_from_collection(
+            child_resources = self.get_resource_from_collection(
                 boto3_service=boto3_resource,
                 boto3_resource_collection=child_resource_collection
             )
+            for resource in child_resources:
+                resource.load()
+                yield resource
 
     def get_child_resource_definitions(
             self, service_name: str, boto3_resource_model: boto3.resources.model.ResourceModel,
