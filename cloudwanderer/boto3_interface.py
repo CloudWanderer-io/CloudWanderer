@@ -5,9 +5,8 @@ Provides simpler methods for :class:`~.cloud_wanderer.CloudWanderer` to call.
 from typing import List, Iterator
 import logging
 import boto3
-import botocore
 from botocore import xform_name
-from botocore.exceptions import EndpointConnectionError
+from botocore.exceptions import EndpointConnectionError, ClientError
 from boto3.resources.base import ServiceResource
 from boto3.resources.model import Collection, ResourceModel
 from .custom_resource_definitions import CustomResourceDefinitions
@@ -87,14 +86,16 @@ class CloudWandererBoto3Interface:
             boto3_resource_collection (boto3.resources.model.Collection): The resource collection to get.
 
         Raises:
-            botocore.exceptions.ClientError: A Boto3 client error.
+            ClientError: A Boto3 client error.
         """
         if not hasattr(boto3_service, boto3_resource_collection.name):
             logger.warning('%s does not have %s', boto3_service.__class__.__name__, boto3_resource_collection.name)
             return
         try:
             yield from getattr(boto3_service, boto3_resource_collection.name).all()
-        except botocore.exceptions.ClientError as ex:
+        except EndpointConnectionError as ex:
+            logger.warning(ex)
+        except ClientError as ex:
             if ex.response['Error']['Code'] == 'InvalidAction':
                 logger.warning(ex.response['Error']['Message'])
                 return
@@ -117,14 +118,14 @@ class CloudWandererBoto3Interface:
             return
         boto3_service = self.get_resource_service_by_name(service_name, **kwargs)
         boto3_resource_collection = next(self.get_resource_collection_by_resource_type(boto3_service, resource_type))
+        resources = self.get_resource_from_collection(
+            boto3_service=boto3_service,
+            boto3_resource_collection=boto3_resource_collection
+        )
 
-        try:
-            yield from self.get_resource_from_collection(
-                boto3_service=boto3_service,
-                boto3_resource_collection=boto3_resource_collection
-            )
-        except EndpointConnectionError as ex:
-            logger.warning(ex)
+        for resource in resources:
+            yield resource
+            yield from self.get_subresources(resource)
 
     def get_service_resource_types(self, service_name: str) -> Iterator[str]:
         """Return all possible resource names for a given service.
@@ -171,7 +172,9 @@ class CloudWandererBoto3Interface:
             boto3_resource (boto3.resources.base.ServiceResource): The :class:`boto3.resources.base.ServiceResource`
                 to get secondary attributes from
         """
-        yield from self.get_child_resources(boto3_resource=boto3_resource, resource_type='resource')
+        for subresource in self.get_child_resources(boto3_resource=boto3_resource, resource_type='resource'):
+            subresource.load()
+            yield subresource
 
     def get_secondary_attributes(self, boto3_resource: boto3.resources.base.ServiceResource) -> ServiceResource:
         """Return all secondary attributes resources for this resource.

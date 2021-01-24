@@ -181,15 +181,6 @@ class CloudWanderer():
         for storage_connector in self.storage_connectors:
             storage_connector.write_resource(urn, boto3_resource)
         yield urn
-        yield from self._write_subresources(boto3_resource, region_name)
-
-    def _write_subresources(self, boto3_resource: ServiceResource, region_name: str) -> Iterator[AwsUrn]:
-        for subresource in self.cloud_interface.get_subresources(boto3_resource=boto3_resource):
-            subresource.load()
-            urn = self.cloud_interface._get_resource_urn(subresource, region_name)
-            yield urn
-            for storage_connector in self.storage_connectors:
-                storage_connector.write_resource(urn, subresource)
 
     def _write_secondary_attributes(self, boto3_resource: ServiceResource, region_name: str) -> Iterator[AwsUrn]:
         secondary_attributes = self.cloud_interface.get_secondary_attributes(
