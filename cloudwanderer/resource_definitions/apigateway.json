@@ -1,0 +1,42 @@
+{
+    "service": {
+        "hasMany": {
+            "RestApis": {
+                "request": { "operation": "GetRestApis" },
+                "resource": {
+                    "type": "RestApi",
+                    "identifiers": [{
+                        "target": "Id",
+                        "source": "response",
+                        "path": "items[].id"
+                    }],
+                    "path": "items[]"
+                }
+            }
+        }
+    },
+    "resources": {
+        "RestApi": {
+            "identifiers": [
+                {
+                    "name": "Id",
+                    "memberName": "Id"
+                }
+            ],
+            "shape": "RestApi",
+            "load": {
+                "request": {
+                    "operation": "GetRestApi",
+                    "params": [
+                        {
+                            "target": "restApiId",
+                            "source": "identifier",
+                            "name": "Id"
+                        }
+                    ]
+                },
+                "path": "@"
+            }
+        }
+    }
+}
