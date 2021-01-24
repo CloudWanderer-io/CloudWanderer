@@ -9,6 +9,7 @@ from botocore import xform_name
 from botocore.exceptions import EndpointConnectionError, ClientError
 from boto3.resources.base import ServiceResource
 from boto3.resources.model import Collection, ResourceModel
+from .cloud_wanderer_resource import CloudWandererResource, SecondaryAttribute
 from .custom_resource_definitions import CustomResourceDefinitions
 from .service_mappings import ServiceMappingCollection, GlobalServiceResourceMappingNotFound
 from .aws_urn import AwsUrn
@@ -124,8 +125,27 @@ class CloudWandererBoto3Interface:
         )
 
         for resource in resources:
-            yield resource
-            yield from self.get_subresources(resource)
+            yield CloudWandererResource(
+                urn=self._get_resource_urn(resource, region_name),
+                resource_data=resource.meta.data,
+                secondary_attributes=[
+                    SecondaryAttribute(
+                        attribute_name=xform_name(secondary_attribute.meta.resource_model.name),
+                        **secondary_attribute.meta.data)
+                    for secondary_attribute in self.get_secondary_attributes(resource)
+                ]
+            )
+            for subresource in self.get_subresources(resource):
+                yield CloudWandererResource(
+                    urn=self._get_resource_urn(subresource, region_name),
+                    resource_data=subresource.meta.data,
+                    secondary_attributes=[
+                        SecondaryAttribute(
+                            attribute_name=xform_name(secondary_attribute.meta.resource_model.name),
+                            **secondary_attribute.meta.data)
+                        for secondary_attribute in self.get_secondary_attributes(subresource)
+                    ]
+                )
 
     def get_service_resource_types(self, service_name: str) -> Iterator[str]:
         """Return all possible resource names for a given service.

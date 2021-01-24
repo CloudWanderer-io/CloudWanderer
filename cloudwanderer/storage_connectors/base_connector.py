@@ -14,12 +14,11 @@ class BaseStorageConnector(ABC):
         """Initialise the storage backend whatever it is."""
 
     @abstractmethod
-    def write_resource(self, urn: AwsUrn, resource: boto3.resources.model.ResourceModel) -> None:
+    def write_resource(self, resource: CloudWandererResource) -> None:
         """Persist a single resource to storage.
 
         Arguments:
-            urn (AwsUrn): The URN of the resource to write.
-            resource (boto3.resources.model.ResourceModel): The boto3 resource to write.
+            resource (CloudWandererResource): The CloudWandererResource to write.
         """
 
     @abstractmethod
@@ -73,15 +72,4 @@ class BaseStorageConnector(ABC):
             service (str): Service name (e.g. ``'ec2'``)
             resource_type (str): Resource Type (e.g. ``'instance'``)
             urns_to_keep (List[cloudwanderer.aws_urn.AwsUrn]): A list of resources not to delete
-        """
-    @abstractmethod
-    def write_secondary_attribute(
-            self, urn: AwsUrn, attribute_type: str, secondary_attribute: boto3.resources.base.ServiceResource) -> None:
-        """Write the specified resource attribute to storage.
-
-        Arguments:
-            urn (AwsUrn): The resource whose attribute to write.
-            attribute_type (str): The type of the resource attribute to write (usually the boto3 client method name)
-            secondary_attribute (boto3.resources.base.ServiceResource): The resource attribute to write to storage.
-
         """

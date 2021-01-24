@@ -1,4 +1,5 @@
 """Main cloudwanderer module."""
+from cloudwanderer.cloud_wanderer_resource import CloudWandererResource
 from typing import List
 import logging
 from typing import TYPE_CHECKING, Iterator, Callable
@@ -170,32 +171,15 @@ class CloudWanderer():
         resources = self.cloud_interface.get_resources_of_type(
             service_name=service_name, resource_type=resource_type, region_name=region_name, **kwargs)
         urns = []
-        for boto3_resource in resources:
-            urns.extend(list(self._write_resource(boto3_resource, region_name)))
-            urns.extend(list(self._write_secondary_attributes(boto3_resource, region_name)))
+        for resource in resources:
+            urns.extend(list(self._write_resource(resource, region_name)))
 
         self._clean_resources_in_region(service_name, resource_type, region_name, urns)
 
-    def _write_resource(self, boto3_resource: ServiceResource, region_name: str) -> Iterator[AwsUrn]:
-        urn = self.cloud_interface._get_resource_urn(boto3_resource, region_name)
+    def _write_resource(self, resource: CloudWandererResource, region_name: str) -> Iterator[AwsUrn]:
         for storage_connector in self.storage_connectors:
-            storage_connector.write_resource(urn, boto3_resource)
-        yield urn
-
-    def _write_secondary_attributes(self, boto3_resource: ServiceResource, region_name: str) -> Iterator[AwsUrn]:
-        secondary_attributes = self.cloud_interface.get_secondary_attributes(
-            boto3_resource=boto3_resource)
-        for secondary_attribute in secondary_attributes:
-            attribute_type = xform_name(secondary_attribute.meta.resource_model.name)
-            logger.info('---> Fetching %s in %s', attribute_type, region_name)
-            urn = self.cloud_interface._get_resource_urn(boto3_resource, region_name)
-            for storage_connector in self.storage_connectors:
-                storage_connector.write_secondary_attribute(
-                    urn=urn,
-                    secondary_attribute=secondary_attribute,
-                    attribute_type=attribute_type
-                )
-            yield urn
+            storage_connector.write_resource(resource)
+        yield resource.urn
 
     def _clean_resources_in_region(
             self, service_name: str, resource_type: str, region_name: str, current_urns: List[AwsUrn]) -> None:
