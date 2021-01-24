@@ -127,13 +127,13 @@ class CloudWandererBoto3Interface:
         for resource in resources:
             yield CloudWandererResource(
                 urn=self._get_resource_urn(resource, region_name),
-                resource_data=resource.meta.data,
+                resource_data=self._clean_boto3_metadata(resource.meta.data),
                 secondary_attributes=self.get_secondary_attributes(resource),
             )
             for subresource in self.get_subresources(resource):
                 yield CloudWandererResource(
                     urn=self._get_resource_urn(subresource, region_name),
-                    resource_data=subresource.meta.data,
+                    resource_data=self._clean_boto3_metadata(subresource.meta.data),
                     secondary_attributes=self.get_secondary_attributes(subresource),
                 )
 
@@ -199,7 +199,7 @@ class CloudWandererBoto3Interface:
         for secondary_attribute in secondary_attributes:
             yield SecondaryAttribute(
                 attribute_name=xform_name(secondary_attribute.meta.resource_model.name),
-                **secondary_attribute.meta.data)
+                **self._clean_boto3_metadata(secondary_attribute.meta.data))
 
     def get_child_resources(
             self, boto3_resource: boto3.resources.base.ServiceResource,
@@ -344,3 +344,16 @@ class CloudWandererBoto3Interface:
             yield region_name
         else:
             yield from self.enabled_regions
+
+    def _clean_boto3_metadata(self, boto3_metadata: dict) -> dict:
+        """Remove unwanted keys from boto3 metadata dictionaries.
+
+        Arguments:
+            boto3_metadata (dict): The raw dictionary of metadata typically found in resource.meta.data
+        """
+        boto3_metadata = boto3_metadata or {}
+        unwanted_keys = ['ResponseMetadata']
+        for key in unwanted_keys:
+            if key in boto3_metadata:
+                del boto3_metadata[key]
+        return boto3_metadata

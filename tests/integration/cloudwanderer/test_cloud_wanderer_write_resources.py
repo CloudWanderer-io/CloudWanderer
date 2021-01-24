@@ -352,6 +352,8 @@ class TestCloudWandererWriteResources(unittest.TestCase, MockStorageConnectorMix
         matches = []
         for resource in resources:
             resource.load()
+            # No resource should have the ResponseMetadata attribute recorded.
+            self.assertRaises(AttributeError, getattr, resource, 'response_metadata')
             for attribute, value in attributes_dict.items():
                 result = False
                 try:
