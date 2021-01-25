@@ -24,7 +24,7 @@ a shared database file ``shared-local-instance.db``. This allows the data to per
 .. doctest ::
 
     >>> from cloudwanderer.storage_connectors import DynamoDbConnector
-    >>> local_storage_connector=DynamoDbConnector(
+    >>> local_storage_connector = DynamoDbConnector(
     ...     endpoint_url='http://localhost:8000'
     ... )
 

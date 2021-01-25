@@ -150,8 +150,11 @@ class CloudWandererResourceDefinitionsDirective(SphinxDirective):
             self.boto3_interface.get_all_resource_services(),
             key=lambda x: x.meta.resource_model.name)
         for boto3_service in boto3_services:
-            service_name = boto3_service.meta.resource_model.name
+            # service_name = boto3_service.meta.resource_model.name
+            service_model = boto3_service.meta.client.meta.service_model
+            service_name = service_model.metadata['serviceId']
             service_section = f"{service_name}\n{'-'*len(service_name)}\n\n"
+            # service_section += self.parse_html(service_model.documentation) +'\n\n'
             service_section += '\n\n'.join(self.get_collections(boto3_service))
             sections += service_section
         return sections
@@ -170,6 +173,11 @@ class CloudWandererResourceDefinitionsDirective(SphinxDirective):
         parser.parse(text, document)
         return document
 
+    def parse_html(self, html: str) -> str:
+        html_parser = botocore.docs.bcdoc.restdoc.ReSTDocument()
+        html_parser.include_doc_string(html)
+        return html_parser.getvalue().decode().replace('\n', '\n         ')
+
     def get_collections(self, boto3_service: boto3.resources.base.ServiceResource) -> list:
 
         service_name = boto3_service.meta.resource_model.name
@@ -178,16 +186,23 @@ class CloudWandererResourceDefinitionsDirective(SphinxDirective):
             self.boto3_interface.get_resource_collections(boto3_service),
             key=lambda x: x.resource.model.name)
         for collection in collections:
-            resource_name = xform_name(collection.resource.model.name)
-            resource_section = f'.. py:class:: {service_name}.{resource_name}\n\n'
             service_model = boto3_service.meta.client.meta.service_model
             shape = service_model.shape_for(collection.resource.model.shape)
-            attributes = collection.resource.model.get_attributes(shape)
-            for attribute_name, attribute in sorted(attributes.items()):
+            attributes = sorted(collection.resource.model.get_attributes(shape).items())
+            resource_name = xform_name(collection.resource.model.name)
+            resource_section = f'.. py:class:: {service_name}.{resource_name}\n\n'
+            resource_section += '    **Example:**\n\n'
+            resource_section += '    .. code-block ::\n\n'
+            resource_section += '        resources = storage_connector.read_resources(\n'
+            resource_section += f'            service="{service_name}", \n'
+            resource_section += f'            resource_type="{resource_name}")\n'
+            resource_section += '        for resource in resources:\n'
+            resource_section += f'            print(resources.{attributes[0][0]})\n'
+            resource_section += '\n\n'
+
+            for attribute_name, attribute in attributes:
                 documentation = attribute[1].documentation
-                html_parser = botocore.docs.bcdoc.restdoc.ReSTDocument()
-                html_parser.include_doc_string(documentation)
-                documentation = html_parser.getvalue().decode().replace('\n', '\n         ')
+                documentation = self.parse_html(documentation)
                 resource_section += f'    .. py:attribute:: {attribute_name}\n\n'
                 resource_section += f'         {documentation}\n\n'
             result.append(resource_section)
