@@ -1,4 +1,8 @@
+import docutils
 from docutils import nodes
+from docutils.frontend import OptionParser
+import botocore
+import sphinx
 from sphinx.util.docutils import SphinxDirective
 from sphinx.domains import Domain
 from botocore import xform_name
@@ -137,43 +141,55 @@ class CloudWandererResourceDefinitionsDirective(SphinxDirective):
     def run(self) -> list:
         services_section = nodes.section(ids=['cloudwanderer_resources'])
         services_section += nodes.title('', 'CloudWanderer Resources')
-        services_section.extend(self.get_cloudwanderer_services())
+        services_section.extend(self.parse_rst(self.get_cloudwanderer_services()))
         return [services_section]
 
     def get_cloudwanderer_services(self) -> list:
-        sections = []
+        sections = ''
         boto3_services = sorted(
             self.boto3_interface.get_all_resource_services(),
             key=lambda x: x.meta.resource_model.name)
         for boto3_service in boto3_services:
             service_name = boto3_service.meta.resource_model.name
-            service_id = f"cloudwanderer_resources_{service_name}"
-            service_section = nodes.section(ids=[service_id])
-            service_section += nodes.title('', service_name)
-
-            service_section.extend(self.get_collections(boto3_service, service_id))
-            sections.append(service_section)
+            service_section = f"{service_name}\n{'-'*len(service_name)}\n\n"
+            service_section += '\n\n'.join(self.get_collections(boto3_service))
+            sections += service_section
         return sections
 
-    def get_collections(self, boto3_service: boto3.resources.base.ServiceResource, service_id: str) -> list:
+    def parse_rst(self, text: str) -> docutils.nodes.document:
+        parser = sphinx.parsers.RSTParser()
+        parser.set_application(self.env.app)
 
+        components = (sphinx.parsers.RSTParser,)
+        settings = docutils.frontend.OptionParser(components=components).get_default_values()
+        settings = OptionParser(
+            defaults=self.env.settings,
+            components=components,
+            read_config_files=True).get_default_values()
+        document = docutils.utils.new_document('<rst-doc>', settings=settings)
+        parser.parse(text, document)
+        return document
+
+    def get_collections(self, boto3_service: boto3.resources.base.ServiceResource) -> list:
+
+        service_name = boto3_service.meta.resource_model.name
         result = []
         collections = sorted(
             self.boto3_interface.get_resource_collections(boto3_service),
             key=lambda x: x.resource.model.name)
         for collection in collections:
             resource_name = xform_name(collection.resource.model.name)
-            resource_section = nodes.section(ids=[f"{service_id}_{resource_name}"])
-            resource_section += nodes.title('', resource_name)
-            resource_section += nodes.paragraph('', f"{resource_name} has the following attributes:")
-            attributes_list = nodes.bullet_list()
+            resource_section = f'.. py:class:: {service_name}.{resource_name}\n\n'
             service_model = boto3_service.meta.client.meta.service_model
             shape = service_model.shape_for(collection.resource.model.shape)
             attributes = collection.resource.model.get_attributes(shape)
-            for attribute in sorted(attributes.keys()):
-                attributes_list += nodes.list_item('', nodes.Text(attribute))
-            resource_section += attributes_list
-
+            for attribute_name, attribute in sorted(attributes.items()):
+                documentation = attribute[1].documentation
+                html_parser = botocore.docs.bcdoc.restdoc.ReSTDocument()
+                html_parser.include_doc_string(documentation)
+                documentation = html_parser.getvalue().decode().replace('\n', '\n         ')
+                resource_section += f'    .. py:attribute:: {attribute_name}\n\n'
+                resource_section += f'         {documentation}\n\n'
             result.append(resource_section)
         return result
 
