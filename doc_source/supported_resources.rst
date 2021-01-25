@@ -11,17 +11,7 @@ To increase resource coverage, CloudWanderer implements additional definitions.
 These definitions are much faster to write and test as they provide only the functionality
 required to query the resource rather than the much more featureful boto3 resources which expose additional actions.
 
-You can find a full list of supported resources below.
-
-Resources Provided by CloudWanderer
-""""""""""""""""""""""""""""""""""""""""""""""""
-
 .. supported-resources:cloudwanderer-resources ::
-
-Resources Provided by boto3
-""""""""""""""""""""""""""""""""""""""""""""
-
-.. supported-resources:boto3-default-resources ::
 
 
 Additional Resource Attributes

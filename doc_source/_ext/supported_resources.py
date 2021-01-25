@@ -10,42 +10,6 @@ import boto3
 import cloudwanderer
 
 
-def capitalize_snake_case(snake: str) -> str:
-    return str(snake).replace('_', ' ').title()
-
-
-class Boto3ResourcesDirective(SphinxDirective):
-    """A custom directive that lists boto3's default resources."""
-
-    has_content = True
-
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.boto3_session = boto3.Session(region_name='eu-west-2')
-        self.boto3_interface = cloudwanderer.boto3_interface.CloudWandererBoto3Interface(
-            boto3_session=self.boto3_session
-        )
-
-    def run(self) -> list:
-        targetid = 'cloudwanderer-%d' % self.env.new_serialno('cloudwanderer')
-        targetnode = nodes.target('', '', ids=[targetid])
-
-        return [targetnode, self.get_boto3_default_resources()]
-
-    def get_boto3_default_resources(self) -> list:
-        service_list = nodes.bullet_list()
-        boto3_services = self.boto3_session.get_available_resources()
-        for service_name in boto3_services:
-            resource_list = nodes.bullet_list()
-            resource_collections = self.boto3_interface.get_resource_collections(
-                self.boto3_session.resource(service_name)
-            )
-            for resource_collection in resource_collections:
-                resource_list += nodes.list_item('', nodes.Text(capitalize_snake_case(resource_collection.name)))
-            service_list += nodes.list_item('', nodes.Text(capitalize_snake_case(service_name)), resource_list)
-        return service_list
-
-
 class CloudWandererResourcesDirective(SphinxDirective):
     """A custom directive that lists CloudWanderers added resources."""
 
@@ -77,17 +41,20 @@ class CloudWandererResourcesDirective(SphinxDirective):
     def get_cloudwanderer_resources(self) -> list:
         service_list = nodes.bullet_list()
         cloudwanderer_services = self.boto3_interface.custom_resource_definitions.services
-        for service_name, service in cloudwanderer_services.items():
-
+        for service_name, service in sorted(cloudwanderer_services.items()):
+            client = self.boto3_session.client(service_name)
+            service_model = client.meta.service_model
+            service_name = service_model.metadata['serviceId']
             resource_list = nodes.bullet_list()
             resource_collections = self.boto3_interface.get_resource_collections(
                 service
             )
             for resource_collection in resource_collections:
+                shape = service_model.shape_for(resource_collection.resource.model.shape)
                 if (service_name, resource_collection.name) not in self.boto3_services:
-                    resource_list += nodes.list_item('', nodes.Text(capitalize_snake_case(resource_collection.name)))
+                    resource_list += nodes.list_item('', nodes.Text(shape.name))
             if resource_list.children:
-                service_list += nodes.list_item('', nodes.Text(capitalize_snake_case(service_name)), resource_list)
+                service_list += nodes.list_item('', nodes.Text(service_name), resource_list)
         return service_list
 
 
@@ -113,6 +80,8 @@ class CloudWandererSecondaryAttributesDirective(SphinxDirective):
 
         for boto3_service in self.boto3_interface.get_all_resource_services():
             for collection in self.boto3_interface.get_resource_collections(boto3_service):
+                service_model = boto3_service.meta.client.meta.service_model
+                service_name = service_model.metadata['serviceId']
                 resource_list = nodes.bullet_list()
                 secondary_attributes = self.boto3_interface.get_child_resource_definitions(
                     service_name=boto3_service.meta.service_name,
@@ -123,7 +92,7 @@ class CloudWandererSecondaryAttributesDirective(SphinxDirective):
                 if resource_list.children:
                     service_list += nodes.list_item(
                         '',
-                        nodes.Text(capitalize_snake_case(collection.name)), resource_list)
+                        nodes.Text(service_name), resource_list)
         return service_list
 
 
@@ -191,20 +160,24 @@ class CloudWandererResourceDefinitionsDirective(SphinxDirective):
             attributes = sorted(collection.resource.model.get_attributes(shape).items())
             resource_name = xform_name(collection.resource.model.name)
             resource_section = f'.. py:class:: {service_name}.{resource_name}\n\n'
-            resource_section += '    **Example:**\n\n'
-            resource_section += '    .. code-block ::\n\n'
-            resource_section += '        resources = storage_connector.read_resources(\n'
-            resource_section += f'            service="{service_name}", \n'
-            resource_section += f'            resource_type="{resource_name}")\n'
-            resource_section += '        for resource in resources:\n'
-            resource_section += f'            print(resources.{attributes[0][0]})\n'
-            resource_section += '\n\n'
+            example = '    **Example:**\n\n'
+            example += '    .. code-block ::\n\n'
+            example += '        resources = storage_connector.read_resources(\n'
+            example += f'            service="{service_name}", \n'
+            example += f'            resource_type="{resource_name}")\n'
+            example += '        for resource in resources:\n'
 
+            attributes_doc = ''
             for attribute_name, attribute in attributes:
                 documentation = attribute[1].documentation
                 documentation = self.parse_html(documentation)
-                resource_section += f'    .. py:attribute:: {attribute_name}\n\n'
-                resource_section += f'         {documentation}\n\n'
+                attributes_doc += f'    .. py:attribute:: {attribute_name}\n\n'
+                attributes_doc += f'         {documentation}\n\n'
+                example += f'            print(resources.{attribute_name})\n'
+
+            resource_section += example
+            resource_section += '\n\n'
+            resource_section += attributes_doc
             result.append(resource_section)
         return result
 
@@ -214,7 +187,6 @@ class SupportedResources(Domain):
     name = 'supported-resources'
     label = 'Cloudwanderer Supported Resources'
     directives = {
-        'boto3-default-resources': Boto3ResourcesDirective,
         'cloudwanderer-resources': CloudWandererResourcesDirective,
         'cloudwanderer-secondary-attributes': CloudWandererSecondaryAttributesDirective,
         'resource-definitions': CloudWandererResourceDefinitionsDirective,
