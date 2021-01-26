@@ -156,6 +156,7 @@ class CloudWandererResourceDefinitionsDirective(SphinxDirective):
         for collection in collections:
             result.append(self.generate_resource_section(boto3_service, collection, "{service_name}.{resource_name}"))
             result.append(self.get_subresources(boto3_service, collection.resource.model))
+            result.append(self.get_secondary_attributes(boto3_service, collection.resource.model))
         return result
 
     def get_subresources(
@@ -170,14 +171,45 @@ class CloudWandererResourceDefinitionsDirective(SphinxDirective):
         for collection in subresources:
             result += self.generate_resource_section(
                 boto3_service, collection,
-                f"{{service_name}}.{parent_resource_name}.{{resource_name}}"
+                f"{{service_name}}.{parent_resource_name}.{{resource_name}}",
+                f"A subresource of :class:`{{service_name}}.{parent_resource_name}`.\n\n"
             )
+        return result
+
+    def get_secondary_attributes(
+            self,
+            boto3_service: boto3.resources.base.ServiceResource,
+            boto3_resource: boto3.resources.model.ResourceModel) -> str:
+        result = ''
+        service_name = boto3_service.meta.resource_model.name
+        parent_resource_name = xform_name(boto3_resource.name)
+        secondaryAttributes = self.boto3_interface.get_child_resource_definitions(
+            service_name, boto3_resource, 'secondaryAttribute')
+        for collection in secondaryAttributes:
+            resource_name = xform_name(collection.resource.model.name)
+            result += f'.. py:class:: {service_name}.{parent_resource_name}.{resource_name}\n\n'
+            result += f'    A secondary attribute for the :class:`{service_name}.{parent_resource_name}` '
+            result += 'resource type.\n\n'
+            example = '    **Example:**\n\n'
+            example += '    .. code-block ::\n\n'
+            example += '        resources = storage_connector.read_resources(\n'
+            example += f'            service="{service_name}", \n'
+            example += f'            resource_type="{parent_resource_name}")\n'
+            example += '        for resource in resources:\n'
+            example += f'            resource.get_secondary_attribute(name="{resource_name}")\n'
+            result += example
+            # result += self.generate_resource_section(
+            #     boto3_service, collection,
+            #     f"{{service_name}}.{parent_resource_name}.{{resource_name}}"
+            # )
         return result
 
     def generate_resource_section(
             self,
             boto3_service: boto3.resources.base.ServiceResource,
-            boto3_collection: boto3.resources.model.Collection, name: str) -> str:
+            boto3_collection: boto3.resources.model.Collection,
+            name: str,
+            description: str = '') -> str:
         service_name = boto3_service.meta.resource_model.name
         service_model = boto3_service.meta.client.meta.service_model
         shape = service_model.shape_for(boto3_collection.resource.model.shape)
@@ -185,12 +217,14 @@ class CloudWandererResourceDefinitionsDirective(SphinxDirective):
         resource_name = xform_name(boto3_collection.resource.model.name)
 
         resource_section = f'.. py:class:: {name.format(service_name=service_name, resource_name=resource_name)}\n\n'
+        resource_section += description.format(service_name=service_name, resource_name=resource_name)
         example = '    **Example:**\n\n'
         example += '    .. code-block ::\n\n'
         example += '        resources = storage_connector.read_resources(\n'
         example += f'            service="{service_name}", \n'
         example += f'            resource_type="{resource_name}")\n'
         example += '        for resource in resources:\n'
+        example += '            print(resource.urn)\n'
 
         attributes_doc = ''
         for attribute_name, attribute in attributes:
