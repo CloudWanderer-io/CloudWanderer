@@ -96,6 +96,8 @@ class TestStorageConnectorReadMixin:
 
 
 class GenericAssertionHelpers:
+    def __init__(self):
+        self.maxDiff = 10000
 
     def assert_dictionary_overlap(self, received, expected):
         """Asserts that every item in expected has an equivalent item in received.
@@ -120,6 +122,7 @@ class GenericAssertionHelpers:
                 matching = []
                 for key, value in expected_item.items():
                     if isinstance(value, str) and isinstance(received_item.get(key), str):
+                        # Allow regex matching of strings (as moto randomly generates resource IDs)
                         matching.append(re.match(value, received_item.get(key)))
                     else:
                         matching.append(received_item.get(key) == value)

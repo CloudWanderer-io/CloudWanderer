@@ -39,7 +39,7 @@ class CloudWanderer():
         Any additional args will be passed into the cloud interface's ``get_`` methods.
 
         Arguments:
-            exclude_resources (list): A list of resource names to exclude (e.g. ``['instance']``)
+            exclude_resources (list): A list of service:resources to exclude (e.g. ``['ec2:instance']``)
             **kwargs: Additional keyword argumentss will be passed down to the cloud interface methods.
         """
         logger.info('Writing resources in all regions')
@@ -59,7 +59,7 @@ class CloudWanderer():
 
         Arguments:
             exclude_resources (list):
-                A list of resource names to exclude (e.g. ``['instance']``)
+                exclude_resources (list): A list of service:resources to exclude (e.g. ``['ec2:instance']``)
             concurrency (int):
                 Number of query threads to invoke concurrently.
                 If the number of threads exceeds the number of regions by at least two times
@@ -95,7 +95,7 @@ class CloudWanderer():
 
         Arguments:
             exclude_resources (list):
-                A list of resource names to exclude (e.g. ``['instance']``)
+                exclude_resources (list): A list of service:resources to exclude (e.g. ``['ec2:instance']``)
             region_name (str):
                 The name of the region to get resources from
                 (defaults to session default if not specified)
@@ -123,7 +123,7 @@ class CloudWanderer():
             service_name (str):
                 The name of the service to write resources for (e.g. ``'ec2'``)
             exclude_resources (list):
-                A list of resource names to exclude (e.g. ``['instance']``)
+                exclude_resources (list): A list of service:resources to exclude (e.g. ``['ec2:instance']``)
             region_name (str):
                 The name of the region to get resources from
                 (defaults to session default if not specified)
@@ -135,8 +135,8 @@ class CloudWanderer():
         exclude_resources = exclude_resources or []
 
         for resource_type in self.cloud_interface.get_service_resource_types(service_name=service_name):
-            if resource_type in exclude_resources:
-                logger.info('Skipping %s as per exclude_resources', resource_type)
+            if f'{service_name}:{resource_type}' in exclude_resources:
+                logger.info('Skipping %s as per exclude_resources', f'{service_name}:{resource_type}')
                 continue
             self.write_resources_of_type_in_region(
                 service_name=service_name,

@@ -1,5 +1,6 @@
 # 0.12.0
 
+- Changed the way `exclude_resources` works so you can differentiate between CloudFormation Stacks and OpsWorks Stacks #70
 - Formalised the interface between the `CloudInterface` > `CloudWanderer` > `StorageConnector` by
     converting Boto3 resources to `CloudWandererResources`
     - Removed `write_secondary_attributes` from `BaseStorageConnector` as it's no longer required to be public.

@@ -102,8 +102,20 @@ class TestCloudWandererWriteResources(unittest.TestCase, GenericAssertionHelpers
                     'Path': re.escape('/')
                 }])
 
-    def test_write_resources_in_region_default_region(self):
+    def test_write_resources_exclude_resources(self):
+        self.wanderer.write_resources(exclude_resources=['ec2:instance'])
 
+        for region_name in self.enabled_regions:
+            self.assert_no_dictionary_overlap(self.storage_connector.read_all(), [{
+                'urn': f'urn:aws:.*:{region_name}:ec2:instance:.*',
+                'attr': 'BaseResource',
+                'VpcId': 'vpc-.*',
+                'SubnetId': 'subnet-.*',
+                'InstanceId': 'i-.*'
+            }])
+        self.assert_dictionary_overlap(self.storage_connector.read_all(), self.us_east_1_resources)
+
+    def test_write_resources_in_region_default_region(self):
         self.wanderer.write_resources_in_region()
 
         self.assert_dictionary_overlap(self.storage_connector.read_all(), self.eu_west_2_resources)
