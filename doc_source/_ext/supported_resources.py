@@ -149,37 +149,61 @@ class CloudWandererResourceDefinitionsDirective(SphinxDirective):
 
     def get_collections(self, boto3_service: boto3.resources.base.ServiceResource) -> list:
 
-        service_name = boto3_service.meta.resource_model.name
         result = []
         collections = sorted(
             self.boto3_interface.get_resource_collections(boto3_service),
             key=lambda x: x.resource.model.name)
         for collection in collections:
-            service_model = boto3_service.meta.client.meta.service_model
-            shape = service_model.shape_for(collection.resource.model.shape)
-            attributes = sorted(collection.resource.model.get_attributes(shape).items())
-            resource_name = xform_name(collection.resource.model.name)
-            resource_section = f'.. py:class:: {service_name}.{resource_name}\n\n'
-            example = '    **Example:**\n\n'
-            example += '    .. code-block ::\n\n'
-            example += '        resources = storage_connector.read_resources(\n'
-            example += f'            service="{service_name}", \n'
-            example += f'            resource_type="{resource_name}")\n'
-            example += '        for resource in resources:\n'
-
-            attributes_doc = ''
-            for attribute_name, attribute in attributes:
-                documentation = attribute[1].documentation
-                documentation = self.parse_html(documentation)
-                attributes_doc += f'    .. py:attribute:: {attribute_name}\n\n'
-                attributes_doc += f'         {documentation}\n\n'
-                example += f'            print(resources.{attribute_name})\n'
-
-            resource_section += example
-            resource_section += '\n\n'
-            resource_section += attributes_doc
-            result.append(resource_section)
+            result.append(self.generate_resource_section(boto3_service, collection, "{service_name}.{resource_name}"))
+            result.append(self.get_subresources(boto3_service, collection.resource.model))
         return result
+
+    def get_subresources(
+            self,
+            boto3_service: boto3.resources.base.ServiceResource,
+            boto3_resource: boto3.resources.model.ResourceModel) -> str:
+        result = ''
+        service_name = boto3_service.meta.resource_model.name
+        parent_resource_name = xform_name(boto3_resource.name)
+        subresources = self.boto3_interface.get_child_resource_definitions(
+            service_name, boto3_resource, 'resource')
+        for collection in subresources:
+            result += self.generate_resource_section(
+                boto3_service, collection,
+                f"{{service_name}}.{parent_resource_name}.{{resource_name}}"
+            )
+        return result
+
+    def generate_resource_section(
+            self,
+            boto3_service: boto3.resources.base.ServiceResource,
+            boto3_collection: boto3.resources.model.Collection, name: str) -> str:
+        service_name = boto3_service.meta.resource_model.name
+        service_model = boto3_service.meta.client.meta.service_model
+        shape = service_model.shape_for(boto3_collection.resource.model.shape)
+        attributes = sorted(boto3_collection.resource.model.get_attributes(shape).items())
+        resource_name = xform_name(boto3_collection.resource.model.name)
+
+        resource_section = f'.. py:class:: {name.format(service_name=service_name, resource_name=resource_name)}\n\n'
+        example = '    **Example:**\n\n'
+        example += '    .. code-block ::\n\n'
+        example += '        resources = storage_connector.read_resources(\n'
+        example += f'            service="{service_name}", \n'
+        example += f'            resource_type="{resource_name}")\n'
+        example += '        for resource in resources:\n'
+
+        attributes_doc = ''
+        for attribute_name, attribute in attributes:
+            documentation = attribute[1].documentation
+            documentation = self.parse_html(documentation)
+            attributes_doc += f'    .. py:attribute:: {attribute_name}\n\n'
+            attributes_doc += f'         {documentation}\n\n'
+            example += f'            print(resource.{attribute_name})\n'
+
+        resource_section += example
+        resource_section += '\n\n'
+        resource_section += attributes_doc
+        return resource_section
 
 
 class SupportedResources(Domain):
