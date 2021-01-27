@@ -1,13 +1,14 @@
+from cloudwanderer.cloud_wanderer_resource import SecondaryAttribute
 from itertools import combinations
 from time import sleep
-from unittest.mock import patch
+from unittest.mock import patch, ANY
 import logging
-from .helpers import TestStorageConnectorReadMixin, get_default_mocker, generate_mock_session
+from .helpers import TestStorageConnectorReadMixin, GenericAssertionHelpers, get_default_mocker, generate_mock_session
 from .mocks import add_infra
 import cloudwanderer
 
 
-class StorageReadTestMixin(TestStorageConnectorReadMixin):
+class StorageReadTestMixin(TestStorageConnectorReadMixin, GenericAssertionHelpers):
     """Class which handles testing the various possible argument combinations."""
 
     @classmethod
@@ -46,6 +47,19 @@ class StorageReadTestMixin(TestStorageConnectorReadMixin):
         except self.valid_exceptions:
             return
 
+        self.assert_secondary_attributes(
+            result,
+            {'role_inline_policy_attachments', 'role_managed_policy_attachments', 'vpc_enable_dns_support'},
+            [
+                {'VpcId': ANY, 'EnableDnsSupport': {'Value': True}},
+                {'PolicyNames': ['test-role-policy'], 'IsTruncated': False},
+                {'AttachedPolicies': [{
+                    'PolicyName': 'APIGatewayServiceRolePolicy',
+                    'PolicyArn': 'arn:aws:iam::aws:policy/aws-service-role/APIGatewayServiceRolePolicy'
+                }], 'IsTruncated': False}
+            ],
+        )
+
         for account_id in ['111111111111', '222222222222']:
             self.expected_urns.extend([
                 {'account_id': account_id, 'region': 'eu-west-2', 'service': 's3', 'resource_type': 'bucket'},
@@ -63,6 +77,19 @@ class StorageReadTestMixin(TestStorageConnectorReadMixin):
         except self.valid_exceptions as ex:
             logging.info('Received: %s while testing account_id= but was in valid_exceptions', ex)
             return
+
+        self.assert_secondary_attributes(
+            result,
+            {'role_inline_policy_attachments', 'role_managed_policy_attachments', 'vpc_enable_dns_support'},
+            [
+                {'VpcId': ANY, 'EnableDnsSupport': {'Value': True}},
+                {'PolicyNames': ['test-role-policy'], 'IsTruncated': False},
+                {'AttachedPolicies': [{
+                    'PolicyName': 'APIGatewayServiceRolePolicy',
+                    'PolicyArn': 'arn:aws:iam::aws:policy/aws-service-role/APIGatewayServiceRolePolicy'
+                }], 'IsTruncated': False}
+            ],
+        )
 
         for account_id in ['111111111111']:
             self.expected_urns.extend([
@@ -94,6 +121,11 @@ class StorageReadTestMixin(TestStorageConnectorReadMixin):
         except self.valid_exceptions as ex:
             logging.info('Received: %s while testing region= but was in valid_exceptions', ex)
             return
+        self.assert_secondary_attributes(
+            result,
+            {'vpc_enable_dns_support'},
+            [{'VpcId': ANY, 'EnableDnsSupport': {'Value': True}}, ],
+        )
 
         for account_id in ['111111111111', '222222222222']:
             self.expected_urns.extend([
@@ -115,6 +147,13 @@ class StorageReadTestMixin(TestStorageConnectorReadMixin):
         except self.valid_exceptions as ex:
             logging.info('Received: %s while testing service= but was in valid_exceptions', ex)
             return
+        self.assert_secondary_attributes(
+            result,
+            {
+                'vpc_enable_dns_support'
+            },
+            [{'VpcId': ANY, 'EnableDnsSupport': {'Value': True}}],
+        )
 
         for account_id in ['111111111111', '222222222222']:
             self.expected_urns.extend([
@@ -136,6 +175,12 @@ class StorageReadTestMixin(TestStorageConnectorReadMixin):
         except self.valid_exceptions as ex:
             logging.info('Received: %s while testing resource_type= but was in valid_exceptions', ex)
             return
+
+        self.assert_secondary_attributes(
+            result,
+            {},
+            [],
+        )
 
         for account_id in ['111111111111', '222222222222']:
             self.expected_urns.extend([
@@ -162,6 +207,12 @@ class StorageReadTestMixin(TestStorageConnectorReadMixin):
             )))
         except self.valid_exceptions:
             return
+
+        self.assert_secondary_attributes(
+            result,
+            {},
+            [],
+        )
 
         for account_id in ['111111111111', '222222222222']:
             self.not_expected_urns.extend([
@@ -201,6 +252,20 @@ class StorageReadTestMixin(TestStorageConnectorReadMixin):
                 cut_result,
                 f"Returned resources did not match for args: {generated_args}"
             )
+
+    def assert_secondary_attributes(self, result, expected_attribute_names, expected_attribute_dicts):
+        """Assert that the list of resources provided contains the expected attributes."""
+        for resource in result:
+            resource.load()
+
+        secondary_attributes = self.get_secondary_attributes_from_resources(result)
+        assert set(expected_attribute_names).issubset(x.name for x in secondary_attributes)
+        self.assert_dictionary_overlap(
+            secondary_attributes,
+            expected_attribute_dicts
+        )
+        assert all([isinstance(secondary_attribute, SecondaryAttribute)
+                    for secondary_attribute in secondary_attributes])
 
 
 def get_arg_combinations():
