@@ -124,6 +124,8 @@ Next we need to find out what policies are attached.
 
 .. doctest ::
 
+    >>> role.get_secondary_attribute('role_inline_policy_attachments')
+    [{'PolicyNames': ['test-role-policy'], 'IsTruncated': False}]
     >>> role.get_secondary_attribute(jmes_path='[].PolicyNames[0]')
     ['test-role-policy']
 
@@ -161,8 +163,13 @@ with a `JMESPath <https://jmespath.org/>`_.
 
     >>> first_vpc = next(storage_connector.read_resources(service='ec2', resource_type='vpc'))
     >>> first_vpc.load()
+
     >>> first_vpc.cloudwanderer_metadata.secondary_attributes[0]['EnableDnsSupport']
     {'Value': True}
+
+    >>> first_vpc.get_secondary_attribute(name='vpc_enable_dns_support')
+    [{'VpcId': 'vpc-11111111', 'EnableDnsSupport': {'Value': True}}]
+
     >>> first_vpc.get_secondary_attribute(jmes_path='[].EnableDnsSupport.Value')
     [True]
 

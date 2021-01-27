@@ -11,6 +11,12 @@ class ResourceMetadata:
     """Metadata for a :class:`CloudWandererResource`.
 
     Contains the original dictionaries of the resource and its attributes.
+
+    Attributes:
+        resource_data (dict):
+                The raw dictionary representation of the Resource.
+        secondary_attributes (list):
+            the list of raw dictionary representation of the Resource's secondary attributes.
     """
 
     def __init__(self, resource_data: dict, secondary_attributes: list) -> None:
