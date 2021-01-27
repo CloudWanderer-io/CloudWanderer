@@ -130,11 +130,9 @@ class CloudWandererResourceDefinitionsDirective(SphinxDirective):
         parser = sphinx.parsers.RSTParser()
         parser.set_application(self.env.app)
 
-        components = (sphinx.parsers.RSTParser,)
-        settings = docutils.frontend.OptionParser(components=components).get_default_values()
         settings = OptionParser(
             defaults=self.env.settings,
-            components=components,
+            components=(sphinx.parsers.RSTParser,),
             read_config_files=True).get_default_values()
         document = docutils.utils.new_document('<rst-doc>', settings=settings)
         parser.parse(text, document)
