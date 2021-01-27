@@ -127,7 +127,7 @@ class GenericAssertionHelpers:
                     else:
                         matching.append(received_item.get(key) == value)
 
-                if all(matching) and expected:
+                if all(matching):
                     remaining.remove(expected_item)
                     matched.append(expected_item)
                     break

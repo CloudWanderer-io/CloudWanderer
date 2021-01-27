@@ -119,11 +119,9 @@ class CloudWandererResourceDefinitionsDirective(SphinxDirective):
             self.boto3_interface.get_all_resource_services(),
             key=lambda x: x.meta.resource_model.name)
         for boto3_service in boto3_services:
-            # service_name = boto3_service.meta.resource_model.name
             service_model = boto3_service.meta.client.meta.service_model
             service_name = service_model.metadata['serviceId']
             service_section = f"{service_name}\n{'-'*len(service_name)}\n\n"
-            # service_section += self.parse_html(service_model.documentation) +'\n\n'
             service_section += '\n\n'.join(self.get_collections(boto3_service))
             sections += service_section
         return sections
@@ -145,7 +143,7 @@ class CloudWandererResourceDefinitionsDirective(SphinxDirective):
     def parse_html(self, html: str) -> str:
         html_parser = botocore.docs.bcdoc.restdoc.ReSTDocument()
         html_parser.include_doc_string(html)
-        return html_parser.getvalue().decode().replace('\n', '\n         ')
+        return html_parser.getvalue().decode().replace('\n', '\n')
 
     def get_collections(self, boto3_service: boto3.resources.base.ServiceResource) -> list:
 
