@@ -6,17 +6,17 @@ class TestSecondaryAttribute(unittest.TestCase):
 
     def test_vpc_secondary_attribute(self):
         secondary_attribute = SecondaryAttribute(
-            attribute_name='EnableDnsSupport',
+            name='EnableDnsSupport',
             **{'EnableDnsSupport': {'Value': True}}
         )
 
-        assert secondary_attribute.attribute_name == 'EnableDnsSupport'
+        assert secondary_attribute.name == 'EnableDnsSupport'
         assert dict(secondary_attribute) == {'EnableDnsSupport': {'Value': True}}
 
     def test_empty(self):
         secondary_attribute = SecondaryAttribute(
-            attribute_name=None
+            name=None
         )
 
-        assert secondary_attribute.attribute_name is None
+        assert secondary_attribute.name is None
         assert dict(secondary_attribute) == {}

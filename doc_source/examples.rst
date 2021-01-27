@@ -124,7 +124,7 @@ Next we need to find out what policies are attached.
 
 .. doctest ::
 
-    >>> role.get_secondary_attribute('[].PolicyNames[0]')
+    >>> role.get_secondary_attribute(jmes_path='[].PolicyNames[0]')
     ['test-role-policy']
 
 Then we can lookup the inline policy
@@ -163,7 +163,7 @@ with a `JMESPath <https://jmespath.org/>`_.
     >>> first_vpc.load()
     >>> first_vpc.cloudwanderer_metadata.secondary_attributes[0]['EnableDnsSupport']
     {'Value': True}
-    >>> first_vpc.get_secondary_attribute('[].EnableDnsSupport.Value')
+    >>> first_vpc.get_secondary_attribute(jmes_path='[].EnableDnsSupport.Value')
     [True]
 
 This special way of accesssing secondary attributes ensures that secondary attributes do not conflict with primary attributes if they have the same name.

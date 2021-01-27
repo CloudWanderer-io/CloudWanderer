@@ -27,7 +27,7 @@ class StorageWriteTestMixin:
                 resource_data=vpc.meta.data,
                 secondary_attributes=[
                     SecondaryAttribute(
-                        attribute_name='EnableDnsSupport',
+                        name='EnableDnsSupport',
                         **{'EnableDnsSupport': {'Value': True}}
                     )
                 ]

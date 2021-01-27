@@ -71,7 +71,7 @@ class MemoryStorageConnector(BaseStorageConnector):
         for secondary_attribute in resource.cloudwanderer_metadata.secondary_attributes:
             self._write_secondary_attribute(
                 urn=resource.urn,
-                attribute_type=secondary_attribute.attribute_name,
+                attribute_type=secondary_attribute.name,
                 secondary_attribute=secondary_attribute
             )
 
