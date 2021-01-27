@@ -198,10 +198,6 @@ class CloudWandererResourceDefinitionsDirective(SphinxDirective):
             example += '        for resource in resources:\n'
             example += f'            resource.get_secondary_attribute(name="{resource_name}")\n'
             result += example
-            # result += self.generate_resource_section(
-            #     boto3_service, collection,
-            #     f"{{service_name}}.{parent_resource_name}.{{resource_name}}"
-            # )
         return result
 
     def generate_resource_section(
