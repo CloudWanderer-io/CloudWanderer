@@ -11,6 +11,47 @@ from botocore import xform_name
 import boto3
 import cloudwanderer
 
+SECONDARY_ATTR_TEMPLATE = """
+.. py:class:: {service_name}.{parent_resource_name}.{resource_name}
+
+    A secondary attribute for the :class:`{service_name}.{parent_resource_name}`
+    resource type.
+
+    **Example:**
+
+    .. code-block ::
+
+        resources = storage_connector.read_resources(
+            service="{service_name}",
+            resource_type="{parent_resource_name}")
+        for resource in resources:
+            resource.get_secondary_attribute(name="{resource_name}")
+
+"""
+
+RESOURCE_TEMPLATE = """
+.. py:class:: {class_name}
+
+    {description}
+
+    **Example:**
+
+    .. code-block ::
+
+        resources = storage_connector.read_resources(
+            service="{service_name}",
+            resource_type="{resource_name}")
+        for resource in resources:
+            print(resource.urn)
+"""
+
+ATTRIBUTES_TEMPLATE = """
+    .. py:attribute:: {attribute_name}
+
+         {documentation}
+
+"""
+
 
 class CloudWandererResourcesDirective(SphinxDirective):
     """A custom directive that lists CloudWanderers added resources."""
@@ -106,11 +147,16 @@ class CloudWandererResourceDefinitionsDirective(SphinxDirective):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.cw = GetCwServices()
+        self.relative_path = 'resource_properties'
 
     def run(self) -> list:
         services_section = nodes.section(ids=['cloudwanderer_resources'])
         services_section += nodes.title('', 'CloudWanderer Resources')
-        services_section += self.parse_rst(self.cw.get_cloudwanderer_services()).children
+        rst_section = '.. toctree::\n'
+        rst_section += '   :maxdepth: 2\n\n'
+        for service_name, _ in self.cw.get_cloudwanderer_services():
+            rst_section += f'   {os.path.join(self.relative_path, service_name)}.rst\n'
+        services_section += self.parse_rst(rst_section).children
         targetid = 'cloudwanderer-%d' % self.env.new_serialno('cloudwanderer')
         targetnode = nodes.target('', '', ids=[targetid])
         return [targetnode, services_section]
@@ -131,33 +177,30 @@ class CloudWandererResourceDefinitionsDirective(SphinxDirective):
 class GetCwServices:
 
     def __init__(self) -> None:
+        self.relative_path = 'resource_properties'
+        self.base_path = os.path.join(pathlib.Path(__file__).parent.absolute(), '..')
         self.boto3_interface = cloudwanderer.boto3_interface.CloudWandererBoto3Interface(
             boto3_session=boto3.Session(region_name='eu-west-2')
         )
 
     def get_cloudwanderer_services(self) -> list:
-        sections = '.. toctree::\n'
-        sections += '   :maxdepth: 2\n\n'
-
         boto3_services = sorted(
             self.boto3_interface.get_all_resource_services(),
             key=lambda x: x.meta.resource_model.name)
         for boto3_service in boto3_services:
             service_model = boto3_service.meta.client.meta.service_model
             service_name = service_model.metadata['serviceId']
+            yield service_name, boto3_service
+
+    def write_cloudwanderer_services(self) -> list:
+        for service_name, boto3_service in self.get_cloudwanderer_services():
             service_section = f"{service_name}\n{'-'*len(service_name)}\n\n"
             service_section += '\n\n'.join(self.get_collections(boto3_service))
-            base_path = os.path.join(pathlib.Path(__file__).parent.absolute(), '..')
-            relative_path = 'resource_properties'
+            if not os.path.exists(os.path.join(self.base_path, self.relative_path)):
+                os.makedirs(os.path.join(self.base_path, self.relative_path))
 
-            if not os.path.exists(os.path.join(base_path, relative_path)):
-                os.makedirs(os.path.join(base_path, relative_path))
-
-            with open(os.path.join(base_path, relative_path, f'{service_name}.rst'), 'w') as f:
+            with open(os.path.join(self.base_path, self.relative_path, f'{service_name}.rst'), 'w') as f:
                 f.write(service_section)
-            # sections += service_section
-            sections += f'   {os.path.join(relative_path, service_name)}.rst\n'
-        return sections
 
     def parse_html(self, html: str) -> str:
         html_parser = botocore.docs.bcdoc.restdoc.ReSTDocument()
@@ -204,17 +247,11 @@ class GetCwServices:
             service_name, boto3_resource, 'secondaryAttribute')
         for collection in secondaryAttributes:
             resource_name = xform_name(collection.resource.model.name)
-            result += f'.. py:class:: {service_name}.{parent_resource_name}.{resource_name}\n\n'
-            result += f'    A secondary attribute for the :class:`{service_name}.{parent_resource_name}` '
-            result += 'resource type.\n\n'
-            example = '    **Example:**\n\n'
-            example += '    .. code-block ::\n\n'
-            example += '        resources = storage_connector.read_resources(\n'
-            example += f'            service="{service_name}", \n'
-            example += f'            resource_type="{parent_resource_name}")\n'
-            example += '        for resource in resources:\n'
-            example += f'            resource.get_secondary_attribute(name="{resource_name}")\n'
-            result += example
+            result += SECONDARY_ATTR_TEMPLATE.format(
+                service_name=service_name,
+                parent_resource_name=parent_resource_name,
+                resource_name=resource_name,
+            )
         return result
 
     def generate_resource_section(
@@ -229,25 +266,21 @@ class GetCwServices:
         attributes = sorted(boto3_collection.resource.model.get_attributes(shape).items())
         resource_name = xform_name(boto3_collection.resource.model.name)
 
-        resource_section = f'.. py:class:: {name.format(service_name=service_name, resource_name=resource_name)}\n\n'
-        resource_section += description.format(service_name=service_name, resource_name=resource_name)
-        example = '    **Example:**\n\n'
-        example += '    .. code-block ::\n\n'
-        example += '        resources = storage_connector.read_resources(\n'
-        example += f'            service="{service_name}", \n'
-        example += f'            resource_type="{resource_name}")\n'
-        example += '        for resource in resources:\n'
-        example += '            print(resource.urn)\n'
-
+        resource_section = RESOURCE_TEMPLATE.format(
+            class_name=name.format(service_name=service_name, resource_name=resource_name),
+            service_name=service_name,
+            resource_name=resource_name,
+            description=description.format(service_name=service_name, resource_name=resource_name)
+        )
         attributes_doc = ''
         for attribute_name, attribute in attributes:
             documentation = attribute[1].documentation
             documentation = self.parse_html(documentation).replace("\n", "")
-            attributes_doc += f'    .. py:attribute:: {attribute_name}\n\n'
-            attributes_doc += f'         {documentation}\n\n'
-            example += f'            print(resource.{attribute_name})\n'
+            attributes_doc += ATTRIBUTES_TEMPLATE.format(
+                attribute_name=attribute_name,
+                documentation=documentation)
+            resource_section += f"            print(resource.{attribute_name})\n"
 
-        resource_section += example
         resource_section += '\n\n'
         resource_section += attributes_doc
         return resource_section
@@ -266,7 +299,7 @@ class SupportedResources(Domain):
 
 def main(*args) -> None:
     d = GetCwServices()
-    d.get_cloudwanderer_services()
+    d.write_cloudwanderer_services()
 
 
 def setup(app: object) -> dict:
