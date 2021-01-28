@@ -1,4 +1,6 @@
 import docutils
+import os
+import pathlib
 from docutils import nodes
 from docutils.frontend import OptionParser
 import botocore
@@ -103,28 +105,15 @@ class CloudWandererResourceDefinitionsDirective(SphinxDirective):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.boto3_interface = cloudwanderer.boto3_interface.CloudWandererBoto3Interface(
-            boto3_session=boto3.Session(region_name='eu-west-2')
-        )
+        self.cw = GetCwServices()
 
     def run(self) -> list:
         services_section = nodes.section(ids=['cloudwanderer_resources'])
         services_section += nodes.title('', 'CloudWanderer Resources')
-        services_section.extend(self.parse_rst(self.get_cloudwanderer_services()))
-        return [services_section]
-
-    def get_cloudwanderer_services(self) -> list:
-        sections = ''
-        boto3_services = sorted(
-            self.boto3_interface.get_all_resource_services(),
-            key=lambda x: x.meta.resource_model.name)
-        for boto3_service in boto3_services:
-            service_model = boto3_service.meta.client.meta.service_model
-            service_name = service_model.metadata['serviceId']
-            service_section = f"{service_name}\n{'-'*len(service_name)}\n\n"
-            service_section += '\n\n'.join(self.get_collections(boto3_service))
-            sections += service_section
-        return sections
+        services_section += self.parse_rst(self.cw.get_cloudwanderer_services()).children
+        targetid = 'cloudwanderer-%d' % self.env.new_serialno('cloudwanderer')
+        targetnode = nodes.target('', '', ids=[targetid])
+        return [targetnode, services_section]
 
     def parse_rst(self, text: str) -> docutils.nodes.document:
         parser = sphinx.parsers.RSTParser()
@@ -137,6 +126,38 @@ class CloudWandererResourceDefinitionsDirective(SphinxDirective):
         document = docutils.utils.new_document('<rst-doc>', settings=settings)
         parser.parse(text, document)
         return document
+
+
+class GetCwServices:
+
+    def __init__(self) -> None:
+        self.boto3_interface = cloudwanderer.boto3_interface.CloudWandererBoto3Interface(
+            boto3_session=boto3.Session(region_name='eu-west-2')
+        )
+
+    def get_cloudwanderer_services(self) -> list:
+        sections = '.. toctree::\n'
+        sections += '   :maxdepth: 2\n\n'
+
+        boto3_services = sorted(
+            self.boto3_interface.get_all_resource_services(),
+            key=lambda x: x.meta.resource_model.name)
+        for boto3_service in boto3_services:
+            service_model = boto3_service.meta.client.meta.service_model
+            service_name = service_model.metadata['serviceId']
+            service_section = f"{service_name}\n{'-'*len(service_name)}\n\n"
+            service_section += '\n\n'.join(self.get_collections(boto3_service))
+            base_path = os.path.join(pathlib.Path(__file__).parent.absolute(), '..')
+            relative_path = 'resource_properties'
+
+            if not os.path.exists(os.path.join(base_path, relative_path)):
+                os.makedirs(os.path.join(base_path, relative_path))
+
+            with open(os.path.join(base_path, relative_path, f'{service_name}.rst'), 'w') as f:
+                f.write(service_section)
+            # sections += service_section
+            sections += f'   {os.path.join(relative_path, service_name)}.rst\n'
+        return sections
 
     def parse_html(self, html: str) -> str:
         html_parser = botocore.docs.bcdoc.restdoc.ReSTDocument()
@@ -221,7 +242,7 @@ class CloudWandererResourceDefinitionsDirective(SphinxDirective):
         attributes_doc = ''
         for attribute_name, attribute in attributes:
             documentation = attribute[1].documentation
-            documentation = self.parse_html(documentation)
+            documentation = self.parse_html(documentation).replace("\n", "")
             attributes_doc += f'    .. py:attribute:: {attribute_name}\n\n'
             attributes_doc += f'         {documentation}\n\n'
             example += f'            print(resource.{attribute_name})\n'
@@ -243,8 +264,14 @@ class SupportedResources(Domain):
     }
 
 
+def main(*args) -> None:
+    d = GetCwServices()
+    d.get_cloudwanderer_services()
+
+
 def setup(app: object) -> dict:
     app.add_domain(SupportedResources)
+    app.connect('builder-inited', main)
 
     return {
         'version': '0.1',
