@@ -45,7 +45,7 @@ class TestSecondaryAttributes(unittest.TestCase):
         )
         for resource in resources:
             for secondary_attribute in resource.cloudwanderer_metadata.secondary_attributes:
-                if attribute_name == secondary_attribute.attribute_name:
+                if attribute_name == secondary_attribute.name:
                     results.append(secondary_attribute)
 
         assert len(results) > 0

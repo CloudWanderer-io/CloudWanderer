@@ -96,8 +96,6 @@ class TestStorageConnectorReadMixin:
 
 
 class GenericAssertionHelpers:
-    def __init__(self):
-        self.maxDiff = 10000
 
     def assert_dictionary_overlap(self, received, expected):
         """Asserts that every item in expected has an equivalent item in received.
@@ -119,6 +117,8 @@ class GenericAssertionHelpers:
         matched = []
         for received_item in received:
             for expected_item in expected:
+                if expected_item not in remaining:
+                    continue
                 matching = []
                 for key, value in expected_item.items():
                     if isinstance(value, str) and isinstance(received_item.get(key), str):
@@ -132,6 +132,13 @@ class GenericAssertionHelpers:
                     matched.append(expected_item)
                     break
         return remaining, matched
+
+    def get_secondary_attributes_from_resources(self, resources: list):
+        return [
+            secondary_attribute
+            for resource in resources
+            for secondary_attribute in resource.cloudwanderer_metadata.secondary_attributes
+        ]
 
 
 def clear_aws_credentials():

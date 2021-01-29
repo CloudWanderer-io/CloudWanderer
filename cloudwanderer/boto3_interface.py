@@ -198,7 +198,7 @@ class CloudWandererBoto3Interface:
             boto3_resource=boto3_resource, resource_type='secondaryAttribute')
         for secondary_attribute in secondary_attributes:
             yield SecondaryAttribute(
-                attribute_name=xform_name(secondary_attribute.meta.resource_model.name),
+                name=xform_name(secondary_attribute.meta.resource_model.name),
                 **self._clean_boto3_metadata(secondary_attribute.meta.data))
 
     def get_child_resources(

@@ -13,8 +13,10 @@ class ResourceMetadata:
     Contains the original dictionaries of the resource and its attributes.
 
     Attributes:
-        resource_data (dict): The raw dictionary representation of the Resource.
-        secondary_attributes (list): the list of raw dictionary representation of the Resource's secondary attributes.
+        resource_data (dict):
+                The raw dictionary representation of the Resource.
+        secondary_attributes (list):
+            the list of raw dictionary representation of the Resource's secondary attributes.
     """
 
     def __init__(self, resource_data: dict, secondary_attributes: list) -> None:
@@ -81,12 +83,19 @@ class CloudWandererResource():
             if not key.startswith('_')
         ])
 
-    def get_secondary_attribute(self, jmes_path: str) -> None:
+    def get_secondary_attribute(self, name: str = None, jmes_path: str = None) -> None:
         """Get an attribute not returned in the resource's standard ``describe`` method.
 
         Arguments:
+            name (str): The name of the secondary attribute (e.g. ``'enable_dns_support``)
             jmes_path (str): A JMES path to the secondary attribute. e.g. ``[].EnableDnsSupport.Value``
         """
+        if name is not None:
+            return [
+                secondary_attr
+                for secondary_attr in self.cloudwanderer_metadata.secondary_attributes
+                if secondary_attr.name == name
+            ]
         return jmespath.search(jmes_path, self.cloudwanderer_metadata.secondary_attributes)
 
     def _set_resource_data_attrs(self) -> None:
@@ -116,12 +125,12 @@ class SecondaryAttribute(dict):
     attribute_name attribute.
     """
 
-    def __init__(self, attribute_name: str, **kwargs) -> None:
+    def __init__(self, name: str, **kwargs) -> None:
         """Initialise the Secondary Attribute.
 
         Arguments:
-            attribute_name (str): The name of the attribute
+            name (str): The name of the attribute
             **kwargs: The attributes keys and values
         """
         super().__init__(**kwargs)
-        self.attribute_name = attribute_name
+        self.name = name

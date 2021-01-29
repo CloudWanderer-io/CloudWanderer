@@ -4,6 +4,7 @@
 - Formalised the interface between the `CloudInterface` > `CloudWanderer` > `StorageConnector` by
     converting Boto3 resources to `CloudWandererResources`
     - Removed `write_secondary_attributes` from `BaseStorageConnector` as it's no longer required to be public.
+- Added `name` parameter to `get_secondary_attribute`
 
 # 0.11.0
 
