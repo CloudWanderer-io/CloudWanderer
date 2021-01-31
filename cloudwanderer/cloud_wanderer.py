@@ -1,10 +1,9 @@
 """Main cloudwanderer module."""
+from cloudwanderer.cloud_wanderer_resource import CloudWandererResource
 from typing import List
 import logging
 from typing import TYPE_CHECKING, Iterator, Callable
 import concurrent.futures
-from boto3.resources.base import ServiceResource
-from botocore import xform_name
 from .utils import exception_logging_wrapper
 from .boto3_interface import CloudWandererBoto3Interface
 from .aws_urn import AwsUrn
@@ -40,8 +39,8 @@ class CloudWanderer():
         Any additional args will be passed into the cloud interface's ``get_`` methods.
 
         Arguments:
-            exclude_resources (list): A list of resource names to exclude (e.g. ``['instance']``)
-            **kwargs: Additional keyword argumentss will be passed down to the cloud interface methods.
+            exclude_resources (list): A list of service:resources to exclude (e.g. ``['ec2:instance']``)
+            **kwargs: Additional keyword arguments will be passed down to the cloud interface methods.
         """
         logger.info('Writing resources in all regions')
         for region_name in self.cloud_interface.enabled_regions:
@@ -60,7 +59,7 @@ class CloudWanderer():
 
         Arguments:
             exclude_resources (list):
-                A list of resource names to exclude (e.g. ``['instance']``)
+                exclude_resources (list): A list of service:resources to exclude (e.g. ``['ec2:instance']``)
             concurrency (int):
                 Number of query threads to invoke concurrently.
                 If the number of threads exceeds the number of regions by at least two times
@@ -69,7 +68,7 @@ class CloudWanderer():
                 storage connector and has not been thoroughly tested!
             cloud_interface_generator (Callable): A method which returns a new cloud interface session when called.
                 This helps prevent non-threadsafe cloud interfaces from interfering with each others.
-            **kwargs: Additional keyword argumentss will be passed down to the cloud interface methods.
+            **kwargs: Additional keyword arguments will be passed down to the cloud interface methods.
         """
         logger.info('Writing resources in all regions')
         logger.warning('Using concurrency of: %s - CONCURRENCY IS EXPERIMENTAL', concurrency)
@@ -96,11 +95,11 @@ class CloudWanderer():
 
         Arguments:
             exclude_resources (list):
-                A list of resource names to exclude (e.g. ``['instance']``)
+                exclude_resources (list): A list of service:resources to exclude (e.g. ``['ec2:instance']``)
             region_name (str):
                 The name of the region to get resources from
                 (defaults to session default if not specified)
-            **kwargs: Additional keyword argumentss will be passed down to the cloud interface methods.
+            **kwargs: Additional keyword arguments will be passed down to the cloud interface methods.
         """
         exclude_resources = exclude_resources or []
         for boto3_service in self.cloud_interface.get_all_resource_services():
@@ -124,11 +123,11 @@ class CloudWanderer():
             service_name (str):
                 The name of the service to write resources for (e.g. ``'ec2'``)
             exclude_resources (list):
-                A list of resource names to exclude (e.g. ``['instance']``)
+                exclude_resources (list): A list of service:resources to exclude (e.g. ``['ec2:instance']``)
             region_name (str):
                 The name of the region to get resources from
                 (defaults to session default if not specified)
-            **kwargs: Additional keyword argumentss will be passed down to the cloud interface methods.
+            **kwargs: Additional keyword arguments will be passed down to the cloud interface methods.
         """
         region_name = region_name or self.cloud_interface.region_name
 
@@ -136,8 +135,8 @@ class CloudWanderer():
         exclude_resources = exclude_resources or []
 
         for resource_type in self.cloud_interface.get_service_resource_types(service_name=service_name):
-            if resource_type in exclude_resources:
-                logger.info('Skipping %s as per exclude_resources', resource_type)
+            if f'{service_name}:{resource_type}' in exclude_resources:
+                logger.info('Skipping %s as per exclude_resources', f'{service_name}:{resource_type}')
                 continue
             self.write_resources_of_type_in_region(
                 service_name=service_name,
@@ -163,48 +162,22 @@ class CloudWanderer():
             region_name (str):
                 The name of the region to get resources from
                 (defaults to session default if not specified)
-            **kwargs: Additional keyword argumentss will be passed down to the cloud interface methods.
+            **kwargs: Additional keyword arguments will be passed down to the cloud interface methods.
         """
         region_name = region_name or self.cloud_interface.region_name
         logger.info('--> Fetching %s %s from %s', service_name, resource_type, region_name)
         resources = self.cloud_interface.get_resources_of_type(
             service_name=service_name, resource_type=resource_type, region_name=region_name, **kwargs)
         urns = []
-        for boto3_resource in resources:
-            urns.extend(list(self._write_resource(boto3_resource, region_name)))
-            urns.extend(list(self._write_secondary_attributes(boto3_resource, region_name)))
+        for resource in resources:
+            urns.extend(list(self._write_resource(resource, region_name)))
 
         self._clean_resources_in_region(service_name, resource_type, region_name, urns)
 
-    def _write_resource(self, boto3_resource: ServiceResource, region_name: str) -> Iterator[AwsUrn]:
-        urn = self.cloud_interface._get_resource_urn(boto3_resource, region_name)
+    def _write_resource(self, resource: CloudWandererResource, region_name: str) -> Iterator[AwsUrn]:
         for storage_connector in self.storage_connectors:
-            storage_connector.write_resource(urn, boto3_resource)
-        yield urn
-        yield from self._write_subresources(boto3_resource, region_name)
-
-    def _write_subresources(self, boto3_resource: ServiceResource, region_name: str) -> Iterator[AwsUrn]:
-        for subresource in self.cloud_interface.get_subresources(boto3_resource=boto3_resource):
-            subresource.load()
-            urn = self.cloud_interface._get_resource_urn(subresource, region_name)
-            yield urn
-            for storage_connector in self.storage_connectors:
-                storage_connector.write_resource(urn, subresource)
-
-    def _write_secondary_attributes(self, boto3_resource: ServiceResource, region_name: str) -> Iterator[AwsUrn]:
-        secondary_attributes = self.cloud_interface.get_secondary_attributes(
-            boto3_resource=boto3_resource)
-        for secondary_attribute in secondary_attributes:
-            attribute_type = xform_name(secondary_attribute.meta.resource_model.name)
-            logger.info('---> Fetching %s in %s', attribute_type, region_name)
-            urn = self.cloud_interface._get_resource_urn(boto3_resource, region_name)
-            for storage_connector in self.storage_connectors:
-                storage_connector.write_secondary_attribute(
-                    urn=urn,
-                    secondary_attribute=secondary_attribute,
-                    attribute_type=attribute_type
-                )
-            yield urn
+            storage_connector.write_resource(resource)
+        yield resource.urn
 
     def _clean_resources_in_region(
             self, service_name: str, resource_type: str, region_name: str, current_urns: List[AwsUrn]) -> None:

@@ -1,3 +1,17 @@
+# 0.12.0
+
+- Changed the way `exclude_resources` works so you can differentiate between CloudFormation Stacks and OpsWorks Stacks #70
+- Formalised the interface between the `CloudInterface` > `CloudWanderer` > `StorageConnector` by
+    converting Boto3 resources to `CloudWandererResources`
+    - Removed `write_secondary_attributes` from `BaseStorageConnector` as it's no longer required to be public.
+- Added `name` argument to `get_secondary_attribute` allowing you to get secondary attributes by name.
+- Ensured that all resource attributes that *can* exist *do* exist when `CloudWandererResource` returned from `CloudWandererBoto3Interface`, irrespective of whether they were returned in that particular API call.
+
+## New Resources
+
+- apigateway rest_api
+- secretsmanager secret
+
 # 0.11.0
 
 - Collapsed all `write_secondary_attributes` methods into `write_resources` so secondary attributes are written automatically.

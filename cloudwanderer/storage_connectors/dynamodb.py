@@ -11,7 +11,7 @@ import boto3
 from random import randrange
 from .base_connector import BaseStorageConnector
 from boto3.dynamodb.conditions import Key, Attr, ConditionBase
-from ..cloud_wanderer_resource import CloudWandererResource
+from ..cloud_wanderer_resource import CloudWandererResource, SecondaryAttribute
 from ..aws_urn import AwsUrn
 from ..utils import standardise_data_types
 
@@ -87,7 +87,10 @@ def _dynamodb_items_to_resources(items: Iterable[dict], loader: Callable) -> Ite
     """
     for item_id, group in itertools.groupby(items, lambda x: x['_id']):
         grouped_items = list(group)
-        attributes = [attribute for attribute in grouped_items if attribute['_attr'] != 'BaseResource']
+        attributes = [
+            SecondaryAttribute(name=attribute['_attr'], **attribute)
+            for attribute in grouped_items if attribute['_attr'] != 'BaseResource'
+        ]
         base_resource = next(iter(resource for resource in grouped_items if resource['_attr'] == 'BaseResource'))
         yield CloudWandererResource(
             urn=_urn_from_primary_key(base_resource['_id']),
@@ -158,17 +161,23 @@ class DynamoDbConnector(BaseStorageConnector):
         )
         table_creator.create_table()
 
-    def write_resource(self, urn: AwsUrn, resource: boto3.resources.base.ServiceResource) -> None:
-        logger.debug(f"Writing: {urn} to {self.table_name}")
+    def write_resource(self, resource: CloudWandererResource) -> None:
+        logger.debug(f"Writing: {resource.urn} to {self.table_name}")
         item = {
-            **self._generate_index_values_for_write(urn),
-            **standardise_data_types(resource.meta.data or {})
+            **self._generate_index_values_for_write(resource.urn),
+            **standardise_data_types(resource.cloudwanderer_metadata.resource_data or {})
         }
         self.dynamodb_table.put_item(
             Item=item
         )
+        for secondary_attribute in resource.cloudwanderer_metadata.secondary_attributes:
+            self._write_secondary_attribute(
+                urn=resource.urn,
+                attribute_type=secondary_attribute.name,
+                secondary_attribute=secondary_attribute
+            )
 
-    def write_secondary_attribute(
+    def _write_secondary_attribute(
             self, urn: AwsUrn, attribute_type: str, secondary_attribute: boto3.resources.base.ServiceResource) -> None:
         """Write the specified resource attribute to DynamoDb.
 
@@ -181,7 +190,7 @@ class DynamoDbConnector(BaseStorageConnector):
         logger.debug(f"Writing: {attribute_type} of {urn} to {self.table_name}")
         item = {
             **self._generate_index_values_for_write(urn, attribute_type),
-            **standardise_data_types(secondary_attribute.meta.data or {})
+            **standardise_data_types(secondary_attribute or {})
         }
         self.dynamodb_table.put_item(
             Item=item

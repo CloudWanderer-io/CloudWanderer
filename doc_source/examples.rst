@@ -24,7 +24,7 @@ a shared database file ``shared-local-instance.db``. This allows the data to per
 .. doctest ::
 
     >>> from cloudwanderer.storage_connectors import DynamoDbConnector
-    >>> local_storage_connector=DynamoDbConnector(
+    >>> local_storage_connector = DynamoDbConnector(
     ...     endpoint_url='http://localhost:8000'
     ... )
 
@@ -124,7 +124,9 @@ Next we need to find out what policies are attached.
 
 .. doctest ::
 
-    >>> role.get_secondary_attribute('[].PolicyNames[0]')
+    >>> role.get_secondary_attribute('role_inline_policy_attachments')
+    [{'PolicyNames': ['test-role-policy'], 'IsTruncated': False}]
+    >>> role.get_secondary_attribute(jmes_path='[].PolicyNames[0]')
     ['test-role-policy']
 
 Then we can lookup the inline policy
@@ -161,9 +163,14 @@ with a `JMESPath <https://jmespath.org/>`_.
 
     >>> first_vpc = next(storage_connector.read_resources(service='ec2', resource_type='vpc'))
     >>> first_vpc.load()
+
     >>> first_vpc.cloudwanderer_metadata.secondary_attributes[0]['EnableDnsSupport']
     {'Value': True}
-    >>> first_vpc.get_secondary_attribute('[].EnableDnsSupport.Value')
+
+    >>> first_vpc.get_secondary_attribute(name='vpc_enable_dns_support')
+    [{'VpcId': 'vpc-11111111', 'EnableDnsSupport': {'Value': True}}]
+
+    >>> first_vpc.get_secondary_attribute(jmes_path='[].EnableDnsSupport.Value')
     [True]
 
 This special way of accesssing secondary attributes ensures that secondary attributes do not conflict with primary attributes if they have the same name.

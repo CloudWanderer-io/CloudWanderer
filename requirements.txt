@@ -11,3 +11,4 @@ flake8-annotations
 sphinx
 sphinx_rtd_theme
 darglint
+pre-commit

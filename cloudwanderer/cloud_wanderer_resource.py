@@ -13,8 +13,10 @@ class ResourceMetadata:
     Contains the original dictionaries of the resource and its attributes.
 
     Attributes:
-        resource_data (dict): The raw dictionary representation of the Resource.
-        secondary_attributes (list): the list of raw dictionary representation of the Resource's secondary attributes.
+        resource_data (dict):
+            The raw dictionary representation of the Resource.
+        secondary_attributes (list):
+            The list of the resource's :class:`SecondaryAttribute` objects.
     """
 
     def __init__(self, resource_data: dict, secondary_attributes: list) -> None:
@@ -24,7 +26,7 @@ class ResourceMetadata:
             resource_data (dict):
                 The raw dictionary representation of the Resource.
             secondary_attributes (list):
-                the list of raw dictionary representation of the Resource's secondary attributes.
+                The list of the resource's :class:`SecondaryAttribute` objects.
         """
         self.resource_data = resource_data
         self.secondary_attributes = secondary_attributes
@@ -35,7 +37,7 @@ class CloudWandererResource():
 
     Attributes:
         urn (AwsUrn): The URN of the resource.
-        cloudwanderer_metadata (ResourceMetadata): The raw metadata of this resource.
+        cloudwanderer_metadata (ResourceMetadata): The metadata of this resource (including attributes).
     """
 
     def __init__(self, urn: AwsUrn, resource_data: dict,
@@ -50,7 +52,7 @@ class CloudWandererResource():
         """
         self.urn = urn
         self.cloudwanderer_metadata = ResourceMetadata(
-            resource_data=resource_data,
+            resource_data=resource_data or {},
             secondary_attributes=secondary_attributes or []
         )
         self._loader = loader
@@ -81,12 +83,19 @@ class CloudWandererResource():
             if not key.startswith('_')
         ])
 
-    def get_secondary_attribute(self, jmes_path: str) -> None:
+    def get_secondary_attribute(self, name: str = None, jmes_path: str = None) -> None:
         """Get an attribute not returned in the resource's standard ``describe`` method.
 
         Arguments:
+            name (str): The name of the secondary attribute (e.g. ``'enable_dns_support``)
             jmes_path (str): A JMES path to the secondary attribute. e.g. ``[].EnableDnsSupport.Value``
         """
+        if name is not None:
+            return [
+                secondary_attr
+                for secondary_attr in self.cloudwanderer_metadata.secondary_attributes
+                if secondary_attr.name == name
+            ]
         return jmespath.search(jmes_path, self.cloudwanderer_metadata.secondary_attributes)
 
     def _set_resource_data_attrs(self) -> None:
@@ -107,3 +116,24 @@ class CloudWandererResource():
     def __str__(self) -> str:
         """Return the string representation of this Resource."""
         return repr(self)
+
+
+class SecondaryAttribute(dict):
+    """Partially formalised SecondaryAttribute for resources.
+
+    Allows us to store unstructured data in a dict-like object while maintaining the
+    attribute_name attribute.
+
+    Attributes:
+        attribute_name (str): The name of the attribute.
+    """
+
+    def __init__(self, name: str, **kwargs) -> None:
+        """Initialise the Secondary Attribute.
+
+        Arguments:
+            name (str): The name of the attribute
+            **kwargs: The attributes keys and values
+        """
+        super().__init__(**kwargs)
+        self.name = name
