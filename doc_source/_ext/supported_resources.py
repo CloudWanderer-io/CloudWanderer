@@ -42,6 +42,7 @@ RESOURCE_TEMPLATE = """
             service="{service_name}",
             resource_type="{resource_name}")
         for resource in resources:
+            resource.load()
             print(resource.urn)
 """
 

@@ -127,13 +127,13 @@ class CloudWandererBoto3Interface:
         for resource in resources:
             yield CloudWandererResource(
                 urn=self._get_resource_urn(resource, region_name),
-                resource_data=self._clean_boto3_metadata(resource.meta.data),
+                resource_data=self._prepare_boto3_resource_data(resource),
                 secondary_attributes=self.get_secondary_attributes(resource),
             )
             for subresource in self.get_subresources(resource):
                 yield CloudWandererResource(
                     urn=self._get_resource_urn(subresource, region_name),
-                    resource_data=self._clean_boto3_metadata(subresource.meta.data),
+                    resource_data=self._prepare_boto3_resource_data(subresource),
                     secondary_attributes=self.get_secondary_attributes(subresource),
                 )
 
@@ -344,6 +344,28 @@ class CloudWandererBoto3Interface:
             yield region_name
         else:
             yield from self.enabled_regions
+
+    def _prepare_boto3_resource_data(self, boto3_resource: boto3.resources.base.ServiceResource) -> dict:
+        result = {attribute: None for attribute in self._get_resource_attributes(boto3_resource).keys()}
+        result.update(boto3_resource.meta.data or {})
+        return self._clean_boto3_metadata(result)
+
+    def _get_resource_attributes(
+            self, boto3_resource: boto3.resources.base.ServiceResource, snake_case: bool = False) -> dict:
+        if snake_case:
+            return boto3_resource.meta.resource_model.get_attributes(self.get_shape(boto3_resource))
+        return self.get_shape(boto3_resource).members
+
+    def get_shape(self, boto3_resource: boto3.resources.base.ServiceResource) -> botocore.model.Shape:
+        """Return the Botocore shape of a boto3 Resource.
+
+        Parameters:
+            boto3_resource (boto3.resources.base.ServiceResource):
+                The resource to get the shape of.
+        """
+        service_model = boto3_resource.meta.client.meta.service_model
+        shape = service_model.shape_for(boto3_resource.meta.resource_model.shape)
+        return shape
 
     def _clean_boto3_metadata(self, boto3_metadata: dict) -> dict:
         """Remove unwanted keys from boto3 metadata dictionaries.
