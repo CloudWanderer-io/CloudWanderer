@@ -21,6 +21,7 @@ def generate_params():
                 resource_name,
                 attribute_name
             )
+    get_default_mocker().stop_general_mock()
 
 
 class TestSecondaryAttributes(unittest.TestCase):

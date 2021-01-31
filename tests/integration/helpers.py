@@ -176,7 +176,10 @@ class SetupMocking():
 
     def stop_general_mock(self):
         self.stop_moto_services()
-        self.stop_limit_collections_list()
+        try:
+            self.stop_limit_collections_list()
+        except RuntimeError:
+            pass
 
     def start_moto_services(self, services=None):
         services = self.default_moto_services + (services or [])
