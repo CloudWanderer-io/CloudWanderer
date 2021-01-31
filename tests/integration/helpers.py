@@ -191,6 +191,7 @@ class SetupMocking():
     def stop_moto_services(self):
         for service in self.service_mocks.values():
             service.stop()
+        self.service_mocks = {}
 
     def start_limit_collections_list(self, restrict_collections):
         """Limit the boto3 resource collections we service to a subset we use for testing."""
