@@ -5,6 +5,7 @@
     converting Boto3 resources to `CloudWandererResources`
     - Removed `write_secondary_attributes` from `BaseStorageConnector` as it's no longer required to be public.
 - Added `name` argument to `get_secondary_attribute` allowing you to get secondary attributes by name.
+- Ensured that all resource attributes that *can* exist *do* exist when `CloudWandererResource` returned from `CloudWandererBoto3Interface`, irrespective of whether they were returned in that particular API call.
 
 ## New Resources
 

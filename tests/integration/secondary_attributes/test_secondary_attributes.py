@@ -21,6 +21,7 @@ def generate_params():
                 resource_name,
                 attribute_name
             )
+    get_default_mocker().stop_general_mock()
 
 
 class TestSecondaryAttributes(unittest.TestCase):
@@ -32,7 +33,7 @@ class TestSecondaryAttributes(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        get_default_mocker().stop_general_mock
+        get_default_mocker().stop_general_mock()
 
     @parameterized.expand(generate_params())
     def test_query_secondary_attributes(self, _, service_name, region_name, resource_type, attribute_name):
