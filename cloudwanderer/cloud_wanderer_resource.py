@@ -14,9 +14,9 @@ class ResourceMetadata:
 
     Attributes:
         resource_data (dict):
-                The raw dictionary representation of the Resource.
+            The raw dictionary representation of the Resource.
         secondary_attributes (list):
-            the list of raw dictionary representation of the Resource's secondary attributes.
+            The list of the resource's :class:`SecondaryAttribute` objects.
     """
 
     def __init__(self, resource_data: dict, secondary_attributes: list) -> None:
@@ -26,7 +26,7 @@ class ResourceMetadata:
             resource_data (dict):
                 The raw dictionary representation of the Resource.
             secondary_attributes (list):
-                the list of raw dictionary representation of the Resource's secondary attributes.
+                The list of the resource's :class:`SecondaryAttribute` objects.
         """
         self.resource_data = resource_data
         self.secondary_attributes = secondary_attributes
@@ -37,7 +37,7 @@ class CloudWandererResource():
 
     Attributes:
         urn (AwsUrn): The URN of the resource.
-        cloudwanderer_metadata (ResourceMetadata): The raw metadata of this resource.
+        cloudwanderer_metadata (ResourceMetadata): The metadata of this resource (including attributes).
     """
 
     def __init__(self, urn: AwsUrn, resource_data: dict,
@@ -123,6 +123,9 @@ class SecondaryAttribute(dict):
 
     Allows us to store unstructured data in a dict-like object while maintaining the
     attribute_name attribute.
+
+    Attributes:
+        attribute_name (str): The name of the attribute.
     """
 
     def __init__(self, name: str, **kwargs) -> None:

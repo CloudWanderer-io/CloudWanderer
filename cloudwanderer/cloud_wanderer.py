@@ -40,7 +40,7 @@ class CloudWanderer():
 
         Arguments:
             exclude_resources (list): A list of service:resources to exclude (e.g. ``['ec2:instance']``)
-            **kwargs: Additional keyword argumentss will be passed down to the cloud interface methods.
+            **kwargs: Additional keyword arguments will be passed down to the cloud interface methods.
         """
         logger.info('Writing resources in all regions')
         for region_name in self.cloud_interface.enabled_regions:
@@ -68,7 +68,7 @@ class CloudWanderer():
                 storage connector and has not been thoroughly tested!
             cloud_interface_generator (Callable): A method which returns a new cloud interface session when called.
                 This helps prevent non-threadsafe cloud interfaces from interfering with each others.
-            **kwargs: Additional keyword argumentss will be passed down to the cloud interface methods.
+            **kwargs: Additional keyword arguments will be passed down to the cloud interface methods.
         """
         logger.info('Writing resources in all regions')
         logger.warning('Using concurrency of: %s - CONCURRENCY IS EXPERIMENTAL', concurrency)
@@ -99,7 +99,7 @@ class CloudWanderer():
             region_name (str):
                 The name of the region to get resources from
                 (defaults to session default if not specified)
-            **kwargs: Additional keyword argumentss will be passed down to the cloud interface methods.
+            **kwargs: Additional keyword arguments will be passed down to the cloud interface methods.
         """
         exclude_resources = exclude_resources or []
         for boto3_service in self.cloud_interface.get_all_resource_services():
@@ -127,7 +127,7 @@ class CloudWanderer():
             region_name (str):
                 The name of the region to get resources from
                 (defaults to session default if not specified)
-            **kwargs: Additional keyword argumentss will be passed down to the cloud interface methods.
+            **kwargs: Additional keyword arguments will be passed down to the cloud interface methods.
         """
         region_name = region_name or self.cloud_interface.region_name
 
@@ -162,7 +162,7 @@ class CloudWanderer():
             region_name (str):
                 The name of the region to get resources from
                 (defaults to session default if not specified)
-            **kwargs: Additional keyword argumentss will be passed down to the cloud interface methods.
+            **kwargs: Additional keyword arguments will be passed down to the cloud interface methods.
         """
         region_name = region_name or self.cloud_interface.region_name
         logger.info('--> Fetching %s %s from %s', service_name, resource_type, region_name)
