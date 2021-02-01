@@ -25,11 +25,13 @@ copyright = '2020, Sam Martin'
 author = 'Sam Martin'
 
 # The full version, including alpha/beta/rc tags
-release = '0.10.2'
+release = '0.12.0'
 
 nitpicky = True
 nitpick_ignore = [
-    ('py:exc', 'botocore.exceptions.ClientError')
+    ('py:exc', 'botocore.exceptions.ClientError'),
+    ('py:class', 'botocore.client.ClientCreator'),
+    ('py:class', 'botocore.model.Shape')
 ]
 
 
@@ -76,6 +78,9 @@ intersphinx_mapping = {
     'boto3': ('https://boto3.amazonaws.com/v1/documentation/api/latest/', None),
     'botocore': ('https://botocore.amazonaws.com/v1/documentation/api/latest/', None)
 }
+
+# -- Napoleon
+napoleon_include_init_with_doc = True
 
 # -- Autodoc
 add_module_names = False

@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock
 from cloudwanderer import AwsUrn
-from cloudwanderer.cloud_wanderer_resource import CloudWandererResource
+from cloudwanderer.cloud_wanderer_resource import CloudWandererResource, SecondaryAttribute
 
 
 class TestCloudWandererResource(unittest.TestCase):
@@ -13,12 +13,22 @@ class TestCloudWandererResource(unittest.TestCase):
             resource_data={
                 'CidrBlock': '10.0.0.0/0'
             },
-            secondary_attributes=[{'EnableDnsSupport': {'Value': True}}]
+            secondary_attributes=[
+                SecondaryAttribute(
+                    name='enable_dns_support',
+                    **{'EnableDnsSupport': {'Value': True}}
+                )
+            ]
         )
 
         assert cwr.urn == urn
         assert cwr.cidr_block == '10.0.0.0/0'
-        assert cwr.get_secondary_attribute('[].EnableDnsSupport.Value')[0] is True
+        assert cwr.get_secondary_attribute(jmes_path='[].EnableDnsSupport.Value')[0] is True
+        assert cwr.get_secondary_attribute(name='enable_dns_support') == [{
+            'EnableDnsSupport': {
+                'Value': True
+            }
+        }]
         self.assertRaises(AttributeError, getattr, cwr, 'enable_dns_support')
         assert cwr.is_inflated is True
 
@@ -34,7 +44,7 @@ class TestCloudWandererResource(unittest.TestCase):
                 {'EnableDnsSupport': {'Value': False}}
             ]
         )
-        assert cwr.get_secondary_attribute('[].EnableDnsSupport.Value') == [True, False]
+        assert cwr.get_secondary_attribute(jmes_path='[].EnableDnsSupport.Value') == [True, False]
         self.assertRaises(AttributeError, getattr, cwr, 'enable_dns_support')
         assert cwr.is_inflated is True
 
@@ -100,4 +110,16 @@ class TestCloudWandererResource(unittest.TestCase):
             "resource_type='vpc', resource_id='vpc-11111111'), "
             "resource_data={'CidrBlock': '10.0.0.0/0'}, secondary_attributes=[{'EnableDnsSupport': {'Value': True}}]"
             ")"
+        )
+
+    def test_empty(self):
+        """Do not throw when there is no resource data.
+
+        This scenario occurs for some older AWS resources like sns topics as
+        their ``describe_`` methods can return no data.
+        """
+        CloudWandererResource(
+            urn=AwsUrn.from_string('urn:aws:111111111111:eu-west-2:ec2:vpc:vpc-11111111'),
+            resource_data=None,
+            secondary_attributes=[]
         )

@@ -14,6 +14,7 @@ CloudWanderer
    what_is_cloudwanderer
    examples
    supported_resources
+   resource_definitions
    reference
 
 .. include:: ../README.rst
