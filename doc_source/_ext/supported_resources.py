@@ -94,9 +94,9 @@ class CloudWandererResourcesDirective(SphinxDirective):
                 service
             )
             for resource_collection in resource_collections:
-                shape = service_model.shape_for(resource_collection.resource.model.shape)
+                resource_name = resource_collection.resource.model.name
                 if (service_name, resource_collection.name) not in self.boto3_services:
-                    resource_list += nodes.list_item('', nodes.Text(shape.name))
+                    resource_list += nodes.list_item('', nodes.Text(resource_name))
             if resource_list.children:
                 service_list += nodes.list_item('', nodes.Text(service_name), resource_list)
         return service_list
@@ -152,7 +152,7 @@ class CloudWandererResourceDefinitionsDirective(SphinxDirective):
 
     def run(self) -> list:
         services_section = nodes.section(ids=['cloudwanderer_resources'])
-        services_section += nodes.title('', 'CloudWanderer Resources')
+        services_section += nodes.title('', 'Available Services')
         rst_section = '.. toctree::\n'
         rst_section += '   :maxdepth: 2\n\n'
         for service_name, _ in self.cw.get_cloudwanderer_services():
