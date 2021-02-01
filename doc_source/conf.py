@@ -30,7 +30,8 @@ release = '0.12.0'
 nitpicky = True
 nitpick_ignore = [
     ('py:exc', 'botocore.exceptions.ClientError'),
-    ('py:class', 'botocore.client.ClientCreator')
+    ('py:class', 'botocore.client.ClientCreator'),
+    ('py:class', 'botocore.model.Shape')
 ]
 
 
