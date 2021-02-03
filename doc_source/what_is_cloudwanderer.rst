@@ -45,7 +45,7 @@ Here are a few reasons you might find AWS Config lacking for querying your resou
     not all of these resources are `available to query via Advanced Query <https://github.com/awslabs/aws-config-resource-schema>`_.
     At the time of writing ``AWS::SecretsManager::Secret`` is a good example of this.
     Because this is an AWS service, you have no control over what resources are available via advanced query,
-    even if you ar ewilling to put forth the effort to develop discoveries yourself.
+    even if you are willing to put forth the effort to develop discoveries yourself.
 2. No Subresource Support
     Some resources do not have their own ARNs. Inline IAM Policies are a good example of this.
     It is currently not possible to lookup the policy document of an inline IAM policy via AWS Config.
