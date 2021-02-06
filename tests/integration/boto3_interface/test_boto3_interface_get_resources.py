@@ -1,16 +1,14 @@
+import re
 import unittest
 from unittest.mock import ANY
-import re
-from ..helpers import get_default_mocker, GenericAssertionHelpers
-from ..mocks import (
-    add_infra,
-    MOCK_COLLECTION_INSTANCES,
-    MOCK_COLLECTION_BUCKETS,
-    MOCK_COLLECTION_IAM_GROUPS,
-    MOCK_COLLECTION_IAM_ROLES,
-    MOCK_COLLECTION_IAM_ROLE_POLICIES
-)
+
 from cloudwanderer import CloudWandererBoto3Interface
+
+from ..helpers import GenericAssertionHelpers, get_default_mocker
+from ..mocks import (MOCK_COLLECTION_BUCKETS, MOCK_COLLECTION_IAM_GROUPS,
+                     MOCK_COLLECTION_IAM_ROLE_POLICIES,
+                     MOCK_COLLECTION_IAM_ROLES, MOCK_COLLECTION_INSTANCES,
+                     add_infra)
 
 
 class TestCloudWanderergetResources(unittest.TestCase, GenericAssertionHelpers):
@@ -29,7 +27,7 @@ class TestCloudWanderergetResources(unittest.TestCase, GenericAssertionHelpers):
             'PolicyName': 'APIGatewayServiceRolePolicy',
             'PolicyArn': 'arn:aws:iam::aws:policy/aws-service-role/APIGatewayServiceRolePolicy'
         }],
-        '[].IsTruncated': False
+        '[].IsTruncated': [False, False]
     }, {
         'urn': 'urn:aws:.*:us-east-1:iam:role_policy:.*',
         'policy_name': 'test-role-policy',

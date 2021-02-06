@@ -1,17 +1,22 @@
-from cloudwanderer.cloud_wanderer_resource import CloudWandererResource
+import functools
+import logging
 import os
 import re
-import logging
-from jmespath.lexer import LexerError
-from unittest.mock import patch, MagicMock
-import functools
-from botocore import xform_name
-import cloudwanderer
-from cloudwanderer.service_mappings import ServiceMappingCollection, GlobalServiceResourceMappingNotFound
-from .mocks import generate_mock_session, generate_mock_collection
-from moto import ec2
+from typing import Union
+from unittest.mock import MagicMock, patch
+
 import boto3
 import moto
+from botocore import xform_name
+from jmespath.lexer import LexerError
+from moto import ec2
+
+import cloudwanderer
+from cloudwanderer.cloud_wanderer_resource import CloudWandererResource
+from cloudwanderer.service_mappings import (
+    GlobalServiceResourceMappingNotFound, ServiceMappingCollection)
+
+from .mocks import generate_mock_collection, generate_mock_session
 
 DEFAULT_SESSION = boto3.Session()
 logger = logging.getLogger(__file__)
@@ -127,16 +132,9 @@ class GenericAssertionHelpers:
                     if isinstance(received_item, dict):
                         received_value = received_item.get(key)
                     if isinstance(received_item, CloudWandererResource):
-                        # todo: add getitem to cloudwandererresource that performs these tasks.
                         try:
-                            received_value = str(getattr(received_item, key))
-                        except AttributeError:
-                            try:
-                                received_value = received_item.get_secondary_attribute(
-                                    jmes_path=key
-                                )
-                            except LexerError:
-                                pass
+                            received_value = self._get_key_from_resource(received_item, key)
+                        except KeyError:
                             continue
                     if isinstance(received_value, str) and isinstance(expected_value, str):
                         # Allow regex matching of strings (as moto randomly generates resource IDs)
@@ -156,6 +154,23 @@ class GenericAssertionHelpers:
             for resource in resources
             for secondary_attribute in resource.cloudwanderer_metadata.secondary_attributes
         ]
+
+    def _get_key_from_resource(self, resource, key) -> Union[str, list]:
+        """Key should either be an attribute name or a valid secondary attribute JMESPath.
+
+        Raises:
+            KeyError: Occurs when the key does not exist
+        """
+        try:
+            return str(getattr(resource, key))
+        except AttributeError:
+            try:
+                return resource.get_secondary_attribute(
+                    jmes_path=key
+                )
+            except LexerError:
+                pass
+        raise KeyError(f"{key} missing from {resource}")
 
 
 def clear_aws_credentials():
