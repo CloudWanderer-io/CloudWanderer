@@ -2,7 +2,6 @@
 
 Provides simpler methods for :class:`~.cloud_wanderer.CloudWanderer` to call.
 """
-from build.lib.cloudwanderer.storage_connectors.base_connector import BaseStorageConnector
 from typing import List, Iterator
 import logging
 import boto3
@@ -10,6 +9,7 @@ import botocore
 from botocore import xform_name
 from boto3.resources.base import ServiceResource
 from boto3.resources.model import Collection, ResourceModel
+from .storage_connectors.base_connector import BaseStorageConnector
 from .cloud_wanderer_resource import CloudWandererResource, SecondaryAttribute
 from .custom_resource_definitions import CustomResourceDefinitions
 from .service_mappings import ServiceMappingCollection, GlobalServiceResourceMappingNotFound
