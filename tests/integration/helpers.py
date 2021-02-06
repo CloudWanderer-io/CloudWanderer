@@ -28,7 +28,7 @@ def patch_resource_collections(collections):
         @functools.wraps(func)
         def wrapper_patch_resource_collections(*args, **kwargs):
             with patch.object(
-                cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface,
+                cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface.Boto3Helper,
                 'get_resource_collections',
                 new=MagicMock(side_effect=lambda boto3_service: filter_collections(collections, boto3_service))
             ):
@@ -171,7 +171,7 @@ class SetupMocking():
     def __init__(self):
         self.collections_mock = MagicMock()
         self.collections_patcher = patch(
-            'cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface.get_resource_collections',
+            'cloudwanderer.boto3_helpers.Boto3Helper.get_resource_collections',
             new=self.collections_mock)
         self.service_mocks = {}
         clear_aws_credentials()
@@ -247,9 +247,9 @@ def get_secondary_attribute_types(service_name):
     boto3_interface = cloudwanderer.boto3_interface.CloudWandererBoto3Interface(boto3_session=DEFAULT_SESSION)
     service_maps = ServiceMappingCollection(boto3_session=DEFAULT_SESSION)
     service_map = service_maps.get_service_mapping(service_name=service_name)
-    resource_types = boto3_interface.get_service_resource_types_from_collections(
-        boto3_interface.get_resource_collections(
-            boto3_service=boto3_interface.get_resource_service_by_name(
+    resource_types = boto3_interface.boto3_helper.get_service_resource_types_from_collections(
+        boto3_interface.boto3_helper.get_resource_collections(
+            boto3_service=boto3_interface.boto3_helper.get_resource_service_by_name(
                 service_name=service_name
             )
         )

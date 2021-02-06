@@ -164,7 +164,7 @@ def limit_collections_list():
     mock_collections = []
     for service, name_tuple in collections_to_mock:
         mock_collections.append(generate_mock_collection(service, name_tuple[0], name_tuple[1]))
-    cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface.get_resource_collections = MagicMock(
+    cloudwanderer.boto3_helpers.Boto3Helper.get_resource_collections = MagicMock(
         side_effect=lambda boto3_service: filter_collections(mock_collections, boto3_service)
     )
 
