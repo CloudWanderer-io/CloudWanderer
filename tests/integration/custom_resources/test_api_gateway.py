@@ -27,7 +27,7 @@ class TestSecretsManagerResources(unittest.TestCase, GenericAssertionHelpers):
             name='TestApi',
         )
 
-        self.wanderer.write_resources_of_service_in_region(region_name='eu-west-2', service_name='apigateway')
+        self.wanderer.write_resources(regions=['eu-west-2'], service_names=['apigateway'])
 
         self.assert_dictionary_overlap(self.storage_connector.read_all(), [
             {

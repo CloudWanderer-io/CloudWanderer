@@ -1,6 +1,8 @@
+from cloudwanderer.cloud_wanderer_resource import CloudWandererResource
 import os
 import re
 import logging
+from jmespath.lexer import LexerError
 from unittest.mock import patch, MagicMock
 import functools
 from botocore import xform_name
@@ -103,16 +105,17 @@ class GenericAssertionHelpers:
         Where all key/values from the received item exist in the expected item.
         """
         received = received if isinstance(received, list) else list(received)
-        unmatched, _ = self.get_dictionary_overlap(received, expected)
+        unmatched, _ = self.get_resource_overlap(received, expected)
         self.assertEqual(unmatched, [], f"{unmatched} was not found in {received}")
 
     def assert_no_dictionary_overlap(self, received, expected):
         """Asserts that NO item in expected has an equivalent item in received."""
         received = received if isinstance(received, list) else list(received)
-        _, matched = self.get_dictionary_overlap(received, expected)
+        _, matched = self.get_resource_overlap(received, expected)
         self.assertEqual(matched, [], f"{matched} was found in {received}")
 
-    def get_dictionary_overlap(self, received, expected):
+    def get_resource_overlap(self, received, expected):
+        """Returns CloudWandererResources/dicts from received that match the keys in the list of dicts in expected."""
         remaining = expected.copy()
         matched = []
         for received_item in received:
@@ -120,12 +123,26 @@ class GenericAssertionHelpers:
                 if expected_item not in remaining:
                     continue
                 matching = []
-                for key, value in expected_item.items():
-                    if isinstance(value, str) and isinstance(received_item.get(key), str):
+                for key, expected_value in expected_item.items():
+                    if isinstance(received_item, dict):
+                        received_value = received_item.get(key)
+                    if isinstance(received_item, CloudWandererResource):
+                        # todo: add getitem to cloudwandererresource that performs these tasks.
+                        try:
+                            received_value = str(getattr(received_item, key))
+                        except AttributeError:
+                            try:
+                                received_value = received_item.get_secondary_attribute(
+                                    jmes_path=key
+                                )
+                            except LexerError:
+                                pass
+                            continue
+                    if isinstance(received_value, str) and isinstance(expected_value, str):
                         # Allow regex matching of strings (as moto randomly generates resource IDs)
-                        matching.append(re.match(value, received_item.get(key)))
+                        matching.append(re.match(expected_value, received_value))
                     else:
-                        matching.append(received_item.get(key) == value)
+                        matching.append(expected_value == received_value)
 
                 if all(matching):
                     remaining.remove(expected_item)
