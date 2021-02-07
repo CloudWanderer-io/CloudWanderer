@@ -200,9 +200,7 @@ class CloudWandererBoto3Interface(Boto3CommonAttributesMixin):
         """
         service_map = self.service_maps.get_service_mapping(service_name=service_name)
         region_name = region_name or self.region_name
-        if (
-            service_map.is_global_service and service_map.global_service_region != region_name
-        ):
+        if service_map.is_global_service and service_map.global_service_region != region_name:
             logger.info(
                 "Skipping %s as it does not have resources in %s",
                 service_name,
@@ -212,11 +210,10 @@ class CloudWandererBoto3Interface(Boto3CommonAttributesMixin):
         boto3_service = self.boto3_helper.get_resource_service_by_name(
             service_name, **kwargs
         )
-        boto3_resource_collection = (
-            self.boto3_helper.get_resource_collection_by_resource_type(
-                boto3_service, resource_type
-            )
+        boto3_resource_collection = self.boto3_helper.get_resource_collection_by_resource_type(
+            boto3_service, resource_type
         )
+
         resources = self.boto3_helper.get_resource_from_collection(
             boto3_service=boto3_service,
             boto3_resource_collection=boto3_resource_collection,
