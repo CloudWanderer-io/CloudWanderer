@@ -10,9 +10,13 @@ import boto3
 from boto3.resources.model import ResourceModel
 
 from .aws_urn import AwsUrn
-from .boto3_helpers import (Boto3CommonAttributesMixin, Boto3Helper,
-                            _prepare_boto3_resource_data,
-                            get_resource_collection_by_resource_type)
+from .boto3_helpers import (
+    Boto3CommonAttributesMixin,
+    Boto3Helper,
+    _prepare_boto3_resource_data,
+    get_resource_collection_by_resource_type,
+    get_resource_from_collection,
+)
 from .cloud_wanderer_resource import CloudWandererResource
 from .service_mappings import ServiceMappingCollection
 from .storage_connectors.base_connector import BaseStorageConnector
@@ -215,7 +219,7 @@ class CloudWandererBoto3Interface(Boto3CommonAttributesMixin):
             boto3_service, resource_type
         )
 
-        resources = self.boto3_helper.get_resource_from_collection(
+        resources = get_resource_from_collection(
             boto3_service=boto3_service,
             boto3_resource_collection=boto3_resource_collection,
         )
@@ -314,8 +318,8 @@ class CloudWandererBoto3Interface(Boto3CommonAttributesMixin):
             current_urns (List[AwsUrn]):
                 A list of URNs which are still current and should not be deleted.
         """
-        regions_returned = self.boto3_helper.resource_regions_returned_from_api_region(
-            service_name, region_name
+        regions_returned = self.service_maps.resource_regions_returned_from_api_region(
+            service_name=service_name, region_name=region_name, enabled_regions=self.enabled_regions
         )
         for region_name in regions_returned:
             logger.info(

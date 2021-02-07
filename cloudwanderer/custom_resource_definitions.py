@@ -195,6 +195,17 @@ class CustomResourceDefinitions():
         if boto3_service is not None:
             yield from get_resource_collections(boto3_service=boto3_service)
 
+    def get_service_resource_types(self, service_name: str) -> Iterator[str]:
+        """Return all resource names for a given service.
+
+        Returns resources for both native boto3 resources and custom cloudwanderer resources.
+
+        Arguments:
+            service_name: The name of the service to get resource types for (e.g. ``'ec2'``)
+        """
+        for collection in self.get_all_service_collections(service_name):
+            yield botocore.xform_name(collection.resource.model.name)
+
 
 def _get_resource_definitions() -> CustomResourceDefinitions:
     """Return a default set of resource definitions."""

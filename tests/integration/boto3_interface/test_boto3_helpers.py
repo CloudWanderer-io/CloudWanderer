@@ -6,9 +6,15 @@ from botocore.model import Shape
 
 from cloudwanderer.aws_urn import AwsUrn
 from cloudwanderer.boto3_helpers import (
-    Boto3Helper, _clean_boto3_metadata, _get_resource_attributes,
-    get_resource_collection_by_resource_type, get_resource_collections,
-    get_service_resource_types_from_collections, get_shape)
+    Boto3Helper,
+    _clean_boto3_metadata,
+    _get_resource_attributes,
+    get_resource_collection_by_resource_type,
+    get_resource_collections,
+    get_resource_from_collection,
+    get_service_resource_types_from_collections,
+    get_shape,
+)
 from cloudwanderer.custom_resource_definitions import CustomResourceDefinitions
 from cloudwanderer.service_mappings import ServiceMappingCollection
 
@@ -58,7 +64,7 @@ class TestBoto3Helper(unittest.TestCase):
 
     def test_get_resource_from_collection(self):
         result = list(
-            self.boto3_helper.get_resource_from_collection(
+            get_resource_from_collection(
                 boto3_service=self.boto3_service,
                 boto3_resource_collection=self.boto3_service.meta.resource_model.collections[
                     0
@@ -67,21 +73,6 @@ class TestBoto3Helper(unittest.TestCase):
         )
 
         assert result[0].name == "test-group"
-
-    def test_get_service_resource_types(self):
-        result = list(self.boto3_helper.get_service_resource_types(service_name="iam"))
-
-        expected = {
-            "group",
-            "instance_profile",
-            "policy",
-            "role",
-            "saml_provider",
-            "server_certificate",
-            "user",
-            "virtual_mfa_device",
-        }
-        assert expected.issubset(result)
 
     def test_get_service_resource_types_from_collections(self):
         result = list(
@@ -174,15 +165,6 @@ class TestBoto3Helper(unittest.TestCase):
         )
 
         assert result[0].name == "VpcEnableDnsSupport"
-
-    def test_resource_regions_returned_from_api_region(self):
-        result = list(
-            self.boto3_helper.resource_regions_returned_from_api_region(
-                service_name="s3", region_name="us-east-1"
-            )
-        )
-
-        assert result == ["eu-west-2", "us-east-1"]
 
     def test_get_resource_urn(self):
         result = self.boto3_helper.get_resource_urn(

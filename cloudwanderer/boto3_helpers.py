@@ -10,10 +10,8 @@ from botocore import xform_name
 
 from .aws_urn import AwsUrn
 from .cloud_wanderer_resource import SecondaryAttribute
-from .custom_resource_definitions import (CustomResourceDefinitions,
-                                          get_resource_collections)
-from .service_mappings import (GlobalServiceResourceMappingNotFound,
-                               ServiceMappingCollection)
+from .custom_resource_definitions import CustomResourceDefinitions, get_resource_collections
+from .service_mappings import GlobalServiceResourceMappingNotFound, ServiceMappingCollection
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +59,8 @@ class Boto3Helper(Boto3CommonAttributesMixin):
             service_name (str): The service to check for valid resources.
             resource_types (List[str]): The list of resources to ensure are valid.
         """
-        service_resource_types = list(self.get_service_resource_types(service_name=service_name))
+        service_resource_types = self.custom_resource_definitions.get_service_resource_types(service_name=service_name)
+
         if resource_types:
             return [
                 resource_type
@@ -69,43 +68,7 @@ class Boto3Helper(Boto3CommonAttributesMixin):
                 if resource_type in service_resource_types
             ]
 
-        return service_resource_types
-
-    def get_resource_from_collection(
-            self, boto3_service: boto3.resources.base.ServiceResource,
-            boto3_resource_collection: boto3.resources.model.Collection) -> Iterator[ResourceModel]:
-        """Return all resources of this resource type (collection) from this service.
-
-        Arguments:
-            boto3_service (boto3.resources.base.ServiceResource): The service resource from which to return resources.
-            boto3_resource_collection (boto3.resources.model.Collection): The resource collection to get.
-
-        Raises:
-            botocore.exceptions.ClientError: A Boto3 client error.
-        """
-        if not hasattr(boto3_service, boto3_resource_collection.name):
-            logger.warning('%s does not have %s', boto3_service.__class__.__name__, boto3_resource_collection.name)
-            return
-        try:
-            yield from getattr(boto3_service, boto3_resource_collection.name).all()
-        except botocore.exceptions.EndpointConnectionError as ex:
-            logger.warning(ex)
-        except botocore.exceptions.ClientError as ex:
-            if ex.response['Error']['Code'] == 'InvalidAction':
-                logger.warning(ex.response['Error']['Message'])
-                return
-            raise
-
-    def get_service_resource_types(self, service_name: str) -> Iterator[str]:
-        """Return all resource names for a given service.
-
-        Returns resources for both native boto3 resources and custom cloudwanderer resources.
-
-        Arguments:
-            service_name: The name of the service to get resource types for (e.g. ``'ec2'``)
-        """
-        for collection in self.custom_resource_definitions.get_all_service_collections(service_name):
-            yield xform_name(collection.resource.model.name)
+        return list(service_resource_types)
 
     def get_subresources(
             self, boto3_resource: boto3.resources.base.ServiceResource) -> boto3.resources.base.ServiceResource:
@@ -142,6 +105,12 @@ class Boto3Helper(Boto3CommonAttributesMixin):
             resource_type: str) -> boto3.resources.base.ServiceResource:
         """Return all child resources of resource_type for this resource.
 
+        This method contextualises the ``has`` and ``hasMany`` relationships that Boto3 uses to specify subresources.
+        If they are found in the service map, then they are subresources or secondary attributes that CloudWanderer
+        needs to record into storage. Anything that is not in the servicemap probably represents a relationship between
+        base resources (i.e. resources that have ARNs) and that subresource will be captured separately as
+        a base resource.
+
         Arguments:
             boto3_resource (boto3.resources.base.ServiceResource):
                 The :class:`boto3.resources.base.ServiceResource`
@@ -170,7 +139,7 @@ class Boto3Helper(Boto3CommonAttributesMixin):
                 continue
             if resource_mapping.resource_type != resource_type:
                 continue
-            child_resources = self.get_resource_from_collection(
+            child_resources = get_resource_from_collection(
                 boto3_service=boto3_resource,
                 boto3_resource_collection=child_resource_collection
             )
@@ -181,10 +150,13 @@ class Boto3Helper(Boto3CommonAttributesMixin):
     def get_child_resource_definitions(
             self, service_name: str, boto3_resource_model: boto3.resources.model.ResourceModel,
             resource_type: str) -> boto3.resources.model.ResourceModel:
-        """Return all secondary attributes models for this resource.
+        """Return all child resource models for this resource.
 
-        Subresources and collections on custom service resources may be secondary attribute definitions if
-        specified in metadata.
+        This method contextualises the ``has`` and ``hasMany`` relationships that Boto3 uses to specify subresources.
+        If they are found in the service map, then they are subresources or secondary attributes that CloudWanderer
+        needs to record into storage. Anything that is not in the servicemap probably represents a relationship between
+        base resources (i.e. resources that have ARNs) and that subresource will be captured separately as
+        a base resource.
 
         Arguments:
             service_name (str):
@@ -214,29 +186,6 @@ class Boto3Helper(Boto3CommonAttributesMixin):
             if resource_mapping.resource_type != resource_type:
                 continue
             yield secondary_attribute_collection
-
-    def resource_regions_returned_from_api_region(
-            self, service_name: str, region_name: str) -> Iterator[str]:
-        """Return a list of regions which will be discovered for this resource type in this region.
-
-        Usually this will just return the region which is passed in, but some resources are only queryable
-        from a single region despite having resources from multiple regions (e.g. s3 buckets)
-
-        Arguments:
-            service_name (str): The name of the service to check (e.g. ``'ec2'``)
-            region_name (str): The name of the region to check (e.g. ``'eu-west-1'``)
-        """
-        service_map = self.service_maps.get_service_mapping(service_name=service_name)
-        if not service_map.is_global_service:
-            yield region_name
-            return
-
-        if service_map.global_service_region != region_name:
-            return
-        elif not service_map.has_regional_resources:
-            yield region_name
-        else:
-            yield from self.enabled_regions
 
     def get_resource_urn(self, resource: ResourceModel, region_name: str) -> 'AwsUrn':
         id_members = [x.name for x in resource.meta.resource_model.identifiers]
@@ -325,3 +274,29 @@ def get_resource_collection_by_resource_type(
             continue
 
         return boto3_resource_collection
+
+
+def get_resource_from_collection(
+        boto3_service: boto3.resources.base.ServiceResource,
+        boto3_resource_collection: boto3.resources.model.Collection) -> Iterator[ResourceModel]:
+    """Return all resources of this resource type (collection) from this service.
+
+    Arguments:
+        boto3_service (boto3.resources.base.ServiceResource): The service resource from which to return resources.
+        boto3_resource_collection (boto3.resources.model.Collection): The resource collection to get.
+
+    Raises:
+        botocore.exceptions.ClientError: A Boto3 client error.
+    """
+    if not hasattr(boto3_service, boto3_resource_collection.name):
+        logger.warning('%s does not have %s', boto3_service.__class__.__name__, boto3_resource_collection.name)
+        return
+    try:
+        yield from getattr(boto3_service, boto3_resource_collection.name).all()
+    except botocore.exceptions.EndpointConnectionError as ex:
+        logger.warning(ex)
+    except botocore.exceptions.ClientError as ex:
+        if ex.response['Error']['Code'] == 'InvalidAction':
+            logger.warning(ex.response['Error']['Message'])
+            return
+        raise

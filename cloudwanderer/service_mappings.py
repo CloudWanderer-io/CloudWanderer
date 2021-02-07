@@ -8,14 +8,16 @@ the :class:`~boto3.session.Session`'s region is used.
 Additionally this is used to expose information about whether custom resources
 should be stored as secondary attributes or resources.
 """
-from typing import Any, List
+import json
 import os
 import pathlib
-import json
+from typing import Any, Iterator, List
+
 import boto3
-from botocore.client import ClientCreator
 import jmespath
 from boto3.resources.model import ResourceModel
+from botocore.client import ClientCreator
+
 from .custom_resource_definitions import _get_resource_definitions
 
 
@@ -67,6 +69,34 @@ class ServiceMappingCollection:
                 boto3_session=self.boto3_session
             )
         return service_mappings
+
+    def resource_regions_returned_from_api_region(
+            self, service_name: str, region_name: str, enabled_regions: List[str]) -> Iterator[str]:
+        """Return a list of regions which will be discovered for this resource type in this region.
+
+        Usually this will just return the region which is passed in, but some resources are only queryable
+        from a single region despite having resources from multiple regions (e.g. s3 buckets)
+
+        Arguments:
+            service_name (str):
+                The name of the service to check (e.g. ``'ec2'``)
+            region_name (str):
+                The name of the region to check (e.g. ``'eu-west-1'``)
+            enabled_regions (List[str]):
+                The full list of regions enabled in this account. This is returned if the service has a global
+                API but regional resources (e.g. S3 Buckets)
+        """
+        service_map = self.get_service_mapping(service_name=service_name)
+        if not service_map.is_global_service:
+            yield region_name
+            return
+
+        if service_map.global_service_region != region_name:
+            return
+        elif not service_map.has_regional_resources:
+            yield region_name
+        else:
+            yield from enabled_regions
 
     def _load_service_mapping(self, service_name: str) -> dict:
         with open(os.path.join(self.service_mappings_path, f"{service_name}.json")) as definition_path:
