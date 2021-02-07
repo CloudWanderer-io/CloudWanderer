@@ -1,13 +1,19 @@
 """Helper classes and methods for interacting with boto3."""
-from typing import List, Iterator
 import logging
+from functools import lru_cache
+from typing import Iterator, List
+
 import boto3
 import botocore
-from botocore import xform_name
-from boto3.resources.model import Collection, ResourceModel
 from boto3.resources.base import ServiceResource
-from .service_mappings import ServiceMappingCollection, GlobalServiceResourceMappingNotFound
+from boto3.resources.model import Collection, ResourceModel
+from botocore import xform_name
+
+from .aws_urn import AwsUrn
+from .cloud_wanderer_resource import SecondaryAttribute
 from .custom_resource_definitions import CustomResourceDefinitions
+from .service_mappings import (GlobalServiceResourceMappingNotFound,
+                               ServiceMappingCollection)
 
 logger = logging.getLogger(__name__)
 
@@ -15,32 +21,29 @@ logger = logging.getLogger(__name__)
 class Boto3CommonAttributesMixin:
     """Mixin that provides common informational attributes unique to boto3."""
 
-    _enabled_regions = None
-
     @property
+    @lru_cache
     def account_id(self) -> str:
         """Return the AWS Account ID our Boto3 session is authenticated against."""
-        if self._account_id is None:
-            sts = self.boto3_session.client('sts')
-            self._account_id = sts.get_caller_identity()['Account']
-        return self._account_id
+        sts = self.boto3_session.client('sts')
+        return sts.get_caller_identity()['Account']
 
     @property
+    @lru_cache
     def region_name(self) -> str:
         """Return the default AWS region."""
         return self.boto3_session.region_name
 
     @property
+    @lru_cache
     def enabled_regions(self) -> List[str]:
         """Return a list of enabled regions in this account."""
-        if not self._enabled_regions:
-            regions = self.boto3_session.client('ec2').describe_regions()['Regions']
-            self._enabled_regions = [
-                region['RegionName']
-                for region in regions
-                if region['OptInStatus'] != 'not-opted-in'
-            ]
-        return self._enabled_regions
+        regions = self.boto3_session.client('ec2').describe_regions()['Regions']
+        return [
+            region['RegionName']
+            for region in regions
+            if region['OptInStatus'] != 'not-opted-in'
+        ]
 
 
 class Boto3Helper(Boto3CommonAttributesMixin):
@@ -82,17 +85,9 @@ class Boto3Helper(Boto3CommonAttributesMixin):
         """
         return self.custom_resource_definitions.resource(service_name, **kwargs)
 
-    def get_resource_collections(self, boto3_service: boto3.resources.base.ServiceResource) -> List[Collection]:
-        """Return all resource types in this service.
-
-        Arguments:
-            boto3_service (boto3.resources.base.ServiceResource): The service resource from which to return collections
-        """
-        return boto3_service.meta.resource_model.collections
-
     def get_resource_collection_by_resource_type(
-            self, boto3_service: boto3.resources.base.ServiceResource, resource_type: str) -> Iterator[Collection]:
-        """Yield the resource collection that matches the resource_type (e.g. instance).
+            self, boto3_service: boto3.resources.base.ServiceResource, resource_type: str) -> Collection:
+        """Return the resource collection that matches the resource_type (e.g. instance).
 
         This is as opposed to the collection name (e.g. instances)
 
@@ -102,10 +97,10 @@ class Boto3Helper(Boto3CommonAttributesMixin):
             resource_type (str):
                 The resource type for which to return collections
         """
-        for boto3_resource_collection in self.get_resource_collections(boto3_service):
+        for boto3_resource_collection in get_resource_collections(boto3_service):
             if xform_name(boto3_resource_collection.resource.model.name) != resource_type:
                 continue
-            yield boto3_resource_collection
+            return boto3_resource_collection
 
     def get_resource_from_collection(
             self, boto3_service: boto3.resources.base.ServiceResource,
@@ -157,14 +152,12 @@ class Boto3Helper(Boto3CommonAttributesMixin):
     def get_service_resource_collections(self, service_name: str) -> Iterator[Collection]:
         """Return all the resource collections for a given service_name.
 
-        This is crucial to return collections for both native boto3 resources and custom cloudwanderer resources.
-
         Arguments:
             service_name: The name of the service to get resource types for (e.g. ``'ec2'``)
         """
         boto3_service = self.get_resource_service_by_name(service_name)
         if boto3_service is not None:
-            yield from self.get_resource_collections(boto3_service)
+            yield from get_resource_collections(boto3_service)
 
     def get_subresources(
             self, boto3_resource: boto3.resources.base.ServiceResource) -> boto3.resources.base.ServiceResource:
@@ -178,6 +171,23 @@ class Boto3Helper(Boto3CommonAttributesMixin):
                 to get secondary attributes from
         """
         yield from self.get_child_resources(boto3_resource=boto3_resource, resource_type='resource')
+
+    def get_secondary_attributes(self, boto3_resource: boto3.resources.base.ServiceResource) -> SecondaryAttribute:
+        """Return all secondary attributes resources for this resource.
+
+        Subresources and collections on custom service resources may be secondary attribute definitions if
+        specified in metadata.
+
+        Arguments:
+            boto3_resource (boto3.resources.base.ServiceResource): The :class:`boto3.resources.base.ServiceResource`
+                to get secondary attributes from
+        """
+        secondary_attributes = self.get_child_resources(
+            boto3_resource=boto3_resource, resource_type='secondaryAttribute')
+        for secondary_attribute in secondary_attributes:
+            yield SecondaryAttribute(
+                name=xform_name(secondary_attribute.meta.resource_model.name),
+                **_clean_boto3_metadata(secondary_attribute.meta.data))
 
     def get_child_resources(
             self, boto3_resource: boto3.resources.base.ServiceResource,
@@ -205,7 +215,7 @@ class Boto3Helper(Boto3CommonAttributesMixin):
             subresource.load()
             yield subresource
 
-        for child_resource_collection in self.get_resource_collections(boto3_resource):
+        for child_resource_collection in get_resource_collections(boto3_resource):
             try:
                 resource_mapping = service_mapping.get_resource_mapping(child_resource_collection.resource.model.name)
             except GlobalServiceResourceMappingNotFound:
@@ -280,6 +290,24 @@ class Boto3Helper(Boto3CommonAttributesMixin):
         else:
             yield from self.enabled_regions
 
+    def get_resource_urn(self, resource: ResourceModel, region_name: str) -> 'AwsUrn':
+        id_members = [x.name for x in resource.meta.resource_model.identifiers]
+        resource_ids = []
+        for id_member in id_members:
+            id_part = getattr(resource, id_member)
+            if id_part.startswith('arn:'):
+                id_part = ''.join(id_part.split(':')[5:])
+            resource_ids.append(id_part)
+        compound_resource_id = '/'.join(resource_ids)
+        service_map = self.service_maps.get_service_mapping(resource.meta.service_name)
+        return AwsUrn(
+            account_id=self.account_id,
+            region=service_map.get_resource_region(resource, region_name),
+            service=resource.meta.service_name,
+            resource_type=xform_name(resource.meta.resource_model.name),
+            resource_id=compound_resource_id
+        )
+
 
 def _get_resource_attributes(
         boto3_resource: boto3.resources.base.ServiceResource, snake_case: bool = False) -> dict:
@@ -318,3 +346,12 @@ def _clean_boto3_metadata(boto3_metadata: dict) -> dict:
         if key in boto3_metadata:
             del boto3_metadata[key]
     return boto3_metadata
+
+
+def get_resource_collections(boto3_service: boto3.resources.base.ServiceResource) -> List[Collection]:
+    """Return all resource types in this service.
+
+    Arguments:
+        boto3_service (boto3.resources.base.ServiceResource): The service resource from which to return collections
+    """
+    return boto3_service.meta.resource_model.collections

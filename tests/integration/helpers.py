@@ -12,13 +12,14 @@ from jmespath.lexer import LexerError
 from moto import ec2
 
 import cloudwanderer
+from cloudwanderer.boto3_helpers import get_resource_collections
 from cloudwanderer.cloud_wanderer_resource import CloudWandererResource
 from cloudwanderer.service_mappings import (
     GlobalServiceResourceMappingNotFound, ServiceMappingCollection)
 
 from .mocks import generate_mock_collection, generate_mock_session
 
-DEFAULT_SESSION = boto3.Session()
+DEFAULT_SESSION = boto3.Session(aws_access_key_id='11111111', aws_secret_access_key='111111', aws_session_token='1111')
 logger = logging.getLogger(__file__)
 
 
@@ -33,7 +34,7 @@ def patch_resource_collections(collections):
         @functools.wraps(func)
         def wrapper_patch_resource_collections(*args, **kwargs):
             with patch.object(
-                cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface.Boto3Helper,
+                cloudwanderer.cloud_wanderer.boto3_helper,
                 'get_resource_collections',
                 new=MagicMock(side_effect=lambda boto3_service: filter_collections(collections, boto3_service))
             ):
@@ -186,7 +187,7 @@ class SetupMocking():
     def __init__(self):
         self.collections_mock = MagicMock()
         self.collections_patcher = patch(
-            'cloudwanderer.boto3_helpers.Boto3Helper.get_resource_collections',
+            'cloudwanderer.boto3_helpers.get_resource_collections',
             new=self.collections_mock)
         self.service_mocks = {}
         clear_aws_credentials()
@@ -263,7 +264,7 @@ def get_secondary_attribute_types(service_name):
     service_maps = ServiceMappingCollection(boto3_session=DEFAULT_SESSION)
     service_map = service_maps.get_service_mapping(service_name=service_name)
     resource_types = boto3_interface.boto3_helper.get_service_resource_types_from_collections(
-        boto3_interface.boto3_helper.get_resource_collections(
+        get_resource_collections(
             boto3_service=boto3_interface.boto3_helper.get_resource_service_by_name(
                 service_name=service_name
             )

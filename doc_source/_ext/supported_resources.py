@@ -1,15 +1,18 @@
-import docutils
 import os
 import pathlib
+
+import boto3
+import botocore
+import docutils
+import sphinx
+from botocore import xform_name
 from docutils import nodes
 from docutils.frontend import OptionParser
-import botocore
-import sphinx
-from sphinx.util.docutils import SphinxDirective
 from sphinx.domains import Domain
-from botocore import xform_name
-import boto3
+from sphinx.util.docutils import SphinxDirective
+
 import cloudwanderer
+from cloudwanderer.boto3_helpers import get_resource_collections
 
 SECONDARY_ATTR_TEMPLATE = """
 .. py:class:: {service_name}.{parent_resource_name}.{resource_name}
@@ -76,7 +79,7 @@ class CloudWandererResourcesDirective(SphinxDirective):
     def get_boto3_default_services(self) -> list:
         boto3_services = self.boto3_session.get_available_resources()
         for service_name in boto3_services:
-            resource_collections = self.boto3_interface.boto3_helper.get_resource_collections(
+            resource_collections = get_resource_collections(
                 self.boto3_session.resource(service_name)
             )
             for resource_collection in resource_collections:
@@ -90,7 +93,7 @@ class CloudWandererResourcesDirective(SphinxDirective):
             service_model = client.meta.service_model
             service_name = service_model.metadata['serviceId']
             resource_list = nodes.bullet_list()
-            resource_collections = self.boto3_interface.boto3_helper.get_resource_collections(
+            resource_collections = get_resource_collections(
                 service
             )
             for resource_collection in resource_collections:
@@ -123,7 +126,7 @@ class CloudWandererSecondaryAttributesDirective(SphinxDirective):
         service_list = nodes.bullet_list()
 
         for boto3_service in self.boto3_interface.boto3_helper.get_all_resource_services():
-            for collection in self.boto3_interface.boto3_helper.get_resource_collections(boto3_service):
+            for collection in get_resource_collections(boto3_service):
                 service_model = boto3_service.meta.client.meta.service_model
                 service_name = service_model.metadata['serviceId']
                 resource_list = nodes.bullet_list()
@@ -212,7 +215,7 @@ class GetCwServices:
 
         result = []
         collections = sorted(
-            self.boto3_interface.boto3_helper.get_resource_collections(boto3_service),
+            get_resource_collections(boto3_service),
             key=lambda x: x.resource.model.name)
         for collection in collections:
             result.append(self.generate_resource_section(boto3_service, collection, "{service_name}.{resource_name}"))
