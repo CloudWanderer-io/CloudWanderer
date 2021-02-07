@@ -4,17 +4,18 @@ Custom resources use the :class:`boto3.resources.base.ServiceResource` model to 
 AWS resources that boto3 does not support natively. We can do this quite easily because CloudWanderer only needs
 a fraction of the functionality that native boto3 resources provide (i.e. the description of the resources).
 """
-from typing import List
-import os
 import json
+import os
 import pathlib
-import botocore
-import boto3
-from botocore.exceptions import UnknownServiceError
-from boto3.resources.model import ResourceModel
-from boto3.resources.factory import ResourceFactory
-from boto3.utils import ServiceContext
+from typing import Iterator, List
 
+import boto3
+import botocore
+from boto3.resources.base import ServiceResource
+from boto3.resources.factory import ResourceFactory
+from boto3.resources.model import ResourceModel
+from boto3.utils import ServiceContext
+from botocore.exceptions import UnknownServiceError
 
 # Default resource definitions, loaded when needed
 DEFAULT_RESOURCE_DEFINITIONS = None
@@ -174,6 +175,15 @@ class CustomResourceDefinitions():
             return self.services[service_name](
                 client=self.boto3_session.client(service_name, **kwargs))
         return None
+
+    def get_all_resource_services(self, **kwargs) -> Iterator[ServiceResource]:
+        """Return all boto3 service Resource objects.
+
+        Arguments:
+            **kwargs: Additional keyword arguments will be passed down to the Boto3 client.
+        """
+        for service_name in self.definitions:
+            yield self.resource(service_name, **kwargs)
 
 
 def _get_resource_definitions() -> CustomResourceDefinitions:

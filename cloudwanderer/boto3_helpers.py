@@ -5,7 +5,6 @@ from typing import Iterator, List
 
 import boto3
 import botocore
-from boto3.resources.base import ServiceResource
 from boto3.resources.model import Collection, ResourceModel
 from botocore import xform_name
 
@@ -65,26 +64,6 @@ class Boto3Helper(Boto3CommonAttributesMixin):
 
         return service_resource_types
 
-    def get_all_resource_services(self, **kwargs) -> Iterator[ServiceResource]:
-        """Return all boto3 service Resource objects.
-
-        Arguments:
-            **kwargs: Additional keyword arguments will be passed down to the Boto3 client.
-        """
-        for service_name in self.custom_resource_definitions.definitions:
-            yield self.get_resource_service_by_name(service_name, **kwargs)
-
-    def get_resource_service_by_name(
-            self, service_name: str, **kwargs) -> boto3.resources.model.ResourceModel:
-        """Get the resource definition matching this service name.
-
-        Arguments:
-            service_name (str):
-                The name of the service (e.g. ``'ec2'``) to get.
-            **kwargs: Additional keyword arguments will be passed down to the Boto3 client.
-        """
-        return self.custom_resource_definitions.resource(service_name, **kwargs)
-
     def get_resource_collection_by_resource_type(
             self, boto3_service: boto3.resources.base.ServiceResource, resource_type: str) -> Collection:
         """Return the resource collection that matches the resource_type (e.g. instance).
@@ -128,7 +107,7 @@ class Boto3Helper(Boto3CommonAttributesMixin):
             raise
 
     def get_service_resource_types(self, service_name: str) -> Iterator[str]:
-        """Return all possible resource names for a given service.
+        """Return all resource names for a given service.
 
         Returns resources for both native boto3 resources and custom cloudwanderer resources.
 
@@ -155,7 +134,7 @@ class Boto3Helper(Boto3CommonAttributesMixin):
         Arguments:
             service_name: The name of the service to get resource types for (e.g. ``'ec2'``)
         """
-        boto3_service = self.get_resource_service_by_name(service_name)
+        boto3_service = self.custom_resource_definitions.resource(service_name)
         if boto3_service is not None:
             yield from get_resource_collections(boto3_service)
 

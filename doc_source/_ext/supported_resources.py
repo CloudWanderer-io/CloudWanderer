@@ -125,7 +125,7 @@ class CloudWandererSecondaryAttributesDirective(SphinxDirective):
     def get_cloudwanderer_secondary_attributes(self) -> list:
         service_list = nodes.bullet_list()
 
-        for boto3_service in self.boto3_interface.boto3_helper.get_all_resource_services():
+        for boto3_service in self.boto3_interface.boto3_helper.custom_resource_definitions.get_all_resource_services():
             for collection in get_resource_collections(boto3_service):
                 service_model = boto3_service.meta.client.meta.service_model
                 service_name = service_model.metadata['serviceId']
@@ -189,7 +189,7 @@ class GetCwServices:
 
     def get_cloudwanderer_services(self) -> list:
         boto3_services = sorted(
-            self.boto3_interface.boto3_helper.get_all_resource_services(),
+            self.boto3_interface.boto3_helper.custom_resource_definitions.get_all_resource_services(),
             key=lambda x: x.meta.resource_model.name)
         for boto3_service in boto3_services:
             service_model = boto3_service.meta.client.meta.service_model

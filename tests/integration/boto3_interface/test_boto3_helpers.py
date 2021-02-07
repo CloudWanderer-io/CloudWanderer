@@ -1,7 +1,6 @@
 import unittest
 from unittest.mock import ANY
 
-from boto3.resources.base import ServiceResource
 from boto3.resources.model import Collection
 from botocore.model import Shape
 
@@ -48,17 +47,6 @@ class TestBoto3Helper(unittest.TestCase):
         )
 
         assert result == ["role"]
-
-    def test_get_all_resource_services(self):
-        result = list(self.boto3_helper.get_all_resource_services())
-
-        assert all(isinstance(service, ServiceResource) for service in result)
-        assert len(result) >= 13
-
-    def test_get_resource_service_by_name(self):
-        result = self.boto3_helper.get_resource_service_by_name(service_name="iam")
-
-        assert isinstance(result, ServiceResource)
 
     def test_get_resource_collection_by_resource_type(self):
         result = self.boto3_helper.get_resource_collection_by_resource_type(

@@ -48,7 +48,7 @@ def patch_services(services):
         @functools.wraps(func)
         def wrapper_patch_services(*args, **kwargs):
             with patch.object(
-                cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface,
+                cloudwanderer.custom_resource_definitions.CustomResourceDefinitions,
                 'get_all_resource_services',
                 new=MagicMock(return_value=[generate_mock_session().resource(service) for service in services])
             ):
@@ -265,7 +265,7 @@ def get_secondary_attribute_types(service_name):
     service_map = service_maps.get_service_mapping(service_name=service_name)
     resource_types = boto3_interface.boto3_helper.get_service_resource_types_from_collections(
         get_resource_collections(
-            boto3_service=boto3_interface.boto3_helper.get_resource_service_by_name(
+            boto3_service=boto3_interface.boto3_helper.custom_resource_definitions.resource(
                 service_name=service_name
             )
         )

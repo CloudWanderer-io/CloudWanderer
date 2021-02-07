@@ -93,10 +93,10 @@ class CloudWandererBoto3Interface(Boto3CommonAttributesMixin):
             **kwargs: Additional keyword arguments will be passed down to the cloud interface methods.
         """
         exclude_resources = exclude_resources or []
-        boto3_services = self.boto3_helper.get_all_resource_services()
+        boto3_services = self.boto3_helper.custom_resource_definitions.get_all_resource_services()
         if service_names is not None:
             boto3_services = [
-                self.boto3_helper.get_resource_service_by_name(service_name, **kwargs)
+                self.boto3_helper.custom_resource_definitions.resource(service_name, **kwargs)
                 for service_name in service_names
             ]
         for boto3_service in boto3_services:
@@ -207,7 +207,7 @@ class CloudWandererBoto3Interface(Boto3CommonAttributesMixin):
                 region_name,
             )
             return
-        boto3_service = self.boto3_helper.get_resource_service_by_name(
+        boto3_service = self.boto3_helper.custom_resource_definitions.resource(
             service_name, **kwargs
         )
         boto3_resource_collection = self.boto3_helper.get_resource_collection_by_resource_type(
@@ -269,10 +269,10 @@ class CloudWandererBoto3Interface(Boto3CommonAttributesMixin):
                 All additional keyword arguments will be passed down to the Boto3 client calls.
         """
         regions = regions or self.enabled_regions
-        boto3_services = self.boto3_helper.get_all_resource_services()
+        boto3_services = self.boto3_helper.custom_resource_definitions.get_all_resource_services()
         if service_names is not None:
             boto3_services = [
-                self.boto3_helper.get_resource_service_by_name(service_name, **kwargs)
+                self.boto3_helper.custom_resource_definitions.resource(service_name, **kwargs)
                 for service_name in service_names
             ]
         for region_name in regions:
