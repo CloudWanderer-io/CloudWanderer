@@ -5,9 +5,10 @@ from boto3.resources.model import Collection
 from botocore.model import Shape
 
 from cloudwanderer.aws_urn import AwsUrn
-from cloudwanderer.boto3_helpers import (Boto3Helper, _clean_boto3_metadata,
-                                         _get_resource_attributes,
-                                         get_resource_collections, get_shape)
+from cloudwanderer.boto3_helpers import (
+    Boto3Helper, _clean_boto3_metadata, _get_resource_attributes,
+    get_resource_collections, get_service_resource_types_from_collections,
+    get_shape)
 from cloudwanderer.custom_resource_definitions import CustomResourceDefinitions
 from cloudwanderer.service_mappings import ServiceMappingCollection
 
@@ -84,7 +85,7 @@ class TestBoto3Helper(unittest.TestCase):
 
     def test_get_service_resource_types_from_collections(self):
         result = list(
-            self.boto3_helper.get_service_resource_types_from_collections(
+            get_service_resource_types_from_collections(
                 collections=self.boto3_service.meta.resource_model.collections
             )
         )
@@ -100,17 +101,6 @@ class TestBoto3Helper(unittest.TestCase):
             "virtual_mfa_device",
         }
         assert expected.issubset(result)
-
-    def test_get_service_resource_collections(self):
-        result = list(
-            self.boto3_helper.get_service_resource_collections(service_name="iam")
-        )
-
-        assert len(result) >= 8
-        assert all(
-            isinstance(resource_collection, Collection)
-            for resource_collection in result
-        )
 
     def test_get_subresources(self):
         result = list(

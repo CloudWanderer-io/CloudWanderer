@@ -10,7 +10,8 @@ from botocore import xform_name
 
 from .aws_urn import AwsUrn
 from .cloud_wanderer_resource import SecondaryAttribute
-from .custom_resource_definitions import CustomResourceDefinitions
+from .custom_resource_definitions import (CustomResourceDefinitions,
+                                          get_resource_collections)
 from .service_mappings import (GlobalServiceResourceMappingNotFound,
                                ServiceMappingCollection)
 
@@ -54,6 +55,12 @@ class Boto3Helper(Boto3CommonAttributesMixin):
         self.custom_resource_definitions = CustomResourceDefinitions(boto3_session=boto3_session)
 
     def get_valid_resource_types(self, service_name: str, resource_types: List[str]) -> List[str]:
+        """Filter out any invalid resources for service_name from resource_types.
+
+        Arguments:
+            service_name (str): The service to check for valid resources.
+            resource_types (List[str]): The list of resources to ensure are valid.
+        """
         service_resource_types = list(self.get_service_resource_types(service_name=service_name))
         if resource_types:
             return [
@@ -76,9 +83,10 @@ class Boto3Helper(Boto3CommonAttributesMixin):
             resource_type (str):
                 The resource type for which to return collections
         """
-        for boto3_resource_collection in get_resource_collections(boto3_service):
+        for boto3_resource_collection in get_resource_collections(boto3_service=boto3_service):
             if xform_name(boto3_resource_collection.resource.model.name) != resource_type:
                 continue
+
             return boto3_resource_collection
 
     def get_resource_from_collection(
@@ -114,29 +122,8 @@ class Boto3Helper(Boto3CommonAttributesMixin):
         Arguments:
             service_name: The name of the service to get resource types for (e.g. ``'ec2'``)
         """
-        for collection in self.get_service_resource_collections(service_name):
+        for collection in self.custom_resource_definitions.get_all_service_collections(service_name):
             yield xform_name(collection.resource.model.name)
-
-    def get_service_resource_types_from_collections(self, collections: List[Collection]) -> Iterator[str]:
-        """Return all possible resource names for a given service.
-
-        Returns resources for both native boto3 resources and custom cloudwanderer resources.
-
-        Arguments:
-            collections (List[Collection]): The list of collections from which to get resource names.
-        """
-        for collection in collections:
-            yield xform_name(collection.resource.model.name)
-
-    def get_service_resource_collections(self, service_name: str) -> Iterator[Collection]:
-        """Return all the resource collections for a given service_name.
-
-        Arguments:
-            service_name: The name of the service to get resource types for (e.g. ``'ec2'``)
-        """
-        boto3_service = self.custom_resource_definitions.resource(service_name)
-        if boto3_service is not None:
-            yield from get_resource_collections(boto3_service)
 
     def get_subresources(
             self, boto3_resource: boto3.resources.base.ServiceResource) -> boto3.resources.base.ServiceResource:
@@ -327,10 +314,13 @@ def _clean_boto3_metadata(boto3_metadata: dict) -> dict:
     return boto3_metadata
 
 
-def get_resource_collections(boto3_service: boto3.resources.base.ServiceResource) -> List[Collection]:
-    """Return all resource types in this service.
+def get_service_resource_types_from_collections(collections: List[Collection]) -> Iterator[str]:
+    """Return all resource names from a list of collections.
+
+    Returns resource names from a list of collections.
 
     Arguments:
-        boto3_service (boto3.resources.base.ServiceResource): The service resource from which to return collections
+        collections (List[Collection]): The list of collections from which to get resource names.
     """
-    return boto3_service.meta.resource_model.collections
+    for collection in collections:
+        yield xform_name(collection.resource.model.name)

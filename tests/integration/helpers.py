@@ -12,7 +12,8 @@ from jmespath.lexer import LexerError
 from moto import ec2
 
 import cloudwanderer
-from cloudwanderer.boto3_helpers import get_resource_collections
+from cloudwanderer.boto3_helpers import (
+    get_resource_collections, get_service_resource_types_from_collections)
 from cloudwanderer.cloud_wanderer_resource import CloudWandererResource
 from cloudwanderer.service_mappings import (
     GlobalServiceResourceMappingNotFound, ServiceMappingCollection)
@@ -34,7 +35,7 @@ def patch_resource_collections(collections):
         @functools.wraps(func)
         def wrapper_patch_resource_collections(*args, **kwargs):
             with patch.object(
-                cloudwanderer.cloud_wanderer.boto3_helper,
+                cloudwanderer.cloud_wanderer.custom_resource_definitions,
                 'get_resource_collections',
                 new=MagicMock(side_effect=lambda boto3_service: filter_collections(collections, boto3_service))
             ):
@@ -187,7 +188,7 @@ class SetupMocking():
     def __init__(self):
         self.collections_mock = MagicMock()
         self.collections_patcher = patch(
-            'cloudwanderer.boto3_helpers.get_resource_collections',
+            'cloudwanderer.custom_resource_definitions.get_resource_collections',
             new=self.collections_mock)
         self.service_mocks = {}
         clear_aws_credentials()
@@ -201,7 +202,7 @@ class SetupMocking():
                 for region_name in restrict_regions
             ]
         if restrict_services:
-            cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface.get_all_resource_services = MagicMock(
+            cloudwanderer.custom_resource_definitions.CustomResourceDefinitions.get_all_resource_services = MagicMock(
                 return_value=[boto3.resource(service) for service in ['ec2', 's3', 'iam']])
         if restrict_collections is not False:
             self.start_limit_collections_list(restrict_collections)
@@ -263,7 +264,7 @@ def get_secondary_attribute_types(service_name):
     boto3_interface = cloudwanderer.boto3_interface.CloudWandererBoto3Interface(boto3_session=DEFAULT_SESSION)
     service_maps = ServiceMappingCollection(boto3_session=DEFAULT_SESSION)
     service_map = service_maps.get_service_mapping(service_name=service_name)
-    resource_types = boto3_interface.boto3_helper.get_service_resource_types_from_collections(
+    resource_types = get_service_resource_types_from_collections(
         get_resource_collections(
             boto3_service=boto3_interface.boto3_helper.custom_resource_definitions.resource(
                 service_name=service_name

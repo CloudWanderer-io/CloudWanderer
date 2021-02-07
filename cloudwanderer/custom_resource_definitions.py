@@ -13,7 +13,7 @@ import boto3
 import botocore
 from boto3.resources.base import ServiceResource
 from boto3.resources.factory import ResourceFactory
-from boto3.resources.model import ResourceModel
+from boto3.resources.model import Collection, ResourceModel
 from boto3.utils import ServiceContext
 from botocore.exceptions import UnknownServiceError
 
@@ -185,6 +185,16 @@ class CustomResourceDefinitions():
         for service_name in self.definitions:
             yield self.resource(service_name, **kwargs)
 
+    def get_all_service_collections(self, service_name: str) -> Iterator[Collection]:
+        """Return all the resource collections for a given service_name.
+
+        Arguments:
+            service_name: The name of the service to get resource types for (e.g. ``'ec2'``)
+        """
+        boto3_service = self.resource(service_name)
+        if boto3_service is not None:
+            yield from get_resource_collections(boto3_service=boto3_service)
+
 
 def _get_resource_definitions() -> CustomResourceDefinitions:
     """Return a default set of resource definitions."""
@@ -193,3 +203,15 @@ def _get_resource_definitions() -> CustomResourceDefinitions:
     if DEFAULT_RESOURCE_DEFINITIONS is None:
         DEFAULT_RESOURCE_DEFINITIONS = CustomResourceDefinitions()
     return DEFAULT_RESOURCE_DEFINITIONS
+
+
+def get_resource_collections(boto3_service: boto3.resources.base.ServiceResource) -> List[Collection]:
+    """Return all resource types in this service.
+
+    This primarily exists to make testing with moto easier so that we can
+    filter out resource collections that moto doesn't support.
+
+    Arguments:
+        boto3_service (boto3.resources.base.ServiceResource): The service resource from which to return collections
+    """
+    return boto3_service.meta.resource_model.collections
