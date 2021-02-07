@@ -22,20 +22,20 @@ class Boto3CommonAttributesMixin:
     """Mixin that provides common informational attributes unique to boto3."""
 
     @property
-    @lru_cache
+    @lru_cache()
     def account_id(self) -> str:
         """Return the AWS Account ID our Boto3 session is authenticated against."""
         sts = self.boto3_session.client('sts')
         return sts.get_caller_identity()['Account']
 
     @property
-    @lru_cache
+    @lru_cache()
     def region_name(self) -> str:
         """Return the default AWS region."""
         return self.boto3_session.region_name
 
     @property
-    @lru_cache
+    @lru_cache()
     def enabled_regions(self) -> List[str]:
         """Return a list of enabled regions in this account."""
         regions = self.boto3_session.client('ec2').describe_regions()['Regions']
