@@ -48,13 +48,6 @@ class TestBoto3Helper(unittest.TestCase):
         self.boto3_helper = Boto3Helper(DEFAULT_SESSION, service_maps=self.service_maps)
         self.boto3_service = DEFAULT_SESSION.resource("iam")
 
-    def test_get_valid_resource_types(self):
-        result = self.boto3_helper.get_valid_resource_types(
-            service_name="iam", resource_types=["instance", "role"]
-        )
-
-        assert result == ["role"]
-
     def test_get_resource_collection_by_resource_type(self):
         result = get_resource_collection_by_resource_type(
             boto3_service=self.boto3_service, resource_type="role"

@@ -206,6 +206,26 @@ class CustomResourceDefinitions():
         for collection in self.get_all_service_collections(service_name):
             yield botocore.xform_name(collection.resource.model.name)
 
+    def get_valid_resource_types(self, service_name: str, resource_types: List[str]) -> List[str]:
+        """Filter out any invalid resources for service_name from resource_types.
+
+        Arguments:
+            service_name (str): The service to check for valid resources.
+            resource_types (List[str]): The list of resources to ensure are valid.
+        """
+        service_resource_types = list(
+            self.get_service_resource_types(service_name=service_name)
+        )
+
+        if resource_types:
+            return [
+                resource_type
+                for resource_type in resource_types
+                if resource_type in service_resource_types
+            ]
+
+        return service_resource_types
+
 
 def _get_resource_definitions() -> CustomResourceDefinitions:
     """Return a default set of resource definitions."""

@@ -143,7 +143,7 @@ class CloudWandererBoto3Interface(Boto3CommonAttributesMixin):
 
         logger.info("Writing all %s resources in %s", service_name, region_name)
         exclude_resources = exclude_resources or []
-        resource_types = self.boto3_helper.get_valid_resource_types(
+        resource_types = self.boto3_helper.custom_resource_definitions.get_valid_resource_types(
             service_name=service_name, resource_types=resource_types
         )
         for resource_type in resource_types:
@@ -282,7 +282,7 @@ class CloudWandererBoto3Interface(Boto3CommonAttributesMixin):
             ]
         for region_name in regions:
             for boto3_service in boto3_services:
-                resource_types = self.boto3_helper.get_valid_resource_types(
+                resource_types = self.boto3_helper.custom_resource_definitions.get_valid_resource_types(
                     service_name=boto3_service.meta.service_name,
                     resource_types=resource_types,
                 )
