@@ -1,4 +1,3 @@
-import functools
 import logging
 import os
 import re
@@ -16,7 +15,7 @@ from cloudwanderer.boto3_helpers import get_resource_collections, get_service_re
 from cloudwanderer.cloud_wanderer_resource import CloudWandererResource
 from cloudwanderer.service_mappings import GlobalServiceResourceMappingNotFound, ServiceMappingCollection
 
-from .mocks import generate_mock_collection, generate_mock_session
+from .mocks import generate_mock_collection
 
 DEFAULT_SESSION = boto3.Session(aws_access_key_id="11111111", aws_secret_access_key="111111", aws_session_token="1111")
 logger = logging.getLogger(__file__)
@@ -26,38 +25,6 @@ def filter_collections(collections, service_resource):
     for collection in collections:
         if service_resource.meta.resource_model.name == collection.meta.service_name:
             yield collection
-
-
-def patch_resource_collections(collections):
-    def decorator_patch_resource_collections(func):
-        @functools.wraps(func)
-        def wrapper_patch_resource_collections(*args, **kwargs):
-            with patch.object(
-                cloudwanderer.cloud_wanderer.custom_resource_definitions,
-                "get_resource_collections",
-                new=MagicMock(side_effect=lambda boto3_service: filter_collections(collections, boto3_service)),
-            ):
-                return func(*args, **kwargs)
-
-        return wrapper_patch_resource_collections
-
-    return decorator_patch_resource_collections
-
-
-def patch_services(services):
-    def decorator_patch_services(func):
-        @functools.wraps(func)
-        def wrapper_patch_services(*args, **kwargs):
-            with patch.object(
-                cloudwanderer.custom_resource_definitions.CustomResourceDefinitions,
-                "get_all_resource_services",
-                new=MagicMock(return_value=[generate_mock_session().resource(service) for service in services]),
-            ):
-                return func(*args, **kwargs)
-
-        return wrapper_patch_services
-
-    return decorator_patch_services
 
 
 class TestStorageConnectorReadMixin:
