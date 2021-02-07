@@ -12,7 +12,7 @@ from boto3.resources.model import ResourceModel
 from .aws_urn import AwsUrn
 from .boto3_helpers import (
     Boto3CommonAttributesMixin,
-    Boto3Helper,
+    Boto3Getter,
     _prepare_boto3_resource_data,
     get_resource_collection_by_resource_type,
     get_resource_from_collection,
@@ -36,7 +36,7 @@ class CloudWandererBoto3Interface(Boto3CommonAttributesMixin):
         """
         self.boto3_session = boto3_session or boto3.Session()
         self.service_maps = ServiceMappingCollection(boto3_session=self.boto3_session)
-        self.boto3_helper = Boto3Helper(
+        self.boto3_helper = Boto3Getter(
             boto3_session=self.boto3_session, service_maps=self.service_maps
         )
 

@@ -40,8 +40,8 @@ class Boto3CommonAttributesMixin:
         return [region["RegionName"] for region in regions if region["OptInStatus"] != "not-opted-in"]
 
 
-class Boto3Helper(Boto3CommonAttributesMixin):
-    """Abstracts some common interactions with Boto3."""
+class Boto3Getter(Boto3CommonAttributesMixin):
+    """Gets Boto3 resources, subresources, and secondary attributes."""
 
     def __init__(self, boto3_session: boto3.session.Session, service_maps: ServiceMappingCollection) -> None:
         self.boto3_session = boto3_session

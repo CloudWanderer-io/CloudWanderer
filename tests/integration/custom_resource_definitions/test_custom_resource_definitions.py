@@ -9,6 +9,7 @@ from ..helpers import DEFAULT_SESSION
 
 
 class TestCustomResourceDefinitions(unittest.TestCase):
+
     def setUp(self):
         self.custom_resource_definitions = CustomResourceDefinitions(boto3_session=DEFAULT_SESSION)
 
