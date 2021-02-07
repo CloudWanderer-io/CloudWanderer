@@ -7,8 +7,8 @@ from botocore.model import Shape
 from cloudwanderer.aws_urn import AwsUrn
 from cloudwanderer.boto3_helpers import (
     Boto3Helper, _clean_boto3_metadata, _get_resource_attributes,
-    get_resource_collections, get_service_resource_types_from_collections,
-    get_shape)
+    get_resource_collection_by_resource_type, get_resource_collections,
+    get_service_resource_types_from_collections, get_shape)
 from cloudwanderer.custom_resource_definitions import CustomResourceDefinitions
 from cloudwanderer.service_mappings import ServiceMappingCollection
 
@@ -50,7 +50,7 @@ class TestBoto3Helper(unittest.TestCase):
         assert result == ["role"]
 
     def test_get_resource_collection_by_resource_type(self):
-        result = self.boto3_helper.get_resource_collection_by_resource_type(
+        result = get_resource_collection_by_resource_type(
             boto3_service=self.boto3_service, resource_type="role"
         )
 

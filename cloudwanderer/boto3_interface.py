@@ -11,7 +11,8 @@ from boto3.resources.model import ResourceModel
 
 from .aws_urn import AwsUrn
 from .boto3_helpers import (Boto3CommonAttributesMixin, Boto3Helper,
-                            _prepare_boto3_resource_data)
+                            _prepare_boto3_resource_data,
+                            get_resource_collection_by_resource_type)
 from .cloud_wanderer_resource import CloudWandererResource
 from .service_mappings import ServiceMappingCollection
 from .storage_connectors.base_connector import BaseStorageConnector
@@ -210,7 +211,7 @@ class CloudWandererBoto3Interface(Boto3CommonAttributesMixin):
         boto3_service = self.boto3_helper.custom_resource_definitions.resource(
             service_name, **kwargs
         )
-        boto3_resource_collection = self.boto3_helper.get_resource_collection_by_resource_type(
+        boto3_resource_collection = get_resource_collection_by_resource_type(
             boto3_service, resource_type
         )
 

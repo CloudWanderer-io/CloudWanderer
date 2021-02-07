@@ -71,24 +71,6 @@ class Boto3Helper(Boto3CommonAttributesMixin):
 
         return service_resource_types
 
-    def get_resource_collection_by_resource_type(
-            self, boto3_service: boto3.resources.base.ServiceResource, resource_type: str) -> Collection:
-        """Return the resource collection that matches the resource_type (e.g. instance).
-
-        This is as opposed to the collection name (e.g. instances)
-
-        Arguments:
-            boto3_service (boto3.resources.base.ServiceResource):
-                The service resource from which to return collections
-            resource_type (str):
-                The resource type for which to return collections
-        """
-        for boto3_resource_collection in get_resource_collections(boto3_service=boto3_service):
-            if xform_name(boto3_resource_collection.resource.model.name) != resource_type:
-                continue
-
-            return boto3_resource_collection
-
     def get_resource_from_collection(
             self, boto3_service: boto3.resources.base.ServiceResource,
             boto3_resource_collection: boto3.resources.model.Collection) -> Iterator[ResourceModel]:
@@ -324,3 +306,22 @@ def get_service_resource_types_from_collections(collections: List[Collection]) -
     """
     for collection in collections:
         yield xform_name(collection.resource.model.name)
+
+
+def get_resource_collection_by_resource_type(
+        boto3_service: boto3.resources.base.ServiceResource, resource_type: str) -> Collection:
+    """Return the resource collection that matches the resource_type (e.g. instance).
+
+    This is as opposed to the collection name (e.g. instances)
+
+    Arguments:
+        boto3_service (boto3.resources.base.ServiceResource):
+            The service resource from which to return collections
+        resource_type (str):
+            The resource type for which to return collections
+    """
+    for boto3_resource_collection in get_resource_collections(boto3_service=boto3_service):
+        if xform_name(boto3_resource_collection.resource.model.name) != resource_type:
+            continue
+
+        return boto3_resource_collection
