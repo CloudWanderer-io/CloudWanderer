@@ -207,12 +207,12 @@ class SetupMocking:
         self.start_moto_services()
 
     def stop_general_mock(self):
-        self.stop_moto_services()
-        self.stop_restrict_services()
-        try:
-            self.stop_limit_collections_list()
-        except RuntimeError:
-            pass
+        stop_methods = [self.stop_moto_services, self.stop_restrict_services, self.stop_limit_collections_list]
+        for method in stop_methods:
+            try:
+                method()
+            except RuntimeError:
+                pass
 
     def start_restrict_services(self, services: List[str]) -> None:
         self.services_mock.return_value = [boto3.resource(service) for service in services]
