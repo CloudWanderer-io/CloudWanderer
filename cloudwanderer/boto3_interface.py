@@ -10,9 +10,9 @@ import boto3
 from boto3.resources.model import ResourceModel
 
 from .aws_urn import AwsUrn
+from .boto3_getter import Boto3Getter
 from .boto3_helpers import (
     Boto3CommonAttributesMixin,
-    Boto3Getter,
     _prepare_boto3_resource_data,
     get_resource_collection_by_resource_type,
     get_resource_from_collection,

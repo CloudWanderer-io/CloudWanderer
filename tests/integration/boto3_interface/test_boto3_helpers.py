@@ -5,8 +5,8 @@ from boto3.resources.model import Collection
 from botocore.model import Shape
 
 from cloudwanderer.aws_urn import AwsUrn
+from cloudwanderer.boto3_getter import Boto3Getter
 from cloudwanderer.boto3_helpers import (
-    Boto3Getter,
     _clean_boto3_metadata,
     _get_resource_attributes,
     get_resource_collection_by_resource_type,
