@@ -30,7 +30,7 @@ class Boto3Getter(Boto3CommonAttributesMixin):
         """Return all subresources for this resource.
 
         Subresources and collections on custom service resources may be subresources we want to collect if
-        they are specified in our custom resource definitions.
+        they are specified in our service mapping.
 
         Arguments:
             boto3_resource (boto3.resources.base.ServiceResource): The :class:`boto3.resources.base.ServiceResource`
@@ -42,7 +42,7 @@ class Boto3Getter(Boto3CommonAttributesMixin):
         """Return all secondary attributes resources for this resource.
 
         Subresources and collections on custom service resources may be secondary attribute definitions if
-        specified in metadata.
+        specified in our service mapping.
 
         Arguments:
             boto3_resource (boto3.resources.base.ServiceResource): The :class:`boto3.resources.base.ServiceResource`
@@ -64,9 +64,12 @@ class Boto3Getter(Boto3CommonAttributesMixin):
 
         This method contextualises the ``has`` and ``hasMany`` relationships that Boto3 uses to specify subresources.
         If they are found in the service map, then they are subresources or secondary attributes that CloudWanderer
-        needs to record into storage. Anything that is not in the servicemap probably represents a relationship between
-        base resources (i.e. resources that have ARNs) and that subresource will be captured separately as
-        a base resource.
+        needs to record into storage. Anything that is not in the service map will have been provided as a definition
+        by Boto3 itself and probably represents a relationship between base resources (i.e. resources that have ARNs)
+        and therefore does not qualify as a subresource in the CloudWanderer sense of the word. CloudWanderer is only
+        interested in capturing subresources which depend on their parents for existence (i.e. do not have their own
+        ARN). Secondary attributes are not resources at all but merely resource-like representations of additional
+        metadata about a resource which requires a secondary API call to fetch (e.g. AMI launchPermission).
 
         Arguments:
             boto3_resource (boto3.resources.base.ServiceResource):
@@ -108,11 +111,8 @@ class Boto3Getter(Boto3CommonAttributesMixin):
     ) -> boto3.resources.model.ResourceModel:
         """Return all child resource models for this resource.
 
-        This method contextualises the ``has`` and ``hasMany`` relationships that Boto3 uses to specify subresources.
-        If they are found in the service map, then they are subresources or secondary attributes that CloudWanderer
-        needs to record into storage. Anything that is not in the servicemap probably represents a relationship between
-        base resources (i.e. resources that have ARNs) and that subresource will be captured separately as
-        a base resource.
+        This method mirrors get_child_resources but instead of returning the CloudWandererResource object it
+        returns the resource definition. This method is used to generate documentation in the Sphinx extension.
 
         Arguments:
             service_name (str):
@@ -145,6 +145,15 @@ class Boto3Getter(Boto3CommonAttributesMixin):
             yield secondary_attribute_collection
 
     def get_resource_urn(self, resource: ResourceModel, region_name: str) -> "AwsUrn":
+        """Return an AwsUrn from a Boto3 Resource.
+
+        Arguments:
+            resource (ResourceModel):
+                The Boto3 resource for which to generate an URN.
+            region_name (str):
+                The region of the API the resource was discovered in. This may or may not reflect the region
+                the resource exists in in some cases (e.g. S3 Buckets).
+        """
         service_map = self.service_maps.get_service_mapping(resource.meta.service_name)
         return AwsUrn(
             account_id=self.account_id,
