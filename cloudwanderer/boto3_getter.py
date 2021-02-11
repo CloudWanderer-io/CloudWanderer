@@ -1,7 +1,6 @@
 """Boto3 Getter provides easy abstraction from boto3's internals to make boto3_interface easier to work with."""
 
 import boto3
-from boto3.resources.model import ResourceModel
 from botocore import xform_name
 
 from .aws_urn import AwsUrn
@@ -144,11 +143,11 @@ class Boto3Getter(Boto3CommonAttributesMixin):
                 continue
             yield secondary_attribute_collection
 
-    def get_resource_urn(self, resource: ResourceModel, region_name: str) -> "AwsUrn":
+    def get_resource_urn(self, resource: boto3.resources.model.ResourceModel, region_name: str) -> "AwsUrn":
         """Return an AwsUrn from a Boto3 Resource.
 
         Arguments:
-            resource (ResourceModel):
+            resource (boto3.resources.model.ResourceModel):
                 The Boto3 resource for which to generate an URN.
             region_name (str):
                 The region of the API the resource was discovered in. This may or may not reflect the region

@@ -37,11 +37,11 @@ class Boto3CommonAttributesMixin:
         return [region["RegionName"] for region in regions if region["OptInStatus"] != "not-opted-in"]
 
 
-def normalise_resource_id(resource: ResourceModel) -> str:
+def normalise_resource_id(resource: boto3.resources.model.ResourceModel) -> str:
     """Return a resource id suitable for use in a URN.
 
     Parameters:
-        resource (ResourceModel): The resource to generate an ID from.
+        resource (boto3.resources.model.ResourceModel): The resource to generate an ID from.
     """
     id_members = [x.name for x in resource.meta.resource_model.identifiers]
     resource_ids = []
