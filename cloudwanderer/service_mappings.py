@@ -19,6 +19,7 @@ from boto3.resources.model import ResourceModel
 from botocore.client import ClientCreator
 
 from .custom_resource_definitions import _get_resource_definitions
+from .exceptions import GlobalServiceResourceMappingNotFound
 
 
 class ServiceMappingCollection:
@@ -310,7 +311,3 @@ class CloudWandererResourceMapping:
         if param_mapping['source'] == 'resourceAttribute':
             return getattr(resource, param_mapping['name'])
         raise AttributeError(f"Invalid param source {param_mapping['source']}")
-
-
-class GlobalServiceResourceMappingNotFound(Exception):
-    """Global Service Resource Mapping not Found."""

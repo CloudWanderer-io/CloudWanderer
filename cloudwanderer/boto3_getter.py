@@ -15,8 +15,8 @@ from .boto3_helpers import (
 )
 from .cloud_wanderer_resource import SecondaryAttribute
 from .custom_resource_definitions import CustomResourceDefinitions, get_resource_collections
-from .exceptions import BadUrnAccountId, BadUrnRegion, BadUrnSubResource
-from .service_mappings import GlobalServiceResourceMappingNotFound, ServiceMappingCollection
+from .exceptions import BadUrnAccountId, BadUrnRegion, BadUrnSubResource, GlobalServiceResourceMappingNotFound
+from .service_mappings import ServiceMappingCollection
 
 
 class Boto3Getter(Boto3CommonAttributesMixin):

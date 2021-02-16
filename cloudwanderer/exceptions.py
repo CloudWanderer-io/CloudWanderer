@@ -11,3 +11,7 @@ class BadUrnAccountId(Exception):
 
 class BadUrnSubResource(Exception):
     """Raised when an URN for a subresource is passed to get resource."""
+
+
+class GlobalServiceResourceMappingNotFound(Exception):
+    """Global Service Resource Mapping not Found."""
