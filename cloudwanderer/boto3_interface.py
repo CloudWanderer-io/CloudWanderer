@@ -14,12 +14,10 @@ from .boto3_getter import Boto3Getter
 from .boto3_helpers import (
     Boto3CommonAttributesMixin,
     _prepare_boto3_resource_data,
-    get_boto3_resource_action,
     get_resource_collection_by_resource_type,
     get_resource_from_collection,
 )
 from .cloud_wanderer_resource import CloudWandererResource
-from .exceptions import BadUrnAccountId, BadUrnRegion, BadUrnSubResource
 from .service_mappings import ServiceMappingCollection
 from .storage_connectors.base_connector import BaseStorageConnector
 
@@ -45,26 +43,8 @@ class CloudWandererBoto3Interface(Boto3CommonAttributesMixin):
 
         Arguments:
             urn (AwsUrn): The urn of the resource to get.
-
-        Raises:
-            BadUrnAccountId: When the account ID of the urn does not match the account id of the current session.
-            BadUrnRegion: When the region of the urn is not possible with the service and/or resource type.
-            BadUrnSubResource: get_resource does not support fetching subresources directly.
         """
-        if urn.account_id != self.account_id:
-            raise BadUrnAccountId(f"{urn} exists in an account other than the current one ({self.account_id}).")
-        if urn.is_subresource:
-            raise BadUrnSubResource(f"{urn} is a sub resource, please call get_resource against its parent.")
-
-        service_map = self.service_maps.get_service_mapping(service_name=urn.service)
-        if service_map.global_service_region != urn.region and not service_map.has_regional_resources:
-            raise BadUrnRegion(f"{urn}'s service does not have resources in {urn.region}")
-        boto3_service = self.boto3_getter.custom_resource_definitions.resource(
-            region_name=urn.region, service_name=urn.service
-        )
-
-        resource = get_boto3_resource_action(boto3_service, urn.resource_type)(urn.resource_id)
-        resource.load()
+        resource = self.boto3_getter.get_resource_from_urn(urn=urn)
 
         return CloudWandererResource(
             urn=urn,

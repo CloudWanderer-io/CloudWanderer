@@ -9,11 +9,13 @@ from .aws_urn import AwsUrn
 from .boto3_helpers import (
     Boto3CommonAttributesMixin,
     _clean_boto3_metadata,
+    get_boto3_resource_action,
     get_resource_from_collection,
     normalise_resource_id,
 )
 from .cloud_wanderer_resource import SecondaryAttribute
 from .custom_resource_definitions import CustomResourceDefinitions, get_resource_collections
+from .exceptions import BadUrnAccountId, BadUrnRegion, BadUrnSubResource
 from .service_mappings import GlobalServiceResourceMappingNotFound, ServiceMappingCollection
 
 
@@ -24,6 +26,31 @@ class Boto3Getter(Boto3CommonAttributesMixin):
         self.boto3_session = boto3_session
         self.service_maps = service_maps
         self.custom_resource_definitions = CustomResourceDefinitions(boto3_session=boto3_session)
+
+    def get_resource_from_urn(self, urn: AwsUrn) -> boto3.resources.base.ServiceResource:
+        """Return the Boto3 resource picked out by this urn.
+
+        Arguments:
+            urn (AwsUrn): The urn of the resource to get.
+
+        Raises:
+            BadUrnAccountId: When the account ID of the urn does not match the account id of the current session.
+            BadUrnRegion: When the region of the urn is not possible with the service and/or resource type.
+            BadUrnSubResource: get_resource does not support fetching subresources directly.
+        """
+        if urn.account_id != self.account_id:
+            raise BadUrnAccountId(f"{urn} exists in an account other than the current one ({self.account_id}).")
+        if urn.is_subresource:
+            raise BadUrnSubResource(f"{urn} is a sub resource, please call get_resource against its parent.")
+
+        service_map = self.service_maps.get_service_mapping(service_name=urn.service)
+        if service_map.global_service_region != urn.region and not service_map.has_regional_resources:
+            raise BadUrnRegion(f"{urn}'s service does not have resources in {urn.region}")
+        boto3_service = self.custom_resource_definitions.resource(region_name=urn.region, service_name=urn.service)
+
+        resource = get_boto3_resource_action(boto3_service, urn.resource_type)(urn.resource_id)
+        resource.load()
+        return resource
 
     def get_subresources(
         self, boto3_resource: boto3.resources.base.ServiceResource
@@ -55,7 +82,7 @@ class Boto3Getter(Boto3CommonAttributesMixin):
         for secondary_attribute in secondary_attributes:
             yield SecondaryAttribute(
                 name=xform_name(secondary_attribute.meta.resource_model.name),
-                **_clean_boto3_metadata(secondary_attribute.meta.data)
+                **_clean_boto3_metadata(secondary_attribute.meta.data),
             )
 
     def get_child_resources(
