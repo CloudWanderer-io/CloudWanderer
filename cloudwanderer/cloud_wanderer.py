@@ -1,25 +1,26 @@
 """Main cloudwanderer module."""
-from cloudwanderer.cloud_wanderer_resource import CloudWandererResource
-from typing import List
-import logging
-from typing import TYPE_CHECKING, Iterator, Callable
 import concurrent.futures
-from .utils import exception_logging_wrapper
-from .boto3_interface import CloudWandererBoto3Interface
-from .aws_urn import AwsUrn
+import logging
+from typing import TYPE_CHECKING, Callable, Iterator, List
 
-logger = logging.getLogger('cloudwanderer')
+from cloudwanderer.cloud_wanderer_resource import CloudWandererResource
+
+from .aws_urn import AwsUrn
+from .boto3_interface import CloudWandererBoto3Interface
+from .utils import exception_logging_wrapper
+
+logger = logging.getLogger("cloudwanderer")
 
 if TYPE_CHECKING:
     from .storage_connectors import BaseStorageConnector  # noqa
 
 
-class CloudWanderer():
+class CloudWanderer:
     """CloudWanderer."""
 
     def __init__(
-            self, storage_connectors: List['BaseStorageConnector'],
-            cloud_interface: CloudWandererBoto3Interface = None) -> None:
+        self, storage_connectors: List["BaseStorageConnector"], cloud_interface: CloudWandererBoto3Interface = None
+    ) -> None:
         """Initialise CloudWanderer.
 
         Args:
@@ -33,32 +34,54 @@ class CloudWanderer():
         self.cloud_interface = cloud_interface or CloudWandererBoto3Interface()
 
     def write_resources(
-            self, **kwargs) -> None:
+        self,
+        regions: List[str] = None,
+        service_names: List[str] = None,
+        resource_types: List[str] = None,
+        exclude_resources: List[str] = None,
+        **kwargs,
+    ) -> None:
         """Write all AWS resources in this account from all regions and all services to storage.
 
         All arguments are optional.
 
         Arguments:
-            kwargs: Optional arguments narrowing the scope of the resources returned.
+            regions(list):
+                The name of the region to get resources from (defaults to session default if not specified)
+            service_names (str):
+                The names of the services to write resources for (e.g. ``['ec2']``)
+            resource_types (list):
+                A list of resource types to include (e.g. ``['instance']``)
+            exclude_resources (list):
+                A list of service:resources to exclude (e.g. ``['ec2:instance']``)
+            kwargs:
+                All additional keyword arguments will be passed down to the cloud interface client calls.
 
-        Keyword Arguments:
-            urn (~cloudwanderer.aws_urn.AwsUrn): The AWS URN of the resource to return
-            account_id (:class:`str`): AWS Account ID
-            region (:class:`str`): AWS region (e.g. ``'eu-west-2'``)
-            service (:class:`str`): Service name (e.g. ``'ec2'``)
-            resource_type (:class:`str`): Resource Type (e.g. ``'instance'``)
         """
         urns = []
-        for resource in self.cloud_interface.get_resources(**kwargs):
+        resources = self.cloud_interface.get_resources(
+            regions=regions,
+            service_names=service_names,
+            resource_types=resource_types,
+            exclude_resources=exclude_resources,
+            **kwargs,
+        )
+        for resource in resources:
             urns.extend(list(self._write_resource(resource)))
 
         for storage_connector in self.storage_connectors:
             self.cloud_interface.cleanup_resources(
-                storage_connector=storage_connector, urns_to_keep=urns, **kwargs)
+                storage_connector=storage_connector,
+                regions=regions,
+                service_names=service_names,
+                resource_types=resource_types,
+                urns_to_keep=urns,
+                **kwargs,
+            )
 
     def write_resources_concurrently(
-            self, cloud_interface_generator: Callable, exclude_resources: List[str] = None, concurrency: int = 10,
-            **kwargs) -> None:
+        self, cloud_interface_generator: Callable, exclude_resources: List[str] = None, concurrency: int = 10, **kwargs
+    ) -> None:
         """Write all AWS resources in this account from all regions and all services to storage.
 
         Any additional args will be passed into the cloud interface's ``get_`` methods.
@@ -76,20 +99,19 @@ class CloudWanderer():
                 This helps prevent non-threadsafe cloud interfaces from interfering with each others.
             **kwargs: Additional keyword arguments will be passed down to the cloud interface methods.
         """
-        logger.info('Writing resources in all regions')
-        logger.warning('Using concurrency of: %s - CONCURRENCY IS EXPERIMENTAL', concurrency)
+        logger.info("Writing resources in all regions")
+        logger.warning("Using concurrency of: %s - CONCURRENCY IS EXPERIMENTAL", concurrency)
         with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency) as executor:
             for region_name in self.cloud_interface.enabled_regions:
                 cw = CloudWanderer(
-                    storage_connectors=self.storage_connectors,
-                    cloud_interface=cloud_interface_generator()
+                    storage_connectors=self.storage_connectors, cloud_interface=cloud_interface_generator()
                 )
                 executor.submit(
                     exception_logging_wrapper,
                     method=cw.write_resources_in_region,
                     exclude_resources=exclude_resources,
                     region_name=region_name,
-                    **kwargs
+                    **kwargs,
                 )
 
     def _write_resource(self, resource: CloudWandererResource) -> Iterator[AwsUrn]:
