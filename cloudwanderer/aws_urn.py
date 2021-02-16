@@ -59,6 +59,15 @@ class AwsUrn():
             resource_id=parts[6]
         )
 
+    @property
+    def is_subresource(self) -> bool:
+        """Return whether or not this urn pertains to a subresource.
+
+        A subresource is a resource which does not have its own cloud provider identity and is only  accessible
+        by referring to a parent resource.
+        """
+        return '/' in self.resource_id
+
     def __eq__(self, other: Any) -> bool:
         """Allow comparison of one AwsUrn to another.
 

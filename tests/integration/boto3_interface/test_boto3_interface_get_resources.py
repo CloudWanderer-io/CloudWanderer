@@ -5,13 +5,17 @@ from unittest.mock import ANY
 from cloudwanderer import CloudWandererBoto3Interface
 
 from ..helpers import GenericAssertionHelpers, get_default_mocker
-from ..mocks import (MOCK_COLLECTION_BUCKETS, MOCK_COLLECTION_IAM_GROUPS,
-                     MOCK_COLLECTION_IAM_ROLE_POLICIES,
-                     MOCK_COLLECTION_IAM_ROLES, MOCK_COLLECTION_INSTANCES,
-                     add_infra)
+from ..mocks import (
+    MOCK_COLLECTION_BUCKETS,
+    MOCK_COLLECTION_IAM_GROUPS,
+    MOCK_COLLECTION_IAM_ROLE_POLICIES,
+    MOCK_COLLECTION_IAM_ROLES,
+    MOCK_COLLECTION_INSTANCES,
+    add_infra,
+)
 
 
-class TestCloudWanderergetResources(unittest.TestCase, GenericAssertionHelpers):
+class TestCloudWandererGetResources(unittest.TestCase, GenericAssertionHelpers):
     eu_west_2_resources = [{
         'urn': 'urn:aws:.*:eu-west-2:ec2:instance:.*',
         'vpc_id': 'vpc-.*',
