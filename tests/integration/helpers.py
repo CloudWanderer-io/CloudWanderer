@@ -240,7 +240,7 @@ def get_secondary_attribute_types(service_name):
     service_map = service_maps.get_service_mapping(service_name=service_name)
     resource_types = get_service_resource_types_from_collections(
         get_resource_collections(
-            boto3_service=boto3_interface.boto3_helper.custom_resource_definitions.resource(service_name=service_name)
+            boto3_service=boto3_interface.boto3_getter.custom_resource_definitions.resource(service_name=service_name)
         )
     )
     for resource_type in resource_types:

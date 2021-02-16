@@ -36,9 +36,7 @@ class CloudWandererBoto3Interface(Boto3CommonAttributesMixin):
         """
         self.boto3_session = boto3_session or boto3.Session()
         self.service_maps = ServiceMappingCollection(boto3_session=self.boto3_session)
-        self.boto3_helper = Boto3Getter(
-            boto3_session=self.boto3_session, service_maps=self.service_maps
-        )
+        self.boto3_getter = Boto3Getter(boto3_session=self.boto3_session, service_maps=self.service_maps)
 
     def get_resources(
         self,
@@ -84,7 +82,7 @@ class CloudWandererBoto3Interface(Boto3CommonAttributesMixin):
     ) -> None:
         """Get resources in region matching the resource types.
 
-        Any additional args will be passed into the cloud interface's ``get_`` methods.
+        Any additional args will be passed into the Boto3 client methods.
 
         Arguments:
             service_names (str):
@@ -98,12 +96,7 @@ class CloudWandererBoto3Interface(Boto3CommonAttributesMixin):
             **kwargs: Additional keyword arguments will be passed down to the cloud interface methods.
         """
         exclude_resources = exclude_resources or []
-        boto3_services = self.boto3_helper.custom_resource_definitions.get_all_resource_services()
-        if service_names is not None:
-            boto3_services = [
-                self.boto3_helper.custom_resource_definitions.resource(service_name, **kwargs)
-                for service_name in service_names
-            ]
+        boto3_services = self.boto3_getter.get_resource_services_from_names(service_names, **kwargs)
         for boto3_service in boto3_services:
             yield from self._get_resources_of_service_in_region(
                 service_name=boto3_service.meta.service_name,
@@ -123,9 +116,7 @@ class CloudWandererBoto3Interface(Boto3CommonAttributesMixin):
     ) -> None:
         """Write all AWS resources in this region in this service to storage.
 
-        Cleans up any resources in the StorageConnector that no longer exist.
-
-        Any additional args will be passed into the cloud interface's ``get_`` methods.
+        Any additional args will be passed into the Boto3 client methods.
 
         Arguments:
             service_name (str):
@@ -143,7 +134,7 @@ class CloudWandererBoto3Interface(Boto3CommonAttributesMixin):
 
         logger.info("Writing all %s resources in %s", service_name, region_name)
         exclude_resources = exclude_resources or []
-        resource_types = self.boto3_helper.custom_resource_definitions.get_valid_resource_types(
+        resource_types = self.boto3_getter.custom_resource_definitions.get_valid_resource_types(
             service_name=service_name, resource_types=resource_types
         )
         for resource_type in resource_types:
@@ -169,9 +160,7 @@ class CloudWandererBoto3Interface(Boto3CommonAttributesMixin):
     ) -> None:
         """Write all AWS resources in this region in this service to storage.
 
-        Cleans up any resources in the StorageConnector that no longer exist.
-
-        Any additional args will be passed into the cloud interface's ``get_`` methods.
+        Any additional args will be passed into the Boto3 client methods.
 
         Arguments:
             service_name (str):
@@ -212,12 +201,8 @@ class CloudWandererBoto3Interface(Boto3CommonAttributesMixin):
                 region_name,
             )
             return
-        boto3_service = self.boto3_helper.custom_resource_definitions.resource(
-            service_name, **kwargs
-        )
-        boto3_resource_collection = get_resource_collection_by_resource_type(
-            boto3_service, resource_type
-        )
+        boto3_service = self.boto3_getter.custom_resource_definitions.resource(service_name, **kwargs)
+        boto3_resource_collection = get_resource_collection_by_resource_type(boto3_service, resource_type)
 
         resources = get_resource_from_collection(
             boto3_service=boto3_service,
@@ -225,22 +210,18 @@ class CloudWandererBoto3Interface(Boto3CommonAttributesMixin):
         )
 
         for resource in resources:
-            urn = self.boto3_helper.get_resource_urn(resource, region_name)
+            urn = self.boto3_getter.get_resource_urn(resource, region_name)
             logger.debug("Found %s", urn)
             yield CloudWandererResource(
                 urn=urn,
                 resource_data=_prepare_boto3_resource_data(resource),
-                secondary_attributes=list(
-                    self.boto3_helper.get_secondary_attributes(resource)
-                ),
+                secondary_attributes=list(self.boto3_getter.get_secondary_attributes(resource)),
             )
-            for subresource in self.boto3_helper.get_subresources(resource):
+            for subresource in self.boto3_getter.get_subresources(resource):
                 yield CloudWandererResource(
-                    urn=self.boto3_helper.get_resource_urn(subresource, region_name),
+                    urn=self.boto3_getter.get_resource_urn(subresource, region_name),
                     resource_data=_prepare_boto3_resource_data(subresource),
-                    secondary_attributes=list(
-                        self.boto3_helper.get_secondary_attributes(subresource)
-                    ),
+                    secondary_attributes=list(self.boto3_getter.get_secondary_attributes(subresource)),
                 )
 
     def cleanup_resources(
@@ -250,12 +231,11 @@ class CloudWandererBoto3Interface(Boto3CommonAttributesMixin):
         regions: List[str] = None,
         service_names: List[str] = None,
         resource_types: List[str] = None,
-        exclude_resources: List[str] = None,
         **kwargs,
     ) -> None:
         """Delete records as appropriate from a storage connector based on the supplied arguments.
 
-        All arguments are optional.
+        All arguments except ``storage_connector`` are optional.
 
         Arguments:
             storage_connector (BaseStorageConnector):
@@ -268,21 +248,14 @@ class CloudWandererBoto3Interface(Boto3CommonAttributesMixin):
                 The names of the services to write resources for (e.g. ``['ec2']``)
             resource_types (list):
                 A list of resource types to include (e.g. ``['instance']``)
-            exclude_resources (list):
-                A list of service:resources to exclude (e.g. ``['ec2:instance']``)
-            kwargs:
+            **kwargs:
                 All additional keyword arguments will be passed down to the Boto3 client calls.
         """
         regions = regions or self.enabled_regions
-        boto3_services = self.boto3_helper.custom_resource_definitions.get_all_resource_services()
-        if service_names is not None:
-            boto3_services = [
-                self.boto3_helper.custom_resource_definitions.resource(service_name, **kwargs)
-                for service_name in service_names
-            ]
+        boto3_services = self.boto3_getter.get_resource_services_from_names(service_names, **kwargs)
         for region_name in regions:
             for boto3_service in boto3_services:
-                resource_types = self.boto3_helper.custom_resource_definitions.get_valid_resource_types(
+                resource_types = self.boto3_getter.custom_resource_definitions.get_valid_resource_types(
                     service_name=boto3_service.meta.service_name,
                     resource_types=resource_types,
                 )
@@ -322,9 +295,7 @@ class CloudWandererBoto3Interface(Boto3CommonAttributesMixin):
             service_name=service_name, region_name=region_name, enabled_regions=self.enabled_regions
         )
         for region_name in regions_returned:
-            logger.info(
-                "---> Deleting %s %s from %s", service_name, resource_type, region_name
-            )
+            logger.info("---> Deleting %s %s from %s", service_name, resource_type, region_name)
             storage_connector.delete_resource_of_type_in_account_region(
                 service=service_name,
                 resource_type=resource_type,

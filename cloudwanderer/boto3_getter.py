@@ -1,5 +1,7 @@
 """Boto3 Getter provides easy abstraction from boto3's internals to make boto3_interface easier to work with."""
 
+from typing import Iterator, List
+
 import boto3
 from botocore import xform_name
 
@@ -161,3 +163,18 @@ class Boto3Getter(Boto3CommonAttributesMixin):
             resource_type=xform_name(resource.meta.resource_model.name),
             resource_id=normalise_resource_id(resource=resource),
         )
+
+    def get_resource_services_from_names(
+        self, service_names: List[str] = None, **kwargs
+    ) -> Iterator[boto3.resources.base.ServiceResource]:
+        """Yield the ServiceResources for the services in service_names, or all ServicesResources if no list supplied.
+
+        Arguments:
+            service_names (List[str]): A list of service names, e.g. ``['ec2']``
+            **kwargs:
+                All additional keyword arguments will be passed down to the Boto3 client calls.
+        """
+        if service_names is None:
+            yield from self.custom_resource_definitions.get_all_resource_services()
+            return
+        yield from (self.custom_resource_definitions.resource(service_name, **kwargs) for service_name in service_names)
