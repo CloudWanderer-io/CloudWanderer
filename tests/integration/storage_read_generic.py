@@ -1,11 +1,13 @@
-from cloudwanderer.cloud_wanderer_resource import SecondaryAttribute
+import logging
 from itertools import combinations
 from time import sleep
-from unittest.mock import patch, ANY
-import logging
-from .helpers import TestStorageConnectorReadMixin, GenericAssertionHelpers, get_default_mocker, generate_mock_session
-from .mocks import add_infra
+from unittest.mock import ANY, patch
+
 import cloudwanderer
+from cloudwanderer.cloud_wanderer_resource import SecondaryAttribute
+
+from .helpers import GenericAssertionHelpers, TestStorageConnectorReadMixin, get_default_mocker
+from .mocks import add_infra, generate_mock_session
 
 
 class StorageReadTestMixin(TestStorageConnectorReadMixin, GenericAssertionHelpers):

@@ -1,6 +1,7 @@
 import os
 import sys
-import sphinx_rtd_theme # noqa
+
+import sphinx_rtd_theme  # noqa
 
 # Configuration file for the Sphinx documentation builder.
 #
@@ -102,86 +103,12 @@ ec2.models.RegionsAndZonesBackend.regions = [
     for region_name in ['eu-west-2', 'us-east-1']
 ]
 ec2.models.random_vpc_id = MagicMock(return_value='vpc-11111111')
-from moto import mock_ec2, mock_s3, mock_iam, mock_sts, mock_dynamodb2
-
-def add_infra(regions, count=1):
-    os.environ['AWS_ACCESS_KEY_ID'] = 'testing'
-    os.environ['AWS_SECRET_ACCESS_KEY'] = 'testing'
-    os.environ['AWS_SECURITY_TOKEN'] = 'testing'
-    os.environ['AWS_SESSION_TOKEN'] = 'testing'
-    for region_name in regions:
-        ec2_resource = boto3.resource('ec2', region_name=region_name)
-        images = list(ec2_resource.images.all())
-        ec2_resource.create_instances(ImageId=images[0].image_id, MinCount=count, MaxCount=count)
-        for i in range(count - 1):
-            ec2_resource.create_vpc(CidrBlock='10.0.0.0/16')
-
-        if region_name != 'us-east-1':
-            bucket_args = {'CreateBucketConfiguration': {'LocationConstraint': region_name}}
-        else:
-            bucket_args = {}
-        boto3.resource('s3', region_name='us-east-1').Bucket(f"test-{region_name}").create(**bucket_args)
-
-    iam_resource = boto3.resource('iam')
-    iam_resource.Group('test-group').create()
-    iam_resource.create_role(RoleName='test-role', AssumeRolePolicyDocument='{}')
-    policies = list(iam_resource.policies.all())
-    iam_resource.Role('test-role').attach_policy(PolicyArn=policies[0].arn)
-    iam_resource.Role('test-role').Policy('test-role-policy').put(PolicyDocument=json.dumps({
-        "Version": "2012-10-17",
-        "Statement": {
-            "Effect": "Allow",
-            "Action": "s3:ListBucket",
-            "Resource": "arn:aws:s3:::example_bucket"
-        }
-    }))
-def generate_mock_collection(service, shape_name, collection_name):
-    resource_model = MagicMock(shape=shape_name)
-    resource_model.configure_mock(name=shape_name)
-    collection = MagicMock(**{
-        'meta.service_name': service,
-        'resource.model': resource_model
-    })
-    collection.configure_mock(name=collection_name)
-    return collection
-
-def filter_collections(collections, service_resource):
-    for collection in collections:
-        if service_resource.meta.resource_model.name == collection.meta.service_name:
-            yield collection
-
-def limit_collections_list():
-    """Limit the boto3 resource collections we service to a subset we use for testing."""
-    collections_to_mock = [
-        ('ec2', ('instance', 'instances')),
-        ('ec2', ('vpc', 'vpcs')),
-        ('s3', ('bucket', 'buckets')),
-        ('iam', ('group', 'groups')),
-        ('iam', ('Role', 'roles')),
-        # ('iam', ('Policy', 'policies')),
-        ('Role', ('RolePolicy', 'policies'))
-    ]
-    mock_collections = []
-    for service, name_tuple in collections_to_mock:
-        mock_collections.append(generate_mock_collection(service, name_tuple[0], name_tuple[1]))
-    cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface.get_resource_collections = MagicMock(
-        side_effect=lambda boto3_service: filter_collections(mock_collections, boto3_service)
-    )
-
-
-def limit_services_list():
-    cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface.get_all_resource_services = MagicMock(
-        return_value=[boto3.resource(service) for service in ['ec2', 's3', 'iam']])
-
-def mock_services():
-    for service in [mock_ec2, mock_iam, mock_sts, mock_s3, mock_dynamodb2]:
-        mock = service()
-        mock.start()
-
-limit_services_list()
-limit_collections_list()
-mock_services()
-add_infra(regions=['eu-west-2', 'us-east-1'])
+from tests.integration.helpers import get_default_mocker
+from tests.integration.mocks import add_infra
+get_default_mocker().start_general_mock(
+    restrict_regions=['eu-west-2', 'us-east-1']
+)
+add_infra()
 
 cloudwanderer.storage_connectors.DynamoDbConnector = cloudwanderer.storage_connectors.MemoryStorageConnector
 '''

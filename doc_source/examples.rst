@@ -179,7 +179,7 @@ Deleting Stale Resources
 -------------------------
 
 CloudWanderer deletes resources which no longer exist automatically when you run:
-:meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resources_of_service_in_region`.
+:meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resources`.
 
 Individual Resources
 ^^^^^^^^^^^^^^^^^^^^^

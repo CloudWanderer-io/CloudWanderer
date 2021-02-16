@@ -4,17 +4,18 @@ Custom resources use the :class:`boto3.resources.base.ServiceResource` model to 
 AWS resources that boto3 does not support natively. We can do this quite easily because CloudWanderer only needs
 a fraction of the functionality that native boto3 resources provide (i.e. the description of the resources).
 """
-from typing import List
-import os
 import json
+import os
 import pathlib
-import botocore
-import boto3
-from botocore.exceptions import UnknownServiceError
-from boto3.resources.model import ResourceModel
-from boto3.resources.factory import ResourceFactory
-from boto3.utils import ServiceContext
+from typing import Iterator, List
 
+import boto3
+import botocore
+from boto3.resources.base import ServiceResource
+from boto3.resources.factory import ResourceFactory
+from boto3.resources.model import Collection, ResourceModel
+from boto3.utils import ServiceContext
+from botocore.exceptions import UnknownServiceError
 
 # Default resource definitions, loaded when needed
 DEFAULT_RESOURCE_DEFINITIONS = None
@@ -175,6 +176,56 @@ class CustomResourceDefinitions():
                 client=self.boto3_session.client(service_name, **kwargs))
         return None
 
+    def get_all_resource_services(self, **kwargs) -> Iterator[ServiceResource]:
+        """Return all boto3 service Resource objects.
+
+        Arguments:
+            **kwargs: Additional keyword arguments will be passed down to the Boto3 client.
+        """
+        for service_name in self.definitions:
+            yield self.resource(service_name, **kwargs)
+
+    def get_all_service_collections(self, service_name: str) -> Iterator[Collection]:
+        """Return all the resource collections for a given service_name.
+
+        Arguments:
+            service_name: The name of the service to get resource types for (e.g. ``'ec2'``)
+        """
+        boto3_service = self.resource(service_name)
+        if boto3_service is not None:
+            yield from get_resource_collections(boto3_service=boto3_service)
+
+    def get_service_resource_types(self, service_name: str) -> Iterator[str]:
+        """Return all resource names for a given service.
+
+        Returns resources for both native boto3 resources and custom cloudwanderer resources.
+
+        Arguments:
+            service_name: The name of the service to get resource types for (e.g. ``'ec2'``)
+        """
+        for collection in self.get_all_service_collections(service_name):
+            yield botocore.xform_name(collection.resource.model.name)
+
+    def get_valid_resource_types(self, service_name: str, resource_types: List[str]) -> List[str]:
+        """Filter out any invalid resources for service_name from resource_types.
+
+        Arguments:
+            service_name (str): The service to check for valid resources.
+            resource_types (List[str]): The list of resources to ensure are valid.
+        """
+        service_resource_types = list(
+            self.get_service_resource_types(service_name=service_name)
+        )
+
+        if resource_types:
+            return [
+                resource_type
+                for resource_type in resource_types
+                if resource_type in service_resource_types
+            ]
+
+        return service_resource_types
+
 
 def _get_resource_definitions() -> CustomResourceDefinitions:
     """Return a default set of resource definitions."""
@@ -183,3 +234,15 @@ def _get_resource_definitions() -> CustomResourceDefinitions:
     if DEFAULT_RESOURCE_DEFINITIONS is None:
         DEFAULT_RESOURCE_DEFINITIONS = CustomResourceDefinitions()
     return DEFAULT_RESOURCE_DEFINITIONS
+
+
+def get_resource_collections(boto3_service: boto3.resources.base.ServiceResource) -> List[Collection]:
+    """Return all resource types in this service.
+
+    This primarily exists to make testing with moto easier so that we can
+    filter out resource collections that moto doesn't support.
+
+    Arguments:
+        boto3_service (boto3.resources.base.ServiceResource): The service resource from which to return collections
+    """
+    return boto3_service.meta.resource_model.collections

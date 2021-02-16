@@ -115,48 +115,51 @@ class TestCloudWandererWriteResources(unittest.TestCase, GenericAssertionHelpers
             }])
         self.assert_dictionary_overlap(self.storage_connector.read_all(), self.us_east_1_resources)
 
-    def test_write_resources_in_region_default_region(self):
-        self.wanderer.write_resources_in_region()
+    def test_write_resources_eu_west_1(self):
+        self.wanderer.write_resources(regions=['eu-west-2'], )
 
         self.assert_dictionary_overlap(self.storage_connector.read_all(), self.eu_west_2_resources)
         self.assert_no_dictionary_overlap(self.storage_connector.read_all(), self.us_east_1_resources)
 
-    def test_write_resources_in_region_specify_region(self):
-        self.wanderer.write_resources_in_region(region_name='us-east-1')
+    def test_write_resources_us_east_1(self):
+        self.wanderer.write_resources(regions=['us-east-1'])
 
         self.assert_dictionary_overlap(self.storage_connector.read_all(), self.us_east_1_resources)
         self.assert_no_dictionary_overlap(self.storage_connector.read_all(), self.eu_west_2_resources)
 
-    def test_write_resources_of_service_default_region(self):
-        self.wanderer.write_resources_of_service_in_region(service_name='ec2')
-        self.wanderer.write_resources_of_service_in_region(service_name='s3')
+    def test_write_resources_of_service_eu_west_1(self):
+        self.wanderer.write_resources(regions=['eu-west-2'], service_names=['ec2'])
+        self.wanderer.write_resources(regions=['eu-west-2'], service_names=['s3'])
 
         self.assert_dictionary_overlap(self.storage_connector.read_all(), self.eu_west_2_resources)
         self.assert_no_dictionary_overlap(self.storage_connector.read_all(), self.us_east_1_resources)
 
-    def test_write_resources_of_service_specify_region(self):
-        self.wanderer.write_resources_of_service_in_region(service_name='ec2', region_name='us-east-1')
-        self.wanderer.write_resources_of_service_in_region(service_name='s3', region_name='us-east-1')
-        self.wanderer.write_resources_of_service_in_region(service_name='iam', region_name='us-east-1')
+    def test_write_resources_of_service_us_east_1(self):
+        self.wanderer.write_resources(service_names=['ec2'], regions=['us-east-1'])
+        self.wanderer.write_resources(service_names=['s3'], regions=['us-east-1'])
+        self.wanderer.write_resources(service_names=['iam'], regions=['us-east-1'])
 
         self.assert_dictionary_overlap(self.storage_connector.read_all(), self.us_east_1_resources)
         self.assert_no_dictionary_overlap(self.storage_connector.read_all(), self.eu_west_2_resources)
 
-    def test_write_resources_of_type_in_region_default_region(self):
-        self.wanderer.write_resources_of_type_in_region(service_name='s3', resource_type='bucket')
-        self.wanderer.write_resources_of_type_in_region(service_name='ec2', resource_type='instance')
-        self.wanderer.write_resources_of_type_in_region(service_name='iam', resource_type='role')
+    def test_write_resources_of_type_eu_west_1(self):
+        self.wanderer.write_resources(
+            regions=['eu-west-2'], service_names=['s3'], resource_types=['bucket'])
+        self.wanderer.write_resources(
+            regions=['eu-west-2'], service_names=['ec2'], resource_types=['instance'])
+        self.wanderer.write_resources(
+            regions=['eu-west-2'], service_names=['iam'], resource_types=['role'])
 
         self.assert_dictionary_overlap(self.storage_connector.read_all(), self.eu_west_2_resources)
         self.assert_no_dictionary_overlap(self.storage_connector.read_all(), self.us_east_1_resources)
 
-    def test_write_resources_of_type_in_region_specify_region(self):
-        self.wanderer.write_resources_of_type_in_region(
-            service_name='s3', resource_type='bucket', region_name='us-east-1')
-        self.wanderer.write_resources_of_type_in_region(
-            service_name='ec2', resource_type='instance', region_name='us-east-1')
-        self.wanderer.write_resources_of_type_in_region(
-            service_name='iam', resource_type='role', region_name='us-east-1')
+    def test_write_resources_of_type_us_east_1(self):
+        self.wanderer.write_resources(
+            service_names=['s3'], resource_types=['bucket'], regions=['us-east-1'])
+        self.wanderer.write_resources(
+            service_names=['ec2'], resource_types=['instance'], regions=['us-east-1'])
+        self.wanderer.write_resources(
+            service_names=['iam'], resource_types=['role'], regions=['us-east-1'])
 
         self.assert_dictionary_overlap(self.storage_connector.read_all(), self.us_east_1_resources)
         self.assert_no_dictionary_overlap(self.storage_connector.read_all(), self.eu_west_2_resources)

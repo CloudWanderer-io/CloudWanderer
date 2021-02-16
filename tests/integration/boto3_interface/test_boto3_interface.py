@@ -2,6 +2,7 @@ import boto3
 import unittest
 from unittest.mock import ANY
 from cloudwanderer import CloudWandererBoto3Interface
+from cloudwanderer.boto3_helpers import _prepare_boto3_resource_data, _get_resource_attributes
 from ..helpers import get_default_mocker
 
 
@@ -19,7 +20,7 @@ class TestBoto3Interface(unittest.TestCase):
         get_default_mocker().stop_general_mock()
 
     def test__get_resource_attributes(self):
-        assert list(self.boto3_interface._get_resource_attributes(self.vpcs[0])) == [
+        assert list(_get_resource_attributes(self.vpcs[0])) == [
             'CidrBlock',
             'DhcpOptionsId',
             'State',
@@ -33,7 +34,7 @@ class TestBoto3Interface(unittest.TestCase):
         ]
 
     def test__prepare_boto3_resource_data(self):
-        assert self.boto3_interface._prepare_boto3_resource_data(self.vpcs[0]) == {
+        assert _prepare_boto3_resource_data(self.vpcs[0]) == {
             'CidrBlock': '172.31.0.0/16',
             'CidrBlockAssociationSet': [{
                 'AssociationId': ANY,
