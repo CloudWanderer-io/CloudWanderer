@@ -5,7 +5,7 @@ import boto3
 import botocore
 
 from cloudwanderer import AwsUrn, CloudWandererBoto3Interface
-from cloudwanderer.exceptions import BadUrnAccountId, BadUrnRegion, BadUrnSubResource
+from cloudwanderer.exceptions import BadUrnAccountId, BadUrnRegion, BadUrnSubResource, ResourceActionDoesNotExist
 
 from ..helpers import DEFAULT_SESSION, GenericAssertionHelpers, get_default_mocker
 from ..mocks import add_infra
@@ -170,3 +170,29 @@ class TestCloudWandererGetResource(unittest.TestCase, GenericAssertionHelpers):
             "Tags": [],
             "VersionIdsToStages": ANY,
         }
+
+    def test_write_invalid_service_resource(self):
+        with self.assertRaisesRegex(botocore.exceptions.UnknownServiceError, 'secretsmanag3r'):
+            self.boto3_interface.get_resource(
+                urn=AwsUrn(
+                    account_id="123456789012",
+                    region="eu-west-2",
+                    service="secretsmanag3r",
+                    resource_type="secret",
+                    resource_id="test-secret",
+                )
+            )
+
+    def test_write_invalid_type_resource(self):
+        with self.assertRaisesRegex(
+            ResourceActionDoesNotExist, "secr3t does not exist as a supported resource for secretsmanager"
+        ):
+            self.boto3_interface.get_resource(
+                urn=AwsUrn(
+                    account_id="123456789012",
+                    region="eu-west-2",
+                    service="secretsmanager",
+                    resource_type="secr3t",
+                    resource_id="test-secret",
+                )
+            )

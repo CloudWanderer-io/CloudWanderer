@@ -15,3 +15,7 @@ class BadUrnSubResource(Exception):
 
 class GlobalServiceResourceMappingNotFound(Exception):
     """Global Service Resource Mapping not Found."""
+
+
+class ResourceActionDoesNotExist(Exception):
+    """Resource does not exist on this service as supported by CloudWanderer."""
