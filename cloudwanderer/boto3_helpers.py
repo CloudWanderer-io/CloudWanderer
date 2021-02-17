@@ -9,6 +9,7 @@ from boto3.resources.model import Collection, ResourceModel
 from botocore import xform_name
 
 from .custom_resource_definitions import get_resource_collections
+from .exceptions import ResourceActionDoesNotExist
 
 logger = logging.getLogger(__name__)
 
@@ -147,3 +148,25 @@ def get_resource_from_collection(
             logger.warning(ex.response["Error"]["Message"])
             return
         raise
+
+
+def get_boto3_resource_action(
+    boto3_service: boto3.resources.base.ServiceResource, resource_type: str
+) -> boto3.resources.model.Action:
+    """Get a the Action method used to fetch a resource based on the resource name.
+
+    Arguments:
+        boto3_service (boto3.resources.base.ServiceResource):
+            The boto3 service object to get the action from.
+        resource_type (str):
+            The name of the service to get the Action of.
+
+    Raises:
+        ResourceActionDoesNotExist: When the resource is not supported by this service in CloudWanderer.
+    """
+    for boto3_resource in boto3_service.meta.resource_model.subresources:
+        if xform_name(boto3_resource.name) == resource_type:
+            return getattr(boto3_service, boto3_resource.name)
+    raise ResourceActionDoesNotExist(
+        f"{resource_type} does not exist as a supported resource for {boto3_service.meta.resource_model.name}"
+    )

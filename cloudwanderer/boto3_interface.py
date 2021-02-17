@@ -38,6 +38,20 @@ class CloudWandererBoto3Interface(Boto3CommonAttributesMixin):
         self.service_maps = ServiceMappingCollection(boto3_session=self.boto3_session)
         self.boto3_getter = Boto3Getter(boto3_session=self.boto3_session, service_maps=self.service_maps)
 
+    def get_resource(self, urn: AwsUrn) -> CloudWandererResource:
+        """Return CloudWandererResource picked out by this urn.
+
+        Arguments:
+            urn (AwsUrn): The urn of the resource to get.
+        """
+        resource = self.boto3_getter.get_resource_from_urn(urn=urn)
+
+        return CloudWandererResource(
+            urn=urn,
+            resource_data=_prepare_boto3_resource_data(resource),
+            secondary_attributes=list(self.boto3_getter.get_secondary_attributes(resource)),
+        )
+
     def get_resources(
         self,
         regions: List[str] = None,
