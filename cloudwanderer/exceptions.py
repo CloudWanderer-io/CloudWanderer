@@ -19,3 +19,14 @@ class GlobalServiceResourceMappingNotFound(Exception):
 
 class ResourceActionDoesNotExist(Exception):
     """Resource does not exist on this service as supported by CloudWanderer."""
+
+
+class ResourceNotFound(Exception):
+    """Requested resource was not found."""
+
+
+class BadRequest(Exception):
+    """The Cloud API returned a Bad Request Error.
+
+    For some services for some clouds this is the same as a ResourceNotFound error.
+    """

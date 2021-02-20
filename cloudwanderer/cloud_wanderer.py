@@ -7,6 +7,7 @@ from cloudwanderer.cloud_wanderer_resource import CloudWandererResource
 
 from .aws_urn import AwsUrn
 from .boto3_interface import CloudWandererBoto3Interface
+from .exceptions import BadRequest, ResourceNotFound
 from .utils import exception_logging_wrapper
 
 logger = logging.getLogger("cloudwanderer")
@@ -32,6 +33,27 @@ class CloudWanderer:
         """
         self.storage_connectors = storage_connectors
         self.cloud_interface = cloud_interface or CloudWandererBoto3Interface()
+
+    def write_resource(self, urn: AwsUrn, **kwargs) -> None:
+        """Fetch data for and persist to storage a single resource.
+
+        Arguments:
+            urn (AwsUrn):
+                The URN of the resource to write
+            **kwargs:
+                All additional keyword arguments will be passed down to the cloud interface client calls.
+        """
+        try:
+            resource = self.cloud_interface.get_resource(urn=urn, **kwargs)
+        except (BadRequest, ResourceNotFound):
+            # Some Clouds return error 400s other than 404 when a resource is not found
+            # Therefore we treat all BadRequest errors as Not Found
+            resource = None
+        if resource:
+            list(self._write_resource(resource=resource))
+        else:
+            for storage_connector in self.storage_connectors:
+                storage_connector.delete_resource(urn)
 
     def write_resources(
         self,
@@ -115,6 +137,8 @@ class CloudWanderer:
                 )
 
     def _write_resource(self, resource: CloudWandererResource) -> Iterator[AwsUrn]:
+        print("received: ", resource)
         for storage_connector in self.storage_connectors:
+            print(resource)
             storage_connector.write_resource(resource)
         yield resource.urn

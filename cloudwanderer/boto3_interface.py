@@ -8,6 +8,9 @@ from typing import Iterator, List
 
 import boto3
 from boto3.resources.model import ResourceModel
+from botocore.exceptions import ClientError
+
+from cloudwanderer.exceptions import BadRequest, ResourceNotFound
 
 from .aws_urn import AwsUrn
 from .boto3_getter import Boto3Getter
@@ -43,9 +46,20 @@ class CloudWandererBoto3Interface(Boto3CommonAttributesMixin):
 
         Arguments:
             urn (AwsUrn): The urn of the resource to get.
-        """
-        resource = self.boto3_getter.get_resource_from_urn(urn=urn)
 
+        Raises:
+            BadRequest: Occurs when the AWS API returns a 4xx HTTP error
+            ResourceNotFound: Occurs when the AWS API Returns a 404 HTTP error
+        """
+        try:
+            resource = self.boto3_getter.get_resource_from_urn(urn=urn)
+        except ClientError as ex:
+            error_code = ex.response.get("ResponseMetadata", {}).get("HTTPStatusCode")
+            if error_code == 404:
+                raise ResourceNotFound(f"{urn} was not found") from ex
+            if error_code >= 400 and error_code < 500:
+                raise BadRequest(f"A request error was returned while fetching {urn}") from ex
+            raise
         return CloudWandererResource(
             urn=urn,
             resource_data=_prepare_boto3_resource_data(resource),
