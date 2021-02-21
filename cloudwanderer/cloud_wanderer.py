@@ -22,7 +22,7 @@ class CloudWanderer:
         """Initialise CloudWanderer.
 
         Args:
-            storage_connectors:
+            storage_connectors (List[BaseStorageConnector]):
                 CloudWanderer storage connector objects.
             cloud_interface (CloudWandererAWSInterface):
                 The cloud interface to get resources from.
@@ -105,16 +105,13 @@ class CloudWanderer:
         """Write all AWS resources in this account from all regions and all services to storage.
 
         Any additional args will be passed into the cloud interface's ``get_`` methods.
+        **WARNING:** Experimental.
 
         Arguments:
             exclude_resources (list):
                 exclude_resources (list): A list of service:resources to exclude (e.g. ``['ec2:instance']``)
             concurrency (int):
                 Number of query threads to invoke concurrently.
-                If the number of threads exceeds the number of regions by at least two times
-                multiple services to be queried concurrently in each region.
-                **WARNING:** Experimental. Complete data capture depends heavily on the thread safeness of the
-                storage connector and has not been thoroughly tested!
             cloud_interface_generator (Callable):
                  A method which returns a new cloud interface session when called.
                 This helps prevent non-threadsafe cloud interfaces from interfering with each others.
