@@ -1,32 +1,32 @@
 """CloudWanderer's Exceptions."""
 
 
-class BadUrnRegion(Exception):
+class BadUrnRegionError(Exception):
     """Raised when an URN is passed to get_resource with a region that is not possible."""
 
 
-class BadUrnAccountId(Exception):
+class BadUrnAccountIdError(Exception):
     """Raised when an URN is passed to get_resource with an account other than the one the session is for."""
 
 
-class BadUrnSubResource(Exception):
+class BadUrnSubResourceError(Exception):
     """Raised when an URN for a subresource is passed to get resource."""
 
 
-class GlobalServiceResourceMappingNotFound(Exception):
+class GlobalServiceResourceMappingNotFoundError(Exception):
     """Global Service Resource Mapping not Found."""
 
 
-class ResourceActionDoesNotExist(Exception):
+class ResourceActionDoesNotExistError(Exception):
     """Resource does not exist on this service as supported by CloudWanderer."""
 
 
-class ResourceNotFound(Exception):
+class ResourceNotFoundError(Exception):
     """Requested resource was not found."""
 
 
-class BadRequest(Exception):
+class BadRequestError(Exception):
     """The Cloud API returned a Bad Request Error.
 
-    For some services for some clouds this is the same as a ResourceNotFound error.
+    For some services for some clouds this is the same as a ResourceNotFoundError error.
     """

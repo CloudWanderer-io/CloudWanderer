@@ -4,6 +4,7 @@ from typing import Iterator, List
 
 import boto3
 from botocore import xform_name
+from botocore.exceptions import ClientError
 
 from .aws_urn import AwsUrn
 from .boto3_helpers import (
@@ -15,7 +16,14 @@ from .boto3_helpers import (
 )
 from .cloud_wanderer_resource import SecondaryAttribute
 from .custom_resource_definitions import CustomResourceDefinitions, get_resource_collections
-from .exceptions import BadUrnAccountId, BadUrnRegion, BadUrnSubResource, GlobalServiceResourceMappingNotFound
+from .exceptions import (
+    BadRequestError,
+    BadUrnAccountIdError,
+    BadUrnRegionError,
+    BadUrnSubResourceError,
+    GlobalServiceResourceMappingNotFoundError,
+    ResourceNotFoundError,
+)
 from .service_mappings import ServiceMappingCollection
 
 
@@ -34,22 +42,32 @@ class Boto3Getter(Boto3CommonAttributesMixin):
             urn (AwsUrn): The urn of the resource to get.
 
         Raises:
-            BadUrnAccountId: When the account ID of the urn does not match the account id of the current session.
-            BadUrnRegion: When the region of the urn is not possible with the service and/or resource type.
-            BadUrnSubResource: get_resource does not support fetching subresources directly.
+            BadUrnAccountIdError: When the account ID of the urn does not match the account id of the current session.
+            BadUrnRegionError: When the region of the urn is not possible with the service and/or resource type.
+            BadUrnSubResourceError: get_resource does not support fetching subresources directly.
+            BadRequestError: Occurs when the AWS API returns a 4xx HTTP error other than 404.
+            ResourceNotFoundError: Occurs when the AWS API Returns a 404 HTTP error.
         """
         if urn.account_id != self.account_id:
-            raise BadUrnAccountId(f"{urn} exists in an account other than the current one ({self.account_id}).")
+            raise BadUrnAccountIdError(f"{urn} exists in an account other than the current one ({self.account_id}).")
         if urn.is_subresource:
-            raise BadUrnSubResource(f"{urn} is a sub resource, please call get_resource against its parent.")
+            raise BadUrnSubResourceError(f"{urn} is a sub resource, please call get_resource against its parent.")
 
         service_map = self.service_maps.get_service_mapping(service_name=urn.service)
         if service_map.global_service_region != urn.region and not service_map.has_regional_resources:
-            raise BadUrnRegion(f"{urn}'s service does not have resources in {urn.region}")
+            raise BadUrnRegionError(f"{urn}'s service does not have resources in {urn.region}")
         boto3_service = self.custom_resource_definitions.resource(region_name=urn.region, service_name=urn.service)
 
         resource = get_boto3_resource_action(boto3_service, urn.resource_type)(urn.resource_id)
-        resource.load()
+        try:
+            resource.load()
+        except ClientError as ex:
+            error_code = ex.response.get("ResponseMetadata", {}).get("HTTPStatusCode")
+            if error_code == 404:
+                raise ResourceNotFoundError(f"{urn} was not found") from ex
+            if error_code >= 400 and error_code < 500:
+                raise BadRequestError(f"A request error was returned while fetching {urn}") from ex
+            raise
         return resource
 
     def get_subresources(
@@ -111,7 +129,7 @@ class Boto3Getter(Boto3CommonAttributesMixin):
         for subresource in boto3_resource.meta.resource_model.subresources:
             try:
                 resource_mapping = service_mapping.get_resource_mapping(subresource.name)
-            except GlobalServiceResourceMappingNotFound:
+            except GlobalServiceResourceMappingNotFoundError:
                 continue
 
             if resource_mapping.resource_type != resource_type:
@@ -123,7 +141,7 @@ class Boto3Getter(Boto3CommonAttributesMixin):
         for child_resource_collection in get_resource_collections(boto3_resource):
             try:
                 resource_mapping = service_mapping.get_resource_mapping(child_resource_collection.resource.model.name)
-            except GlobalServiceResourceMappingNotFound:
+            except GlobalServiceResourceMappingNotFoundError:
                 continue
             if resource_mapping.resource_type != resource_type:
                 continue
@@ -155,7 +173,7 @@ class Boto3Getter(Boto3CommonAttributesMixin):
         for subresource in boto3_resource_model.subresources:
             try:
                 resource_mapping = service_mapping.get_resource_mapping(subresource.name)
-            except GlobalServiceResourceMappingNotFound:
+            except GlobalServiceResourceMappingNotFoundError:
                 continue
             if resource_mapping.resource_type != resource_type:
                 continue
@@ -166,7 +184,7 @@ class Boto3Getter(Boto3CommonAttributesMixin):
                 resource_mapping = service_mapping.get_resource_mapping(
                     secondary_attribute_collection.resource.model.name
                 )
-            except GlobalServiceResourceMappingNotFound:
+            except GlobalServiceResourceMappingNotFoundError:
                 continue
             if resource_mapping.resource_type != resource_type:
                 continue

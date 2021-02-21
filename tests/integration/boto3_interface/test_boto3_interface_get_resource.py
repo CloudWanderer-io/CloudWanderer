@@ -5,20 +5,12 @@ import boto3
 import botocore
 
 from cloudwanderer import AwsUrn, CloudWandererBoto3Interface
-from cloudwanderer.exceptions import (
-    BadRequest,
-    BadUrnAccountId,
-    BadUrnRegion,
-    BadUrnSubResource,
-    ResourceActionDoesNotExist,
-    ResourceNotFound,
-)
 
 from ..helpers import DEFAULT_SESSION, GenericAssertionHelpers, get_default_mocker
 from ..mocks import add_infra
 
 
-class TestCloudWandererGetResource(unittest.TestCase, GenericAssertionHelpers):
+class TestBoto3InterfaceGetResource(unittest.TestCase, GenericAssertionHelpers):
     @classmethod
     def setUpClass(cls):
         cls.enabled_regions = ["eu-west-2", "us-east-1", "ap-east-1"]
@@ -86,18 +78,6 @@ class TestCloudWandererGetResource(unittest.TestCase, GenericAssertionHelpers):
             },
         ]
 
-    def test_get_secondary_resource(self):
-        with self.assertRaises(BadUrnSubResource):
-            self.boto3_interface.get_resource(
-                urn=AwsUrn(
-                    account_id="123456789012",
-                    region="us-east-1",
-                    service="iam",
-                    resource_type="role_policy",
-                    resource_id="test-role/test-policy",
-                )
-            )
-
     def test_get_valid_s3_bucket_eu_west_2(self):
         result = self.boto3_interface.get_resource(
             urn=AwsUrn(
@@ -113,58 +93,30 @@ class TestCloudWandererGetResource(unittest.TestCase, GenericAssertionHelpers):
             "Name": "test-eu-west-2",
         }
 
-    def test_get_s3_bucket_bad_account_id(self):
-        with self.assertRaises(BadUrnAccountId):
-            self.boto3_interface.get_resource(
-                urn=AwsUrn(
-                    account_id="111111111111",
-                    region="eu-west-2",
-                    service="s3",
-                    resource_type="bucket",
-                    resource_id="test-eu-west-2",
-                )
-            )
-
-    def test_get_invalid_iam_role_eu_west_2(self):
-        with self.assertRaises(BadUrnRegion):
-            self.boto3_interface.get_resource(
-                urn=AwsUrn(
-                    account_id="123456789012",
-                    region="eu-west-2",
-                    service="iam",
-                    resource_type="role",
-                    resource_id="test-role",
-                )
-            )
-
     def test_get_missing_ec2_instance_eu_west_2(self):
-        with self.assertRaisesRegex(
-            BadRequest,
-            "A request error was returned while fetching urn:aws:123456789012:eu-west-2:ec2:instance:i-111111111111",
-        ):
-            self.boto3_interface.get_resource(
-                urn=AwsUrn(
-                    account_id="123456789012",
-                    region="eu-west-2",
-                    service="ec2",
-                    resource_type="instance",
-                    resource_id="i-111111111111",
-                )
+        result = self.boto3_interface.get_resource(
+            urn=AwsUrn(
+                account_id="123456789012",
+                region="eu-west-2",
+                service="ec2",
+                resource_type="instance",
+                resource_id="i-111111111111",
             )
+        )
+        assert result is None
 
     def test_get_missing_iam_role(self):
-        with self.assertRaisesRegex(
-            ResourceNotFound, "urn:aws:123456789012:us-east-1:iam:role:non-existent-role was not found"
-        ):
-            self.boto3_interface.get_resource(
-                urn=AwsUrn(
-                    account_id="123456789012",
-                    region="us-east-1",
-                    service="iam",
-                    resource_type="role",
-                    resource_id="non-existent-role",
-                )
+        result = self.boto3_interface.get_resource(
+            urn=AwsUrn(
+                account_id="123456789012",
+                region="us-east-1",
+                service="iam",
+                resource_type="role",
+                resource_id="non-existent-role",
             )
+        )
+
+        assert result is None
 
     def test_get_custom_resource(self):
         result = self.boto3_interface.get_resource(
@@ -203,20 +155,6 @@ class TestCloudWandererGetResource(unittest.TestCase, GenericAssertionHelpers):
                     region="eu-west-2",
                     service="secretsmanag3r",
                     resource_type="secret",
-                    resource_id="test-secret",
-                )
-            )
-
-    def test_get_invalid_type_resource(self):
-        with self.assertRaisesRegex(
-            ResourceActionDoesNotExist, "secr3t does not exist as a supported resource for secretsmanager"
-        ):
-            self.boto3_interface.get_resource(
-                urn=AwsUrn(
-                    account_id="123456789012",
-                    region="eu-west-2",
-                    service="secretsmanager",
-                    resource_type="secr3t",
                     resource_id="test-secret",
                 )
             )
