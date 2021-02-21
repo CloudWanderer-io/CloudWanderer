@@ -120,11 +120,8 @@ class CloudWanderer:
                 This helps prevent non-threadsafe cloud interfaces from interfering with each others.
             storage_connector_generator (Callable):
                 A method which returns a list of storage connectors when called.
-                The returned connectors should be thread safe instances of the same connectors each time
-                the method is called.
-                This allows us to avoid CloudWanderer calling the same non thread safe storage connector
-                instances when multithreading.
-                These storage connectors will be returned at the end of execution.
+                The returned connectors should be instances of the same connectors each time the method is called.
+                These connectors do **not** need to be thread safe and will be returned at the end of execution.
             **kwargs:
                 Additional keyword arguments will be passed down to the cloud interface methods.
         """
