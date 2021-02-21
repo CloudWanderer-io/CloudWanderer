@@ -18,15 +18,6 @@ from ..mocks import (
 
 
 class TestCloudWandererWriteResourcesConcurrently(unittest.TestCase, GenericAssertionHelpers):
-    eu_west_2_resources = [
-        {
-            "urn": "urn:aws:.*:eu-west-2:ec2:instance:.*",
-            "attr": "BaseResource",
-            "VpcId": "vpc-.*",
-            "SubnetId": "subnet-.*",
-            "InstanceId": "i-.*",
-        }
-    ]
     us_east_1_resources = [
         {
             "urn": "urn:aws:.*:us-east-1:iam:role:.*",
