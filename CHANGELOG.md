@@ -6,7 +6,7 @@
 - Normalised custom error exception names to have Error at the end as per PEP8
 - Renamed `CloudWandererBoto3Interface` to `CloudWandererAWSInterface`
 - Renamed `AwsUrn` to `URN`
-- Added `storage_connector_generator` to `write_resources_concurrently` to handle non thread safe storage connectors
+- Added `storage_connector_generator` to `write_resources_concurrently` to handle non thread safe storage connectors (hopefully fixing #86)
 
 # 0.12.0
 
