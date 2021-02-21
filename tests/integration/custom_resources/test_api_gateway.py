@@ -22,7 +22,7 @@ class TestSecretsManagerResources(unittest.TestCase, GenericAssertionHelpers):
     def tearDown(self):
         get_default_mocker().stop_moto_services()
 
-    def test_get_rest_api(self):
+    def test_get_secret(self):
 
         self.wanderer.write_resource(
             urn=URN(
@@ -39,7 +39,7 @@ class TestSecretsManagerResources(unittest.TestCase, GenericAssertionHelpers):
             [{"name": "TestApi", "apiKeySource": "HEADER", "endpointConfiguration": {"types": ["EDGE"]}, "tags": {}}],
         )
 
-    def test_get_rest_apis(self):
+    def test_get_secrets(self):
 
         self.wanderer.write_resources(regions=["eu-west-2"], service_names=["apigateway"])
 
