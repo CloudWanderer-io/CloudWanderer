@@ -4,7 +4,7 @@ from unittest.mock import ANY
 import boto3
 import botocore
 
-from cloudwanderer import AwsUrn, CloudWandererBoto3Interface
+from cloudwanderer import URN, CloudWandererAWSInterface
 
 from ..helpers import DEFAULT_SESSION, GenericAssertionHelpers, get_default_mocker
 from ..mocks import add_infra
@@ -26,11 +26,11 @@ class TestBoto3InterfaceGetResource(unittest.TestCase, GenericAssertionHelpers):
         get_default_mocker().stop_general_mock()
 
     def setUp(self):
-        self.boto3_interface = CloudWandererBoto3Interface()
+        self.aws_interface = CloudWandererAWSInterface()
 
     def test_get_valid_ec2_instance(self):
-        result = self.boto3_interface.get_resource(
-            urn=AwsUrn(
+        result = self.aws_interface.get_resource(
+            urn=URN(
                 account_id="123456789012",
                 region="eu-west-2",
                 service="ec2",
@@ -42,8 +42,8 @@ class TestBoto3InterfaceGetResource(unittest.TestCase, GenericAssertionHelpers):
         assert set(self.instances[0].meta.data).issubset(result.cloudwanderer_metadata.resource_data)
 
     def test_get_valid_iam_role(self):
-        result = self.boto3_interface.get_resource(
-            urn=AwsUrn(
+        result = self.aws_interface.get_resource(
+            urn=URN(
                 account_id="123456789012",
                 region="us-east-1",
                 service="iam",
@@ -79,8 +79,8 @@ class TestBoto3InterfaceGetResource(unittest.TestCase, GenericAssertionHelpers):
         ]
 
     def test_get_valid_s3_bucket_eu_west_2(self):
-        result = self.boto3_interface.get_resource(
-            urn=AwsUrn(
+        result = self.aws_interface.get_resource(
+            urn=URN(
                 account_id="123456789012",
                 region="eu-west-2",
                 service="s3",
@@ -94,8 +94,8 @@ class TestBoto3InterfaceGetResource(unittest.TestCase, GenericAssertionHelpers):
         }
 
     def test_get_missing_ec2_instance_eu_west_2(self):
-        result = self.boto3_interface.get_resource(
-            urn=AwsUrn(
+        result = self.aws_interface.get_resource(
+            urn=URN(
                 account_id="123456789012",
                 region="eu-west-2",
                 service="ec2",
@@ -106,8 +106,8 @@ class TestBoto3InterfaceGetResource(unittest.TestCase, GenericAssertionHelpers):
         assert result is None
 
     def test_get_missing_iam_role(self):
-        result = self.boto3_interface.get_resource(
-            urn=AwsUrn(
+        result = self.aws_interface.get_resource(
+            urn=URN(
                 account_id="123456789012",
                 region="us-east-1",
                 service="iam",
@@ -119,8 +119,8 @@ class TestBoto3InterfaceGetResource(unittest.TestCase, GenericAssertionHelpers):
         assert result is None
 
     def test_get_custom_resource(self):
-        result = self.boto3_interface.get_resource(
-            urn=AwsUrn(
+        result = self.aws_interface.get_resource(
+            urn=URN(
                 account_id="123456789012",
                 region="eu-west-2",
                 service="secretsmanager",
@@ -149,8 +149,8 @@ class TestBoto3InterfaceGetResource(unittest.TestCase, GenericAssertionHelpers):
 
     def test_get_invalid_service_resource(self):
         with self.assertRaisesRegex(botocore.exceptions.UnknownServiceError, "secretsmanag3r"):
-            self.boto3_interface.get_resource(
-                urn=AwsUrn(
+            self.aws_interface.get_resource(
+                urn=URN(
                     account_id="123456789012",
                     region="eu-west-2",
                     service="secretsmanag3r",

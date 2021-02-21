@@ -1,3 +1,12 @@
+# 0.13.0
+
+- Added `get_resource` to `CloudWanderer` to allow the writing of a single resource based on its URN
+- Added `get_resource` to `CloudWandererAWSInterface` to allow the getting of a single resource based on its URN
+- Added `get_resource_by_urn` to `Boto3Getter` to support `CloudWandererAWSInterface`
+- Normalised custom error exception names to have Error at the end as per PEP8
+- Renamed `CloudWandererBoto3Interface` to `CloudWandererAWSInterface`
+- Renamed `AwsUrn` to `URN`
+
 # 0.12.0
 
 - Changed the way `exclude_resources` works so you can differentiate between CloudFormation Stacks and OpsWorks Stacks #70

@@ -28,7 +28,7 @@ def filter_collections(collections, service_resource):
 
 
 class TestStorageConnectorReadMixin:
-    def has_matching_aws_urn(self, iterable, **kwargs):
+    def has_matching_urn(self, iterable, **kwargs):
         matches = []
         for resource in iterable:
             attribute_results = []
@@ -38,33 +38,33 @@ class TestStorageConnectorReadMixin:
                 matches.append(resource.urn)
         return matches
 
-    def assert_has_matching_aws_urns(self, iterable, aws_urns):
-        """Assert that iterable has AwsUrns that match the list of dicts in aws_urns
+    def assert_has_matching_urns(self, iterable, urns):
+        """Assert that iterable has URNs that match the list of dicts in urns
 
         Arguments:
             iterable (iterable):
-                An iterable containing AwsUrn objects
-            aws_urns (list):
+                An iterable containing URN objects
+            urns (list):
                 List of dictionaries whose key match aws urn attributes that must
                 exist in at least one urn in iterable.
         """
         iterable = list(iterable)
-        for urn in aws_urns:
-            self.assertTrue(self.has_matching_aws_urn(iterable, **urn), f"{urn} not in {iterable}")
+        for urn in urns:
+            self.assertTrue(self.has_matching_urn(iterable, **urn), f"{urn} not in {iterable}")
 
-    def assert_does_not_have_matching_aws_urns(self, iterable, aws_urns):
-        """Assert that iterable does not have AwsUrns that match the list of dicts in aws_urns
+    def assert_does_not_have_matching_urns(self, iterable, urns):
+        """Assert that iterable does not have URNs that match the list of dicts in urns
 
         Arguments:
             iterable (iterable):
-                An iterable containing AwsUrn objects
-            aws_urns (list):
+                An iterable containing URN objects
+            urns (list):
                 List of dictionaries whose keys should not match aws urn attributes that must
                 exist in at least one urn in iterable.
         """
         iterable = list(iterable)
-        for urn in aws_urns:
-            self.assertFalse(self.has_matching_aws_urn(iterable, **urn), f"{urn} is in {iterable}")
+        for urn in urns:
+            self.assertFalse(self.has_matching_urn(iterable, **urn), f"{urn} is in {iterable}")
 
 
 class GenericAssertionHelpers:
@@ -235,12 +235,12 @@ def get_default_mocker():
 
 
 def get_secondary_attribute_types(service_name):
-    boto3_interface = cloudwanderer.boto3_interface.CloudWandererBoto3Interface(boto3_session=DEFAULT_SESSION)
+    aws_interface = cloudwanderer.aws_interface.CloudWandererAWSInterface(boto3_session=DEFAULT_SESSION)
     service_maps = ServiceMappingCollection(boto3_session=DEFAULT_SESSION)
     service_map = service_maps.get_service_mapping(service_name=service_name)
     resource_types = get_service_resource_types_from_collections(
         get_resource_collections(
-            boto3_service=boto3_interface.boto3_getter.custom_resource_definitions.resource(service_name=service_name)
+            boto3_service=aws_interface.boto3_getter.custom_resource_definitions.resource(service_name=service_name)
         )
     )
     for resource_type in resource_types:

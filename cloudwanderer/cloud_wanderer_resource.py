@@ -1,9 +1,12 @@
 """Standardised dataclasses for returning resources from storage."""
-from typing import Callable, List
 import logging
+from typing import Callable, List
+
 import jmespath
 from botocore import xform_name
-from .aws_urn import AwsUrn
+
+from .urn import URN
+
 logger = logging.getLogger(__name__)
 
 
@@ -32,28 +35,28 @@ class ResourceMetadata:
         self.secondary_attributes = secondary_attributes
 
 
-class CloudWandererResource():
+class CloudWandererResource:
     """A simple representation of a resource that prevents any storage metadata polluting the resource dictionary.
 
     Attributes:
-        urn (AwsUrn): The URN of the resource.
+        urn (URN): The URN of the resource.
         cloudwanderer_metadata (ResourceMetadata): The metadata of this resource (including attributes).
     """
 
-    def __init__(self, urn: AwsUrn, resource_data: dict,
-                 secondary_attributes: List[dict] = None, loader: Callable = None) -> None:
+    def __init__(
+        self, urn: URN, resource_data: dict, secondary_attributes: List[dict] = None, loader: Callable = None
+    ) -> None:
         """Initialise the resource.
 
         Arguments:
-            urn (AwsUrn): The AWS URN of the resource.
+            urn (URN): The AWS URN of the resource.
             resource_data (dict): The dictionary containing the raw data about this resource.
             secondary_attributes (List[dict]): A list of secondary attribute raw dictionaries.
             loader (Callable): The method which can be used to fulfil the :meth:`CloudWandererResource.load`.
         """
         self.urn = urn
         self.cloudwanderer_metadata = ResourceMetadata(
-            resource_data=resource_data or {},
-            secondary_attributes=secondary_attributes or []
+            resource_data=resource_data or {}, secondary_attributes=secondary_attributes or []
         )
         self._loader = loader
         self._set_resource_data_attrs()
@@ -66,10 +69,10 @@ class CloudWandererResource():
                 in the StorageConnector's storage.
         """
         if self._loader is None:
-            raise ValueError(f'Could not inflate {self}, storage connector loader not populated')
+            raise ValueError(f"Could not inflate {self}, storage connector loader not populated")
         updated_resource = self._loader(urn=self.urn)
         if updated_resource is None:
-            raise ValueError(f'Could not inflate {self}, does not exist in storage')
+            raise ValueError(f"Could not inflate {self}, does not exist in storage")
             return
         self.cloudwanderer_metadata = updated_resource.cloudwanderer_metadata
         self._set_resource_data_attrs()
@@ -77,11 +80,7 @@ class CloudWandererResource():
     @property
     def is_inflated(self) -> bool:
         """Return whether this resource has all the attributes from storage."""
-        return bool([
-            key
-            for key in self.cloudwanderer_metadata.resource_data
-            if not key.startswith('_')
-        ])
+        return bool([key for key in self.cloudwanderer_metadata.resource_data if not key.startswith("_")])
 
     def get_secondary_attribute(self, name: str = None, jmes_path: str = None) -> None:
         """Get an attribute not returned in the resource's standard ``describe`` method.
@@ -100,7 +99,7 @@ class CloudWandererResource():
 
     def _set_resource_data_attrs(self) -> None:
         for key, value in self.cloudwanderer_metadata.resource_data.items():
-            if key.startswith('_'):
+            if key.startswith("_"):
                 continue
             setattr(self, xform_name(key), value)
 

@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING, Callable, Iterator, List
 
 from cloudwanderer.cloud_wanderer_resource import CloudWandererResource
 
-from .aws_urn import AwsUrn
-from .boto3_interface import CloudWandererBoto3Interface
+from .aws_interface import CloudWandererAWSInterface
+from .urn import URN
 from .utils import exception_logging_wrapper
 
 logger = logging.getLogger("cloudwanderer")
@@ -19,25 +19,25 @@ class CloudWanderer:
     """CloudWanderer."""
 
     def __init__(
-        self, storage_connectors: List["BaseStorageConnector"], cloud_interface: CloudWandererBoto3Interface = None
+        self, storage_connectors: List["BaseStorageConnector"], cloud_interface: CloudWandererAWSInterface = None
     ) -> None:
         """Initialise CloudWanderer.
 
         Args:
             storage_connectors:
                 CloudWanderer storage connector objects.
-            cloud_interface (CloudWandererBoto3Interface):
+            cloud_interface (CloudWandererAWSInterface):
                 The cloud interface to get resources from.
-                Defaults to :class:`~cloudwanderer.boto3_interface.CloudWandererBoto3Interface`.
+                Defaults to :class:`~cloudwanderer.aws_interface.CloudWandererAWSInterface`.
         """
         self.storage_connectors = storage_connectors
-        self.cloud_interface = cloud_interface or CloudWandererBoto3Interface()
+        self.cloud_interface = cloud_interface or CloudWandererAWSInterface()
 
-    def write_resource(self, urn: AwsUrn, **kwargs) -> None:
+    def write_resource(self, urn: URN, **kwargs) -> None:
         """Fetch data for and persist to storage a single resource.
 
         Arguments:
-            urn (AwsUrn):
+            urn (URN):
                 The URN of the resource to write
             **kwargs:
                 All additional keyword arguments will be passed down to the cloud interface client calls.
@@ -131,7 +131,7 @@ class CloudWanderer:
                     **kwargs,
                 )
 
-    def _write_resource(self, resource: CloudWandererResource) -> Iterator[AwsUrn]:
+    def _write_resource(self, resource: CloudWandererResource) -> Iterator[URN]:
         for storage_connector in self.storage_connectors:
             storage_connector.write_resource(resource)
         yield resource.urn

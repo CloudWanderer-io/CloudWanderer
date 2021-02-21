@@ -3,7 +3,7 @@ from unittest.mock import ANY, patch
 
 import boto3
 
-from cloudwanderer import AwsUrn, CloudWanderer
+from cloudwanderer import URN, CloudWanderer
 from cloudwanderer.storage_connectors import MemoryStorageConnector
 
 from ..helpers import DEFAULT_SESSION, get_default_mocker
@@ -31,7 +31,7 @@ class TestCloudWandererWriteResource(unittest.TestCase):
 
     def test_write_valid_ec2_instance(self):
         self.wanderer.write_resource(
-            urn=AwsUrn(
+            urn=URN(
                 account_id="123456789012",
                 region="eu-west-2",
                 service="ec2",
@@ -43,7 +43,7 @@ class TestCloudWandererWriteResource(unittest.TestCase):
 
     def test_write_valid_iam_role(self):
         self.wanderer.write_resource(
-            urn=AwsUrn(
+            urn=URN(
                 account_id="123456789012",
                 region="us-east-1",
                 service="iam",
@@ -89,7 +89,7 @@ class TestCloudWandererWriteResource(unittest.TestCase):
 
     def test_write_valid_s3_bucket_eu_west_2(self):
         self.wanderer.write_resource(
-            urn=AwsUrn(
+            urn=URN(
                 account_id="123456789012",
                 region="eu-west-2",
                 service="s3",
@@ -109,7 +109,7 @@ class TestCloudWandererWriteResource(unittest.TestCase):
     @patch("cloudwanderer.storage_connectors.MemoryStorageConnector.delete_resource")
     def test_write_non_existent_ec2_instance_eu_west_2(self, mock_delete_resource):
         self.wanderer.write_resource(
-            urn=AwsUrn(
+            urn=URN(
                 account_id="123456789012",
                 region="eu-west-2",
                 service="ec2",
@@ -119,7 +119,7 @@ class TestCloudWandererWriteResource(unittest.TestCase):
         )
 
         mock_delete_resource.assert_called_with(
-            AwsUrn(
+            URN(
                 account_id="123456789012",
                 region="eu-west-2",
                 service="ec2",
@@ -130,7 +130,7 @@ class TestCloudWandererWriteResource(unittest.TestCase):
 
     def test_write_custom_resource(self):
         self.wanderer.write_resource(
-            urn=AwsUrn(
+            urn=URN(
                 account_id="123456789012",
                 region="eu-west-2",
                 service="secretsmanager",
