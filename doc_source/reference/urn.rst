@@ -1,4 +1,4 @@
-AWS Urns
+URNs
 ===============
 
 .. automodule :: cloudwanderer.urn
