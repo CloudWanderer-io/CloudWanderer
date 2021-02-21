@@ -72,8 +72,34 @@ class TestFunctional(unittest.TestCase):
 
     def test_read_all_resources_in_account(self):
         resources = list(self.storage_connector.read_resources(account_id=self.wanderer.cloud_interface.account_id))
-        resources[0].load()
-        assert resources[0].is_inflated
+        service_resource_types = set()
+        for resource in resources:
+            service_resource_types.add(f"{resource.urn.service}:{resource.urn.resource_type}")
+
+        assert {
+            "apigateway:rest_api",
+            "cloudformation:stack",
+            "cloudwatch:alarm",
+            "cloudwatch:metric",
+            "dynamodb:table",
+            "ec2:dhcp_options",
+            "ec2:internet_gateway",
+            "ec2:network_acl",
+            "ec2:route_table",
+            "ec2:security_group",
+            "ec2:subnet",
+            "ec2:vpc",
+            "iam:group",
+            "iam:role",
+            "iam:role_policy",
+            "iam:user",
+            "iam:virtual_mfa_device",
+            "lambda:function",
+            "s3:bucket",
+            "secretsmanager:secret",
+            "sns:subscription",
+            "sns:topic",
+        }.issubset(service_resource_types)
 
     def test_read_resource_of_type_in_account(self):
         vpc = next(

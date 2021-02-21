@@ -23,9 +23,9 @@ def exception_logging_wrapper(method: Callable, return_value: object = None, **k
     except Exception as ex:
         logger.exception(ex)
         return return_value
-    if return_value:
-        return return_value
-    return result
+    if return_value is None:
+        return result
+    return return_value
 
 
 def json_object_hook(dct: dict) -> dict:
