@@ -5,6 +5,7 @@
 - Added `get_resource_by_urn` to `Boto3Getter` to support `CloudWandererAWSInterface`
 - Normalised custom error exception names to have Error at the end as per PEP8
 - Renamed `CloudWandererBoto3Interface` to `CloudWandererAWSInterface`
+- Renamed `AwsUrn` to `URN`
 
 # 0.12.0
 
