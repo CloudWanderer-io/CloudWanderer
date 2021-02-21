@@ -1,26 +1,31 @@
 """Collection of loose utility functions."""
-import logging
 import json
-from decimal import Decimal
+import logging
 from datetime import datetime
+from decimal import Decimal
 from typing import Callable
 
 logger = logging.getLogger(__name__)
 
 
-def exception_logging_wrapper(method: Callable, **kwargs) -> None:
+def exception_logging_wrapper(method: Callable, return_value: object = None, **kwargs) -> None:
     """Log exceptions raised by method_name.
 
     Increases visibility of multi-threaded exceptions.
 
     Arguments:
         method (Callable): A method to wrap, for which will we handle and log any exceptions.
+        return_value (object): A value to return instead of the method's result.
         **kwargs: Arguments to pass to the method
     """
     try:
-        method(**kwargs)
+        result = method(**kwargs)
     except Exception as ex:
         logger.exception(ex)
+        return return_value
+    if return_value is None:
+        return result
+    return return_value
 
 
 def json_object_hook(dct: dict) -> dict:
@@ -30,7 +35,7 @@ def json_object_hook(dct: dict) -> dict:
         dct (dict): The dictionary to clean.
     """
     for key, value in dct.items():
-        if value == '':
+        if value == "":
             dct[key] = None
     return dct
 

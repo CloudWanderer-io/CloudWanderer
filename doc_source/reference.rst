@@ -6,10 +6,10 @@ Reference
     :caption: Classes:
 
     reference/class_reference
-    reference/storage_connector_reference
+    reference/cloudwanderer_resource
+    reference/aws_interface
+    reference/storage_connectors
     reference/urn
     reference/service_mappings
-    reference/aws_interface
     reference/custom_resource_definitions
-    reference/cloudwanderer_resource
     reference/exceptions

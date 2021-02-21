@@ -12,14 +12,14 @@ class TestCloudWandererResource(unittest.TestCase):
             urn=urn,
             resource_data={"CidrBlock": "10.0.0.0/0"},
             secondary_attributes=[
-                SecondaryAttribute(name="enable_dns_support", **{"EnableDnsSupport": {"Value": True}})
+                SecondaryAttribute(name="vpc_enable_dns_support", **{"EnableDnsSupport": {"Value": True}})
             ],
         )
 
         assert cwr.urn == urn
         assert cwr.cidr_block == "10.0.0.0/0"
         assert cwr.get_secondary_attribute(jmes_path="[].EnableDnsSupport.Value")[0] is True
-        assert cwr.get_secondary_attribute(name="enable_dns_support") == [{"EnableDnsSupport": {"Value": True}}]
+        assert cwr.get_secondary_attribute(name="vpc_enable_dns_support") == [{"EnableDnsSupport": {"Value": True}}]
         self.assertRaises(AttributeError, getattr, cwr, "enable_dns_support")
         assert cwr.is_inflated is True
 
