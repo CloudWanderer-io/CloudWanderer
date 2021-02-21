@@ -1,18 +1,16 @@
 """Main cloudwanderer module."""
 import concurrent.futures
 import logging
-from typing import TYPE_CHECKING, Callable, Iterator, List
+from typing import Callable, Iterator, List, NamedTuple
 
 from cloudwanderer.cloud_wanderer_resource import CloudWandererResource
 
 from .aws_interface import CloudWandererAWSInterface
+from .storage_connectors import BaseStorageConnector
 from .urn import URN
 from .utils import exception_logging_wrapper
 
 logger = logging.getLogger("cloudwanderer")
-
-if TYPE_CHECKING:
-    from .storage_connectors import BaseStorageConnector  # noqa
 
 
 class CloudWanderer:
@@ -97,8 +95,13 @@ class CloudWanderer:
             )
 
     def write_resources_concurrently(
-        self, cloud_interface_generator: Callable, exclude_resources: List[str] = None, concurrency: int = 10, **kwargs
-    ) -> None:
+        self,
+        cloud_interface_generator: Callable,
+        storage_connector_generator: Callable,
+        exclude_resources: List[str] = None,
+        concurrency: int = 10,
+        **kwargs,
+    ) -> Iterator["CloudWandererConcurrentWriteThreadResult"]:
         """Write all AWS resources in this account from all regions and all services to storage.
 
         Any additional args will be passed into the cloud interface's ``get_`` methods.
@@ -112,26 +115,46 @@ class CloudWanderer:
                 multiple services to be queried concurrently in each region.
                 **WARNING:** Experimental. Complete data capture depends heavily on the thread safeness of the
                 storage connector and has not been thoroughly tested!
-            cloud_interface_generator (Callable): A method which returns a new cloud interface session when called.
+            cloud_interface_generator (Callable):
+                 A method which returns a new cloud interface session when called.
                 This helps prevent non-threadsafe cloud interfaces from interfering with each others.
-            **kwargs: Additional keyword arguments will be passed down to the cloud interface methods.
+            storage_connector_generator (Callable):
+                A method which returns a list of storage connectors when called.
+                The returned connectors should be thread safe instances of the same connectors each time
+                the method is called.
+                This allows us to avoid CloudWanderer calling the same non thread safe storage connector
+                instances when multithreading.
+                These storage connectors will be returned at the end of execution.
+            **kwargs:
+                Additional keyword arguments will be passed down to the cloud interface methods.
         """
         logger.info("Writing resources in all regions")
         logger.warning("Using concurrency of: %s - CONCURRENCY IS EXPERIMENTAL", concurrency)
         with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency) as executor:
+            threads = []
             for region_name in self.cloud_interface.enabled_regions:
                 cw = CloudWanderer(
-                    storage_connectors=self.storage_connectors, cloud_interface=cloud_interface_generator()
+                    storage_connectors=storage_connector_generator(), cloud_interface=cloud_interface_generator()
                 )
-                executor.submit(
-                    exception_logging_wrapper,
-                    method=cw.write_resources_in_region,
-                    exclude_resources=exclude_resources,
-                    region_name=region_name,
-                    **kwargs,
+                threads.append(
+                    executor.submit(
+                        exception_logging_wrapper,
+                        method=cw.write_resources,
+                        exclude_resources=exclude_resources,
+                        regions=[region_name],
+                        return_value=cw.storage_connectors,
+                        **kwargs,
+                    )
                 )
+        yield from (CloudWandererConcurrentWriteThreadResult(storage_connectors=thread.result()) for thread in threads)
 
     def _write_resource(self, resource: CloudWandererResource) -> Iterator[URN]:
         for storage_connector in self.storage_connectors:
             storage_connector.write_resource(resource)
         yield resource.urn
+
+
+class CloudWandererConcurrentWriteThreadResult(NamedTuple):
+    """The result from write_resources_concurrently."""
+
+    storage_connectors: BaseStorageConnector
