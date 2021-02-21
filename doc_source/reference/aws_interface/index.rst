@@ -1,5 +1,5 @@
 Boto3Interface
 ------------------
 
-.. automodule :: cloudwanderer.boto3_interface
+.. automodule :: cloudwanderer.aws_interface
     :members:

@@ -25,7 +25,7 @@ from .storage_connectors.base_connector import BaseStorageConnector
 logger = logging.getLogger(__name__)
 
 
-class CloudWandererBoto3Interface(Boto3CommonAttributesMixin):
+class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
     """Simplifies lookup of boto3 services and resources."""
 
     def __init__(self, boto3_session: boto3.session.Session = None) -> None:

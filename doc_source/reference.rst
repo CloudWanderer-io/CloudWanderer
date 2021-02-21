@@ -9,7 +9,7 @@ Reference
     reference/storage_connector_reference
     reference/aws_urn
     reference/service_mappings
-    reference/boto3_interface
+    reference/aws_interface
     reference/custom_resource_definitions
     reference/cloudwanderer_resource
     reference/exceptions

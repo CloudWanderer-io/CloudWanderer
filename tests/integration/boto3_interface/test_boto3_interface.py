@@ -1,19 +1,21 @@
-import boto3
 import unittest
 from unittest.mock import ANY
-from cloudwanderer import CloudWandererBoto3Interface
-from cloudwanderer.boto3_helpers import _prepare_boto3_resource_data, _get_resource_attributes
+
+import boto3
+
+from cloudwanderer import CloudWandererAWSInterface
+from cloudwanderer.boto3_helpers import _get_resource_attributes, _prepare_boto3_resource_data
+
 from ..helpers import get_default_mocker
 
 
 class TestBoto3Interface(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         get_default_mocker().start_general_mock()
-        cls.ec2 = boto3.resource('ec2')
+        cls.ec2 = boto3.resource("ec2")
         cls.vpcs = list(cls.ec2.vpcs.all())
-        cls.boto3_interface = CloudWandererBoto3Interface()
+        cls.aws_interface = CloudWandererAWSInterface()
 
     @classmethod
     def tearDownClass(cls):
@@ -21,32 +23,30 @@ class TestBoto3Interface(unittest.TestCase):
 
     def test__get_resource_attributes(self):
         assert list(_get_resource_attributes(self.vpcs[0])) == [
-            'CidrBlock',
-            'DhcpOptionsId',
-            'State',
-            'VpcId',
-            'OwnerId',
-            'InstanceTenancy',
-            'Ipv6CidrBlockAssociationSet',
-            'CidrBlockAssociationSet',
-            'IsDefault',
-            'Tags',
+            "CidrBlock",
+            "DhcpOptionsId",
+            "State",
+            "VpcId",
+            "OwnerId",
+            "InstanceTenancy",
+            "Ipv6CidrBlockAssociationSet",
+            "CidrBlockAssociationSet",
+            "IsDefault",
+            "Tags",
         ]
 
     def test__prepare_boto3_resource_data(self):
         assert _prepare_boto3_resource_data(self.vpcs[0]) == {
-            'CidrBlock': '172.31.0.0/16',
-            'CidrBlockAssociationSet': [{
-                'AssociationId': ANY,
-                'CidrBlock': '172.31.0.0/16',
-                'CidrBlockState': {'State': 'associated'}
-            }],
-            'DhcpOptionsId': 'dopt-7a8b9c2d',
-            'InstanceTenancy': 'default',
-            'Ipv6CidrBlockAssociationSet': [],
-            'IsDefault': True,
-            'OwnerId': None,
-            'State': 'available',
-            'Tags': [],
-            'VpcId': ANY,
+            "CidrBlock": "172.31.0.0/16",
+            "CidrBlockAssociationSet": [
+                {"AssociationId": ANY, "CidrBlock": "172.31.0.0/16", "CidrBlockState": {"State": "associated"}}
+            ],
+            "DhcpOptionsId": "dopt-7a8b9c2d",
+            "InstanceTenancy": "default",
+            "Ipv6CidrBlockAssociationSet": [],
+            "IsDefault": True,
+            "OwnerId": None,
+            "State": "available",
+            "Tags": [],
+            "VpcId": ANY,
         }

@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING, Callable, Iterator, List
 
 from cloudwanderer.cloud_wanderer_resource import CloudWandererResource
 
+from .aws_interface import CloudWandererAWSInterface
 from .aws_urn import AwsUrn
-from .boto3_interface import CloudWandererBoto3Interface
 from .utils import exception_logging_wrapper
 
 logger = logging.getLogger("cloudwanderer")
@@ -19,19 +19,19 @@ class CloudWanderer:
     """CloudWanderer."""
 
     def __init__(
-        self, storage_connectors: List["BaseStorageConnector"], cloud_interface: CloudWandererBoto3Interface = None
+        self, storage_connectors: List["BaseStorageConnector"], cloud_interface: CloudWandererAWSInterface = None
     ) -> None:
         """Initialise CloudWanderer.
 
         Args:
             storage_connectors:
                 CloudWanderer storage connector objects.
-            cloud_interface (CloudWandererBoto3Interface):
+            cloud_interface (CloudWandererAWSInterface):
                 The cloud interface to get resources from.
-                Defaults to :class:`~cloudwanderer.boto3_interface.CloudWandererBoto3Interface`.
+                Defaults to :class:`~cloudwanderer.aws_interface.CloudWandererAWSInterface`.
         """
         self.storage_connectors = storage_connectors
-        self.cloud_interface = cloud_interface or CloudWandererBoto3Interface()
+        self.cloud_interface = cloud_interface or CloudWandererAWSInterface()
 
     def write_resource(self, urn: AwsUrn, **kwargs) -> None:
         """Fetch data for and persist to storage a single resource.

@@ -1,4 +1,4 @@
-"""Boto3 Getter provides easy abstraction from boto3's internals to make boto3_interface easier to work with."""
+"""Boto3 Getter provides easy abstraction from boto3's internals to make aws_interface easier to work with."""
 
 from typing import Iterator, List
 
