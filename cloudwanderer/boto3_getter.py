@@ -6,7 +6,6 @@ import boto3
 from botocore import xform_name
 from botocore.exceptions import ClientError
 
-from .aws_urn import AwsUrn
 from .boto3_helpers import (
     Boto3CommonAttributesMixin,
     _clean_boto3_metadata,
@@ -25,6 +24,7 @@ from .exceptions import (
     ResourceNotFoundError,
 )
 from .service_mappings import ServiceMappingCollection
+from .urn import URN
 
 
 class Boto3Getter(Boto3CommonAttributesMixin):
@@ -35,11 +35,11 @@ class Boto3Getter(Boto3CommonAttributesMixin):
         self.service_maps = service_maps
         self.custom_resource_definitions = CustomResourceDefinitions(boto3_session=boto3_session)
 
-    def get_resource_from_urn(self, urn: AwsUrn) -> boto3.resources.base.ServiceResource:
+    def get_resource_from_urn(self, urn: URN) -> boto3.resources.base.ServiceResource:
         """Return the Boto3 resource picked out by this urn.
 
         Arguments:
-            urn (AwsUrn): The urn of the resource to get.
+            urn (URN): The urn of the resource to get.
 
         Raises:
             BadUrnAccountIdError: When the account ID of the urn does not match the account id of the current session.
@@ -190,8 +190,8 @@ class Boto3Getter(Boto3CommonAttributesMixin):
                 continue
             yield secondary_attribute_collection
 
-    def get_resource_urn(self, resource: boto3.resources.model.ResourceModel, region_name: str) -> "AwsUrn":
-        """Return an AwsUrn from a Boto3 Resource.
+    def get_resource_urn(self, resource: boto3.resources.model.ResourceModel, region_name: str) -> "URN":
+        """Return an URN from a Boto3 Resource.
 
         Arguments:
             resource (boto3.resources.model.ResourceModel):
@@ -201,7 +201,7 @@ class Boto3Getter(Boto3CommonAttributesMixin):
                 the resource exists in in some cases (e.g. S3 Buckets).
         """
         service_map = self.service_maps.get_service_mapping(resource.meta.service_name)
-        return AwsUrn(
+        return URN(
             account_id=self.account_id,
             region=service_map.get_resource_region(resource, region_name),
             service=resource.meta.service_name,

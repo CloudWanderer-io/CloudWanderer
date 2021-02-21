@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Callable, Iterator, List
 from cloudwanderer.cloud_wanderer_resource import CloudWandererResource
 
 from .aws_interface import CloudWandererAWSInterface
-from .aws_urn import AwsUrn
+from .urn import URN
 from .utils import exception_logging_wrapper
 
 logger = logging.getLogger("cloudwanderer")
@@ -33,11 +33,11 @@ class CloudWanderer:
         self.storage_connectors = storage_connectors
         self.cloud_interface = cloud_interface or CloudWandererAWSInterface()
 
-    def write_resource(self, urn: AwsUrn, **kwargs) -> None:
+    def write_resource(self, urn: URN, **kwargs) -> None:
         """Fetch data for and persist to storage a single resource.
 
         Arguments:
-            urn (AwsUrn):
+            urn (URN):
                 The URN of the resource to write
             **kwargs:
                 All additional keyword arguments will be passed down to the cloud interface client calls.
@@ -131,7 +131,7 @@ class CloudWanderer:
                     **kwargs,
                 )
 
-    def _write_resource(self, resource: CloudWandererResource) -> Iterator[AwsUrn]:
+    def _write_resource(self, resource: CloudWandererResource) -> Iterator[URN]:
         for storage_connector in self.storage_connectors:
             storage_connector.write_resource(resource)
         yield resource.urn

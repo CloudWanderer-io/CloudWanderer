@@ -4,7 +4,6 @@ from unittest.mock import ANY
 from boto3.resources.model import Collection
 from botocore.model import Shape
 
-from cloudwanderer.aws_urn import AwsUrn
 from cloudwanderer.boto3_getter import Boto3Getter
 from cloudwanderer.boto3_helpers import (
     _clean_boto3_metadata,
@@ -17,6 +16,7 @@ from cloudwanderer.boto3_helpers import (
 )
 from cloudwanderer.custom_resource_definitions import CustomResourceDefinitions
 from cloudwanderer.service_mappings import ServiceMappingCollection
+from cloudwanderer.urn import URN
 
 from ..helpers import DEFAULT_SESSION, get_default_mocker
 from ..mocks import add_infra
@@ -116,7 +116,7 @@ class TestBoto3Getter(unittest.TestCase):
     def test_get_resource_urn(self):
         result = self.boto3_getter.get_resource_urn(resource=self.boto3_resources["iam:role"], region_name="us-east-1")
 
-        assert result == AwsUrn(
+        assert result == URN(
             account_id="123456789012",
             region="us-east-1",
             service="iam",

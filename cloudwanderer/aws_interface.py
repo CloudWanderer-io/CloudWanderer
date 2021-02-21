@@ -9,7 +9,6 @@ from typing import Iterator, List
 import boto3
 from boto3.resources.model import ResourceModel
 
-from .aws_urn import AwsUrn
 from .boto3_getter import Boto3Getter
 from .boto3_helpers import (
     Boto3CommonAttributesMixin,
@@ -21,6 +20,7 @@ from .cloud_wanderer_resource import CloudWandererResource
 from .exceptions import BadRequestError, ResourceNotFoundError
 from .service_mappings import ServiceMappingCollection
 from .storage_connectors.base_connector import BaseStorageConnector
+from .urn import URN
 
 logger = logging.getLogger(__name__)
 
@@ -39,11 +39,11 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
         self.service_maps = ServiceMappingCollection(boto3_session=self.boto3_session)
         self.boto3_getter = Boto3Getter(boto3_session=self.boto3_session, service_maps=self.service_maps)
 
-    def get_resource(self, urn: AwsUrn) -> CloudWandererResource:
+    def get_resource(self, urn: URN) -> CloudWandererResource:
         """Return CloudWandererResource picked out by this urn.
 
         Arguments:
-            urn (AwsUrn): The urn of the resource to get.
+            urn (URN): The urn of the resource to get.
         """
         try:
             resource = self.boto3_getter.get_resource_from_urn(urn=urn)
@@ -251,7 +251,7 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
     def cleanup_resources(
         self,
         storage_connector: BaseStorageConnector,
-        urns_to_keep: List[AwsUrn] = None,
+        urns_to_keep: List[URN] = None,
         regions: List[str] = None,
         service_names: List[str] = None,
         resource_types: List[str] = None,
@@ -264,8 +264,8 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
         Arguments:
             storage_connector (BaseStorageConnector):
                 The storage connector to delete the records from.
-            urns_to_keep (List[AwsUrn]):
-                A list of AwsUrns which should not be removed from the storage_connector
+            urns_to_keep (List[URN]):
+                A list of URNs which should not be removed from the storage_connector
             regions(list):
                 The name of the region to get resources from (defaults to session default if not specified)
             service_names (str):
@@ -298,7 +298,7 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
         service_name: str,
         resource_type: str,
         region_name: str,
-        current_urns: List[AwsUrn],
+        current_urns: List[URN],
     ) -> None:
         """Remove all resources of this type in this region which no longer exist.
 
@@ -312,7 +312,7 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
             region_name (str):
                 The name of the region to get resources from
                 (defaults to session default if not specified)
-            current_urns (List[AwsUrn]):
+            current_urns (List[URN]):
                 A list of URNs which are still current and should not be deleted.
         """
         regions_returned = self.service_maps.resource_regions_returned_from_api_region(

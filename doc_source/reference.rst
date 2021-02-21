@@ -7,7 +7,7 @@ Reference
 
     reference/class_reference
     reference/storage_connector_reference
-    reference/aws_urn
+    reference/urn
     reference/service_mappings
     reference/aws_interface
     reference/custom_resource_definitions

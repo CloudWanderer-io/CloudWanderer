@@ -96,7 +96,7 @@ Retrieving all VPCs from all Regions
     is_default: True
 
 You'll notice here we're calling a property ``urn`` in order to print the region.
-:doc:`AwsUrns <reference/aws_urn>` are CloudWanderer's way of uniquely identifying a resource.
+:doc:`URNs <reference/urn>` are CloudWanderer's way of uniquely identifying a resource.
 
 You can also see we're printing the vpc's ``state`` and ``is_default`` attributes. It's very important to notice the
 :meth:`~cloudwanderer.cloud_wanderer_resource.CloudWandererResource.load` call beforehand which loads the resource's data.
@@ -133,7 +133,7 @@ Then we can lookup the inline policy
 
 .. doctest ::
 
-    >>> inline_policy_urn = cloudwanderer.AwsUrn(
+    >>> inline_policy_urn = cloudwanderer.URN(
     ...     account_id = role.urn.account_id,
     ...     region=role.urn.region,
     ...     service='iam',

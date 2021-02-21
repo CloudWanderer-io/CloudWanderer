@@ -1,6 +1,6 @@
 import unittest
 
-from cloudwanderer import AwsUrn
+from cloudwanderer import URN
 from cloudwanderer.boto3_getter import Boto3Getter
 from cloudwanderer.exceptions import (
     BadRequestError,
@@ -32,7 +32,7 @@ class TestBoto3GetterGetResource(unittest.TestCase, GenericAssertionHelpers):
     def test_get_secondary_resource(self):
         with self.assertRaises(BadUrnSubResourceError):
             self.boto3_getter.get_resource_from_urn(
-                urn=AwsUrn(
+                urn=URN(
                     account_id="123456789012",
                     region="us-east-1",
                     service="iam",
@@ -44,7 +44,7 @@ class TestBoto3GetterGetResource(unittest.TestCase, GenericAssertionHelpers):
     def test_get_s3_bucket_bad_account_id(self):
         with self.assertRaises(BadUrnAccountIdError):
             self.boto3_getter.get_resource_from_urn(
-                urn=AwsUrn(
+                urn=URN(
                     account_id="111111111111",
                     region="eu-west-2",
                     service="s3",
@@ -56,7 +56,7 @@ class TestBoto3GetterGetResource(unittest.TestCase, GenericAssertionHelpers):
     def test_get_invalid_iam_role_eu_west_2(self):
         with self.assertRaises(BadUrnRegionError):
             self.boto3_getter.get_resource_from_urn(
-                urn=AwsUrn(
+                urn=URN(
                     account_id="123456789012",
                     region="eu-west-2",
                     service="iam",
@@ -70,7 +70,7 @@ class TestBoto3GetterGetResource(unittest.TestCase, GenericAssertionHelpers):
             ResourceNotFoundError, "urn:aws:123456789012:us-east-1:iam:role:non-existent-role was not found"
         ):
             self.boto3_getter.get_resource_from_urn(
-                urn=AwsUrn(
+                urn=URN(
                     account_id="123456789012",
                     region="us-east-1",
                     service="iam",
@@ -85,7 +85,7 @@ class TestBoto3GetterGetResource(unittest.TestCase, GenericAssertionHelpers):
             "A request error was returned while fetching urn:aws:123456789012:eu-west-2:ec2:instance:i-111111111111",
         ):
             self.boto3_getter.get_resource_from_urn(
-                urn=AwsUrn(
+                urn=URN(
                     account_id="123456789012",
                     region="eu-west-2",
                     service="ec2",
@@ -99,7 +99,7 @@ class TestBoto3GetterGetResource(unittest.TestCase, GenericAssertionHelpers):
             ResourceActionDoesNotExistError, "secr3t does not exist as a supported resource for secretsmanager"
         ):
             self.boto3_getter.get_resource_from_urn(
-                urn=AwsUrn(
+                urn=URN(
                     account_id="123456789012",
                     region="eu-west-2",
                     service="secretsmanager",
