@@ -1,6 +1,5 @@
 {
-    "service": {
-    },
+    "service": {},
     "resources": {
         "Vpc": {
             "identifiers": [
@@ -24,6 +23,19 @@
                         "path": "@"
                     }
                 }
+            },
+            "load": {
+                "request": {
+                    "operation": "DescribeVpcs",
+                    "params": [
+                        {
+                            "target": "VpcIds[0]",
+                            "source": "identifier",
+                            "name": "Id"
+                        }
+                    ]
+                },
+                "path": "Vpcs[0]"
             }
         },
         "VpcEnableDnsSupport": {

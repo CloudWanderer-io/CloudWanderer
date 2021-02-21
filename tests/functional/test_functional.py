@@ -4,7 +4,7 @@ import unittest
 import boto3
 import botocore
 
-from cloudwanderer import CloudWanderer
+from cloudwanderer import URN, CloudWanderer
 from cloudwanderer.aws_interface import CloudWandererAWSInterface
 from cloudwanderer.cloud_wanderer import CloudWandererConcurrentWriteThreadResult
 from cloudwanderer.storage_connectors import DynamoDbConnector
@@ -56,6 +56,16 @@ class TestFunctional(unittest.TestCase):
     def test_write_custom_resource_definition(self):
         """It is sufficient for this not to throw an exception."""
         self.wanderer.write_resources(service_names=["lambda"])
+
+    def test_write_single_resource(self):
+        urn = URN(
+            account_id=self.wanderer.cloud_interface.account_id,
+            region="eu-west-2",
+            service="ec2",
+            resource_type="vpc",
+            resource_id="vpc-d52bc4bc",
+        )
+        self.wanderer.write_resource(urn=urn)
 
     def test_read_all(self):
         results = list(self.storage_connector.read_all())

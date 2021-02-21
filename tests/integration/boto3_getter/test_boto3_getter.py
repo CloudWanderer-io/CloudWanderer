@@ -9,6 +9,7 @@ from cloudwanderer.exceptions import (
     BadUrnSubResourceError,
     ResourceActionDoesNotExistError,
     ResourceNotFoundError,
+    UnsupportedResourceTypeError,
 )
 from cloudwanderer.service_mappings import ServiceMappingCollection
 
@@ -29,7 +30,7 @@ class TestBoto3GetterGetResource(unittest.TestCase, GenericAssertionHelpers):
     def setUp(self):
         self.boto3_getter = Boto3Getter(DEFAULT_SESSION, ServiceMappingCollection(DEFAULT_SESSION))
 
-    def test_get_secondary_resource(self):
+    def test_get_custom_subresource(self):
         with self.assertRaises(BadUrnSubResourceError):
             self.boto3_getter.get_resource_from_urn(
                 urn=URN(
@@ -107,3 +108,32 @@ class TestBoto3GetterGetResource(unittest.TestCase, GenericAssertionHelpers):
                     resource_id="test-secret",
                 )
             )
+
+    def test_unsupported_resource_type(self):
+        with self.assertRaisesRegex(UnsupportedResourceTypeError, "event does not support loading by ID"):
+            self.boto3_getter.get_resource_from_urn(
+                urn=URN(
+                    account_id="123456789012",
+                    region="eu-west-2",
+                    service="cloudformation",
+                    resource_type="event",
+                    resource_id="fake-event",
+                )
+            )
+
+    def test_get_boto3_subresource(self):
+        with self.assertRaisesRegex(
+            BadUrnSubResourceError,
+            "urn:aws:123456789012:eu-west-2:ec2:route:fake-route is a sub resource, "
+            "please call get_resource against its parent.",
+        ):
+            result = self.boto3_getter.get_resource_from_urn(
+                urn=URN(
+                    account_id="123456789012",
+                    region="eu-west-2",
+                    service="ec2",
+                    resource_type="route",
+                    resource_id="fake-route",
+                )
+            )
+            print(result)

@@ -1,43 +1,66 @@
 import unittest
+
 import boto3
-from cloudwanderer import CloudWanderer
+
+from cloudwanderer import URN, CloudWanderer
 from cloudwanderer.storage_connectors import MemoryStorageConnector
-from ..helpers import get_default_mocker, GenericAssertionHelpers
+
+from ..helpers import GenericAssertionHelpers, get_default_mocker
 
 
 class TestSecretsManagerResources(unittest.TestCase, GenericAssertionHelpers):
+    def setUp(self):
+        get_default_mocker().start_moto_services(["mock_sts", "mock_secretsmanager"])
+        self.storage_connector = MemoryStorageConnector()
+        self.wanderer = CloudWanderer(storage_connectors=[self.storage_connector])
+        secretsmanager = boto3.client("secretsmanager")
+        secretsmanager.create_secret(Name="TestSecret", SecretString="Ssshhh")
 
-    @classmethod
-    def setUpClass(cls):
-        get_default_mocker().start_moto_services(['mock_sts', 'mock_secretsmanager'])
-
-    @classmethod
-    def tearDownClass(cls):
+    def tearDown(self) -> None:
         get_default_mocker().stop_moto_services()
 
-    def setUp(self):
-        self.storage_connector = MemoryStorageConnector()
-        self.wanderer = CloudWanderer(
-            storage_connectors=[self.storage_connector]
+    def test_get_secret(self):
+
+        self.wanderer.write_resource(
+            urn=URN(
+                account_id=self.wanderer.cloud_interface.account_id,
+                region="eu-west-2",
+                service="secretsmanager",
+                resource_type="secret",
+                resource_id="TestSecret",
+            )
         )
 
-    def test_secrets(self):
-        secretsmanager = boto3.client('secretsmanager')
-        secretsmanager.create_secret(
-            Name='TestSecret',
-            SecretString='Ssshhh'
+        self.assert_dictionary_overlap(
+            self.storage_connector.read_all(),
+            [
+                {
+                    "Name": "TestSecret",
+                    "Description": None,
+                    "KmsKeyId": None,
+                    "RotationEnabled": False,
+                    "RotationLambdaARN": None,
+                    "RotationRules": {"AutomaticallyAfterDays": 0},
+                    "Tags": [],
+                }
+            ],
         )
 
-        self.wanderer.write_resources(regions=['eu-west-2'], service_names=['secretsmanager'])
+    def test_get_secrets(self):
 
-        self.assert_dictionary_overlap(self.storage_connector.read_all(), [
-            {
-                'Name': 'TestSecret',
-                'Description': None,
-                'KmsKeyId': None,
-                'RotationEnabled': False,
-                'RotationLambdaARN': None,
-                'RotationRules': {'AutomaticallyAfterDays': 0},
-                'Tags': [],
-            }
-        ])
+        self.wanderer.write_resources(regions=["eu-west-2"], service_names=["secretsmanager"])
+
+        self.assert_dictionary_overlap(
+            self.storage_connector.read_all(),
+            [
+                {
+                    "Name": "TestSecret",
+                    "Description": None,
+                    "KmsKeyId": None,
+                    "RotationEnabled": False,
+                    "RotationLambdaARN": None,
+                    "RotationRules": {"AutomaticallyAfterDays": 0},
+                    "Tags": [],
+                }
+            ],
+        )

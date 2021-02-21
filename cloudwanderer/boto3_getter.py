@@ -22,6 +22,7 @@ from .exceptions import (
     BadUrnSubResourceError,
     GlobalServiceResourceMappingNotFoundError,
     ResourceNotFoundError,
+    UnsupportedResourceTypeError,
 )
 from .service_mappings import ServiceMappingCollection
 from .urn import URN
@@ -47,6 +48,7 @@ class Boto3Getter(Boto3CommonAttributesMixin):
             BadUrnSubResourceError: get_resource does not support fetching subresources directly.
             BadRequestError: Occurs when the AWS API returns a 4xx HTTP error other than 404.
             ResourceNotFoundError: Occurs when the AWS API Returns a 404 HTTP error.
+            UnsupportedResourceTypeError: Occurs when the definition for the resource does not support loading by id.
         """
         if urn.account_id != self.account_id:
             raise BadUrnAccountIdError(f"{urn} exists in an account other than the current one ({self.account_id}).")
@@ -56,9 +58,17 @@ class Boto3Getter(Boto3CommonAttributesMixin):
         service_map = self.service_maps.get_service_mapping(service_name=urn.service)
         if service_map.global_service_region != urn.region and not service_map.has_regional_resources:
             raise BadUrnRegionError(f"{urn}'s service does not have resources in {urn.region}")
+
         boto3_service = self.custom_resource_definitions.resource(region_name=urn.region, service_name=urn.service)
 
-        resource = get_boto3_resource_action(boto3_service, urn.resource_type)(urn.resource_id)
+        try:
+            resource = get_boto3_resource_action(boto3_service, urn.resource_type)(urn.resource_id)
+        except ValueError:
+            raise BadUrnSubResourceError(f"{urn} is a sub resource, please call get_resource against its parent.")
+
+        if not hasattr(resource, "load"):
+            raise UnsupportedResourceTypeError(f"{urn.resource_type} does not support loading by ID.")
+
         try:
             resource.load()
         except ClientError as ex:

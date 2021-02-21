@@ -1,7 +1,7 @@
 What is CloudWanderer
 =======================
 
-CloudWanderer is a Python based tool which allows you to discover AWS resources
+CloudWanderer is a Python based tool built on top of AWS's `Boto3 SDK <https://boto3.amazonaws.com/v1/documentation/api/latest/index.html>`_ which allows you to discover AWS resources
 and store them for later retrieval.
 
 Use Cases
@@ -23,7 +23,7 @@ Objectives
     Many AWS resource discovery solutions do not support secondary attributes like
     ``EnableDnsSupport`` from :meth:`~boto3:EC2.Client.describe_vpc_attribute`.
 #. Be easily extensible.
-    New AWS Services get introduced _constantly_. CloudWanderer makes it easy to keep up with
+    New AWS Services get introduced *constantly*. CloudWanderer makes it easy to keep up with
     the rate of change by leveraging Boto3's :ref:`boto3:guide_resources` and allowing the definition
     of additional ones using Boto3's own JSON syntax.
 
@@ -40,12 +40,18 @@ as it does not entail any additional cost to use Advanced Query.
 
 Here are a few reasons you might find AWS Config lacking for querying your resources.
 
-1. Limited/Unexpandable Resource Support
+1. Limited Resource Support
     While AWS Config boasts `an impressive list of supported resources <https://docs.aws.amazon.com/config/latest/developerguide/resource-config-reference.html>`_
     not all of these resources are `available to query via Advanced Query <https://github.com/awslabs/aws-config-resource-schema>`_.
     At the time of writing ``AWS::SecretsManager::Secret`` is a good example of this.
-    Because this is an AWS service, you have no control over what resources are available via advanced query,
-    even if you are willing to put forth the effort to develop discoveries yourself.
+2. Limited Expandibility
+    While you can expand the resources available in Advanced Query with `AWS Config Custom Resources, <https://docs.aws.amazon.com/config/latest/developerguide/customresources.html>`_
+    at the time of writing, the following limitations apply:
+
+    1. It is a simple API to post data to, you must write and trigger your own code to discover new/update existing resources
+    2. It is not possible to retrieve any of the custom attributes you provide via Advanced Query, only the mandatory attributes are returned (e.g. Account, region).
+    3. Not all regions are supported.
+
 2. No Subresource Support
     Some resources do not have their own ARNs. Inline IAM Policies are a good example of this.
     It is currently not possible to lookup the policy document of an inline IAM policy via AWS Config.
