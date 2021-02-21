@@ -19,7 +19,7 @@ from boto3.resources.model import ResourceModel
 from botocore.client import ClientCreator
 
 from .custom_resource_definitions import _get_resource_definitions
-from .exceptions import GlobalServiceResourceMappingNotFound
+from .exceptions import GlobalServiceResourceMappingNotFoundError
 
 
 class ServiceMappingCollection:
@@ -191,7 +191,7 @@ class ServiceMapping:
             return self.service_mapping.get('service', {}).get('globalServiceRegion')
         try:
             resource_mapping = self.get_resource_mapping(resource.meta.resource_model.name)
-        except GlobalServiceResourceMappingNotFound:
+        except GlobalServiceResourceMappingNotFoundError:
             return self.service_mapping.get('service', {}).get('globalServiceRegion')
         return resource_mapping.get_region(resource)
 
@@ -207,11 +207,11 @@ class ServiceMapping:
             resource_type (str): The resource type in PascalCase (e.g. ``'Vpc'``).
 
         Raises:
-            GlobalServiceResourceMappingNotFound: Occurs if theres no global resource mapping for this service.
+            GlobalServiceResourceMappingNotFoundError: Occurs if theres no global resource mapping for this service.
         """
         resource_name = self._lookup_resource_name(resource_type)
         if resource_name is None:
-            raise GlobalServiceResourceMappingNotFound(
+            raise GlobalServiceResourceMappingNotFoundError(
                 f"Global resource mapping not found for {self.service_name} {resource_type}")
         return CloudWandererResourceMapping(
             service_mapping=self,
@@ -283,7 +283,7 @@ class CloudWandererResourceMapping:
         for subresource_name in self.resource_definition.get('has', []):
             try:
                 resource_mapping = self.service_mapping.get_resource_mapping(subresource_name)
-            except GlobalServiceResourceMappingNotFound:
+            except GlobalServiceResourceMappingNotFoundError:
                 continue
             if resource_mapping.resource_type == 'secondaryAttribute':
                 yield subresource_name

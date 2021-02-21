@@ -33,6 +33,23 @@ class CloudWanderer:
         self.storage_connectors = storage_connectors
         self.cloud_interface = cloud_interface or CloudWandererBoto3Interface()
 
+    def write_resource(self, urn: AwsUrn, **kwargs) -> None:
+        """Fetch data for and persist to storage a single resource.
+
+        Arguments:
+            urn (AwsUrn):
+                The URN of the resource to write
+            **kwargs:
+                All additional keyword arguments will be passed down to the cloud interface client calls.
+        """
+        resource = self.cloud_interface.get_resource(urn=urn, **kwargs)
+
+        if resource:
+            list(self._write_resource(resource=resource))
+        else:
+            for storage_connector in self.storage_connectors:
+                storage_connector.delete_resource(urn)
+
     def write_resources(
         self,
         regions: List[str] = None,

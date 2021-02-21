@@ -18,6 +18,7 @@ from .boto3_helpers import (
     get_resource_from_collection,
 )
 from .cloud_wanderer_resource import CloudWandererResource
+from .exceptions import BadRequestError, ResourceNotFoundError
 from .service_mappings import ServiceMappingCollection
 from .storage_connectors.base_connector import BaseStorageConnector
 
@@ -44,7 +45,16 @@ class CloudWandererBoto3Interface(Boto3CommonAttributesMixin):
         Arguments:
             urn (AwsUrn): The urn of the resource to get.
         """
-        resource = self.boto3_getter.get_resource_from_urn(urn=urn)
+        try:
+            resource = self.boto3_getter.get_resource_from_urn(urn=urn)
+        except ResourceNotFoundError:
+            return None
+        except BadRequestError:
+            logger.debug(
+                f"Got BadRequestError while getting {urn}, as AWS services commonly return 4xx errors other than 404 "
+                "for resource non-existence we are interpreting this as the resource does not exist."
+            )
+            return None
 
         return CloudWandererResource(
             urn=urn,

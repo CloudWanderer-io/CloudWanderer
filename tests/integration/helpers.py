@@ -13,7 +13,7 @@ from moto import ec2
 import cloudwanderer
 from cloudwanderer.boto3_helpers import get_resource_collections, get_service_resource_types_from_collections
 from cloudwanderer.cloud_wanderer_resource import CloudWandererResource
-from cloudwanderer.service_mappings import GlobalServiceResourceMappingNotFound, ServiceMappingCollection
+from cloudwanderer.service_mappings import GlobalServiceResourceMappingNotFoundError, ServiceMappingCollection
 
 from .mocks import generate_mock_collection
 
@@ -246,7 +246,7 @@ def get_secondary_attribute_types(service_name):
     for resource_type in resource_types:
         try:
             resource_map = service_map.get_resource_mapping(resource_type=resource_type)
-        except GlobalServiceResourceMappingNotFound:
+        except GlobalServiceResourceMappingNotFoundError:
             continue
         for secondary_attribute in resource_map.secondary_attributes:
             yield (xform_name(resource_type), xform_name(secondary_attribute))
