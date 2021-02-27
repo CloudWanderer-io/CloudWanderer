@@ -120,6 +120,14 @@ class CustomResourceDefinitions:
         except FileNotFoundError:
             return {"service": {}, "resources": {}}
 
+    def get_custom_resource_types(self, service_name: str) -> Iterator[str]:
+        """Yield the **custom** resource types for this service only.
+
+        Arguments:
+            service_name: The name of the service to get custom types for.
+        """
+        yield from self.get_custom_service_definition(service_name)["resources"].keys()
+
     def _load_service_definition(self, service_name: str) -> dict:
         boto3_definition = self._get_boto3_definition(service_name)
         cloudwanderer_definition = self.get_custom_service_definition(service_name=service_name)
@@ -187,16 +195,22 @@ class CustomResourceDefinitions:
         if boto3_service is not None:
             yield from get_resource_collections(boto3_service=boto3_service)
 
-    def get_service_resource_types(self, service_name: str) -> Iterator[str]:
+    def get_service_resource_types(self, service_name: str, pascal: bool = False, **kwargs) -> Iterator[str]:
         """Return all resource names for a given service.
 
         Returns resources for both native boto3 resources and custom cloudwanderer resources.
 
         Arguments:
             service_name: The name of the service to get resource types for (e.g. ``'ec2'``)
+            pascal: Whether or not to return the resource types in their original pascal casing
+            **kwargs: Additional keyword arguments will be passed down to the Boto3 client.
         """
-        for collection in self.get_all_service_collections(service_name):
-            yield botocore.xform_name(collection.resource.model.name)
+        print("\n\n\n")
+        print(json.dumps(self.resource(service_name, **kwargs).meta.resource_model.__dict__))
+        yield from (
+            resource.name if pascal else botocore.xform_name(resource.name)
+            for resource in self.resource(service_name, **kwargs).meta.resource_model.subresources
+        )
 
     def get_valid_resource_types(self, service_name: str, resource_types: List[str]) -> List[str]:
         """Filter out any invalid resources for service_name from resource_types.

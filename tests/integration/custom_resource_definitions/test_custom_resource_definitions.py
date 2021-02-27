@@ -38,13 +38,12 @@ class TestCustomResourceDefinitions(unittest.TestCase):
             assert isinstance(
                 boto3_service, ServiceResource
             ), f"{boto3_service} is {type(boto3_service)} but should be ServiceResource"
-            service_definition = self.custom_resource_definitions.get_custom_service_definition(service_name)
-            for resource_name, resource_definition in service_definition["resources"].items():
-                getter = getattr(boto3_service, resource_name)
-                try:
-                    resource = getter("nonsense_id")
-                except ValueError:
-                    # boto3 native subresources are not yet supported
-                    # see https://github.com/CloudWanderer-io/CloudWanderer/issues/95
-                    pass
-                assert hasattr(resource, "load"), f"{service_name} {resource_name} does not have a load() method"
+            print(list(self.custom_resource_definitions.get_custom_resource_types(service_name)))
+            for resource_type in self.custom_resource_definitions.get_service_resource_types(service_name, True):
+                if resource_type not in self.custom_resource_definitions.get_custom_resource_types(service_name):
+                    continue
+                print(f"testing {resource_type}")
+                getter = getattr(boto3_service, resource_type)
+
+                resource = getter("nonsense_id")
+                assert hasattr(resource, "load"), f"{service_name} {resource_type} does not have a load() method"

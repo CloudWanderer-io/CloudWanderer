@@ -7,6 +7,7 @@ import botocore
 from cloudwanderer import URN, CloudWanderer
 from cloudwanderer.aws_interface import CloudWandererAWSInterface
 from cloudwanderer.cloud_wanderer import CloudWandererConcurrentWriteThreadResult
+from cloudwanderer.exceptions import BadUrnRegionError, BadUrnSubResourceError, UnsupportedResourceTypeError
 from cloudwanderer.storage_connectors import DynamoDbConnector
 
 
@@ -58,14 +59,25 @@ class TestFunctional(unittest.TestCase):
         self.wanderer.write_resources(service_names=["lambda"])
 
     def test_write_single_resource(self):
-        urn = URN(
-            account_id=self.wanderer.cloud_interface.account_id,
-            region="eu-west-2",
-            service="ec2",
-            resource_type="vpc",
-            resource_id="vpc-d52bc4bc",
-        )
-        self.wanderer.write_resource(urn=urn)
+        known_exceptions = ["ec2:route_table_association", "cloudformation:event", "glacier:account"]
+        custom_resource_definitions = self.wanderer.cloud_interface.boto3_getter.custom_resource_definitions
+        services = custom_resource_definitions.get_all_resource_services()
+        for boto3_service in services:
+            resource_types = custom_resource_definitions.get_service_resource_types(boto3_service.meta.service_name)
+            for resource_name in resource_types:
+                urn = URN(
+                    account_id=self.wanderer.cloud_interface.account_id,
+                    region="eu-west-2",
+                    service=boto3_service.meta.service_name,
+                    resource_type=resource_name,
+                    resource_id="vpc-1111111",
+                )
+                try:
+                    self.wanderer.write_resource(urn=urn)
+                except (BadUrnSubResourceError, BadUrnRegionError):
+                    pass
+                except UnsupportedResourceTypeError:
+                    assert f"{boto3_service.meta.service_name}:{resource_name}" in known_exceptions
 
     def test_read_all(self):
         results = list(self.storage_connector.read_all())
