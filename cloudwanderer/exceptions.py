@@ -34,3 +34,7 @@ class BadRequestError(Exception):
 
 class UnsupportedResourceTypeError(Exception):
     """The resource type in question is not supported for this operation."""
+
+
+class UnsupportedServiceError(Exception):
+    """The service in question is not supported for this operation."""

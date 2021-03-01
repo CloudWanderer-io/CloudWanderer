@@ -2,19 +2,14 @@ import re
 import unittest
 from unittest.mock import ANY
 
+import boto3
+
 from cloudwanderer import CloudWanderer
 from cloudwanderer.aws_interface import CloudWandererAWSInterface
 from cloudwanderer.storage_connectors import MemoryStorageConnector
 
 from ..helpers import DEFAULT_SESSION, GenericAssertionHelpers, get_default_mocker
-from ..mocks import (
-    MOCK_COLLECTION_BUCKETS,
-    MOCK_COLLECTION_IAM_GROUPS,
-    MOCK_COLLECTION_IAM_ROLE_POLICIES,
-    MOCK_COLLECTION_IAM_ROLES,
-    MOCK_COLLECTION_INSTANCES,
-    add_infra,
-)
+from ..mocks import add_infra
 
 
 class TestCloudWandererWriteResourcesConcurrently(unittest.TestCase, GenericAssertionHelpers):
@@ -62,12 +57,11 @@ class TestCloudWandererWriteResourcesConcurrently(unittest.TestCase, GenericAsse
         get_default_mocker().start_general_mock(
             restrict_regions=cls.enabled_regions,
             restrict_services=["ec2", "s3", "iam"],
-            restrict_collections=[
-                MOCK_COLLECTION_INSTANCES,
-                MOCK_COLLECTION_BUCKETS,
-                MOCK_COLLECTION_IAM_GROUPS,
-                MOCK_COLLECTION_IAM_ROLES,
-                MOCK_COLLECTION_IAM_ROLE_POLICIES,
+            limit_resources=[
+                "ec2:instance",
+                "s3:bucket",
+                "iam:group",
+                "iam:role",
             ],
         )
         add_infra(regions=cls.enabled_regions)
@@ -83,7 +77,11 @@ class TestCloudWandererWriteResourcesConcurrently(unittest.TestCase, GenericAsse
 
         thread_results = list(
             self.wanderer.write_resources_concurrently(
-                cloud_interface_generator=lambda: CloudWandererAWSInterface(DEFAULT_SESSION),
+                cloud_interface_generator=lambda: CloudWandererAWSInterface(
+                    boto3.Session(
+                        aws_access_key_id="11111111", aws_secret_access_key="111111", aws_session_token="1111"
+                    )
+                ),
                 storage_connector_generator=lambda: [MemoryStorageConnector()],
             )
         )

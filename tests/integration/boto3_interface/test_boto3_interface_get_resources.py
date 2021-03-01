@@ -5,14 +5,7 @@ from unittest.mock import ANY
 from cloudwanderer import CloudWandererAWSInterface
 
 from ..helpers import GenericAssertionHelpers, get_default_mocker
-from ..mocks import (
-    MOCK_COLLECTION_BUCKETS,
-    MOCK_COLLECTION_IAM_GROUPS,
-    MOCK_COLLECTION_IAM_ROLE_POLICIES,
-    MOCK_COLLECTION_IAM_ROLES,
-    MOCK_COLLECTION_INSTANCES,
-    add_infra,
-)
+from ..mocks import add_infra
 
 
 class TestCloudWandererGetResources(unittest.TestCase, GenericAssertionHelpers):
@@ -53,13 +46,7 @@ class TestCloudWandererGetResources(unittest.TestCase, GenericAssertionHelpers):
         get_default_mocker().start_general_mock(
             restrict_regions=cls.enabled_regions,
             restrict_services=["ec2", "s3", "iam"],
-            restrict_collections=[
-                MOCK_COLLECTION_INSTANCES,
-                MOCK_COLLECTION_BUCKETS,
-                MOCK_COLLECTION_IAM_GROUPS,
-                MOCK_COLLECTION_IAM_ROLES,
-                MOCK_COLLECTION_IAM_ROLE_POLICIES,
-            ],
+            limit_resources=["ec2:instance", "s3:bucket", "iam:group", "iam:role"],
         )
         add_infra(regions=cls.enabled_regions)
 

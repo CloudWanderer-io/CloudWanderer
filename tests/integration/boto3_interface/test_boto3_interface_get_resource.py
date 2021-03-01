@@ -2,9 +2,9 @@ import unittest
 from unittest.mock import ANY
 
 import boto3
-import botocore
 
 from cloudwanderer import URN, CloudWandererAWSInterface
+from cloudwanderer.exceptions import UnsupportedServiceError
 
 from ..helpers import DEFAULT_SESSION, GenericAssertionHelpers, get_default_mocker
 from ..mocks import add_infra
@@ -148,7 +148,7 @@ class TestBoto3InterfaceGetResource(unittest.TestCase, GenericAssertionHelpers):
         }
 
     def test_get_invalid_service_resource(self):
-        with self.assertRaisesRegex(botocore.exceptions.UnknownServiceError, "secretsmanag3r"):
+        with self.assertRaisesRegex(UnsupportedServiceError, "secretsmanag3r"):
             self.aws_interface.get_resource(
                 urn=URN(
                     account_id="123456789012",
