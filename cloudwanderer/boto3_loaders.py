@@ -81,13 +81,18 @@ class MergedServiceLoader:
     @property
     @lru_cache()
     def available_services(self) -> List[str]:
-        """Return a list of service names that can be loaded by :class:`Boto3Services.get_service`."""
-        return list(
-            set(
-                self._custom_service_loader.available_services
-                + self.non_specific_boto3_session.get_available_resources()
-            )
-        )
+        """Return a list of service names that can be loaded."""
+        return list(set(self.cloudwanderer_available_services + self.boto3_available_services))
+
+    @property
+    def cloudwanderer_available_services(self) -> List[str]:
+        """Return a list of services defined by CloudWanderer."""
+        return self._custom_service_loader.available_services
+
+    @property
+    def boto3_available_services(self) -> List[str]:
+        """Return a list of services defined by Boto3."""
+        return self.non_specific_boto3_session.get_available_resources()
 
     @lru_cache()
     def get_service_definition(self, service_name: str) -> dict:

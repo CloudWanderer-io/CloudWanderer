@@ -124,7 +124,7 @@ class Boto3Services:
     @property
     @lru_cache()
     def available_services(self) -> List[str]:
-        """Return a list of service names that can be loaded by :class:`Boto3Services.get_service`."""
+        """Return a list of service names that can be loaded by :meth:`Boto3Services.get_service`."""
         return self._loader.available_services
 
     @property
@@ -135,6 +135,13 @@ class Boto3Services:
         return sts.get_caller_identity()["Account"]
 
     def get_service(self, service_name: str, region_name: str = None, **kwargs) -> "CloudWandererBoto3Service":
+        """Return the :class`CloudWandererBoto3Service` by this name.
+
+        Arguments:
+            service_name: The name of the service to instantiate.
+            region_name: The region to instantiate the service for.
+            **kwargs: Additional keyword args will be passed to the Boto3 client.
+        """
         service_definition = self._loader.get_service_definition(service_name=service_name)
         service_method = self._factory.load(
             service_name=service_name,
@@ -238,10 +245,13 @@ class CloudWandererBoto3Service:
         Arguments:
             resource_type: The CloudWanderer style (snake_case) resource type.
         """
+        boto3_resource = self._get_boto3_resource(resource_type)
+        boto3_resource_getter = getattr(self.boto3_service, boto3_resource.name)
+        blank_args = ["" for identifier in boto3_resource.resource.identifiers]
         return CloudWandererBoto3Resource(
             account_id=self.account_id,
             cloudwanderer_boto3_service=self,
-            boto3_resource=self._get_boto3_resource(resource_type)(""),
+            boto3_resource=boto3_resource_getter(*blank_args),
             service_map=self.service_map,
         )
 
@@ -259,7 +269,9 @@ class CloudWandererBoto3Service:
             botocore.exceptions.ClientError: Boto3 Client Error
         """
         try:
-            boto3_resource = self._get_boto3_resource(urn.resource_type)(urn.resource_id)
+            boto3_resource = self._get_boto3_resource(urn.resource_type)
+            boto3_resource_getter = getattr(self.boto3_service, boto3_resource.name)
+            boto3_resource = boto3_resource_getter(urn.resource_id)
         except ValueError:
             raise BadUrnSubResourceError(f"{urn} is a sub resource, please call get_resource against its parent.")
 
@@ -291,7 +303,7 @@ class CloudWandererBoto3Service:
         action = next(
             resource for resource in self._subresources if botocore.xform_name(resource.name) == resource_type
         )
-        return getattr(self.boto3_service, action.name)
+        return action
 
     def get_resources(self, resource_type: str) -> Iterator["CloudWandererBoto3Resource"]:
         """Yield all resources of resource_type in this region.
@@ -372,9 +384,9 @@ class CloudWandererBoto3Service:
         return self.service_map.is_global_service and self.service_map.global_service_region == self.region
 
     @property
-    def service_name(self) -> str:
+    def name(self) -> str:
         """Return the snake_case name of this service."""
-        return self.meta.service_name
+        return self.boto3_service.meta.service_name
 
 
 class CloudWandererBoto3Resource:
@@ -521,6 +533,7 @@ class CloudWandererBoto3Resource:
     @property
     def subresource_models(self) -> Iterator[boto3.resources.model.Collection]:
         """Yield the Boto3 models for the CloudWanderer style subresources of this resource type."""
+        models = {}
         for collection_mapping, collection_model in self._boto3_collection_models:
             if collection_mapping.type == "secondaryAttribute":
                 continue
@@ -528,7 +541,8 @@ class CloudWandererBoto3Resource:
             if collection_resource_name in self.cloudwanderer_boto3_service.resource_types:
                 logger.debug(f"{collection_resource_name} is an independent resource, skipping")
                 continue
-            yield collection_model
+            models[collection_resource_name] = collection_model
+        yield from models.values()
 
     @property
     def _boto3_collection_models(self) -> Iterator[Tuple[ResourceMap, Collection]]:
@@ -548,7 +562,7 @@ class CloudWandererBoto3Resource:
         )
 
     @property
-    def _boto3_client(self) -> botocore.client.Client:
+    def _boto3_client(self) -> botocore.client.BaseClient:
         return self.boto3_resource.meta.client
 
 
