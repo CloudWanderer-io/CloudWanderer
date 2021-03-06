@@ -534,13 +534,10 @@ class CloudWandererBoto3Resource:
     def subresource_models(self) -> Iterator[boto3.resources.model.Collection]:
         """Yield the Boto3 models for the CloudWanderer style subresources of this resource type."""
         models = {}
-        for collection_mapping, collection_model in self._boto3_collection_models:
-            if collection_mapping.type == "secondaryAttribute":
+        for collection_resource_map, collection_model in self._boto3_collection_models:
+            if not self._is_collection_model_a_subresource(collection_resource_map, collection_model):
                 continue
             collection_resource_name = botocore.xform_name(collection_model.resource.model.name)
-            if collection_resource_name in self.cloudwanderer_boto3_service.resource_types:
-                logger.debug(f"{collection_resource_name} is an independent resource, skipping")
-                continue
             models[collection_resource_name] = collection_model
         yield from models.values()
 
@@ -548,8 +545,33 @@ class CloudWandererBoto3Resource:
     def _boto3_collection_models(self) -> Iterator[Tuple[ResourceMap, Collection]]:
         """Yield the ResourceMaps and Collections for this resource type."""
         for boto3_collection in self.boto3_resource.meta.resource_model.collections:
-            collection_mapping = self.service_map.get_resource_map(boto3_collection.resource.model.name)
-            yield collection_mapping, boto3_collection
+            collection_resource_map = self.service_map.get_resource_map(boto3_collection.resource.model.name)
+            yield collection_resource_map, boto3_collection
+
+    def _is_collection_model_a_subresource(
+        self, collection_resource_map: ResourceMap, collection_model: Collection
+    ) -> bool:
+        if collection_resource_map.type == "secondaryAttribute":
+            return False
+        collection_resource_name = botocore.xform_name(collection_model.resource.model.name)
+        if len(collection_model.resource.model.identifiers) != 2:
+            logger.debug(
+                "%s has %s identifiers, when valid subresources have 2, skipping",
+                collection_resource_name,
+                len(collection_model.resource.model.identifiers),
+            )
+            return False
+        if collection_model.resource.model.name in self.resource_map.ignored_subresource_types:
+            logger.debug(
+                "% is defined as an ignored subresource type by the %s servicemap, skipping",
+                collection_resource_name,
+                self.service_map.name,
+            )
+            return False
+        if collection_resource_name in self.cloudwanderer_boto3_service.resource_types:
+            logger.debug("%s is an independent resource, not a subresource skipping", collection_resource_name)
+            return False
+        return True
 
     @lru_cache
     def _get_region(self) -> str:

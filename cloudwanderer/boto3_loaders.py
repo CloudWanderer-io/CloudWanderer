@@ -212,13 +212,20 @@ class ResourceMap(NamedTuple):
 
     type: str
     region_request: dict
+    ignored_subresources: list
 
     @classmethod
     def factory(cls, definition: dict) -> "ResourceMap":
         return cls(
             type=definition.get("type"),
             region_request=ResourceRegionRequest.factory(definition.get("regionRequest")),
+            ignored_subresources=definition.get("ignoredSubresources", []),
         )
+
+    @property
+    def ignored_subresource_types(self) -> List:
+        """Return a list of (PascalCase) ignored subresource types."""
+        return [ignored_subresource["type"] for ignored_subresource in self.ignored_subresources]
 
 
 class ResourceRegionRequest(NamedTuple):

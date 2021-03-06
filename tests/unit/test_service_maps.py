@@ -55,10 +55,13 @@ class TestResourceMap(unittest.TestCase):
                     "pathToRegion": "LocationConstraint",
                     "defaultValue": "us-east-1",
                 },
+                "ignoredSubresources": [{"type": "ObjectSummary"}],
             }
         )
 
         assert isinstance(resource_map.region_request, ResourceRegionRequest)
+        assert resource_map.ignored_subresources == [{"type": "ObjectSummary"}]
+        assert resource_map.ignored_subresource_types == ["ObjectSummary"]
 
 
 class TestResourceRegionRequest(unittest.TestCase):
