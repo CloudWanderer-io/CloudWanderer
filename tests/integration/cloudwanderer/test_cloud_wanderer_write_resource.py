@@ -151,6 +151,8 @@ class TestCloudWandererWriteResource(unittest.TestCase):
                 "LastRotatedDate": None,
                 "Name": "test-secret",
                 "OwningService": None,
+                "PrimaryRegion": None,
+                "ReplicationStatus": None,
                 "RotationEnabled": False,
                 "RotationLambdaARN": None,
                 "RotationRules": {"AutomaticallyAfterDays": 0},

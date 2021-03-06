@@ -140,6 +140,8 @@ class TestBoto3InterfaceGetResource(unittest.TestCase, GenericAssertionHelpers):
             "LastRotatedDate": None,
             "Name": "test-secret",
             "OwningService": None,
+            "PrimaryRegion": None,
+            "ReplicationStatus": None,
             "RotationEnabled": False,
             "RotationLambdaARN": "",
             "RotationRules": {"AutomaticallyAfterDays": 0},

@@ -147,9 +147,9 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
     def _get_resources_of_service_in_region(
         self,
         service_name: str,
+        region_name: str,
         exclude_resources: List[str] = None,
         resource_types: List[str] = None,
-        region_name: str = None,
         **kwargs,
     ) -> None:
         """Write all AWS resources in this region in this service to storage.
@@ -165,11 +165,8 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
                 A list of resource types to include (e.g. ``['instance']``)
             region_name (str):
                 The name of the region to get resources from
-                (defaults to session default if not specified)
             **kwargs: Additional keyword arguments will be passed down to the cloud interface methods.
         """
-        region_name = region_name or self.region_name
-
         logger.info("Writing all %s resources in %s", service_name, region_name)
         exclude_resources = exclude_resources or []
         service = self.boto3_services.get_service(service_name=service_name, region_name=region_name)
@@ -203,8 +200,8 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
     def _get_resources_of_type_in_region(
         self,
         service_name: str,
+        region_name: str,
         resource_type: str = None,
-        region_name: str = None,
         **kwargs,
     ) -> None:
         """Write all AWS resources in this region in this service to storage.
@@ -218,10 +215,8 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
                 The name of the type of the resource to write (e.g. ``'instance'``)
             region_name (str):
                 The name of the region to get resources from
-                (defaults to session default if not specified)
             **kwargs: Additional keyword arguments will be passed down to the cloud interface methods.
         """
-        region_name = region_name or self.region_name
         logger.info("Fetching %s %s from %s", service_name, resource_type, region_name)
         yield from self._get_resources_of_type(
             service_name=service_name,
