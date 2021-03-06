@@ -34,7 +34,6 @@ class CustomServiceLoader:
         """Return our custom resource definitions."""
         return load_json_definitions(self.service_definitions_path)
 
-    @lru_cache()
     def get_service_definition(self, service_name: str) -> dict:
         try:
             return self.service_definitions[service_name]
@@ -42,7 +41,6 @@ class CustomServiceLoader:
             raise UnsupportedServiceError(f"{service_name} does not exist as a custom CloudWanderer service.")
 
     @property
-    @lru_cache()
     def available_services(self) -> List[str]:
         """Return a list of available snake_case service names."""
         return list(self.service_definitions.keys())
@@ -52,16 +50,15 @@ class MergedServiceLoader:
     """A class to merge the services from a custom service loader with those of Boto3."""
 
     def __init__(self, custom_service_loader: CustomServiceLoader = None) -> None:
-        self._custom_service_loader = custom_service_loader or CustomServiceLoader()
+        self.custom_service_loader = custom_service_loader or CustomServiceLoader()
         botocore_session = botocore.session.get_session()
-        self._boto3_loader = botocore_session.get_component("data_loader")
-        self._boto3_loader.search_paths.append(os.path.join(os.path.dirname(boto3.__file__), "data"))
+        self.boto3_loader = botocore_session.get_component("data_loader")
+        self.boto3_loader.search_paths.append(os.path.join(os.path.dirname(boto3.__file__), "data"))
 
         # This does not need to honour the user's session because it is *only* used to list resources
         self.non_specific_boto3_session = boto3.Session()
 
     @property
-    @lru_cache()
     def available_services(self) -> List[str]:
         """Return a list of service names that can be loaded."""
         return list(set(self.cloudwanderer_available_services + self.boto3_available_services))
@@ -69,7 +66,7 @@ class MergedServiceLoader:
     @property
     def cloudwanderer_available_services(self) -> List[str]:
         """Return a list of services defined by CloudWanderer."""
-        return self._custom_service_loader.available_services
+        return self.custom_service_loader.available_services
 
     @property
     def boto3_available_services(self) -> List[str]:
@@ -100,24 +97,24 @@ class MergedServiceLoader:
         }
 
     def _get_custom_service_definition(self, service_name: str) -> dict:
-        """Get the custom cloudwanderer definition for service_name so we can merge it with Boto3's.
+        """Get the custom CloudWanderer definition for service_name so we can merge it with Boto3's.
 
         Arguments:
             service_name: The PascalCase name of the service to get the definition of.
         """
         try:
-            return self._custom_service_loader.get_service_definition(service_name=service_name)
+            return self.custom_service_loader.get_service_definition(service_name=service_name)
         except UnsupportedServiceError:
             return {}
 
     def _get_boto3_definition(self, service_name: str) -> dict:
-        """Get the boto3 definition for service_name so we can merge it with CloudWanderer's.
+        """Get the Boto3 definition for service_name so we can merge it with CloudWanderer's.
 
         Arguments:
             service_name (str): The name of the service (e.g. ``'ec2'``)
         """
         try:
-            return self._boto3_loader.load_service_model(service_name, "resources-1", None)
+            return self.boto3_loader.load_service_model(service_name, "resources-1", None)
         except UnknownServiceError:
             return {}
 
