@@ -134,6 +134,7 @@ class Boto3Services:
         sts = self.boto3_session.client("sts")
         return sts.get_caller_identity()["Account"]
 
+    @lru_cache()
     def get_service(self, service_name: str, region_name: str = None, **kwargs) -> "CloudWandererBoto3Service":
         """Return the :class`CloudWandererBoto3Service` by this name.
 
@@ -573,7 +574,7 @@ class CloudWandererBoto3Resource:
             return False
         return True
 
-    @lru_cache
+    @lru_cache()
     def _get_region(self) -> str:
         """Return the region for a resource which requires an API call to determine its region."""
         region_request_definition = self.resource_map.region_request
