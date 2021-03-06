@@ -195,7 +195,7 @@ class TestGetCwServices(unittest.TestCase):
         self.getter.write_cloudwanderer_services()
 
         mock_open.return_value.__enter__.return_value.write.assert_any_call(
-            'sqs\n---\n\n\n.. py:class:: sqs.queue\n\n    \n\n    **Example:**\n\n    .. code-block ::\n\n        resources = storage_connector.read_resources(\n            service="sqs",\n            resource_type="queue")\n        for resource in resources:\n            resource.load()\n            print(resource.urn)\n            print(resource.attributes)\n\n\n\n    .. py:attribute:: attributes\n\n         A map of attributes to their respective values.\n\n\n\n\n\n'
+            'SQS\n---\n\n\n.. py:class:: sqs.queue\n\n    \n\n    **Example:**\n\n    .. code-block ::\n\n        resources = storage_connector.read_resources(\n            service="sqs",\n            resource_type="queue")\n        for resource in resources:\n            resource.load()\n            print(resource.urn)\n            print(resource.attributes)\n\n\n\n    .. py:attribute:: attributes\n\n         A map of attributes to their respective values.\n\n\n\n\n\n'
         )
 
     def test_get_cloudwanderer_services(self):

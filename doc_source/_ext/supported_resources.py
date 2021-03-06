@@ -139,7 +139,7 @@ class CloudWandererResourceDefinitionsDirective(SphinxDirective):
         services_section += nodes.title("", "Available Services")
         rst_section = ".. toctree::\n"
         rst_section += "   :maxdepth: 2\n\n"
-        for service_name in self.cw.get_cloudwanderer_services():
+        for service_name in sorted(self.cw.get_cloudwanderer_services()):
             rst_section += f"   {os.path.join(self.relative_path, service_name)}.rst\n"
         services_section += self.parse_rst(rst_section).children
         targetid = "cloudwanderer-%d" % self.env.new_serialno("cloudwanderer")
@@ -171,7 +171,9 @@ class GetCwServices:
     def write_cloudwanderer_services(self) -> list:
         for service_name in self.services.available_services:
             service = self.services.get_service(service_name)
-            service_section = f"{service_name}\n{'-'*len(service_name)}\n\n"
+            service_model = service.boto3_service.meta.client.meta.service_model
+            service_id = service_model.metadata["serviceId"]
+            service_section = f"{service_id}\n{'-'*len(service_id)}\n\n"
             service_section += "\n\n".join(self.get_collections(service))
             if not os.path.exists(os.path.join(self.base_path, self.relative_path)):
                 os.makedirs(os.path.join(self.base_path, self.relative_path))
