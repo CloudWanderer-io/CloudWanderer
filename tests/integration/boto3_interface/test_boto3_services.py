@@ -95,6 +95,7 @@ class TestCloudWandererBoto3Service(unittest.TestCase):
         cls.service = cls.services.get_service("ec2")
         cls.s3_service = cls.services.get_service("s3", region_name="us-east-1")
         cls.iam_service = cls.services.get_service("iam", region_name="us-east-1")
+        cls.iam_service_wrong_region = cls.services.get_service("iam", region_name="eu-west-2")
 
     @classmethod
     def tearDownClass(cls) -> None:
@@ -134,6 +135,18 @@ class TestCloudWandererBoto3Service(unittest.TestCase):
 
     def test_should_query_resources_in_region_global_service_global_resources(self):
         assert self.iam_service.should_query_resources_in_region
+
+    def test_should_delete_resources_in_region_regional_service(self):
+        assert self.service.should_delete_resources_in_region
+
+    def test_should_delete_resources_in_region_global_service_regional_resources(self):
+        assert self.s3_service.should_delete_resources_in_region
+
+    def test_should_delete_resources_in_region_global_service_global_resources(self):
+        assert self.iam_service.should_delete_resources_in_region
+
+    def test_should_delete_resources_in_region_global_service_global_resources_wrong_region(self):
+        assert not self.iam_service_wrong_region.should_delete_resources_in_region
 
     def test_account_id(self):
         assert self.service.account_id == "123456789012"

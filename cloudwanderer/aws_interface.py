@@ -7,6 +7,7 @@ import logging
 from typing import Iterator, List
 
 import boto3
+import botocore
 from boto3.resources.model import ResourceModel
 
 from .boto3_helpers import Boto3CommonAttributesMixin
@@ -172,17 +173,26 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
         logger.info("Writing all %s resources in %s", service_name, region_name)
         exclude_resources = exclude_resources or []
         service = self.boto3_services.get_service(service_name=service_name, region_name=region_name)
+        if not service.should_query_resources_in_region:
+            logger.info(
+                "Skipping %s as it cannot have resources in %s",
+                service_name,
+                region_name,
+            )
+            return
         resource_types = resource_types or service.resource_types
         for resource_type in resource_types:
             service_resource = f"{service_name}:{resource_type}"
             if resource_type not in service.resource_types:
-                logging.info("Skipping %s as it is not a valid resource for %s", resource_type, service_name)
+                logging.debug("Skipping %s as it is not a valid resource for %s", resource_type, service_name)
+                continue
             if service_resource in exclude_resources:
                 logger.info("Skipping %s as per exclude_resources", service_resource)
                 continue
             if self.limit_resources is not None and service_resource not in self.limit_resources:
                 logger.info("Skipping %s as per limit_resources", service_resource)
                 continue
+
             yield from self._get_resources_of_type_in_region(
                 service_name=service_name,
                 resource_type=resource_type,
@@ -230,29 +240,33 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
             resource_type (str): The type of resource to get resources of (e.g. ``'instance'``)
             region_name (str): The region to get resources of (e.g. ``'eu-west-1'``)
             **kwargs: Additional keyword arguments will be passed down to the Boto3 client.
+
+        Raises:
+            botocore.exceptions.ClientError: Occurs if the Boto3 Client Errors.
         """
         service = self.boto3_services.get_service(service_name=service_name, region_name=region_name)
-        if not service.should_query_resources_in_region:
-            logger.info(
-                "Skipping %s as it cannot have resources in %s",
-                service_name,
-                region_name,
-            )
-            return
-
-        for resource in service.get_resources(resource_type=resource_type):
-            logger.debug("Found %s", resource.urn)
-            yield CloudWandererResource(
-                urn=resource.urn,
-                resource_data=resource.normalised_raw_data,
-                secondary_attributes=list(resource.get_secondary_attributes()),
-            )
-            for subresource in resource.get_subresources():
+        try:
+            for resource in service.get_resources(resource_type=resource_type):
+                logger.debug("Found %s", resource.urn)
                 yield CloudWandererResource(
-                    urn=subresource.urn,
-                    resource_data=subresource.normalised_raw_data,
+                    urn=resource.urn,
+                    resource_data=resource.normalised_raw_data,
                     secondary_attributes=list(resource.get_secondary_attributes()),
                 )
+                for subresource in resource.get_subresources():
+                    yield CloudWandererResource(
+                        urn=subresource.urn,
+                        resource_data=subresource.normalised_raw_data,
+                        secondary_attributes=list(resource.get_secondary_attributes()),
+                    )
+        except botocore.exceptions.EndpointConnectionError:
+            logger.info("%s %s not supported in %s", service_name, resource_type, region_name)
+            return
+        except botocore.exceptions.ClientError as ex:
+            if ex.response["Error"]["Code"] == "InvalidAction":
+                logger.info("%s %s not supported in %s", service_name, resource_type, region_name)
+                return
+            raise
 
     def cleanup_resources(
         self,
@@ -261,7 +275,7 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
         regions: List[str] = None,
         service_names: List[str] = None,
         resource_types: List[str] = None,
-        **kwargs,
+        exclude_resources: List[str] = None,
     ) -> None:
         """Delete records as appropriate from a storage connector based on the supplied arguments.
 
@@ -278,18 +292,35 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
                 The names of the services to write resources for (e.g. ``['ec2']``)
             resource_types (list):
                 A list of resource types to include (e.g. ``['instance']``)
-            **kwargs:
-                All additional keyword arguments will be passed down to the Boto3 client calls.
+            exclude_resources (list):
+                A list of service:resources to exclude (e.g. ``['ec2:instance']``)
         """
+        exclude_resources = exclude_resources or []
         regions = regions or self.enabled_regions
         service_names = service_names or self.boto3_services.available_services
         for region_name in regions:
             for service_name in service_names:
-                service = self.boto3_services.get_service(service_name)
-                for resource_type in service.resource_types:
+                service = self.boto3_services.get_service(service_name, region_name=region_name)
+                if not service.should_delete_resources_in_region:
+                    logger.info(
+                        "Skipping storage cleanup of %s resources as it cannot have resources in %s",
+                        service_name,
+                        region_name,
+                    )
+                    continue
+                if resource_types:
+                    resource_types = list(set(resource_types) & set(service.resource_types))
+                else:
+                    resource_types = service.resource_types
+                for resource_type in resource_types:
+                    service_resource = f"{service}:{resource_type}"
+                    if service_resource in exclude_resources:
+                        logger.info("Skipping %s as per exclude_resources", service_resource)
+                    if resource_type not in service.resource_types:
+                        logging.debug("Skipping %s as it is not a valid resource for %s", resource_type, service_name)
                     self._clean_resources_in_region(
                         storage_connector=storage_connector,
-                        service_name=service_name,
+                        service_name=service.name,
                         resource_type=resource_type,
                         region_name=region_name,
                         current_urns=urns_to_keep,
@@ -318,17 +349,17 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
             current_urns (List[URN]):
                 A list of URNs which are still current and should not be deleted.
         """
-        service = self.boto3_services.get_service(service_name)
-        regions = self.enabled_regions
-        if not service.service_map.regional_resources:
-            regions = [service.service_map.global_service_region]
-
-        for region_name in regions:
-            logger.info("Deleting %s %s from %s", service_name, resource_type, region_name)
-            storage_connector.delete_resource_of_type_in_account_region(
-                service=service_name,
-                resource_type=resource_type,
-                account_id=self.account_id,
-                region=region_name,
-                urns_to_keep=current_urns,
-            )
+        logger.info(
+            "Cleaning up %s %s in %s from %s",
+            service_name,
+            resource_type,
+            region_name,
+            storage_connector,
+        )
+        storage_connector.delete_resource_of_type_in_account_region(
+            service=service_name,
+            resource_type=resource_type,
+            account_id=self.account_id,
+            region=region_name,
+            urns_to_keep=current_urns,
+        )

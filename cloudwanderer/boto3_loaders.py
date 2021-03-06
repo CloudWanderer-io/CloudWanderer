@@ -5,12 +5,11 @@ provided ones. This allows cloudwanderer to extend Boto3 to support AWS resource
 We can do this quite easily because CloudWanderer only needs a fraction of the functionality that native
 Boto3 resources provide (i.e. the description of the resources).
 """
-import json
 import logging
 import os
 import pathlib
 from functools import lru_cache
-from typing import Any, List, NamedTuple, Union
+from typing import Any, List, NamedTuple
 
 import boto3
 import botocore
@@ -18,26 +17,9 @@ from boto3.resources.base import ServiceResource
 from botocore.exceptions import UnknownServiceError
 
 from .exceptions import UnsupportedServiceError
+from .utils import load_json_definitions
 
 logger = logging.getLogger(__file__)
-
-
-def load_json_definitions(path: str) -> List[Union[list, dict]]:
-    """Return the parsed contents of all JSON files in a given path.
-
-    Arguments:
-        path: The path to load JSON files from.
-    """
-    definition_files = [
-        (os.path.abspath(os.path.join(path, file_name)), file_name.rstrip(".json"))
-        for file_name in os.listdir(path)
-        if os.path.isfile(os.path.join(path, file_name))
-    ]
-    definitions = {}
-    for file_path, service_name in definition_files:
-        with open(file_path) as definition_path:
-            definitions[service_name] = json.load(definition_path)
-    return definitions
 
 
 class CustomServiceLoader:

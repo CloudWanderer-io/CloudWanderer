@@ -90,8 +90,8 @@ class CloudWanderer:
                 regions=regions,
                 service_names=service_names,
                 resource_types=resource_types,
+                exclude_resources=exclude_resources,
                 urns_to_keep=urns,
-                **kwargs,
             )
 
     def write_resources_concurrently(

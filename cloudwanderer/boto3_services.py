@@ -385,6 +385,11 @@ class CloudWandererBoto3Service:
         return self.service_map.is_global_service and self.service_map.global_service_region == self.region
 
     @property
+    def should_delete_resources_in_region(self) -> bool:
+        """Return whether this service's resources should be deleted from storage for this region."""
+        return self.service_map.regional_resources or self.service_map.global_service_region == self.region
+
+    @property
     def name(self) -> str:
         """Return the snake_case name of this service."""
         return self.boto3_service.meta.service_name
