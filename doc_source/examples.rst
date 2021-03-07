@@ -77,6 +77,52 @@ In that block we are:
 **Important:** This will create DynamoDB table in your AWS account and write a potentially large number of records to it which may incur some cost.
 See earlier examples for how to test against a local DynamoDB or memory.
 
+Writing VPCs from all Regions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Writing VPCs is as simple as passing the ``resource_types`` argument.
+
+.. doctest ::
+
+    >>> wanderer.write_resources(resource_types=['vpcs'])
+
+Excluding Resource Types
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Some resource types take a very long time to query (e.g. EC2 Images) and depending on what you're using your data for
+may not be worth the time.
+
+.. doctest ::
+
+    >>> wanderer.write_resources(exclude_resources=['ec2:images'])
+
+Writing Resource by URN
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you're writing an event driven discovery mechanism it can be very useful to be able to update an individual resource
+without discovering all of the other resources of that type as well.
+
+.. doctest ::
+
+    >>> from cloudwanderer import URN
+    >>> urn = URN(
+    ...     account_id="123456789012",
+    ...     region="eu-west-2",
+    ...     service="ec2",
+    ...     resource_type="vpc",
+    ...     resource_id="vpc-1111111111",
+    ... )
+
+    >>> wanderer.write_resource(urn=urn)
+
+.. warning::
+
+    If the resource is not found it will delete it from your storage connector.
+
+
+Reading Resources
+--------------------
+
 Retrieving all VPCs from all Regions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -109,9 +155,8 @@ Once you've called :meth:`~cloudwanderer.cloud_wanderer_resource.CloudWandererRe
 the AWS resource that is returned by its describe method. E.g. for VPCs see :attr:`boto3:EC2.Client.describe_vpcs`.
 These attributes are stored as snake_case instead of the APIs camelCase, so ``isDefault`` becomes ``is_default``.
 
-
-Reading Resources
---------------------
+Retrieving Role Policies
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Let's say we want to get a list of role policies. We can start by getting the role
 

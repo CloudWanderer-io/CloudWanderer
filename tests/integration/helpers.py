@@ -2,20 +2,14 @@ import logging
 import os
 import re
 from typing import List, Union
-from unittest.mock import MagicMock, patch
+from unittest.mock import PropertyMock, patch
 
 import boto3
 import moto
-from botocore import xform_name
 from jmespath.lexer import LexerError
 from moto import ec2
 
-import cloudwanderer
-from cloudwanderer.boto3_helpers import get_resource_collections, get_service_resource_types_from_collections
 from cloudwanderer.cloud_wanderer_resource import CloudWandererResource
-from cloudwanderer.service_mappings import GlobalServiceResourceMappingNotFoundError, ServiceMappingCollection
-
-from .mocks import generate_mock_collection
 
 DEFAULT_SESSION = boto3.Session(aws_access_key_id="11111111", aws_secret_access_key="111111", aws_session_token="1111")
 logger = logging.getLogger(__file__)
@@ -146,20 +140,20 @@ class SetupMocking:
     default_moto_services = ["mock_ec2", "mock_iam", "mock_sts", "mock_s3", "mock_dynamodb2"]
 
     def __init__(self):
-        self.services_mock = MagicMock()
+        self.services_mock = PropertyMock()
         self.services_patcher = patch(
-            "cloudwanderer.custom_resource_definitions.CustomResourceDefinitions.get_all_resource_services",
+            "cloudwanderer.boto3_services.Boto3Services.available_services",
             new=self.services_mock,
         )
-        self.collections_mock = MagicMock()
+        self.limit_resources = PropertyMock(return_value=[])
         self.collections_patcher = patch(
-            "cloudwanderer.custom_resource_definitions.get_resource_collections", new=self.collections_mock
+            "cloudwanderer.aws_interface.CloudWandererAWSInterface.limit_resources", new=self.limit_resources
         )
         self.service_mocks = {}
         clear_aws_credentials()
 
     def start_general_mock(
-        self, restrict_regions: list = None, restrict_services: bool = True, restrict_collections: list = None
+        self, restrict_regions: list = None, restrict_services: bool = True, limit_resources: list = None
     ):
         restrict_regions = ["eu-west-2", "us-east-1"] if restrict_regions is None else restrict_regions
         if restrict_regions:
@@ -169,8 +163,8 @@ class SetupMocking:
             ]
         if restrict_services:
             self.start_restrict_services(services=["ec2", "s3", "iam"])
-        if restrict_collections is not False:
-            self.start_limit_collections_list(restrict_collections)
+        if limit_resources is not False:
+            self.start_limit_resources(limit_resources)
         self.start_moto_services()
 
     def stop_general_mock(self):
@@ -182,7 +176,7 @@ class SetupMocking:
                 pass
 
     def start_restrict_services(self, services: List[str]) -> None:
-        self.services_mock.return_value = [boto3.resource(service) for service in services]
+        self.services_mock.return_value = services
         self.services_patcher.start()
 
     def stop_restrict_services(self) -> None:
@@ -200,24 +194,16 @@ class SetupMocking:
             service.stop()
         self.service_mocks = {}
 
-    def start_limit_collections_list(self, restrict_collections):
-        """Limit the boto3 resource collections we service to a subset we use for testing."""
-        if not restrict_collections:
-            collections_to_mock = [
-                ("ec2", ("instance", "instances")),
-                ("ec2", ("vpc", "vpcs")),
-                ("s3", ("bucket", "buckets")),
-                ("iam", ("group", "groups")),
-                ("iam", ("Role", "roles")),
-                ("Role", ("RolePolicy", "policies")),
-            ]
-            restrict_collections = []
-            for service, name_tuple in collections_to_mock:
-                restrict_collections.append(generate_mock_collection(service, name_tuple[0], name_tuple[1]))
-        logger.debug("Mocking collections: %s", restrict_collections)
-        self.collections_mock.side_effect = lambda boto3_service: filter_collections(
-            restrict_collections, boto3_service
-        )
+    def start_limit_resources(self, limit_resources):
+        """Limit the boto3 resources we service to a subset we use for testing."""
+
+        self.limit_resources.return_value = limit_resources or [
+            "ec2:instance",
+            "ec2:vpc",
+            "s3:bucket",
+            "iam:group",
+            "iam:role",
+        ]
         self.collections_patcher.start()
 
     def stop_limit_collections_list(self):
@@ -232,21 +218,3 @@ def get_default_mocker():
     if not DEFAULT_MOCKER:
         DEFAULT_MOCKER = SetupMocking()
     return DEFAULT_MOCKER
-
-
-def get_secondary_attribute_types(service_name):
-    aws_interface = cloudwanderer.aws_interface.CloudWandererAWSInterface(boto3_session=DEFAULT_SESSION)
-    service_maps = ServiceMappingCollection(boto3_session=DEFAULT_SESSION)
-    service_map = service_maps.get_service_mapping(service_name=service_name)
-    resource_types = get_service_resource_types_from_collections(
-        get_resource_collections(
-            boto3_service=aws_interface.boto3_getter.custom_resource_definitions.resource(service_name=service_name)
-        )
-    )
-    for resource_type in resource_types:
-        try:
-            resource_map = service_map.get_resource_mapping(resource_type=resource_type)
-        except GlobalServiceResourceMappingNotFoundError:
-            continue
-        for secondary_attribute in resource_map.secondary_attributes:
-            yield (xform_name(resource_type), xform_name(secondary_attribute))

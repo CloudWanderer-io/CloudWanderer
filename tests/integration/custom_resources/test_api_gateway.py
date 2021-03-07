@@ -1,39 +1,49 @@
 import unittest
+
 import boto3
-from cloudwanderer import CloudWanderer
+
+from cloudwanderer import URN, CloudWanderer
 from cloudwanderer.storage_connectors import MemoryStorageConnector
-from ..helpers import get_default_mocker, GenericAssertionHelpers
+
+from ..helpers import GenericAssertionHelpers, get_default_mocker
 
 
-class TestSecretsManagerResources(unittest.TestCase, GenericAssertionHelpers):
+class TestAPIGatewayResources(unittest.TestCase, GenericAssertionHelpers):
+    def setUp(self):
+        get_default_mocker().start_moto_services(["mock_sts", "mock_apigateway"])
+        self.storage_connector = MemoryStorageConnector()
+        self.wanderer = CloudWanderer(storage_connectors=[self.storage_connector])
+        apigateway = boto3.client("apigateway")
+        apigateway.create_rest_api(
+            name="TestApi",
+        )
+        self.rest_apis = apigateway.get_rest_apis()
 
-    @classmethod
-    def setUpClass(cls):
-        get_default_mocker().start_moto_services(['mock_sts', 'mock_apigateway'])
-
-    @classmethod
-    def tearDownClass(cls):
+    def tearDown(self):
         get_default_mocker().stop_moto_services()
 
-    def setUp(self):
-        self.storage_connector = MemoryStorageConnector()
-        self.wanderer = CloudWanderer(
-            storage_connectors=[self.storage_connector]
+    def test_write_api_gateway(self):
+
+        self.wanderer.write_resource(
+            urn=URN(
+                account_id=self.wanderer.cloud_interface.account_id,
+                region="eu-west-2",
+                service="apigateway",
+                resource_type="rest_api",
+                resource_id=self.rest_apis["items"][0]["id"],
+            )
         )
 
-    def test_rest_api(self):
-        apigateway = boto3.client('apigateway')
-        apigateway.create_rest_api(
-            name='TestApi',
+        self.assert_dictionary_overlap(
+            self.storage_connector.read_all(),
+            [{"name": "TestApi", "apiKeySource": "HEADER", "endpointConfiguration": {"types": ["EDGE"]}, "tags": {}}],
         )
 
-        self.wanderer.write_resources(regions=['eu-west-2'], service_names=['apigateway'])
+    def test_write_api_gateways(self):
 
-        self.assert_dictionary_overlap(self.storage_connector.read_all(), [
-            {
-                'name': 'TestApi',
-                'apiKeySource': 'HEADER',
-                'endpointConfiguration': {'types': ['EDGE']},
-                'tags': {}
-            }
-        ])
+        self.wanderer.write_resources(regions=["eu-west-2"], service_names=["apigateway"])
+
+        self.assert_dictionary_overlap(
+            self.storage_connector.read_all(),
+            [{"name": "TestApi", "apiKeySource": "HEADER", "endpointConfiguration": {"types": ["EDGE"]}, "tags": {}}],
+        )

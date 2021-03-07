@@ -4,23 +4,28 @@ import boto3
 from parameterized import parameterized
 
 from cloudwanderer.aws_interface import CloudWandererAWSInterface
+from cloudwanderer.boto3_services import Boto3Services
 
-from ..helpers import get_default_mocker, get_secondary_attribute_types
+from ..helpers import DEFAULT_SESSION, get_default_mocker
 from ..mocks import add_infra
 
 
 def generate_params():
-    get_default_mocker().start_general_mock(restrict_collections=False)
+    get_default_mocker().start_general_mock(restrict_services=False)
+    boto3_services = Boto3Services(DEFAULT_SESSION)
     services = [("ec2", "eu-west-2"), ("iam", "us-east-1")]
     for service_name, region_name in services:
-        for resource_name, attribute_name in get_secondary_attribute_types(service_name):
-            yield (
-                f"{service_name}-{resource_name}-{attribute_name}",
-                service_name,
-                region_name,
-                resource_name,
-                attribute_name,
-            )
+        service = boto3_services.get_service(service_name)
+        for resource_summary in service.resource_summary:
+            for attribute_name in resource_summary.secondary_attribute_names:
+
+                yield (
+                    f"{service_name}-{resource_summary.resource_type}-{attribute_name}",
+                    service_name,
+                    region_name,
+                    resource_summary.resource_type,
+                    attribute_name,
+                )
     get_default_mocker().stop_general_mock()
 
 

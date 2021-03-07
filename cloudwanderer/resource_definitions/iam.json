@@ -1,6 +1,5 @@
 {
-    "service": {
-    },
+    "service": {},
     "resources": {
         "Role": {
             "identifiers": [
@@ -127,25 +126,33 @@
         },
         "RolePolicy": {
             "identifiers": [
-              {
-                "name": "RoleName",
-                "memberName": "RoleName"
-              },
-              {
-                "name": "Name",
-                "memberName": "PolicyName"
-              }
+                {
+                    "name": "RoleName",
+                    "memberName": "RoleName"
+                },
+                {
+                    "name": "Name",
+                    "memberName": "PolicyName"
+                }
             ],
             "shape": "GetRolePolicyResponse",
             "load": {
-              "request": {
-                "operation": "GetRolePolicy",
-                "params": [
-                  { "target": "RoleName", "source": "identifier", "name": "RoleName" },
-                  { "target": "PolicyName", "source": "identifier", "name": "Name" }
-                ]
-              },
-              "path": "@"
+                "request": {
+                    "operation": "GetRolePolicy",
+                    "params": [
+                        {
+                            "target": "RoleName",
+                            "source": "identifier",
+                            "name": "RoleName"
+                        },
+                        {
+                            "target": "PolicyName",
+                            "source": "identifier",
+                            "name": "Name"
+                        }
+                    ]
+                },
+                "path": "@"
             }
         }
     }

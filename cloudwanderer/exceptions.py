@@ -30,3 +30,11 @@ class BadRequestError(Exception):
 
     For some services for some clouds this is the same as a ResourceNotFoundError error.
     """
+
+
+class UnsupportedResourceTypeError(Exception):
+    """The resource type in question is not supported for this operation."""
+
+
+class UnsupportedServiceError(Exception):
+    """The service in question is not supported for this operation."""

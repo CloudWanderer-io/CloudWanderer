@@ -4,9 +4,10 @@ import unittest
 import boto3
 import botocore
 
-from cloudwanderer import CloudWanderer
+from cloudwanderer import URN, CloudWanderer
 from cloudwanderer.aws_interface import CloudWandererAWSInterface
 from cloudwanderer.cloud_wanderer import CloudWandererConcurrentWriteThreadResult
+from cloudwanderer.exceptions import BadUrnRegionError, BadUrnSubResourceError
 from cloudwanderer.storage_connectors import DynamoDbConnector
 
 
@@ -57,6 +58,24 @@ class TestFunctional(unittest.TestCase):
         """It is sufficient for this not to throw an exception."""
         self.wanderer.write_resources(service_names=["lambda"])
 
+    def test_write_single_resource(self):
+
+        for service_name in self.wanderer.cloud_interface.boto3_services.available_services:
+            service = self.wanderer.cloud_interface.boto3_services.get_service(service_name)
+            for resource_type in service.resource_types:
+                logging.info("Testing %s %s", service_name, resource_type)
+                urn = URN(
+                    account_id=self.wanderer.cloud_interface.account_id,
+                    region="eu-west-2",
+                    service=service_name,
+                    resource_type=resource_type,
+                    resource_id="fake-resource-id",
+                )
+                try:
+                    self.wanderer.write_resource(urn=urn)
+                except (BadUrnSubResourceError, BadUrnRegionError):
+                    pass
+
     def test_read_all(self):
         results = list(self.storage_connector.read_all())
         assert len(results) > 0
@@ -76,7 +95,7 @@ class TestFunctional(unittest.TestCase):
         for resource in resources:
             service_resource_types.add(f"{resource.urn.service}:{resource.urn.resource_type}")
 
-        assert {
+        expected_resource_types = {
             "apigateway:rest_api",
             "cloudformation:stack",
             "cloudwatch:alarm",
@@ -93,13 +112,14 @@ class TestFunctional(unittest.TestCase):
             "iam:role",
             "iam:role_policy",
             "iam:user",
-            "iam:virtual_mfa_device",
             "lambda:function",
             "s3:bucket",
             "secretsmanager:secret",
             "sns:subscription",
             "sns:topic",
-        }.issubset(service_resource_types)
+        }
+        for resource_type in expected_resource_types:
+            assert resource_type in service_resource_types
 
     def test_read_resource_of_type_in_account(self):
         vpc = next(

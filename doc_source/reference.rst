@@ -11,5 +11,4 @@ Reference
     reference/storage_connectors
     reference/urn
     reference/service_mappings
-    reference/custom_resource_definitions
     reference/exceptions
