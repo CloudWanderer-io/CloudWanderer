@@ -1,8 +1,9 @@
 What is CloudWanderer
 =======================
 
-CloudWanderer is a Python based tool built on top of AWS's `Boto3 SDK <https://boto3.amazonaws.com/v1/documentation/api/latest/index.html>`_ which allows you to discover AWS resources
+CloudWanderer is a Python based tool which allows you to discover AWS resources
 and store them for later retrieval.
+It is built on top of AWS's `Boto3 SDK <https://boto3.amazonaws.com/v1/documentation/api/latest/index.html>`_ which handles the heavy lifting.
 
 Use Cases
 ----------
@@ -35,10 +36,10 @@ Why not use AWS Config Advanced Query?
 is AWS's solution to centralised resource querying and represents a huge improvement in usability and performance
 over querying AWS Config on a resource-by-resource basis as a cross-account aggregated repository.
 
-If AWS Config works for you, you should use it, especially if you have AWS Config enabled already
+If AWS Config Advanced Query works for your use case, you should use it, especially if you have AWS Config enabled already
 as it does not entail any additional cost to use Advanced Query.
 
-Here are a few reasons you might find AWS Config lacking for querying your resources.
+Here are a few reasons you might consider alternatives to AWS Config Advanced Query for querying your resources.
 
 1. Limited Resource Support
     While AWS Config boasts `an impressive list of supported resources <https://docs.aws.amazon.com/config/latest/developerguide/resource-config-reference.html>`_
@@ -54,18 +55,18 @@ Here are a few reasons you might find AWS Config lacking for querying your resou
 
 2. No Subresource Support
     Some resources do not have their own ARNs. Inline IAM Policies are a good example of this.
-    It is currently not possible to lookup the policy document of an inline IAM policy via AWS Config.
+    It is currently not possible to lookup the policy document of an inline IAM policy via AWS Config Advanced Query.
 3. No Secondary Attribute Support
     AWS Config works by storing the primary attributes of a resource, i.e. those attributes that are returned
     by the ``Describe`` method (e.g. ``DescribeImages``). However, there are secondary attributes that you sometimes
     need to lookup to understand your environment. For example you may need to know which AWS Accounts an AMI
     is shared with, in which case you would need to call ``DescribeImageAttribute`` with the ``Attribute=launchPermission``
-    argument. This information is currently not available in AWS Config.
+    argument. This information is currently not available in AWS Config Advanced Query.
 4. Indeterminate API Throttling.
     The AWS Config Advanced Query API does not have a documented query limit. As it was billed at launch
     as a way to `"[help] reduce the throttling encountered while making service-specific describe API calls."`
     it's reasonable to assume that the throttling threshold is high, but bear in mind there is no cost
-    associated with this service.
+    associated with this service so its throttling limits likely reflect that.
 
 If any of these are dealbreakers for you, and you don't mind putting in the time, effort, and cost to
 query your own resources, CloudWanderer may be for you!
