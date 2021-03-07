@@ -133,6 +133,10 @@ class TestCloudWandererBoto3Service(unittest.TestCase):
     def test_should_query_resources_in_region_global_service_regional_resources(self):
         assert self.s3_service.should_query_resources_in_region
 
+    def test_should_query_resources_in_region_global_service_regional_resources_wrong_query_region(self):
+        s3_service = self.services.get_service("s3", region_name="eu-west-1")
+        assert not s3_service.should_query_resources_in_region
+
     def test_should_query_resources_in_region_global_service_global_resources(self):
         assert self.iam_service.should_query_resources_in_region
 
@@ -141,6 +145,11 @@ class TestCloudWandererBoto3Service(unittest.TestCase):
 
     def test_should_delete_resources_in_region_global_service_regional_resources(self):
         assert self.s3_service.should_delete_resources_in_region
+
+    def test_should_delete_resources_in_all_regions_global_service_regional_resources(self):
+        s3_service = self.services.get_service("s3", region_name="eu-west-1")
+
+        assert s3_service.should_delete_resources_in_region
 
     def test_should_delete_resources_in_region_global_service_global_resources(self):
         assert self.iam_service.should_delete_resources_in_region
@@ -267,6 +276,7 @@ class TestCloudWandererBoto3Resource(unittest.TestCase):
 
     def test_get_subresources(self):
         result = next(self.role_resource.get_subresources())
+
         assert str(result.urn) == "urn:aws:123456789012:us-east-1:iam:role_policy:test-role/test-role-policy"
         assert result.raw_data == {
             "PolicyDocument": {
