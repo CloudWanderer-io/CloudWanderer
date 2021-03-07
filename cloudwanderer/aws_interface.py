@@ -296,30 +296,38 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
         for region_name in regions:
             for service_name in service_names:
                 service = self.boto3_services.get_service(service_name, region_name=region_name)
-                if not service.should_delete_resources_in_region:
-                    logger.info(
+                if not service.should_query_resources_in_region:
+                    logger.debug(
                         "Skipping storage cleanup of %s resources as it cannot have resources in %s",
                         service_name,
                         region_name,
                     )
                     continue
                 if resource_types:
-                    resource_types = list(set(resource_types) & set(service.resource_types))
+                    service_resource_types = list(set(resource_types) & set(service.resource_types))
                 else:
-                    resource_types = service.resource_types
-                for resource_type in resource_types:
+                    service_resource_types = service.resource_types
+                for resource_type in service_resource_types:
                     service_resource = f"{service}:{resource_type}"
+                    resource = service._get_empty_resource(resource_type=resource_type)
                     if service_resource in exclude_resources:
-                        logger.info("Skipping %s as per exclude_resources", service_resource)
-                    if resource_type not in service.resource_types:
-                        logging.debug("Skipping %s as it is not a valid resource for %s", resource_type, service_name)
-                    self._clean_resources_in_region(
-                        storage_connector=storage_connector,
-                        service_name=service.name,
-                        resource_type=resource_type,
-                        region_name=region_name,
-                        current_urns=urns_to_keep,
-                    )
+                        logger.debug("Skipping %s as per exclude_resources", service_resource)
+                    for region_name in service.get_regions_discovered_from_region:
+                        self._clean_resources_in_region(
+                            storage_connector=storage_connector,
+                            service_name=service.name,
+                            resource_type=resource_type,
+                            region_name=region_name,
+                            current_urns=urns_to_keep,
+                        )
+                        for subresource_type in resource.subresource_types:
+                            self._clean_resources_in_region(
+                                storage_connector=storage_connector,
+                                service_name=service.name,
+                                resource_type=subresource_type,
+                                region_name=region_name,
+                                current_urns=urns_to_keep,
+                            )
 
     def _clean_resources_in_region(
         self,

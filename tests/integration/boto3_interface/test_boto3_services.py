@@ -61,26 +61,26 @@ class TestBoto3Services(unittest.TestCase):
 
     @patch("cloudwanderer.boto3_services.Boto3Services.get_service")
     def test_get_resource_from_urn(self, mock_get_service):
-        urn = URN.from_string("urn:aws:123456789012:eu-west-1:ec2:vpc:vpc-11111111")
+        urn = URN.from_string("urn:aws:123456789012:eu-west-2:ec2:vpc:vpc-11111111")
 
         self.services.get_resource_from_urn(urn)
 
         mock_get_service.return_value.get_resource_from_urn.assert_called_with(urn)
 
     def test_get_resource_from_urn_bad_account_id(self):
-        urn = URN.from_string("urn:aws:111111111111:eu-west-1:ec2:vpc:vpc-11111111")
+        urn = URN.from_string("urn:aws:111111111111:eu-west-2:ec2:vpc:vpc-11111111")
 
         with self.assertRaises(cloudwanderer.exceptions.BadUrnAccountIdError):
             self.services.get_resource_from_urn(urn)
 
     def test_get_resource_from_urn_wrong_region_for_service(self):
-        urn = URN.from_string("urn:aws:123456789012:eu-west-1:iam:role:test-role")
+        urn = URN.from_string("urn:aws:123456789012:eu-west-2:iam:role:test-role")
 
         with self.assertRaises(cloudwanderer.exceptions.BadUrnRegionError):
             self.services.get_resource_from_urn(urn)
 
     def test_get_resource_from_urn_subresource(self):
-        urn = URN.from_string("urn:aws:123456789012:eu-west-1:iam:role_policy:test-role/test-policy")
+        urn = URN.from_string("urn:aws:123456789012:eu-west-2:iam:role_policy:test-role/test-policy")
 
         with self.assertRaises(cloudwanderer.exceptions.BadUrnSubResourceError):
             self.services.get_resource_from_urn(urn)
@@ -89,7 +89,7 @@ class TestBoto3Services(unittest.TestCase):
 class TestCloudWandererBoto3Service(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        get_default_mocker().start_moto_services()
+        get_default_mocker().start_general_mock(restrict_regions=["us-east-1", "ap-east-1", "eu-west-1"])
         add_infra()
         cls.services = Boto3Services(boto3_session=DEFAULT_SESSION)
         cls.service = cls.services.get_service("ec2")
@@ -99,7 +99,7 @@ class TestCloudWandererBoto3Service(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls) -> None:
-        get_default_mocker().stop_moto_services()
+        get_default_mocker().stop_general_mock()
 
     def test_resource_types(self):
         assert {"instance", "internet_gateway", "key_pair"}.issubset(set(self.service.resource_types))
@@ -112,10 +112,10 @@ class TestCloudWandererBoto3Service(unittest.TestCase):
         assert isinstance(self.service.get_resource_from_urn(vpc.urn), CloudWandererBoto3Resource)
 
     def test_get_global_endpoint_resources_in_regional_resource_region(self):
-        service = self.services.get_service("s3", region_name="eu-west-1")
+        service = self.services.get_service("s3", region_name="eu-west-2")
         resource_regions = list(resource.region for resource in service.get_resources("bucket"))
 
-        assert resource_regions == ["us-east-1", "eu-west-1", "ap-east-1"]
+        assert resource_regions == ["us-east-1", "eu-west-2", "ap-east-1"]
 
     def test_region_default(self):
         assert self.service.region == "eu-west-2"
@@ -134,28 +134,28 @@ class TestCloudWandererBoto3Service(unittest.TestCase):
         assert self.s3_service.should_query_resources_in_region
 
     def test_should_query_resources_in_region_global_service_regional_resources_wrong_query_region(self):
-        s3_service = self.services.get_service("s3", region_name="eu-west-1")
+        s3_service = self.services.get_service("s3", region_name="eu-west-2")
         assert not s3_service.should_query_resources_in_region
 
     def test_should_query_resources_in_region_global_service_global_resources(self):
         assert self.iam_service.should_query_resources_in_region
 
-    def test_should_delete_resources_in_region_regional_service(self):
-        assert self.service.should_delete_resources_in_region
+    def test_get_regions_discovered_from_region_regional_service(self):
+        assert self.service.get_regions_discovered_from_region == ["eu-west-2"]
 
-    def test_should_delete_resources_in_region_global_service_regional_resources(self):
-        assert self.s3_service.should_delete_resources_in_region
+    def test_get_regions_discovered_from_region_global_service_regional_resources(self):
+        assert self.s3_service.get_regions_discovered_from_region == ["us-east-1", "eu-west-2", "ap-northeast-1"]
 
-    def test_should_delete_resources_in_all_regions_global_service_regional_resources(self):
-        s3_service = self.services.get_service("s3", region_name="eu-west-1")
+    def test_get_regions_discovered_from_region_global_service_regional_resources_wrong_region(self):
+        s3_service = self.services.get_service("s3", region_name="eu-west-2")
 
-        assert s3_service.should_delete_resources_in_region
+        assert s3_service.get_regions_discovered_from_region == []
 
-    def test_should_delete_resources_in_region_global_service_global_resources(self):
-        assert self.iam_service.should_delete_resources_in_region
+    def test_get_regions_discovered_from_region_global_service_global_resources(self):
+        assert self.iam_service.get_regions_discovered_from_region == ["us-east-1"]
 
-    def test_should_delete_resources_in_region_global_service_global_resources_wrong_region(self):
-        assert not self.iam_service_wrong_region.should_delete_resources_in_region
+    def test_get_regions_discovered_from_region_global_service_global_resources_wrong_region(self):
+        assert self.iam_service_wrong_region.get_regions_discovered_from_region == []
 
     def test_account_id(self):
         assert self.service.account_id == "123456789012"
@@ -175,6 +175,13 @@ class TestCloudWandererBoto3Service(unittest.TestCase):
             )
             in self.iam_service.resource_summary
         )
+
+    def test_get_enabled_regions(self):
+        assert self.service.enabled_regions == [
+            "us-east-1",
+            "ap-east-1",
+            "eu-west-1",
+        ]
 
 
 class TestCloudWandererBoto3Resource(unittest.TestCase):
@@ -245,7 +252,7 @@ class TestCloudWandererBoto3Resource(unittest.TestCase):
     def test_region_global_service_global_resources(self):
         resource_regions = [resource.region for resource in self.bucket_resources]
 
-        assert resource_regions == ["us-east-1", "eu-west-1", "ap-east-1"]
+        assert resource_regions == ["us-east-1", "eu-west-2", "ap-east-1"]
 
     def test_account_id(self):
         assert self.resource.account_id == "123456789012"

@@ -1,3 +1,8 @@
+# 0.13.1
+
+- Fixed bug that prevented global services with regional resources being cleaned up properly.
+- Fixed bug that prevented subresources from being cleaned up.
+
 # 0.13.0
 
 - Added `get_resource` to `CloudWanderer` to allow the writing of a single resource based on its URN
