@@ -19,7 +19,7 @@ class TestSecretsManagerResources(unittest.TestCase, GenericAssertionHelpers):
     def tearDown(self) -> None:
         get_default_mocker().stop_moto_services()
 
-    def test_get_secret(self):
+    def test_write_secret(self):
 
         self.wanderer.write_resource(
             urn=URN(
@@ -46,7 +46,7 @@ class TestSecretsManagerResources(unittest.TestCase, GenericAssertionHelpers):
             ],
         )
 
-    def test_get_secrets(self):
+    def test_write_secrets(self):
 
         self.wanderer.write_resources(regions=["eu-west-2"], service_names=["secretsmanager"])
 

@@ -59,7 +59,7 @@ class TestLambdaResources(unittest.TestCase, GenericAssertionHelpers):
     def tearDown(self) -> None:
         self.session_patch.stop()
 
-    def test_get_function(self):
+    def test_write_function(self):
 
         self.wanderer.write_resource(
             urn=URN(
@@ -76,7 +76,7 @@ class TestLambdaResources(unittest.TestCase, GenericAssertionHelpers):
             [FUNCTION_RESOURCE],
         )
 
-    def test_get_functions(self):
+    def test_write_functions(self):
 
         self.wanderer.write_resources(regions=["eu-west-2"], service_names=["lambda"])
         self.assert_dictionary_overlap(
