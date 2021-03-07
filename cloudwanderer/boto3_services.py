@@ -111,6 +111,7 @@ class Boto3Services:
         boto3_session: boto3.session.Session = None,
         service_loader: MergedServiceLoader = None,
         service_mapping_loader: ServiceMappingLoader = None,
+        account_id: str = None,
     ) -> None:
         """Initialise the Boto3SessionWrapper.
 
@@ -121,11 +122,14 @@ class Boto3Services:
                 Optionally specify your own service loader if you wish to insert your own resources.
             service_mapping_loader:
                 Optionally specify your own service mapping loader if you wish to insert your own service mappings.
+            account_id:
+                Optionally specify your account id to save a call to STS.
         """
         self.boto3_session = boto3_session or boto3.session.Session()
         self._factory = CloudWandererBoto3ResourceFactory(boto3_session=self.boto3_session)
         self._loader = service_loader or MergedServiceLoader()
         self._service_mapping_loader = service_mapping_loader or ServiceMappingLoader()
+        self._account_id = account_id
 
     @property
     def available_services(self) -> List[str]:
@@ -136,6 +140,8 @@ class Boto3Services:
     @lru_cache()
     def account_id(self) -> str:
         """Return the AWS Account ID our Boto3 session is authenticated against."""
+        if self._account_id:
+            return self._account_id
         sts = self.boto3_session.client("sts")
         return sts.get_caller_identity()["Account"]
 

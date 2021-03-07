@@ -61,7 +61,7 @@ ATTRIBUTES_TEMPLATE = """
 class SummarisedResources:
     def __init__(self) -> None:
         self.merged_loader = MergedServiceLoader()
-        self.services = cloudwanderer.boto3_services.Boto3Services()
+        self.services = cloudwanderer.boto3_services.Boto3Services(account_id="111111111111")
 
     @property
     @lru_cache()
@@ -157,7 +157,7 @@ class CloudWandererSecondaryAttributesDirective(SphinxDirective):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.services = cloudwanderer.boto3_services.Boto3Services()
+        self.services = cloudwanderer.boto3_services.Boto3Services(account_id="111111111111")
 
     def run(self) -> list:
         targetid = "cloudwanderer-%d" % self.env.new_serialno("cloudwanderer")
@@ -219,7 +219,7 @@ class GetCwServices:
     def __init__(self) -> None:
         self.relative_path = "resource_properties"
         self.base_path = os.path.join(pathlib.Path(__file__).parent.absolute(), "..")
-        self.services = cloudwanderer.boto3_services.Boto3Services()
+        self.services = cloudwanderer.boto3_services.Boto3Services(account_id="111111111111")
         self.loader = cloudwanderer.boto3_loaders.MergedServiceLoader()
 
     def get_cloudwanderer_services(self) -> list:
