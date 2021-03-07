@@ -75,7 +75,7 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
             yield CloudWandererResource(
                 urn=subresource.urn,
                 resource_data=subresource.normalised_raw_data,
-                secondary_attributes=list(resource.get_secondary_attributes()),
+                secondary_attributes=list(subresource.get_secondary_attributes()),
             )
 
     def get_resources(
@@ -260,7 +260,7 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
                     yield CloudWandererResource(
                         urn=subresource.urn,
                         resource_data=subresource.normalised_raw_data,
-                        secondary_attributes=list(resource.get_secondary_attributes()),
+                        secondary_attributes=list(subresource.get_secondary_attributes()),
                     )
         except botocore.exceptions.EndpointConnectionError:
             logger.info("%s %s not supported in %s", service_name, resource_type, region_name)

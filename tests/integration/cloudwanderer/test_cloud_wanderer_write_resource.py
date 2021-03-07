@@ -99,23 +99,6 @@ class TestCloudWandererWriteResource(unittest.TestCase):
                 "attr": "BaseResource",
                 "urn": "urn:aws:123456789012:us-east-1:iam:role_policy:test-role/test-role-policy",
             },
-            {
-                "IsTruncated": False,
-                "PolicyNames": ["test-role-policy"],
-                "attr": "role_inline_policy_attachments",
-                "urn": "urn:aws:123456789012:us-east-1:iam:role_policy:test-role/test-role-policy",
-            },
-            {
-                "AttachedPolicies": [
-                    {
-                        "PolicyArn": "arn:aws:iam::aws:policy/aws-service-role/APIGatewayServiceRolePolicy",
-                        "PolicyName": "APIGatewayServiceRolePolicy",
-                    }
-                ],
-                "IsTruncated": False,
-                "attr": "role_managed_policy_attachments",
-                "urn": "urn:aws:123456789012:us-east-1:iam:role_policy:test-role/test-role-policy",
-            },
         ]
 
     def test_write_valid_s3_bucket_eu_west_2(self):

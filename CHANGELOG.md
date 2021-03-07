@@ -1,3 +1,7 @@
+# 0.13.2
+
+- Fixed bug causing subresources to inherit the secondary attributes of their parent resource erroneously.
+
 # 0.13.1
 
 - Fixed bug that prevented global services with regional resources being cleaned up properly.
