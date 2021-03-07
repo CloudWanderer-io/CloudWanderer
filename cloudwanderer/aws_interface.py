@@ -47,11 +47,12 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
             boto3_session=boto3_session, service_loader=service_loader, service_mapping_loader=service_mapping_loader
         )
 
-    def get_resource(self, urn: URN) -> CloudWandererResource:
-        """Return CloudWandererResource picked out by this URN.
+    def get_resource(self, urn: URN, include_subresources: bool = True) -> Iterator[CloudWandererResource]:
+        """Yield the resource picked out by this URN and optionally its subresources.
 
         Arguments:
             urn (URN): The urn of the resource to get.
+            include_subresources: Whether or not to additionally yield the subresources of the resource.
         """
         try:
             resource = self.boto3_services.get_resource_from_urn(urn=urn)
@@ -63,22 +64,12 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
                 "for resource non-existence we are interpreting this as the resource does not exist."
             )
             return None
-
-        return CloudWandererResource(
+        yield CloudWandererResource(
             urn=urn,
             resource_data=resource.normalised_raw_data,
             secondary_attributes=list(resource.get_secondary_attributes()),
         )
-
-    def get_subresources(self, urn: URN) -> Iterator[CloudWandererResource]:
-        """Yield the subresources of the resource picked out by this URN.
-
-        Arguments:
-            urn (URN): The urn of the resource to get.
-        """
-        try:
-            resource = self.boto3_services.get_resource_from_urn(urn=urn)
-        except ResourceNotFoundError:
+        if not include_subresources:
             return
         for subresource in resource.get_subresources():
             yield CloudWandererResource(
