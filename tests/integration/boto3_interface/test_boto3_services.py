@@ -89,7 +89,7 @@ class TestBoto3Services(unittest.TestCase):
 class TestCloudWandererBoto3Service(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        get_default_mocker().start_general_mock(restrict_regions=["us-east-1", "ap-east-1", "eu-west-1"])
+        get_default_mocker().start_general_mock(restrict_regions=["us-east-1", "ap-east-1", "eu-west-2"])
         add_infra()
         cls.services = Boto3Services(boto3_session=DEFAULT_SESSION)
         cls.service = cls.services.get_service("ec2")
@@ -115,7 +115,7 @@ class TestCloudWandererBoto3Service(unittest.TestCase):
         service = self.services.get_service("s3", region_name="eu-west-2")
         resource_regions = list(resource.region for resource in service.get_resources("bucket"))
 
-        assert resource_regions == ["us-east-1", "eu-west-2", "ap-east-1"]
+        assert sorted(resource_regions) == sorted(["us-east-1", "eu-west-2", "ap-east-1"])
 
     def test_region_default(self):
         assert self.service.region == "eu-west-2"
@@ -144,7 +144,9 @@ class TestCloudWandererBoto3Service(unittest.TestCase):
         assert self.service.get_regions_discovered_from_region == ["eu-west-2"]
 
     def test_get_regions_discovered_from_region_global_service_regional_resources(self):
-        assert self.s3_service.get_regions_discovered_from_region == ["us-east-1", "eu-west-2", "ap-northeast-1"]
+        assert sorted(self.s3_service.get_regions_discovered_from_region) == sorted(
+            ["us-east-1", "eu-west-2", "ap-east-1"]
+        )
 
     def test_get_regions_discovered_from_region_global_service_regional_resources_wrong_region(self):
         s3_service = self.services.get_service("s3", region_name="eu-west-2")
@@ -180,14 +182,14 @@ class TestCloudWandererBoto3Service(unittest.TestCase):
         assert self.service.enabled_regions == [
             "us-east-1",
             "ap-east-1",
-            "eu-west-1",
+            "eu-west-2",
         ]
 
 
 class TestCloudWandererBoto3Resource(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        get_default_mocker().start_moto_services()
+        get_default_mocker().start_general_mock(restrict_regions=["eu-west-2", "us-east-1", "ap-east-1"])
         add_infra()
 
         cls.services = Boto3Services(boto3_session=DEFAULT_SESSION)
@@ -202,7 +204,7 @@ class TestCloudWandererBoto3Resource(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls) -> None:
-        get_default_mocker().stop_moto_services()
+        get_default_mocker().stop_general_mock()
 
     def test_raw_data(self):
         assert self.resource.raw_data == {
@@ -252,7 +254,7 @@ class TestCloudWandererBoto3Resource(unittest.TestCase):
     def test_region_global_service_global_resources(self):
         resource_regions = [resource.region for resource in self.bucket_resources]
 
-        assert resource_regions == ["us-east-1", "eu-west-2", "ap-east-1"]
+        assert sorted(resource_regions) == sorted(["us-east-1", "eu-west-2", "ap-east-1"])
 
     def test_account_id(self):
         assert self.resource.account_id == "123456789012"
