@@ -58,8 +58,7 @@ class TestFunctional(unittest.TestCase):
         """It is sufficient for this not to throw an exception."""
         self.wanderer.write_resources(service_names=["lambda"])
 
-    def test_write_single_resource(self):
-
+    def test_write_single_non_existent_resource_of_every_type(self):
         for service_name in self.wanderer.cloud_interface.boto3_services.available_services:
             service = self.wanderer.cloud_interface.boto3_services.get_service(service_name)
             for resource_type in service.resource_types:
@@ -75,6 +74,27 @@ class TestFunctional(unittest.TestCase):
                     self.wanderer.write_resource(urn=urn)
                 except (BadUrnSubResourceError, BadUrnRegionError):
                     pass
+
+    def test_write_single_resource_of_every_found_type(self):
+        for service_name in self.wanderer.cloud_interface.boto3_services.available_services:
+            service = self.wanderer.cloud_interface.boto3_services.get_service(service_name)
+            for resource_type in service.resource_types:
+                try:
+                    resource = next(
+                        self.storage_connector.read_resources(service=service_name, resource_type=resource_type)
+                    )
+                except StopIteration:
+                    logging.info(
+                        "No %s %s resources were found, skipping testing write_resource for this type",
+                        service_name,
+                        resource_type,
+                    )
+                    continue
+                if resource.urn.is_subresource:
+                    continue
+                logging.info("Found %s, testing write_resource", resource.urn)
+
+                self.wanderer.write_resource(urn=resource.urn)
 
     def test_read_all(self):
         results = list(self.storage_connector.read_all())
