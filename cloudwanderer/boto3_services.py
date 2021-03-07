@@ -533,7 +533,12 @@ class CloudWandererBoto3Resource:
         for subresource_model in self.subresource_models:
             collection = getattr(self.boto3_resource, subresource_model.name)
             for boto3_resource in collection.all():
-                boto3_resource.load()
+                if hasattr(boto3_resource, "load"):
+                    # If the resource does not have a `load` that means that the response returned
+                    # by the collection request (e.g. listAccessKeys) contains all the information that is
+                    # available for this resource.
+                    # If it does have a load, then we need to get that additional data.
+                    boto3_resource.load()
                 yield CloudWandererBoto3Resource(
                     account_id=self.account_id,
                     cloudwanderer_boto3_service=self.cloudwanderer_boto3_service,

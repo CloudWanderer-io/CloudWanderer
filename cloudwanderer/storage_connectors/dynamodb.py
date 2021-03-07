@@ -152,13 +152,13 @@ class DynamoDbConnector(BaseStorageConnector):
                 Optional specification of the number of shards to create for low-cardinality indexes.
 
         """
-        client_args = client_args or {}
+        self.client_args = client_args or {}
         if endpoint_url:
-            client_args["endpoint_url"] = endpoint_url
+            self.client_args["endpoint_url"] = endpoint_url
         self.boto3_session = boto3_session or boto3.Session()
         self.table_name = table_name
         self.number_of_shards = number_of_shards
-        self.dynamodb = self.boto3_session.resource("dynamodb", **client_args)
+        self.dynamodb = self.boto3_session.resource("dynamodb", **self.client_args)
         self.dynamodb_table = self.dynamodb.Table(table_name)
 
     def init(self) -> None:
@@ -278,6 +278,22 @@ class DynamoDbConnector(BaseStorageConnector):
         """
         shard_id = shard_id if shard_id is not None else randrange(self.number_of_shards - 1)
         return f"{key}#shard{shard_id}"
+
+    def __repr__(self) -> str:
+        """Return an instantiable string representation of this class."""
+        return (
+            f"{self.__class__.__name__}("
+            f'table_name="{self.table_name}", '
+            f'endpoint_url="{self.client_args.get("endpoint_url")}", '
+            f'boto3_session="{self.boto3_session}", '
+            f'client_args="{self.client_args}, '
+            f"number_of_shards={self.number_of_shards}"
+            ")"
+        )
+
+    def __str__(self) -> str:
+        """Return a string representation of this class."""
+        return f"<{self.__class__.__name__}={self.table_name}>"
 
 
 class DynamoDbQueryGenerator:

@@ -25,7 +25,7 @@ class MemoryStorageConnector(BaseStorageConnector):
 
     """
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self) -> None:
         self._data = {}
 
     def init(self) -> None:
@@ -115,6 +115,14 @@ class MemoryStorageConnector(BaseStorageConnector):
             urns_to_delete.append(urn)
         for urn in urns_to_delete:
             del self._data[str(urn)]
+
+    def __repr__(self) -> str:
+        """Return an instantiable string representation of this object."""
+        return f"{self.__class__.__name__}()"
+
+    def __str__(self) -> str:
+        """Return a string representation of this object."""
+        return f"<{self.__class__.__name__}>"
 
 
 def memory_item_to_resource(urn: URN, items: dict = None, loader: Callable = None) -> CloudWandererResource:
