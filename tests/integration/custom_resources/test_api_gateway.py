@@ -8,7 +8,7 @@ from cloudwanderer.storage_connectors import MemoryStorageConnector
 from ..helpers import GenericAssertionHelpers, get_default_mocker
 
 
-class TestSecretsManagerResources(unittest.TestCase, GenericAssertionHelpers):
+class TestAPIGatewayResources(unittest.TestCase, GenericAssertionHelpers):
     def setUp(self):
         get_default_mocker().start_moto_services(["mock_sts", "mock_apigateway"])
         self.storage_connector = MemoryStorageConnector()
