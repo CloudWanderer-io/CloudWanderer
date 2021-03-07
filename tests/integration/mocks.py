@@ -52,7 +52,7 @@ def generate_mock_session(region="eu-west-2"):
     return boto3.session.Session(region_name=region, aws_access_key_id="1111", aws_secret_access_key="1111")
 
 
-def add_infra(count=1, regions=["us-east-1", "eu-west-1", "ap-east-1"]):
+def add_infra(count=1, regions=["us-east-1", "eu-west-2", "ap-east-1"]):
     os.environ["AWS_ACCESS_KEY_ID"] = "testing"
     os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
     os.environ["AWS_SECURITY_TOKEN"] = "testing"

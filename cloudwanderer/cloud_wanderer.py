@@ -32,7 +32,9 @@ class CloudWanderer:
         self.cloud_interface = cloud_interface or CloudWandererAWSInterface()
 
     def write_resource(self, urn: URN, **kwargs) -> None:
-        """Fetch data for and persist to storage a single resource.
+        """Fetch data for and persist to storage a single resource and its subresources.
+
+        If the resource does not exist it will be deleted from the storage connectors.
 
         Arguments:
             urn (URN):
@@ -40,11 +42,11 @@ class CloudWanderer:
             **kwargs:
                 All additional keyword arguments will be passed down to the cloud interface client calls.
         """
-        resource = self.cloud_interface.get_resource(urn=urn, **kwargs)
+        resources = list(self.cloud_interface.get_resource(urn=urn, **kwargs))
 
-        if resource:
+        for resource in resources:
             list(self._write_resource(resource=resource))
-        else:
+        if not resources:
             for storage_connector in self.storage_connectors:
                 storage_connector.delete_resource(urn)
 

@@ -39,16 +39,18 @@ class TestBoto3InterfaceGetResource(unittest.TestCase, GenericAssertionHelpers):
             )
         )
 
-        assert set(self.instances[0].meta.data).issubset(result.cloudwanderer_metadata.resource_data)
+        assert set(self.instances[0].meta.data).issubset(next(result).cloudwanderer_metadata.resource_data)
 
     def test_get_valid_iam_role(self):
-        result = self.aws_interface.get_resource(
-            urn=URN(
-                account_id="123456789012",
-                region="us-east-1",
-                service="iam",
-                resource_type="role",
-                resource_id="test-role",
+        result = next(
+            self.aws_interface.get_resource(
+                urn=URN(
+                    account_id="123456789012",
+                    region="us-east-1",
+                    service="iam",
+                    resource_type="role",
+                    resource_id="test-role",
+                )
             )
         )
 
@@ -88,44 +90,53 @@ class TestBoto3InterfaceGetResource(unittest.TestCase, GenericAssertionHelpers):
                 resource_id="test-eu-west-2",
             )
         )
-        assert result.cloudwanderer_metadata.resource_data == {
+        assert next(result).cloudwanderer_metadata.resource_data == {
             "CreationDate": ANY,
             "Name": "test-eu-west-2",
         }
 
     def test_get_missing_ec2_instance_eu_west_2(self):
-        result = self.aws_interface.get_resource(
-            urn=URN(
-                account_id="123456789012",
-                region="eu-west-2",
-                service="ec2",
-                resource_type="instance",
-                resource_id="i-111111111111",
-            )
+        result = next(
+            self.aws_interface.get_resource(
+                urn=URN(
+                    account_id="123456789012",
+                    region="eu-west-2",
+                    service="ec2",
+                    resource_type="instance",
+                    resource_id="i-111111111111",
+                )
+            ),
+            None,
         )
+
         assert result is None
 
     def test_get_missing_iam_role(self):
-        result = self.aws_interface.get_resource(
-            urn=URN(
-                account_id="123456789012",
-                region="us-east-1",
-                service="iam",
-                resource_type="role",
-                resource_id="non-existent-role",
-            )
+        result = next(
+            self.aws_interface.get_resource(
+                urn=URN(
+                    account_id="123456789012",
+                    region="us-east-1",
+                    service="iam",
+                    resource_type="role",
+                    resource_id="non-existent-role",
+                )
+            ),
+            None,
         )
 
         assert result is None
 
     def test_get_custom_resource(self):
-        result = self.aws_interface.get_resource(
-            urn=URN(
-                account_id="123456789012",
-                region="eu-west-2",
-                service="secretsmanager",
-                resource_type="secret",
-                resource_id="test-secret",
+        result = next(
+            self.aws_interface.get_resource(
+                urn=URN(
+                    account_id="123456789012",
+                    region="eu-west-2",
+                    service="secretsmanager",
+                    resource_type="secret",
+                    resource_id="test-secret",
+                )
             )
         )
 
@@ -151,12 +162,36 @@ class TestBoto3InterfaceGetResource(unittest.TestCase, GenericAssertionHelpers):
 
     def test_get_invalid_service_resource(self):
         with self.assertRaisesRegex(UnsupportedServiceError, "secretsmanag3r"):
+            next(
+                self.aws_interface.get_resource(
+                    urn=URN(
+                        account_id="123456789012",
+                        region="eu-west-2",
+                        service="secretsmanag3r",
+                        resource_type="secret",
+                        resource_id="test-secret",
+                    )
+                )
+            )
+
+    def test_get_resource_subresources(self):
+        results = list(
             self.aws_interface.get_resource(
                 urn=URN(
                     account_id="123456789012",
-                    region="eu-west-2",
-                    service="secretsmanag3r",
-                    resource_type="secret",
-                    resource_id="test-secret",
+                    region="us-east-1",
+                    service="iam",
+                    resource_type="role",
+                    resource_id="test-role",
                 )
             )
+        )
+
+        assert results[1].cloudwanderer_metadata.resource_data == {
+            "PolicyDocument": {
+                "Statement": {"Action": "s3:ListBucket", "Effect": "Allow", "Resource": "arn:aws:s3:::example_bucket"},
+                "Version": "2012-10-17",
+            },
+            "PolicyName": "test-role-policy",
+            "RoleName": "test-role",
+        }

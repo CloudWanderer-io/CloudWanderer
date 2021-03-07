@@ -169,6 +169,7 @@ class Boto3Services:
             ),
             account_id=self.account_id,
             region_name=region_name,
+            boto3_session=self.boto3_session,
         )
 
     def get_resource_from_urn(self, urn: URN) -> "CloudWandererBoto3Resource":
@@ -207,6 +208,7 @@ class CloudWandererBoto3Service:
         service_map: ServiceMap,
         account_id: str,
         region_name: str,
+        boto3_session: boto3.session.Session,
     ) -> None:
         """Instantiate CloudWandererBoto3Service.
 
@@ -215,8 +217,10 @@ class CloudWandererBoto3Service:
             service_map: The CloudWanderer service map that provides additional context about this service.
             account_id: The ID of the AWS account our session is in.
             region_name: The region to get resources from for this service.
+            boto3_session: The Boto3 session that created this client.
         """
         self.boto3_service = boto3_service
+        self.boto3_session = boto3_session
         self.service_map = service_map
         self.account_id = account_id
         self.region_name = region_name
@@ -394,9 +398,20 @@ class CloudWandererBoto3Service:
         return self.service_map.is_global_service and self.service_map.global_service_region == self.region
 
     @property
-    def should_delete_resources_in_region(self) -> bool:
-        """Return whether this service's resources should be deleted from storage for this region."""
-        return self.service_map.regional_resources or self.service_map.global_service_region == self.region
+    def get_regions_discovered_from_region(self) -> List[str]:
+        """Return a list of regions resources will have been discovered in by querying this resource in this region."""
+        if not self.should_query_resources_in_region:
+            return []
+        if self.service_map.regional_resources and self.service_map.global_service_region == self.region:
+            return self.enabled_regions
+        return [self.region]
+
+    @property
+    @lru_cache()
+    def enabled_regions(self) -> List[str]:
+        """Return a list of enabled regions in this account."""
+        regions = self.boto3_session.client("ec2").describe_regions()["Regions"]
+        return [region["RegionName"] for region in regions if region["OptInStatus"] != "not-opted-in"]
 
     @property
     def name(self) -> str:
