@@ -8,7 +8,7 @@
 - Renamed `AwsUrn` to `URN`
 - Added `storage_connector_generator` to `write_resources_concurrently` to handle non thread safe storage connectors (hopefully fixing #86)
 - Refactored `Boto3Getter` into service and resource oriented wrappers for Boto3 objects to make it more domain drive and easier to understand.
-
+- Added support for Boto3 subresources (where they match the CloudWanderer definition of a subresource)
 
 # 0.12.0
 

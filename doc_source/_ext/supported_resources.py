@@ -1,5 +1,7 @@
 import os
 import pathlib
+from collections import defaultdict
+from functools import lru_cache
 
 import botocore
 import docutils
@@ -56,6 +58,44 @@ ATTRIBUTES_TEMPLATE = """
 """
 
 
+class SummarisedResources:
+    def __init__(self) -> None:
+        self.merged_loader = MergedServiceLoader()
+        self.services = cloudwanderer.boto3_services.Boto3Services()
+
+    @property
+    @lru_cache()
+    def cloudwanderer_resources(self) -> list:
+        service_summary = defaultdict(list)
+
+        for service_name in sorted(self.merged_loader.cloudwanderer_available_services):
+            service = self.services.get_service(service_name)
+            service_model = service.boto3_service.meta.client.meta.service_model
+            service_id = service_model.metadata["serviceId"]
+            service_definition = self.merged_loader._get_custom_service_definition(service_name)
+            resource_list = nodes.bullet_list()
+            for collection_name in service_definition["service"].get("hasMany", {}):
+                resource_name = collection_name
+                if collection_name not in self.boto3_resources.get(service_name, []):
+                    resource_list += nodes.Text(resource_name)
+            if resource_list.children:
+                service_summary[service_id] = resource_list
+        return service_summary
+
+    @property
+    @lru_cache()
+    def boto3_resources(self) -> list:
+        services_summary = defaultdict(list)
+        for service_name in self.merged_loader.boto3_available_services:
+            service = self.services.get_service(service_name)
+            service_model = service.boto3_service.meta.client.meta.service_model
+            service_id = service_model.metadata["serviceId"]
+            service_definition = self.merged_loader._get_boto3_definition(service_name)
+            for collection_name in service_definition["service"]["hasMany"]:
+                services_summary[service_id].append(collection_name)
+        return services_summary
+
+
 class CloudWandererResourcesDirective(SphinxDirective):
     """A custom directive that lists CloudWanderers added resources."""
 
@@ -63,8 +103,7 @@ class CloudWandererResourcesDirective(SphinxDirective):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.services = cloudwanderer.boto3_services.Boto3Services()
-        self.merged_loader = MergedServiceLoader()
+        self.summarised_resources = SummarisedResources()
 
     def run(self) -> list:
         targetid = "cloudwanderer-%d" % self.env.new_serialno("cloudwanderer")
@@ -75,22 +114,40 @@ class CloudWandererResourcesDirective(SphinxDirective):
     def get_cloudwanderer_resources(self) -> list:
         service_list = nodes.bullet_list()
 
-        for service_name in sorted(self.merged_loader.cloudwanderer_available_services):
-            service_definition = self.merged_loader._get_custom_service_definition(service_name)
+        for service_name, resource_types in sorted(self.summarised_resources.cloudwanderer_resources.items()):
             resource_list = nodes.bullet_list()
-            for collection_name, collection_definition in service_definition["service"].get("hasMany", {}).items():
-                resource_name = collection_name
-                if (service_name, collection_name) not in self.get_boto3_default_services():
-                    resource_list += nodes.list_item("", nodes.Text(resource_name))
+            for resource_type in resource_types:
+                resource_list += nodes.list_item("", nodes.Text(resource_type))
             if resource_list.children:
                 service_list += nodes.list_item("", nodes.Text(service_name), resource_list)
         return service_list
 
-    def get_boto3_default_services(self) -> list:
-        for service_name in self.merged_loader.boto3_available_services:
-            service_definition = self.merged_loader._get_boto3_definition(service_name)
-            for collection_name, collection_definition in service_definition["service"]["hasMany"].items():
-                yield (service_name, collection_name)
+
+class Boto3ResourcesDirective(SphinxDirective):
+    """A custom directive that lists Boot3 default resources."""
+
+    has_content = True
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.summarised_resources = SummarisedResources()
+
+    def run(self) -> list:
+        targetid = "cloudwanderer-%d" % self.env.new_serialno("cloudwanderer")
+        targetnode = nodes.target("", "", ids=[targetid])
+
+        return [targetnode, self.get_boto3_resources()]
+
+    def get_boto3_resources(self) -> list:
+        service_list = nodes.bullet_list()
+
+        for service_name, resource_types in sorted(self.summarised_resources.boto3_resources.items()):
+            resource_list = nodes.bullet_list()
+            for resource_type in resource_types:
+                resource_list += nodes.list_item("", nodes.Text(resource_type))
+            if resource_list.children:
+                service_list += nodes.list_item("", nodes.Text(service_name), resource_list)
+        return service_list
 
 
 class CloudWandererSecondaryAttributesDirective(SphinxDirective):
@@ -259,6 +316,7 @@ class SupportedResources(Domain):
     label = "Cloudwanderer Supported Resources"
     directives = {
         "cloudwanderer-resources": CloudWandererResourcesDirective,
+        "boto3-resources": Boto3ResourcesDirective,
         "cloudwanderer-secondary-attributes": CloudWandererSecondaryAttributesDirective,
         "resource-definitions": CloudWandererResourceDefinitionsDirective,
     }
