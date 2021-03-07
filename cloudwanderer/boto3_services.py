@@ -1,6 +1,7 @@
 """Classes wrapping :class:`~boto3.resources.base.ServiceResource` objects.
 
-We've to use domain specific language and normalise names to make it easy to understand.
+The methods and arguments on these classes somtimes differ in name from those in Boto3's
+Resources to make them easier to understand in this context..
 
 Glossary:
     service_name:
@@ -44,9 +45,9 @@ logger = logging.getLogger(__file__)
 
 
 class CloudWandererBoto3ResourceFactory:
-    """Factory class for generating custom Boto3 Resource objects."""
+    """Factory class for generating Boto3 Resource objects."""
 
-    def __init__(self, boto3_session: boto3.session.Session) -> None:
+    def __init__(self, boto3_session: boto3.session.Session = None) -> None:
         """Initialise the ResourceFactory.
 
         Arguments:
@@ -56,9 +57,7 @@ class CloudWandererBoto3ResourceFactory:
         self.emitter = self.boto3_session.events
         self.factory = ResourceFactory(self.emitter)
 
-    def load(
-        self, service_name: str, resource_definitions: dict = None, service_definition: dict = None
-    ) -> ResourceModel:
+    def load(self, service_name: str, resource_definitions: dict, service_definition: dict) -> ResourceModel:
         """Load the specified resource definition dictionaries into a Resource object.
 
         Arguments:
@@ -95,9 +94,16 @@ class CloudWandererBoto3ResourceFactory:
 
 
 class Boto3Services:
-    """Wraps Boto3 Session so we can merge CloudWanderer service definitions with Boto3 ones.
+    """Wraps Boto3 Session.
 
-    Used to instantiate services and can be used to get resources from their URN.
+    Allows us to:
+
+    1. Wrap Boto3 ServiceResource objects with CloudWandererBoto3Service objects.
+    2. Inject custom service definitions into our :class:`CloudWandererBoto3ResourceFactory` \
+        and return them alongside the default Boto3 ServiceResource objects.
+
+    Used by :class:`~cloudwanderer.aws_interface.CloudWandererAWSInterface` to instantiate
+    services and can be used to get resources from their URN.
     """
 
     def __init__(
@@ -122,7 +128,6 @@ class Boto3Services:
         self._service_mapping_loader = service_mapping_loader or ServiceMappingLoader()
 
     @property
-    @lru_cache()
     def available_services(self) -> List[str]:
         """Return a list of service names that can be loaded by :meth:`Boto3Services.get_service`."""
         return self._loader.available_services
@@ -134,7 +139,6 @@ class Boto3Services:
         sts = self.boto3_session.client("sts")
         return sts.get_caller_identity()["Account"]
 
-    @lru_cache()
     def get_service(self, service_name: str, region_name: str = None, **kwargs) -> "CloudWandererBoto3Service":
         """Return the :class`CloudWandererBoto3Service` by this name.
 
@@ -168,9 +172,9 @@ class Boto3Services:
             urn (URN): The urn of the resource to get.
 
         Raises:
-            BadUrnAccountIdError: When the account ID of the urn does not match the account id of the current session.
-            BadUrnRegionError: When the region of the urn is not possible with the service and/or resource type.
-            BadUrnSubResourceError: get_resource does not support fetching subresources directly.
+            BadUrnAccountIdError: When the account ID of the URN does not match the account id of the current session.
+            BadUrnRegionError: When the region of the URN is not possible with the service and/or resource type.
+            BadUrnSubResourceError: Subresources must be queried via their parent resource.
         """
         if urn.account_id != self.account_id:
             raise BadUrnAccountIdError(f"{urn} exists in an account other than the current one ({self.account_id}).")
@@ -184,10 +188,11 @@ class Boto3Services:
 
 
 class CloudWandererBoto3Service:
-    """Wraps Boto3 Services to include additional CloudWanderer specific functionality.
+    """Wraps Boto3 :class:`~boto3.resources.base.ServiceResource` service-level objects.
 
-    An object representing an AWS service (e.g. ``ec2``) in a specific region.
-    Used to get resources.
+    Allows us to include additional CloudWanderer specific functionality.
+    The object represents an AWS service (e.g. ``ec2``) in a specific region.
+    Used to get resources from the API as well as get metadata about the resource type from Boto3.
     """
 
     def __init__(
@@ -211,7 +216,6 @@ class CloudWandererBoto3Service:
         self.region_name = region_name
 
     @property
-    @lru_cache()
     def resource_types(self) -> List[str]:
         """Return a list of snake_case resource types available on this service."""
         collection_resource_types = [collection.resource.type for collection in self._collections]
@@ -222,7 +226,6 @@ class CloudWandererBoto3Service:
         ]
 
     @property
-    @lru_cache()
     def resource_summary(self) -> List["ResourceSummary"]:
         """Return a summary of resource types in this service."""
         summaries = []
@@ -327,7 +330,7 @@ class CloudWandererBoto3Service:
     def _get_collection_from_resource_type(self, resource_type: str) -> Collection:
         """Return a collection given a CloudWanderer style (snake_case singular) resource type.
 
-        The resource type we're passed in is NOT a boto3 style resource type.
+        The resource type we're passed in is NOT a Boto3 style resource type.
         It is actually a Boto3 subresource name that we need to first get the type of.
 
         Arguments:
@@ -396,7 +399,9 @@ class CloudWandererBoto3Service:
 
 
 class CloudWandererBoto3Resource:
-    """Wraps Boto3 Resources to include additional CloudWanderer specific functionality.
+    """Wraps Boto3 R:class:`~boto3.resources.base.ServiceResource` resource-level objects.
+
+    Allows us to provide additional functionality specific to CloudWanderer.
 
     This is almost always tied to a specific resource that exists in AWS, but is occasionally instantiated
     abstractly in order to interrogate metadata about this resource type.
@@ -537,7 +542,7 @@ class CloudWandererBoto3Resource:
                 )
 
     @property
-    def subresource_models(self) -> Iterator[boto3.resources.model.Collection]:
+    def subresource_models(self) -> Iterator[Collection]:
         """Yield the Boto3 models for the CloudWanderer style subresources of this resource type."""
         models = {}
         for collection_resource_map, collection_model in self._boto3_collection_models:
@@ -549,7 +554,11 @@ class CloudWandererBoto3Resource:
 
     @property
     def _boto3_collection_models(self) -> Iterator[Tuple[ResourceMap, Collection]]:
-        """Yield the ResourceMaps and Collections for this resource type."""
+        """Yield the ResourceMaps and Collections for this resource type.
+
+        This is used exclusively for subresources because subresources have a 1:many relationship with
+        their parent resource.
+        """
         for boto3_collection in self.boto3_resource.meta.resource_model.collections:
             collection_resource_map = self.service_map.get_resource_map(boto3_collection.resource.model.name)
             yield collection_resource_map, boto3_collection
