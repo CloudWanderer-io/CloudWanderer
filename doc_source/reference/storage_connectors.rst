@@ -1,5 +1,7 @@
-Storage Connector Reference
-=============================
+CloudWanderer Storage Connectors
+===================================
+
+These storage connector classes allow CloudWanderer to push data to an extensible list of storage backends.
 
 DynamoDB Connector
 -------------------

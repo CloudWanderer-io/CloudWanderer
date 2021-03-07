@@ -11,20 +11,21 @@ find a resource in AWS, whereas AWS ARNs do not always provide this information.
     'urn:aws:111111111111:eu-west-2:ec2:vpc:vpc-11111111'
 
 Example:
-    >>> from cloudwanderer import AwsUrn
-    >>> AwsUrn.from_string('urn:aws:111111111111:eu-west-2:ec2:vpc:vpc-11111111')
-    AwsUrn(account_id='111111111111', region='eu-west-2', service='ec2', \
+    >>> from cloudwanderer import URN
+    >>> URN.from_string('urn:aws:111111111111:eu-west-2:ec2:vpc:vpc-11111111')
+    URN(account_id='111111111111', region='eu-west-2', service='ec2', \
 resource_type='vpc', resource_id='vpc-11111111')
 
 """
 from typing import Any
 
 
-class AwsUrn():
+class URN:
     """A dataclass for building and querying AWS URNs."""
 
     def __init__(
-            self, account_id: str, region: str, service: str, resource_type: str, resource_id: str) -> None:
+        self, account_id: str, region: str, service: str, resource_type: str, resource_id: str, cloud_name: str = None
+    ) -> None:
         """Initialise an AWS Urn.
 
         Arguments:
@@ -33,7 +34,9 @@ class AwsUrn():
             service (str): AWS Service (e.g. ``ec2``).
             resource_type (str): AWS Resource Type (e.g. ``instance``)
             resource_id (str): AWS Resource Id (e.g. ``i-11111111``)
+            cloud_name (str): The name of the cloud this resource exists in (defaults to ``'aws'``)
         """
+        self.cloud_name = cloud_name or "aws"
         self.account_id = account_id
         self.region = region
         self.service = service
@@ -41,26 +44,29 @@ class AwsUrn():
         self.resource_id = resource_id
 
     @classmethod
-    def from_string(cls, urn_string: str) -> 'AwsUrn':
-        """Create an AwsUrn Object from an AwsUrn string.
+    def from_string(cls, urn_string: str) -> "URN":
+        """Create an URN Object from an URN string.
 
         Arguments:
             urn_string (str): The string version of an AWSUrn to convert into an object.
 
         Returns:
-            AwsUrn: The instantiated AWS URN.
+            URN: The instantiated AWS URN.
         """
-        parts = urn_string.split(':')
-        return cls(
-            account_id=parts[2],
-            region=parts[3],
-            service=parts[4],
-            resource_type=parts[5],
-            resource_id=parts[6]
-        )
+        parts = urn_string.split(":")
+        return cls(account_id=parts[2], region=parts[3], service=parts[4], resource_type=parts[5], resource_id=parts[6])
+
+    @property
+    def is_subresource(self) -> bool:
+        """Return whether or not this urn pertains to a subresource.
+
+        A subresource is a resource which does not have its own cloud provider identity and is only  accessible
+        by referring to a parent resource.
+        """
+        return "/" in self.resource_id
 
     def __eq__(self, other: Any) -> bool:
-        """Allow comparison of one AwsUrn to another.
+        """Allow comparison of one URN to another.
 
         Arguments:
             other (Any): The other object to compare this one with.
@@ -68,7 +74,7 @@ class AwsUrn():
         return str(self) == str(other)
 
     def __repr__(self) -> str:
-        """Return a class representation of the AwsUrn."""
+        """Return a class representation of the URN."""
         return str(
             f"{self.__class__.__name__}("
             f"account_id='{self.account_id}', "
@@ -79,7 +85,15 @@ class AwsUrn():
         )
 
     def __str__(self) -> str:
-        """Return a string representation of the AwsUrn."""
-        return str(
-            f"urn:aws:{self.account_id}:{self.region}:{self.service}:{self.resource_type}:{self.resource_id}"
+        """Return a string representation of the URN."""
+        return ":".join(
+            [
+                "urn",
+                self.cloud_name,
+                self.account_id,
+                self.region,
+                self.service,
+                self.resource_type,
+                self.resource_id,
+            ]
         )

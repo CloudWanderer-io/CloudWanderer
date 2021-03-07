@@ -1,17 +1,17 @@
+import logging
 import os
 import re
-import logging
-from unittest.mock import patch, MagicMock
-import functools
-from botocore import xform_name
-import cloudwanderer
-from cloudwanderer.service_mappings import ServiceMappingCollection, GlobalServiceResourceMappingNotFound
-from .mocks import generate_mock_session, generate_mock_collection
-from moto import ec2
+from typing import List, Union
+from unittest.mock import PropertyMock, patch
+
 import boto3
 import moto
+from jmespath.lexer import LexerError
+from moto import ec2
 
-DEFAULT_SESSION = boto3.Session()
+from cloudwanderer.cloud_wanderer_resource import CloudWandererResource
+
+DEFAULT_SESSION = boto3.Session(aws_access_key_id="11111111", aws_secret_access_key="111111", aws_session_token="1111")
 logger = logging.getLogger(__file__)
 
 
@@ -21,36 +21,8 @@ def filter_collections(collections, service_resource):
             yield collection
 
 
-def patch_resource_collections(collections):
-    def decorator_patch_resource_collections(func):
-        @functools.wraps(func)
-        def wrapper_patch_resource_collections(*args, **kwargs):
-            with patch.object(
-                cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface,
-                'get_resource_collections',
-                new=MagicMock(side_effect=lambda boto3_service: filter_collections(collections, boto3_service))
-            ):
-                return func(*args, **kwargs)
-        return wrapper_patch_resource_collections
-    return decorator_patch_resource_collections
-
-
-def patch_services(services):
-    def decorator_patch_services(func):
-        @functools.wraps(func)
-        def wrapper_patch_services(*args, **kwargs):
-            with patch.object(
-                cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface,
-                'get_all_resource_services',
-                new=MagicMock(return_value=[generate_mock_session().resource(service) for service in services])
-            ):
-                return func(*args, **kwargs)
-        return wrapper_patch_services
-    return decorator_patch_services
-
-
 class TestStorageConnectorReadMixin:
-    def has_matching_aws_urn(self, iterable, **kwargs):
+    def has_matching_urn(self, iterable, **kwargs):
         matches = []
         for resource in iterable:
             attribute_results = []
@@ -60,59 +32,53 @@ class TestStorageConnectorReadMixin:
                 matches.append(resource.urn)
         return matches
 
-    def assert_has_matching_aws_urns(self, iterable, aws_urns):
-        """Assert that iterable has AwsUrns that match the list of dicts in aws_urns
+    def assert_has_matching_urns(self, iterable, urns):
+        """Assert that iterable has URNs that match the list of dicts in urns
 
         Arguments:
             iterable (iterable):
-                An iterable containing AwsUrn objects
-            aws_urns (list):
+                An iterable containing URN objects
+            urns (list):
                 List of dictionaries whose key match aws urn attributes that must
                 exist in at least one urn in iterable.
         """
         iterable = list(iterable)
-        for urn in aws_urns:
-            self.assertTrue(
-                self.has_matching_aws_urn(iterable, **urn),
-                f"{urn} not in {iterable}"
-            )
+        for urn in urns:
+            self.assertTrue(self.has_matching_urn(iterable, **urn), f"{urn} not in {iterable}")
 
-    def assert_does_not_have_matching_aws_urns(self, iterable, aws_urns):
-        """Assert that iterable does not have AwsUrns that match the list of dicts in aws_urns
+    def assert_does_not_have_matching_urns(self, iterable, urns):
+        """Assert that iterable does not have URNs that match the list of dicts in urns
 
         Arguments:
             iterable (iterable):
-                An iterable containing AwsUrn objects
-            aws_urns (list):
+                An iterable containing URN objects
+            urns (list):
                 List of dictionaries whose keys should not match aws urn attributes that must
                 exist in at least one urn in iterable.
         """
         iterable = list(iterable)
-        for urn in aws_urns:
-            self.assertFalse(
-                self.has_matching_aws_urn(iterable, **urn),
-                f"{urn} is in {iterable}"
-            )
+        for urn in urns:
+            self.assertFalse(self.has_matching_urn(iterable, **urn), f"{urn} is in {iterable}")
 
 
 class GenericAssertionHelpers:
-
     def assert_dictionary_overlap(self, received, expected):
         """Asserts that every item in expected has an equivalent item in received.
 
         Where all key/values from the received item exist in the expected item.
         """
         received = received if isinstance(received, list) else list(received)
-        unmatched, _ = self.get_dictionary_overlap(received, expected)
+        unmatched, _ = self.get_resource_overlap(received, expected)
         self.assertEqual(unmatched, [], f"{unmatched} was not found in {received}")
 
     def assert_no_dictionary_overlap(self, received, expected):
         """Asserts that NO item in expected has an equivalent item in received."""
         received = received if isinstance(received, list) else list(received)
-        _, matched = self.get_dictionary_overlap(received, expected)
+        _, matched = self.get_resource_overlap(received, expected)
         self.assertEqual(matched, [], f"{matched} was found in {received}")
 
-    def get_dictionary_overlap(self, received, expected):
+    def get_resource_overlap(self, received, expected):
+        """Returns CloudWandererResources/dicts from received that match the keys in the list of dicts in expected."""
         remaining = expected.copy()
         matched = []
         for received_item in received:
@@ -120,12 +86,19 @@ class GenericAssertionHelpers:
                 if expected_item not in remaining:
                     continue
                 matching = []
-                for key, value in expected_item.items():
-                    if isinstance(value, str) and isinstance(received_item.get(key), str):
+                for key, expected_value in expected_item.items():
+                    if isinstance(received_item, dict):
+                        received_value = received_item.get(key)
+                    if isinstance(received_item, CloudWandererResource):
+                        try:
+                            received_value = self._get_key_from_resource(received_item, key)
+                        except KeyError:
+                            continue
+                    if isinstance(received_value, str) and isinstance(expected_value, str):
                         # Allow regex matching of strings (as moto randomly generates resource IDs)
-                        matching.append(re.match(value, received_item.get(key)))
+                        matching.append(re.match(expected_value, received_value))
                     else:
-                        matching.append(received_item.get(key) == value)
+                        matching.append(expected_value == received_value)
 
                 if all(matching):
                     remaining.remove(expected_item)
@@ -140,46 +113,74 @@ class GenericAssertionHelpers:
             for secondary_attribute in resource.cloudwanderer_metadata.secondary_attributes
         ]
 
+    def _get_key_from_resource(self, resource, key) -> Union[str, list]:
+        """Key should either be an attribute name or a valid secondary attribute JMESPath.
+
+        Raises:
+            KeyError: Occurs when the key does not exist
+        """
+        try:
+            return str(getattr(resource, key))
+        except AttributeError:
+            try:
+                return resource.get_secondary_attribute(jmes_path=key)
+            except LexerError:
+                pass
+        raise KeyError(f"{key} missing from {resource}")
+
 
 def clear_aws_credentials():
-    os.environ['AWS_ACCESS_KEY_ID'] = '1111111'
-    os.environ['AWS_SECRET_ACCESS_KEY'] = '1111111'
-    os.environ['AWS_SESSION_TOKEN'] = '1111111'
-    os.environ['AWS_DEFAULT_REGION'] = 'eu-west-2'
+    os.environ["AWS_ACCESS_KEY_ID"] = "1111111"
+    os.environ["AWS_SECRET_ACCESS_KEY"] = "1111111"
+    os.environ["AWS_SESSION_TOKEN"] = "1111111"
+    os.environ["AWS_DEFAULT_REGION"] = "eu-west-2"
 
 
-class SetupMocking():
-    default_moto_services = ['mock_ec2', 'mock_iam', 'mock_sts', 'mock_s3', 'mock_dynamodb2']
+class SetupMocking:
+    default_moto_services = ["mock_ec2", "mock_iam", "mock_sts", "mock_s3", "mock_dynamodb2"]
 
     def __init__(self):
-        self.collections_mock = MagicMock()
+        self.services_mock = PropertyMock()
+        self.services_patcher = patch(
+            "cloudwanderer.boto3_services.Boto3Services.available_services",
+            new=self.services_mock,
+        )
+        self.limit_resources = PropertyMock(return_value=[])
         self.collections_patcher = patch(
-            'cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface.get_resource_collections',
-            new=self.collections_mock)
+            "cloudwanderer.aws_interface.CloudWandererAWSInterface.limit_resources", new=self.limit_resources
+        )
         self.service_mocks = {}
         clear_aws_credentials()
 
-    def start_general_mock(self, restrict_regions: list = None, restrict_services: bool = True,
-                           restrict_collections: list = None):
-        restrict_regions = ['eu-west-2', 'us-east-1'] if restrict_regions is None else restrict_regions
+    def start_general_mock(
+        self, restrict_regions: list = None, restrict_services: bool = True, limit_resources: list = None
+    ):
+        restrict_regions = ["eu-west-2", "us-east-1"] if restrict_regions is None else restrict_regions
         if restrict_regions:
             ec2.models.RegionsAndZonesBackend.regions = [
                 ec2.models.Region(region_name, "ec2.{region_name}.amazonaws.com", "opt-in-not-required")
                 for region_name in restrict_regions
             ]
         if restrict_services:
-            cloudwanderer.cloud_wanderer.CloudWandererBoto3Interface.get_all_resource_services = MagicMock(
-                return_value=[boto3.resource(service) for service in ['ec2', 's3', 'iam']])
-        if restrict_collections is not False:
-            self.start_limit_collections_list(restrict_collections)
+            self.start_restrict_services(services=["ec2", "s3", "iam"])
+        if limit_resources is not False:
+            self.start_limit_resources(limit_resources)
         self.start_moto_services()
 
     def stop_general_mock(self):
-        self.stop_moto_services()
-        try:
-            self.stop_limit_collections_list()
-        except RuntimeError:
-            pass
+        stop_methods = [self.stop_moto_services, self.stop_restrict_services, self.stop_limit_collections_list]
+        for method in stop_methods:
+            try:
+                method()
+            except RuntimeError:
+                pass
+
+    def start_restrict_services(self, services: List[str]) -> None:
+        self.services_mock.return_value = services
+        self.services_patcher.start()
+
+    def stop_restrict_services(self) -> None:
+        self.services_patcher.stop()
 
     def start_moto_services(self, services=None):
         services = self.default_moto_services + (services or [])
@@ -193,23 +194,16 @@ class SetupMocking():
             service.stop()
         self.service_mocks = {}
 
-    def start_limit_collections_list(self, restrict_collections):
-        """Limit the boto3 resource collections we service to a subset we use for testing."""
-        if not restrict_collections:
-            collections_to_mock = [
-                ('ec2', ('instance', 'instances')),
-                ('ec2', ('vpc', 'vpcs')),
-                ('s3', ('bucket', 'buckets')),
-                ('iam', ('group', 'groups')),
-                ('iam', ('Role', 'roles')),
-                ('Role', ('RolePolicy', 'policies'))
-            ]
-            restrict_collections = []
-            for service, name_tuple in collections_to_mock:
-                restrict_collections.append(generate_mock_collection(service, name_tuple[0], name_tuple[1]))
-        logger.debug('Mocking collections: %s', restrict_collections)
-        self.collections_mock.side_effect = lambda boto3_service: filter_collections(
-            restrict_collections, boto3_service)
+    def start_limit_resources(self, limit_resources):
+        """Limit the boto3 resources we service to a subset we use for testing."""
+
+        self.limit_resources.return_value = limit_resources or [
+            "ec2:instance",
+            "ec2:vpc",
+            "s3:bucket",
+            "iam:group",
+            "iam:role",
+        ]
         self.collections_patcher.start()
 
     def stop_limit_collections_list(self):
@@ -224,26 +218,3 @@ def get_default_mocker():
     if not DEFAULT_MOCKER:
         DEFAULT_MOCKER = SetupMocking()
     return DEFAULT_MOCKER
-
-
-def get_secondary_attribute_types(service_name):
-    boto3_interface = cloudwanderer.boto3_interface.CloudWandererBoto3Interface(boto3_session=DEFAULT_SESSION)
-    service_maps = ServiceMappingCollection(boto3_session=DEFAULT_SESSION)
-    service_map = service_maps.get_service_mapping(service_name=service_name)
-    resource_types = boto3_interface.get_service_resource_types_from_collections(
-        boto3_interface.get_resource_collections(
-            boto3_service=boto3_interface.get_resource_service_by_name(
-                service_name=service_name
-            )
-        )
-    )
-    for resource_type in resource_types:
-        try:
-            resource_map = service_map.get_resource_mapping(resource_type=resource_type)
-        except GlobalServiceResourceMappingNotFound:
-            continue
-        for secondary_attribute in resource_map.secondary_attributes:
-            yield (
-                xform_name(resource_type),
-                xform_name(secondary_attribute)
-            )

@@ -1,8 +1,10 @@
 [flake8]
 max-line-length=120
 ignore=ANN101,ANN102,ANN002,ANN003,RST203,DAR301,DAR201
+extend-ignore = E203, W503
 per-file-ignores=
     tests/**: ANN001, ANN201, ANN204, ANN206, DAR101
+    doc_source/_ext/test_*: ANN001, ANN201, ANN204, ANN206, DAR101, E501
 rst-roles =
     class,
     func,

@@ -1,19 +1,21 @@
 """Allows CloudWanderer to store resources in DynamoDB."""
-from typing import Callable, Iterable, Iterator, List
-import operator
-from functools import reduce
 import itertools
 import json
 import logging
+import operator
 import os
 import pathlib
-import boto3
+from functools import reduce
 from random import randrange
-from .base_connector import BaseStorageConnector
-from boto3.dynamodb.conditions import Key, Attr, ConditionBase
+from typing import Callable, Iterable, Iterator, List
+
+import boto3
+from boto3.dynamodb.conditions import Attr, ConditionBase, Key
+
 from ..cloud_wanderer_resource import CloudWandererResource, SecondaryAttribute
-from ..aws_urn import AwsUrn
+from ..urn import URN
 from ..utils import standardise_data_types
+from .base_connector import BaseStorageConnector
 
 logger = logging.getLogger(__name__)
 
@@ -52,29 +54,29 @@ def _gen_resource_type_condition_expression(hash_key: str, account_id: str = Non
         account_id (str): The AWS account id to search for.
         region (str): The AWS region to search for (e.g. ``'eu-west-1'``)
     """
-    condition_expression = Key('_resource_type_index').eq(hash_key)
+    condition_expression = Key("_resource_type_index").eq(hash_key)
     if not account_id:
         return condition_expression
     range_key = _gen_resource_type_range(account_id=account_id, region=region)
-    return condition_expression & Key('_resource_type_range').begins_with(range_key)
+    return condition_expression & Key("_resource_type_range").begins_with(range_key)
 
 
-def _primary_key_from_urn(urn: AwsUrn) -> str:
+def _primary_key_from_urn(urn: URN) -> str:
     """Create a DynamoDB Primary Key from a resource's URN.
 
     Arguments:
-        urn (AwsUrn): The URN to generate the primary key from.
+        urn (URN): The URN to generate the primary key from.
     """
     return f"resource#{urn}"
 
 
-def _urn_from_primary_key(pk: str) -> AwsUrn:
-    """Create an AwsUrn from a resource's primary key.
+def _urn_from_primary_key(pk: str) -> URN:
+    """Create an URN from a resource's primary key.
 
     Arguments:
         pk (str): The primary key from which to parse the URN.
     """
-    return AwsUrn.from_string(pk.split('#')[1])
+    return URN.from_string(pk.split("#")[1])
 
 
 def _dynamodb_items_to_resources(items: Iterable[dict], loader: Callable) -> Iterator[CloudWandererResource]:
@@ -85,18 +87,19 @@ def _dynamodb_items_to_resources(items: Iterable[dict], loader: Callable) -> Ite
         loader (Callable): The method which can be used to fulfil the :meth:`CloudWandererResource.load`
 
     """
-    for item_id, group in itertools.groupby(items, lambda x: x['_id']):
+    for item_id, group in itertools.groupby(items, lambda x: x["_id"]):
         grouped_items = list(group)
         attributes = [
-            SecondaryAttribute(name=attribute['_attr'], **attribute)
-            for attribute in grouped_items if attribute['_attr'] != 'BaseResource'
+            SecondaryAttribute(name=attribute["_attr"], **attribute)
+            for attribute in grouped_items
+            if attribute["_attr"] != "BaseResource"
         ]
-        base_resource = next(iter(resource for resource in grouped_items if resource['_attr'] == 'BaseResource'))
+        base_resource = next(iter(resource for resource in grouped_items if resource["_attr"] == "BaseResource"))
         yield CloudWandererResource(
-            urn=_urn_from_primary_key(base_resource['_id']),
+            urn=_urn_from_primary_key(base_resource["_id"]),
             resource_data=base_resource,
             secondary_attributes=attributes,
-            loader=loader
+            loader=loader,
         )
 
 
@@ -127,8 +130,13 @@ class DynamoDbConnector(BaseStorageConnector):
     """
 
     def __init__(
-            self, table_name: str = 'cloud_wanderer', endpoint_url: str = None,
-            boto3_session: boto3.session.Session = None, client_args: dict = None, number_of_shards: int = 10) -> None:
+        self,
+        table_name: str = "cloud_wanderer",
+        endpoint_url: str = None,
+        boto3_session: boto3.session.Session = None,
+        client_args: dict = None,
+        number_of_shards: int = 10,
+    ) -> None:
         """Initialise the DynamoDbConnector.
 
         Arguments:
@@ -144,45 +152,39 @@ class DynamoDbConnector(BaseStorageConnector):
                 Optional specification of the number of shards to create for low-cardinality indexes.
 
         """
-        client_args = client_args or {}
+        self.client_args = client_args or {}
         if endpoint_url:
-            client_args['endpoint_url'] = endpoint_url
+            self.client_args["endpoint_url"] = endpoint_url
         self.boto3_session = boto3_session or boto3.Session()
         self.table_name = table_name
         self.number_of_shards = number_of_shards
-        self.dynamodb = self.boto3_session.resource('dynamodb', **client_args)
+        self.dynamodb = self.boto3_session.resource("dynamodb", **self.client_args)
         self.dynamodb_table = self.dynamodb.Table(table_name)
 
     def init(self) -> None:
         """Create the DynamoDB Database."""
-        table_creator = DynamoDbTableCreator(
-            boto3_dynamodb_resource=self.dynamodb,
-            table_name=self.table_name
-        )
+        table_creator = DynamoDbTableCreator(boto3_dynamodb_resource=self.dynamodb, table_name=self.table_name)
         table_creator.create_table()
 
     def write_resource(self, resource: CloudWandererResource) -> None:
         logger.debug(f"Writing: {resource.urn} to {self.table_name}")
         item = {
             **self._generate_index_values_for_write(resource.urn),
-            **standardise_data_types(resource.cloudwanderer_metadata.resource_data or {})
+            **standardise_data_types(resource.cloudwanderer_metadata.resource_data or {}),
         }
-        self.dynamodb_table.put_item(
-            Item=item
-        )
+        self.dynamodb_table.put_item(Item=item)
         for secondary_attribute in resource.cloudwanderer_metadata.secondary_attributes:
             self._write_secondary_attribute(
-                urn=resource.urn,
-                attribute_type=secondary_attribute.name,
-                secondary_attribute=secondary_attribute
+                urn=resource.urn, attribute_type=secondary_attribute.name, secondary_attribute=secondary_attribute
             )
 
     def _write_secondary_attribute(
-            self, urn: AwsUrn, attribute_type: str, secondary_attribute: boto3.resources.base.ServiceResource) -> None:
+        self, urn: URN, attribute_type: str, secondary_attribute: boto3.resources.base.ServiceResource
+    ) -> None:
         """Write the specified resource attribute to DynamoDb.
 
         Arguments:
-            urn (AwsUrn): The resource whose attribute to write.
+            urn (URN): The resource whose attribute to write.
             attribute_type (str): The type of the resource attribute to write (usually the boto3 client method name)
             secondary_attribute (boto3.resources.base.ServiceResource): The resource attribute to write to storage.
 
@@ -190,92 +192,79 @@ class DynamoDbConnector(BaseStorageConnector):
         logger.debug(f"Writing: {attribute_type} of {urn} to {self.table_name}")
         item = {
             **self._generate_index_values_for_write(urn, attribute_type),
-            **standardise_data_types(secondary_attribute or {})
+            **standardise_data_types(secondary_attribute or {}),
         }
-        self.dynamodb_table.put_item(
-            Item=item
-        )
+        self.dynamodb_table.put_item(Item=item)
 
-    def _generate_index_values_for_write(self, urn: AwsUrn, attr: str = 'BaseResource') -> dict:
+    def _generate_index_values_for_write(self, urn: URN, attr: str = "BaseResource") -> dict:
         values = {
-            '_id': _primary_key_from_urn(urn),
-            '_attr': attr,
-            '_urn': str(urn),
-            '_resource_type': urn.resource_type,
-            '_account_id': urn.account_id,
-            '_region': urn.region,
-            '_service': urn.service,
-            '_resource_type_range': _gen_resource_type_range(urn.account_id, urn.region)
+            "_id": _primary_key_from_urn(urn),
+            "_attr": attr,
+            "_urn": str(urn),
+            "_resource_type": urn.resource_type,
+            "_account_id": urn.account_id,
+            "_region": urn.region,
+            "_service": urn.service,
+            "_resource_type_range": _gen_resource_type_range(urn.account_id, urn.region),
         }
-        if attr == 'BaseResource':
-            values.update({
-                '_resource_type_index': f"{self._gen_shard(_gen_resource_type_index(urn.service, urn.resource_type))}",
-                '_account_id_index': f"{self._gen_shard(urn.account_id)}"
-            })
+        if attr == "BaseResource":
+            values.update(
+                {
+                    "_resource_type_index": self._gen_shard(_gen_resource_type_index(urn.service, urn.resource_type)),
+                    "_account_id_index": self._gen_shard(urn.account_id),
+                }
+            )
         return values
 
-    def read_resource(self, urn: AwsUrn) -> CloudWandererResource:
-        """Return the resource with the specified :class:`cloudwanderer.aws_urn.AwsUrn`.
+    def read_resource(self, urn: URN) -> CloudWandererResource:
+        """Return the resource with the specified :class:`cloudwanderer.urn.URN`.
 
         Arguments:
-            urn (AwsUrn): The AWS URN of the resource to return
+            urn (URN): The AWS URN of the resource to return
         """
-        result = self.dynamodb_table.query(
-            KeyConditionExpression=Key('_id').eq(_primary_key_from_urn(urn))
-        )
-        return next(_dynamodb_items_to_resources(result['Items'], loader=self.read_resource), None)
+        result = self.dynamodb_table.query(KeyConditionExpression=Key("_id").eq(_primary_key_from_urn(urn)))
+        return next(_dynamodb_items_to_resources(result["Items"], loader=self.read_resource), None)
 
-    def read_resources(self, **kwargs) -> Iterator['CloudWandererResource']:
+    def read_resources(self, **kwargs) -> Iterator["CloudWandererResource"]:
         query_generator = DynamoDbQueryGenerator(**kwargs)
         for condition_expression in query_generator.condition_expressions:
-            query_args = {
-                'Select': 'ALL_PROJECTED_ATTRIBUTES',
-                'KeyConditionExpression': condition_expression
-            }
+            query_args = {"Select": "ALL_PROJECTED_ATTRIBUTES", "KeyConditionExpression": condition_expression}
             if query_generator.index is not None:
-                query_args['IndexName'] = query_generator.index
+                query_args["IndexName"] = query_generator.index
             if query_generator.condition_expressions is not None:
-                query_args['FilterExpression'] = query_generator.filter_expression
+                query_args["FilterExpression"] = query_generator.filter_expression
             result = self.dynamodb_table.query(**query_args)
-            yield from _dynamodb_items_to_resources(result['Items'], loader=self.read_resource)
+            yield from _dynamodb_items_to_resources(result["Items"], loader=self.read_resource)
 
     def read_all(self) -> Iterator[dict]:
         """Return raw data from all DynamoDB table records (not just resources)."""
-        yield from self.dynamodb_table.scan()['Items']
+        yield from self.dynamodb_table.scan()["Items"]
 
-    def delete_resource(self, urn: AwsUrn) -> None:
+    def delete_resource(self, urn: URN) -> None:
         """Delete the resource and all its resource attributes from DynamoDB.
 
         Arguments:
-            urn (AwsUrn): The URN of the resource to delete from Dynamo
+            urn (URN): The URN of the resource to delete from Dynamo
         """
-        resource_records = self.dynamodb_table.query(
-            KeyConditionExpression=Key('_id').eq(_primary_key_from_urn(urn))
-        )['Items']
+        resource_records = self.dynamodb_table.query(KeyConditionExpression=Key("_id").eq(_primary_key_from_urn(urn)))[
+            "Items"
+        ]
         with self.dynamodb_table.batch_writer() as batch:
             for record in resource_records:
-                logger.debug("Deleting %s", record['_id'])
-                batch.delete_item(
-                    Key={
-                        '_id': record['_id'],
-                        '_attr': record['_attr']
-                    }
-                )
+                logger.debug("Deleting %s", record["_id"])
+                batch.delete_item(Key={"_id": record["_id"], "_attr": record["_attr"]})
 
     def delete_resource_of_type_in_account_region(
-            self, service: str, resource_type: str, account_id: str,
-            region: str, urns_to_keep: List[AwsUrn] = None) -> None:
-        logger.debug('Deleting any %s not in %s', resource_type, str([x.resource_id for x in urns_to_keep]))
+        self, service: str, resource_type: str, account_id: str, region: str, urns_to_keep: List[URN] = None
+    ) -> None:
+        logger.debug("Deleting any %s not in %s", resource_type, str([x.resource_id for x in urns_to_keep]))
         urns_to_keep = urns_to_keep or []
         resource_records = self.read_resources(
-            service=service,
-            resource_type=resource_type,
-            account_id=account_id,
-            region=region
+            service=service, resource_type=resource_type, account_id=account_id, region=region
         )
         for resource in resource_records:
             if resource.urn in urns_to_keep:
-                logger.debug('Skipping deletion of %s as we were told to keep it.', resource.urn)
+                logger.debug("Skipping deletion of %s as we were told to keep it.", resource.urn)
                 continue
             self.delete_resource(urn=resource.urn)
 
@@ -290,13 +279,35 @@ class DynamoDbConnector(BaseStorageConnector):
         shard_id = shard_id if shard_id is not None else randrange(self.number_of_shards - 1)
         return f"{key}#shard{shard_id}"
 
+    def __repr__(self) -> str:
+        """Return an instantiable string representation of this class."""
+        return (
+            f"{self.__class__.__name__}("
+            f'table_name="{self.table_name}", '
+            f'endpoint_url="{self.client_args.get("endpoint_url")}", '
+            f'boto3_session="{self.boto3_session}", '
+            f'client_args="{self.client_args}, '
+            f"number_of_shards={self.number_of_shards}"
+            ")"
+        )
+
+    def __str__(self) -> str:
+        """Return a string representation of this class."""
+        return f"<{self.__class__.__name__}={self.table_name}>"
+
 
 class DynamoDbQueryGenerator:
     """Generate ConditionExpression and index name based on init params."""
 
     def __init__(
-            self, account_id: str = None, region: str = None, service: str = None,
-            resource_type: str = None, urn: AwsUrn = None, number_of_shards: int = 10) -> None:
+        self,
+        account_id: str = None,
+        region: str = None,
+        service: str = None,
+        resource_type: str = None,
+        urn: URN = None,
+        number_of_shards: int = 10,
+    ) -> None:
         """Initialise QueryGenerator.
 
         Arguments:
@@ -304,7 +315,7 @@ class DynamoDbQueryGenerator:
             region (str): AWS region (e.g. ``'eu-west-2'``)
             service (str): Service name (e.g. ``'ec2'``)
             resource_type (str): Resource Type (e.g. ``'instance'``)
-            urn (AwsUrn): Urn of the resource to retrieve
+            urn (URN): Urn of the resource to retrieve
             number_of_shards (int): The number of shards we need to query in the table
         """
         self.account_id = account_id
@@ -325,9 +336,9 @@ class DynamoDbQueryGenerator:
         index = None
 
         if self.service is not None and self.resource_type is not None:
-            return 'resource_type'
+            return "resource_type"
         if self.account_id is not None:
-            return 'account_id'
+            return "account_id"
         if self.urn is not None:
             return index
         raise IndexNotAvailableException()
@@ -336,29 +347,23 @@ class DynamoDbQueryGenerator:
     def condition_expressions(self) -> Iterator[Key]:
         """Return the condition expression for the query."""
         if self.index is None:
-            yield Key('_id').eq(_primary_key_from_urn(self.urn))
+            yield Key("_id").eq(_primary_key_from_urn(self.urn))
             return
-        if self.index == 'resource_type':
-            unsharded_key = _gen_resource_type_index(
-                service=self.service, resource_type=self.resource_type)
+        if self.index == "resource_type":
+            unsharded_key = _gen_resource_type_index(service=self.service, resource_type=self.resource_type)
             for sharded_key in self._yield_shards(unsharded_key):
                 yield _gen_resource_type_condition_expression(
-                    sharded_key,
-                    account_id=self.account_id,
-                    region=self.region
+                    sharded_key, account_id=self.account_id, region=self.region
                 )
             return
-        if self.index == 'account_id':
-            yield from [
-                Key('_account_id_index').eq(shard)
-                for shard in self._yield_shards(self.account_id)
-            ]
+        if self.index == "account_id":
+            yield from [Key("_account_id_index").eq(shard) for shard in self._yield_shards(self.account_id)]
             return
 
     @property
     def filter_expression(self) -> ConditionBase:
         """Return a DynamoDB filter expression to use to filter out unwanted resources returned on our index."""
-        query_args = ['account_id', 'region', 'service', 'resource_type', 'urn']
+        query_args = ["account_id", "region", "service", "resource_type", "urn"]
         filter_elements = []
         for key in query_args:
             value = getattr(self, key)
@@ -371,7 +376,7 @@ class DynamoDbQueryGenerator:
             yield f"{key}#shard{shard_id}"
 
 
-class DynamoDbTableCreator():
+class DynamoDbTableCreator:
     """DynamoDB Table Creator class.
 
     Arguments:
@@ -382,10 +387,7 @@ class DynamoDbTableCreator():
 
     """
 
-    schema_file = os.path.join(
-        pathlib.Path(__file__).parent.absolute(),
-        'dynamodb_schema.json'
-    )
+    schema_file = os.path.join(pathlib.Path(__file__).parent.absolute(), "dynamodb_schema.json")
 
     def __init__(self, boto3_dynamodb_resource: boto3.session.Session.resource, table_name: str) -> None:
         """Initialise the DynamoDB Table Creator.
@@ -404,14 +406,9 @@ class DynamoDbTableCreator():
     def create_table(self) -> None:
         """Create the DynamoDB table."""
         try:
-            self.dynamodb.create_table(**{
-                **self.schema['table'],
-                **{'TableName': self.table_name}
-            })
+            self.dynamodb.create_table(**{**self.schema["table"], **{"TableName": self.table_name}})
         except self.dynamodb_table.meta.client.exceptions.ResourceInUseException:
-            logger.info(
-                'Table %s already exists, skipping creation.',
-                self.table_name)
+            logger.info("Table %s already exists, skipping creation.", self.table_name)
 
     @property
     def schema(self) -> dict:
