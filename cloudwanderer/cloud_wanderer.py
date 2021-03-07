@@ -101,7 +101,7 @@ class CloudWanderer:
         exclude_resources: List[str] = None,
         concurrency: int = 10,
         **kwargs,
-    ) -> Iterator["CloudWandererConcurrentWriteThreadResult"]:
+    ) -> List["CloudWandererConcurrentWriteThreadResult"]:
         """Write all AWS resources in this account from all regions and all services to storage.
 
         Any additional args will be passed into the cloud interface's ``get_`` methods.
@@ -140,7 +140,10 @@ class CloudWanderer:
                         **kwargs,
                     )
                 )
-        yield from (CloudWandererConcurrentWriteThreadResult(storage_connectors=thread.result()) for thread in threads)
+        thread_results = []
+        for thread in threads:
+            thread_results.append(CloudWandererConcurrentWriteThreadResult(storage_connectors=thread.result()))
+        return thread_results
 
     def _write_resource(self, resource: CloudWandererResource) -> Iterator[URN]:
         for storage_connector in self.storage_connectors:
