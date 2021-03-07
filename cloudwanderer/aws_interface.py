@@ -47,11 +47,12 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
             boto3_session=boto3_session, service_loader=service_loader, service_mapping_loader=service_mapping_loader
         )
 
-    def get_resource(self, urn: URN) -> CloudWandererResource:
-        """Return CloudWandererResource picked out by this urn.
+    def get_resource(self, urn: URN, include_subresources: bool = True) -> Iterator[CloudWandererResource]:
+        """Yield the resource picked out by this URN and optionally its subresources.
 
         Arguments:
             urn (URN): The urn of the resource to get.
+            include_subresources: Whether or not to additionally yield the subresources of the resource.
         """
         try:
             resource = self.boto3_services.get_resource_from_urn(urn=urn)
@@ -63,12 +64,19 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
                 "for resource non-existence we are interpreting this as the resource does not exist."
             )
             return None
-
-        return CloudWandererResource(
+        yield CloudWandererResource(
             urn=urn,
             resource_data=resource.normalised_raw_data,
             secondary_attributes=list(resource.get_secondary_attributes()),
         )
+        if not include_subresources:
+            return
+        for subresource in resource.get_subresources():
+            yield CloudWandererResource(
+                urn=subresource.urn,
+                resource_data=subresource.normalised_raw_data,
+                secondary_attributes=list(subresource.get_secondary_attributes()),
+            )
 
     def get_resources(
         self,
@@ -252,7 +260,7 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
                     yield CloudWandererResource(
                         urn=subresource.urn,
                         resource_data=subresource.normalised_raw_data,
-                        secondary_attributes=list(resource.get_secondary_attributes()),
+                        secondary_attributes=list(subresource.get_secondary_attributes()),
                     )
         except botocore.exceptions.EndpointConnectionError:
             logger.info("%s %s not supported in %s", service_name, resource_type, region_name)
@@ -296,30 +304,38 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
         for region_name in regions:
             for service_name in service_names:
                 service = self.boto3_services.get_service(service_name, region_name=region_name)
-                if not service.should_delete_resources_in_region:
-                    logger.info(
+                if not service.should_query_resources_in_region:
+                    logger.debug(
                         "Skipping storage cleanup of %s resources as it cannot have resources in %s",
                         service_name,
                         region_name,
                     )
                     continue
                 if resource_types:
-                    resource_types = list(set(resource_types) & set(service.resource_types))
+                    service_resource_types = list(set(resource_types) & set(service.resource_types))
                 else:
-                    resource_types = service.resource_types
-                for resource_type in resource_types:
+                    service_resource_types = service.resource_types
+                for resource_type in service_resource_types:
                     service_resource = f"{service}:{resource_type}"
+                    resource = service._get_empty_resource(resource_type=resource_type)
                     if service_resource in exclude_resources:
-                        logger.info("Skipping %s as per exclude_resources", service_resource)
-                    if resource_type not in service.resource_types:
-                        logging.debug("Skipping %s as it is not a valid resource for %s", resource_type, service_name)
-                    self._clean_resources_in_region(
-                        storage_connector=storage_connector,
-                        service_name=service.name,
-                        resource_type=resource_type,
-                        region_name=region_name,
-                        current_urns=urns_to_keep,
-                    )
+                        logger.debug("Skipping %s as per exclude_resources", service_resource)
+                    for region_name in service.get_regions_discovered_from_region:
+                        self._clean_resources_in_region(
+                            storage_connector=storage_connector,
+                            service_name=service.name,
+                            resource_type=resource_type,
+                            region_name=region_name,
+                            current_urns=urns_to_keep,
+                        )
+                        for subresource_type in resource.subresource_types:
+                            self._clean_resources_in_region(
+                                storage_connector=storage_connector,
+                                service_name=service.name,
+                                resource_type=subresource_type,
+                                region_name=region_name,
+                                current_urns=urns_to_keep,
+                            )
 
     def _clean_resources_in_region(
         self,

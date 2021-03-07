@@ -85,6 +85,20 @@ class TestCloudWandererWriteResource(unittest.TestCase):
                 "attr": "role_managed_policy_attachments",
                 "urn": "urn:aws:123456789012:us-east-1:iam:role:test-role",
             },
+            {
+                "PolicyDocument": {
+                    "Statement": {
+                        "Action": "s3:ListBucket",
+                        "Effect": "Allow",
+                        "Resource": "arn:aws:s3:::example_bucket",
+                    },
+                    "Version": "2012-10-17",
+                },
+                "PolicyName": "test-role-policy",
+                "RoleName": "test-role",
+                "attr": "BaseResource",
+                "urn": "urn:aws:123456789012:us-east-1:iam:role_policy:test-role/test-role-policy",
+            },
         ]
 
     def test_write_valid_s3_bucket_eu_west_2(self):
