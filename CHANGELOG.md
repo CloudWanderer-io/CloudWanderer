@@ -2,6 +2,7 @@
 
 - Fixed bug that prevented global services with regional resources being cleaned up properly.
 - Fixed bug that prevented subresources from being cleaned up.
+- Subresources are now written by `write_resource`.
 
 # 0.13.0
 

@@ -48,7 +48,7 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
         )
 
     def get_resource(self, urn: URN) -> CloudWandererResource:
-        """Return CloudWandererResource picked out by this urn.
+        """Return CloudWandererResource picked out by this URN.
 
         Arguments:
             urn (URN): The urn of the resource to get.
@@ -69,6 +69,23 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
             resource_data=resource.normalised_raw_data,
             secondary_attributes=list(resource.get_secondary_attributes()),
         )
+
+    def get_subresources(self, urn: URN) -> Iterator[CloudWandererResource]:
+        """Yield the subresources of the resource picked out by this URN.
+
+        Arguments:
+            urn (URN): The urn of the resource to get.
+        """
+        try:
+            resource = self.boto3_services.get_resource_from_urn(urn=urn)
+        except ResourceNotFoundError:
+            return
+        for subresource in resource.get_subresources():
+            yield CloudWandererResource(
+                urn=subresource.urn,
+                resource_data=subresource.normalised_raw_data,
+                secondary_attributes=list(resource.get_secondary_attributes()),
+            )
 
     def get_resources(
         self,

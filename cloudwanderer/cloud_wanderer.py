@@ -44,6 +44,8 @@ class CloudWanderer:
 
         if resource:
             list(self._write_resource(resource=resource))
+            for resource in self.cloud_interface.get_subresources(urn, **kwargs):
+                list(self._write_resource(resource=resource))
         else:
             for storage_connector in self.storage_connectors:
                 storage_connector.delete_resource(urn)
