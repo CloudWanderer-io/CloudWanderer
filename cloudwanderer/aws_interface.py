@@ -1,4 +1,4 @@
-"""Code which abstracts away the majority of boto3 interrogation.
+"""A standardised interface for interacting with AWS.
 
 Provides simpler methods for :class:`~.cloud_wanderer.CloudWanderer` to call.
 """

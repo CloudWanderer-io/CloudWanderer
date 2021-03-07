@@ -10,5 +10,4 @@ Reference
     reference/aws_interface
     reference/storage_connectors
     reference/urn
-    reference/service_mappings
     reference/exceptions
