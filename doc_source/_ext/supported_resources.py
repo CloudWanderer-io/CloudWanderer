@@ -16,6 +16,8 @@ import cloudwanderer
 from cloudwanderer.boto3_loaders import MergedServiceLoader
 from cloudwanderer.boto3_services import CloudWandererBoto3Resource, CloudWandererBoto3Service
 
+cloudwanderer.boto3_services.Boto3Services.enabled_regions = ["us-east-1", "eu-west-2"]
+
 SECONDARY_ATTR_TEMPLATE = """
 .. py:class:: {service_name}.{parent_resource_name}.{resource_name}
 
@@ -69,7 +71,6 @@ class SummarisedResources:
         self.services = cloudwanderer.boto3_services.Boto3Services(
             boto3_session=_generate_mock_session(), account_id="111111111111"
         )
-        cloudwanderer.boto3_services.Boto3Services = ["us-east-1"]
 
     @property
     @lru_cache()
@@ -232,7 +233,7 @@ class GetCwServices:
         self.services = cloudwanderer.boto3_services.Boto3Services(
             boto3_session=_generate_mock_session(), account_id="111111111111"
         )
-        cloudwanderer.boto3_services.Boto3Services.enabled_regions = ["us-east-1"]
+
         self.loader = cloudwanderer.boto3_loaders.MergedServiceLoader()
 
     def get_cloudwanderer_services(self) -> list:
