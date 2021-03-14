@@ -1,6 +1,7 @@
 import unittest
 
-from cloudwanderer.aws_interface import CleanupAction, CloudWandererAWSInterface, GetAction, GetAndCleanUp
+from cloudwanderer.aws_interface import CloudWandererAWSInterface
+from cloudwanderer.models import CleanupAction, GetAction, GetAndCleanUp
 
 
 class TestGetActions(unittest.TestCase):

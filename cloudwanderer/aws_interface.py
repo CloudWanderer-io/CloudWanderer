@@ -4,7 +4,7 @@ Provides simpler methods for :class:`~.cloud_wanderer.CloudWanderer` to call.
 """
 
 import logging
-from typing import Iterator, List, NamedTuple
+from typing import Iterator, List
 
 import boto3
 import botocore
@@ -15,6 +15,7 @@ from .boto3_loaders import ServiceMappingLoader
 from .boto3_services import Boto3Services, CloudWandererBoto3Service, MergedServiceLoader
 from .cloud_wanderer_resource import CloudWandererResource
 from .exceptions import BadRequestError, ResourceNotFoundError
+from .models import GetAndCleanUp
 from .urn import URN
 
 logger = logging.getLogger(__name__)
@@ -122,7 +123,7 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
         service_names: List[str] = None,
         resource_types: List[str] = None,
         exclude_resources: List[str] = None,
-    ) -> List["GetAndCleanUp"]:
+    ) -> List[GetAndCleanUp]:
         """Return the query and cleanup actions to be performed based on the parameters provided.
 
         All arguments are optional.
@@ -146,7 +147,7 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
 
         for region_name in regions:
             for service_name in service_names:
-                service = self.boto3_services.get_empty_service(service_name, region_name=region_name)
+                service = self.boto3_services.get_empty_service(service_name=service_name, region_name=region_name)
                 service_resource_types = self._get_resource_types_for_service(service, resource_types)
                 if not service.should_query_resources_in_region:
                     logger.debug(
@@ -154,7 +155,6 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
                     )
                     continue
                 for resource_type in service_resource_types:
-                    resource = service._get_empty_resource(resource_type=resource_type)
                     service_resource = f"{service_name}:{resource_type}"
                     logger.debug("Getting actions for %s %s in %s", service_resource, resource_type, region_name)
                     if service_resource in exclude_resources:
@@ -163,31 +163,8 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
                     if self.limit_resources and service_resource not in self.limit_resources:
                         logger.debug("Skipping %s as it does not exist in limit_resources", service_resource)
                         continue
-                    actions = GetAndCleanUp([], [])
-
-                    actions.get_actions.append(
-                        GetAction(
-                            service_name=service_name,
-                            region=region_name,
-                            resource_type=resource_type,
-                        )
-                    )
-                    for region in service.get_regions_discovered_from_region:
-                        actions.cleanup_actions.append(
-                            CleanupAction(
-                                service_name=service_name,
-                                region=region,
-                                resource_type=resource_type,
-                            )
-                        )
-                        for subresource_type in resource.subresource_types:
-                            actions.cleanup_actions.append(
-                                CleanupAction(
-                                    service_name=service_name,
-                                    region=region,
-                                    resource_type=subresource_type,
-                                )
-                            )
+                    resource = service._get_empty_resource(resource_type=resource_type)
+                    actions = resource.get_and_cleanup_actions
                     if actions:
                         get_and_cleanup_actions.append(actions)
         return get_and_cleanup_actions
@@ -200,34 +177,3 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
             return list(set(resource_types) & set(service.resource_types))
 
         return service.resource_types
-
-
-class GetAction(NamedTuple):
-    """A get action for a specific resource_type in a specific region."""
-
-    service_name: str
-    region: str
-    resource_type: str
-
-
-class CleanupAction(NamedTuple):
-    """A clean up action for a specific resource_type in a specific region."""
-
-    service_name: str
-    region: str
-    resource_type: str
-
-
-class GetAndCleanUp(NamedTuple):
-    """A set of get and cleanup actions.
-
-    The get and cleanup actions are paired together because the cleanup action must be performed after the get action
-    in order to ensure that any stale resources are removed from the storage connectors.
-    """
-
-    get_actions: List[GetAction]
-    cleanup_actions: List[CleanupAction]
-
-    def __bool__(self) -> bool:
-        """Return whether this GetAndCleanup set is empty."""
-        return bool(self.get_actions or self.cleanup_actions)

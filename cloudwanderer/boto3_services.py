@@ -39,6 +39,7 @@ from .exceptions import (
     ResourceNotFoundError,
     UnsupportedResourceTypeError,
 )
+from .models import CleanupAction, GetAction, GetAndCleanUp
 from .urn import URN
 
 logger = logging.getLogger(__file__)
@@ -639,6 +640,36 @@ class CloudWandererBoto3Resource:
             collection_resource_name = botocore.xform_name(collection_model.resource.model.name)
             models[collection_resource_name] = collection_model
         yield from models.values()
+
+    @property
+    def get_and_cleanup_actions(self) -> GetAndCleanUp:
+        """Return the query and cleanup actions to be performed if getting this resource type."""
+        actions = GetAndCleanUp([], [])
+
+        actions.get_actions.append(
+            GetAction(
+                service_name=self.service,
+                region=self.cloudwanderer_boto3_service.region,
+                resource_type=self.resource_type,
+            )
+        )
+        for region in self.cloudwanderer_boto3_service.get_regions_discovered_from_region:
+            actions.cleanup_actions.append(
+                CleanupAction(
+                    service_name=self.service,
+                    region=region,
+                    resource_type=self.resource_type,
+                )
+            )
+            for subresource_type in self.subresource_types:
+                actions.cleanup_actions.append(
+                    CleanupAction(
+                        service_name=self.service,
+                        region=region,
+                        resource_type=subresource_type,
+                    )
+                )
+        return actions
 
     @property
     def _boto3_collection_models(self) -> Iterator[Tuple[ResourceMap, Collection]]:
