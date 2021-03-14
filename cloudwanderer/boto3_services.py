@@ -378,6 +378,8 @@ class CloudWandererBoto3Service:
             resource_type: The snake_case resource type to get.
         """
         collection_class = self._get_collection_from_resource_type(resource_type)
+        if not collection_class:
+            return
         collection = getattr(self.boto3_service, collection_class.name)
         yield from (
             CloudWandererBoto3Resource(
@@ -399,6 +401,8 @@ class CloudWandererBoto3Service:
             resource_type: The CloudWanderer style (snake_case) resource type name.
         """
         boto3_resource_type = self._get_boto3_resource_type_from_subresource_name(subresource_name=resource_type)
+        if not boto3_resource_type:
+            return None
         return self._get_collection_from_boto3_resource_type(boto3_resource_type)
 
     def _get_boto3_resource_type_from_subresource_name(self, subresource_name: str) -> str:
@@ -411,9 +415,12 @@ class CloudWandererBoto3Service:
             subresource_name: The snake_case CloudWanderer style subresource name.
         """
         return next(
-            resource.resource.type
-            for resource in self._subresources
-            if botocore.xform_name(resource.name) == subresource_name
+            (
+                resource.resource.type
+                for resource in self._subresources
+                if botocore.xform_name(resource.name) == subresource_name
+            ),
+            None,
         )
 
     def _get_collection_from_boto3_resource_type(self, boto3_resource_type: str) -> Collection:
@@ -450,13 +457,25 @@ class CloudWandererBoto3Service:
         return self.service_map.is_global_service and self.service_map.global_service_region == self.region
 
     @property
-    def get_regions_discovered_from_region(self) -> List[str]:
+    def regions_discovered_from_region(self) -> List[str]:
         """Return a list of regions resources will have been discovered in by querying this resource in this region."""
         if not self.should_query_resources_in_region:
             return []
         if self.service_map.regional_resources and self.service_map.global_service_region == self.region:
             return self.enabled_regions
         return [self.region]
+
+    def get_regions_discovered_from_region(self, region: str) -> List[str]:
+        """Return a list of regions resources will have been discovered in by querying this resource in this region.
+
+        Arguments:
+            region: The region we're interested in the yielded resources of.
+        """
+        if not self.should_query_resources_in_region:
+            return []
+        if self.service_map.regional_resources and self.service_map.global_service_region == region:
+            return self.enabled_regions
+        return [region]
 
     @property
     def enabled_regions(self) -> List[str]:

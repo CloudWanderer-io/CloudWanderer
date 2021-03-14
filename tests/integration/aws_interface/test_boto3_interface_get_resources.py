@@ -1,6 +1,4 @@
-import re
 import unittest
-from unittest.mock import ANY
 
 from cloudwanderer import CloudWandererAWSInterface
 from cloudwanderer.exceptions import UnsupportedServiceError
@@ -10,37 +8,6 @@ from ..mocks import add_infra
 
 
 class TestCloudWandererGetResources(unittest.TestCase, GenericAssertionHelpers):
-    eu_west_2_resources = [
-        {
-            "urn": "urn:aws:.*:eu-west-2:ec2:instance:.*",
-            "vpc_id": "vpc-.*",
-            "subnet_id": "subnet-.*",
-            "instance_id": "i-.*",
-        }
-    ]
-    us_east_1_resources = [
-        {
-            "urn": "urn:aws:.*:us-east-1:iam:role:.*",
-            "role_name": "test-role",
-            "path": re.escape("/"),
-            "[].PolicyNames[0]": ["test-role-policy"],
-            "[].AttachedPolicies[0]": [
-                {
-                    "PolicyName": "APIGatewayServiceRolePolicy",
-                    "PolicyArn": "arn:aws:iam::aws:policy/aws-service-role/APIGatewayServiceRolePolicy",
-                }
-            ],
-            "[].IsTruncated": [False, False],
-        },
-        {"urn": "urn:aws:.*:us-east-1:iam:role_policy:.*", "policy_name": "test-role-policy", "policy_document": ANY},
-        {
-            # This is a us-east-1 resource because s3 buckets are discovered
-            # from us-east-1 irrespective of their region.
-            "urn": "urn:aws:.*:eu-west-2:s3:bucket:.*",
-            "name": "test-eu-west-2",
-        },
-    ]
-
     @classmethod
     def setUpClass(cls):
         cls.enabled_regions = ["eu-west-2", "us-east-1", "ap-east-1"]
@@ -58,104 +25,26 @@ class TestCloudWandererGetResources(unittest.TestCase, GenericAssertionHelpers):
     def setUp(self):
         self.aws_interface = CloudWandererAWSInterface()
 
-    def test_get_resources(self):
-
-        result = list(self.aws_interface.get_resources())
-
-        for region_name in self.enabled_regions:
-            self.assert_dictionary_overlap(
-                result,
-                [
-                    {
-                        "urn": f"urn:aws:.*:{region_name}:ec2:instance:.*",
-                        "vpc_id": "vpc-.*",
-                        "subnet_id": "subnet-.*",
-                        "instance_id": "i-.*",
-                    },
-                    {
-                        "urn": f"urn:aws:.*:{region_name}:s3:bucket:.*",
-                        "name": f"test-{region_name}",
-                    },
-                ],
-            )
-
-            if region_name == "us-east-1":
-                self.assert_dictionary_overlap(result, self.us_east_1_resources)
-            else:
-                self.assert_no_dictionary_overlap(
-                    result,
-                    [
-                        {
-                            "urn": f"urn:aws:.*:{region_name}:iam:role:.*",
-                            "role_name": "test-role",
-                            "path": re.escape("/"),
-                        }
-                    ],
-                )
-
-    def test_get_resources_exclude_resources(self):
-        result = list(self.aws_interface.get_resources(exclude_resources=["ec2:instance"]))
-
-        for region_name in self.enabled_regions:
-            self.assert_no_dictionary_overlap(
-                result,
-                [
-                    {
-                        "urn": f"urn:aws:.*:{region_name}:ec2:instance:.*",
-                        "vpc_id": "vpc-.*",
-                        "subnet_id": "subnet-.*",
-                        "instance_id": "i-.*",
-                    }
-                ],
-            )
-        self.assert_dictionary_overlap(result, self.us_east_1_resources)
-
-    def test_get_resources_in_region_eu_west_2(self):
-        result = self.aws_interface.get_resources(regions=["eu-west-2"])
-
-        self.assert_dictionary_overlap(result, self.eu_west_2_resources)
-        self.assert_no_dictionary_overlap(result, self.us_east_1_resources)
-
-    def test_get_resources_in_region_us_east_1(self):
-        result = list(self.aws_interface.get_resources(regions=["us-east-1"]))
-
-        self.assert_dictionary_overlap(result, self.us_east_1_resources)
-        self.assert_no_dictionary_overlap(result, self.eu_west_2_resources)
-
-    def test_get_resources_of_service_eu_west_2(self):
-        result = list(self.aws_interface.get_resources(regions=["eu-west-2"], service_names=["ec2", "s3"]))
-
-        self.assert_dictionary_overlap(result, self.eu_west_2_resources)
-        self.assert_no_dictionary_overlap(result, self.us_east_1_resources)
-
-    def test_get_resources_of_service_us_east_1(self):
-        result = list(self.aws_interface.get_resources(service_names=["ec2", "s3", "iam"], regions=["us-east-1"]))
-
-        self.assert_dictionary_overlap(result, self.us_east_1_resources)
-        self.assert_no_dictionary_overlap(result, self.eu_west_2_resources)
-
     def test_get_resources_of_type_in_region_eu_west_2(self):
         result = list(
             self.aws_interface.get_resources(
-                service_names=["ec2", "s3", "iam"], resource_types=["instance", "bucket", "role"], regions=["eu-west-2"]
+                service_name="ec2",
+                resource_type="instance",
+                region="eu-west-2",
             )
         )
 
-        self.assert_dictionary_overlap(result, self.eu_west_2_resources)
-        self.assert_no_dictionary_overlap(result, self.us_east_1_resources)
+        self.assert_dictionary_overlap(result, [{"urn": "urn:aws:.*:eu-west-2:ec2:instance:.*"}])
 
     def test_get_resources_of_type_in_region_us_east_1(self):
-        result = self.aws_interface.get_resources(
-            service_names=["ec2", "s3", "iam"], resource_types=["instance", "bucket", "role"], regions=["us-east-1"]
-        )
-        self.assert_dictionary_overlap(result, self.us_east_1_resources)
-        self.assert_no_dictionary_overlap(result, self.eu_west_2_resources)
+        result = self.aws_interface.get_resources(service_name="ec2", resource_type="instance", region="us-east-1")
+        self.assert_dictionary_overlap(result, [{"urn": "urn:aws:.*:us-east-1:ec2:instance:.*"}])
 
     def test_get_resources_unsupported_service(self):
         with self.assertRaises(UnsupportedServiceError):
-            list(self.aws_interface.get_resources(service_names=["unicorn_stable"]))
+            list(self.aws_interface.get_resources(service_name="unicorn_stable", resource_type="instance"))
 
     def test_get_resources_unsupported_resource_type(self):
-        result = list(self.aws_interface.get_resources(resource_types="unicorn"))
+        result = list(self.aws_interface.get_resources(service_name="ec2", resource_type="unicorn"))
 
         assert result == []
