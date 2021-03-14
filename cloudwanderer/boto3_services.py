@@ -457,25 +457,13 @@ class CloudWandererBoto3Service:
         return self.service_map.is_global_service and self.service_map.global_service_region == self.region
 
     @property
-    def regions_discovered_from_region(self) -> List[str]:
+    def get_regions_discovered_from_region(self) -> List[str]:
         """Return a list of regions resources will have been discovered in by querying this resource in this region."""
         if not self.should_query_resources_in_region:
             return []
         if self.service_map.regional_resources and self.service_map.global_service_region == self.region:
             return self.enabled_regions
         return [self.region]
-
-    def get_regions_discovered_from_region(self, region: str) -> List[str]:
-        """Return a list of regions resources will have been discovered in by querying this resource in this region.
-
-        Arguments:
-            region: The region we're interested in the yielded resources of.
-        """
-        if not self.should_query_resources_in_region:
-            return []
-        if self.service_map.regional_resources and self.service_map.global_service_region == region:
-            return self.enabled_regions
-        return [region]
 
     @property
     def enabled_regions(self) -> List[str]:

@@ -144,22 +144,24 @@ class TestCloudWandererBoto3Service(unittest.TestCase):
     def test_should_query_resources_in_region_global_service_global_resources(self):
         assert self.iam_service.should_query_resources_in_region
 
-    def test_regions_discovered_from_region_regional_service(self):
-        assert self.service.regions_discovered_from_region == ["eu-west-2"]
+    def test_get_regions_discovered_from_region_regional_service(self):
+        assert self.service.get_regions_discovered_from_region == ["eu-west-2"]
 
-    def test_regions_discovered_from_region_global_service_regional_resources(self):
-        assert sorted(self.s3_service.regions_discovered_from_region) == sorted(["us-east-1", "eu-west-2", "ap-east-1"])
+    def test_get_regions_discovered_from_region_global_service_regional_resources(self):
+        assert sorted(self.s3_service.get_regions_discovered_from_region) == sorted(
+            ["us-east-1", "eu-west-2", "ap-east-1"]
+        )
 
-    def test_regions_discovered_from_region_global_service_regional_resources_wrong_region(self):
+    def test_get_regions_discovered_from_region_global_service_regional_resources_wrong_region(self):
         s3_service = self.services.get_service("s3", region_name="eu-west-2")
 
-        assert s3_service.regions_discovered_from_region == []
+        assert s3_service.get_regions_discovered_from_region == []
 
-    def test_regions_discovered_from_region_global_service_global_resources(self):
-        assert self.iam_service.regions_discovered_from_region == ["us-east-1"]
+    def test_get_regions_discovered_from_region_global_service_global_resources(self):
+        assert self.iam_service.get_regions_discovered_from_region == ["us-east-1"]
 
-    def test_regions_discovered_from_region_global_service_global_resources_wrong_region(self):
-        assert self.iam_service_wrong_region.regions_discovered_from_region == []
+    def test_get_regions_discovered_from_region_global_service_global_resources_wrong_region(self):
+        assert self.iam_service_wrong_region.get_regions_discovered_from_region == []
 
     def test_account_id(self):
         assert self.service.account_id == "123456789012"

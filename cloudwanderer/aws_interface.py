@@ -171,7 +171,7 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
                             resource_type=resource_type,
                         )
                     )
-                    for region in service.get_regions_discovered_from_region(region_name):
+                    for region in service.get_regions_discovered_from_region:
                         actions.cleanup_actions.append(
                             CleanupAction(
                                 service_name=service_name,

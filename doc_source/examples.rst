@@ -107,7 +107,7 @@ without discovering all of the other resources of that type as well.
     >>> from cloudwanderer import URN
     >>> urn = URN(
     ...     account_id="123456789012",
-    ...     region="eu-west-2",
+    ...     region="us-east-1",
     ...     service="ec2",
     ...     resource_type="vpc",
     ...     resource_id="vpc-1111111111",
@@ -134,9 +134,6 @@ Retrieving all VPCs from all Regions
     ...     vpc.load()
     ...     print('vpc_state: ', vpc.state)
     ...     print('is_default:', vpc.is_default)
-    vpc_region: eu-west-2
-    vpc_state:  available
-    is_default: True
     vpc_region: us-east-1
     vpc_state:  available
     is_default: True
@@ -241,7 +238,7 @@ e.g.
     ...     resource_type='vpc',
     ... ))
     >>> str(vpc.urn)
-    'urn:aws:123456789012:eu-west-2:ec2:vpc:vpc-11111111'
+    'urn:aws:123456789012:us-east-1:ec2:vpc:vpc-11111111'
     >>> storage_connector.delete_resource(urn=vpc.urn)
     >>> vpc = storage_connector.read_resource(
     ...     urn=vpc.urn
