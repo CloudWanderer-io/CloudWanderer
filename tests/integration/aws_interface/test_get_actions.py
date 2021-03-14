@@ -33,11 +33,14 @@ class TestGetActions(unittest.TestCase):
 
         assert result == expected_result
 
-    def test_single_resource_global_service(self):
+    def test_single_resource_global_service_all_regions(self):
         assert self.resolver.get_actions(resource_types=["role"]) == [
             GetAndCleanUp(
                 get_actions=[GetAction(service_name="iam", region="us-east-1", resource_type="role")],
-                cleanup_actions=[CleanupAction(service_name="iam", region="us-east-1", resource_type="role")],
+                cleanup_actions=[
+                    CleanupAction(service_name="iam", region="us-east-1", resource_type="role"),
+                    CleanupAction(service_name="iam", region="us-east-1", resource_type="role_policy"),
+                ],
             )
         ]
 
@@ -56,7 +59,10 @@ class TestGetActions(unittest.TestCase):
         assert self.resolver.get_actions(resource_types=["role"], regions=["us-east-1"]) == [
             GetAndCleanUp(
                 get_actions=[GetAction(service_name="iam", region="us-east-1", resource_type="role")],
-                cleanup_actions=[CleanupAction(service_name="iam", region="us-east-1", resource_type="role")],
+                cleanup_actions=[
+                    CleanupAction(service_name="iam", region="us-east-1", resource_type="role"),
+                    CleanupAction(service_name="iam", region="us-east-1", resource_type="role_policy"),
+                ],
             )
         ]
 

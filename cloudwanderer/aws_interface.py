@@ -154,6 +154,7 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
                     )
                     continue
                 for resource_type in service_resource_types:
+                    resource = service._get_empty_resource(resource_type=resource_type)
                     service_resource = f"{service_name}:{resource_type}"
                     logger.debug("Getting actions for %s %s in %s", service_resource, resource_type, region_name)
                     if service_resource in exclude_resources:
@@ -179,6 +180,14 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
                                 resource_type=resource_type,
                             )
                         )
+                        for subresource_type in resource.subresource_types:
+                            actions.cleanup_actions.append(
+                                CleanupAction(
+                                    service_name=service_name,
+                                    region=region,
+                                    resource_type=subresource_type,
+                                )
+                            )
                     if actions:
                         get_and_cleanup_actions.append(actions)
         return get_and_cleanup_actions
