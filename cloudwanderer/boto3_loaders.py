@@ -176,7 +176,7 @@ class ServiceMap(NamedTuple):
     @classmethod
     def factory(cls, name: str, definition: dict) -> "ServiceMap":
         service_definition = definition.get("service", {})
-        return cls(
+        return ServiceMap(
             name=name,
             global_service=service_definition.get("globalService", False),
             regional_resources=service_definition.get("regionalResources", True),

@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import ANY
 
 from cloudwanderer import CloudWandererAWSInterface
+from cloudwanderer.exceptions import UnsupportedServiceError
 
 from ..helpers import GenericAssertionHelpers, get_default_mocker
 from ..mocks import add_infra
@@ -149,3 +150,12 @@ class TestCloudWandererGetResources(unittest.TestCase, GenericAssertionHelpers):
         )
         self.assert_dictionary_overlap(result, self.us_east_1_resources)
         self.assert_no_dictionary_overlap(result, self.eu_west_2_resources)
+
+    def test_get_resources_unsupported_service(self):
+        with self.assertRaises(UnsupportedServiceError):
+            list(self.aws_interface.get_resources(service_names=["unicorn_stable"]))
+
+    def test_get_resources_unsupported_resource_type(self):
+        result = list(self.aws_interface.get_resources(resource_types="unicorn"))
+
+        assert result == []

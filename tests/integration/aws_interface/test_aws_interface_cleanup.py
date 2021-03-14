@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import MagicMock, call
 
 from cloudwanderer import CloudWandererAWSInterface
+from cloudwanderer.exceptions import UnsupportedServiceError
 
 from ..helpers import get_default_mocker
 
@@ -101,3 +102,28 @@ class TestAWSInterfaceCleanup(unittest.TestCase):
         )
 
         mock_storage_connector.delete_resource_of_type_in_account_region.assert_not_called()
+
+    def test_cleanup_resources_unsupported_service(self):
+        mock_storage_connector = MagicMock()
+        with self.assertRaises(UnsupportedServiceError):
+            list(
+                self.aws_interface.cleanup_resources(
+                    service_names=["unicorn_stable"], storage_connector=mock_storage_connector
+                )
+            )
+
+    def test_cleanup_resources_unsupported_resource_type(self):
+        mock_storage_connector = MagicMock()
+
+        self.aws_interface.cleanup_resources(resource_types="unicorn", storage_connector=mock_storage_connector)
+
+        mock_storage_connector.delete_resources_of_type_in_account_region.assert_not_called()
+
+    def test_cleanup_resources_exclude_resources(self):
+        mock_storage_connector = MagicMock()
+
+        self.aws_interface.cleanup_resources(
+            service_names=["ec2"], exclude_resources=["ec2:instance"], storage_connector=mock_storage_connector
+        )
+
+        mock_storage_connector.delete_resources_of_type_in_account_region.assert_not_called()

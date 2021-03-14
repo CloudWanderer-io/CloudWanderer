@@ -85,6 +85,10 @@ class TestBoto3Services(unittest.TestCase):
         with self.assertRaises(cloudwanderer.exceptions.BadUrnSubResourceError):
             self.services.get_resource_from_urn(urn)
 
+    def test_get_enabled_regions(self):
+        for region in ["us-east-1", "ap-northeast-1", "eu-west-2"]:
+            assert region in self.services.enabled_regions
+
 
 class TestCloudWandererBoto3Service(unittest.TestCase):
     @classmethod
