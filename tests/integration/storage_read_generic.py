@@ -5,8 +5,7 @@ from typing import List
 from unittest.mock import ANY, patch
 
 import cloudwanderer
-from build.lib.cloudwanderer.cloud_wanderer_resource import CloudWandererResource
-from cloudwanderer.cloud_wanderer_resource import SecondaryAttribute
+from cloudwanderer.cloud_wanderer_resource import CloudWandererResource, SecondaryAttribute
 
 from .helpers import GenericAssertionHelpers, TestStorageConnectorReadMixin, get_default_mocker
 from .mocks import add_infra, generate_mock_session
