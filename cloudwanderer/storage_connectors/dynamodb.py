@@ -95,8 +95,10 @@ def _dynamodb_items_to_resources(items: Iterable[dict], loader: Callable) -> Ite
             if attribute["_attr"] != "BaseResource"
         ]
         base_resource = next(iter(resource for resource in grouped_items if resource["_attr"] == "BaseResource"))
+        parent_urn = URN.from_string(base_resource["_parent_urn"]) if base_resource.get("_parent_urn") else None
         yield CloudWandererResource(
             urn=_urn_from_primary_key(base_resource["_id"]),
+            parent_urn=parent_urn,
             resource_data=base_resource,
             secondary_attributes=attributes,
             loader=loader,
@@ -227,8 +229,15 @@ class DynamoDbConnector(BaseStorageConnector):
         result = self.dynamodb_table.query(KeyConditionExpression=Key("_id").eq(_primary_key_from_urn(urn)))
         return next(_dynamodb_items_to_resources(result["Items"], loader=self.read_resource), None)
 
-    def read_resources(self, **kwargs) -> Iterator["CloudWandererResource"]:
-        query_generator = DynamoDbQueryGenerator(**kwargs)
+    def read_resources(
+        self,
+        account_id: str = None,
+        region: str = None,
+        service: str = None,
+        resource_type: str = None,
+        urn: URN = None,
+    ) -> Iterator["CloudWandererResource"]:
+        query_generator = DynamoDbQueryGenerator(account_id, region, service, resource_type, urn)
         for condition_expression in query_generator.condition_expressions:
             query_args = {"Select": "ALL_PROJECTED_ATTRIBUTES", "KeyConditionExpression": condition_expression}
             if query_generator.index is not None:

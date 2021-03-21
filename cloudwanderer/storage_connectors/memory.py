@@ -42,10 +42,10 @@ class MemoryStorageConnector(BaseStorageConnector):
             urn = URN.from_string(urn_str)
             if kwargs.get("urn") is not None:
                 if urn == kwargs["urn"]:
-                    yield memory_item_to_resource(urn, loader=self.read_resource)
+                    yield memory_item_to_resource(urn, items, loader=self.read_resource)
                 continue
             if self._urn_matches_kwargs(urn, **kwargs):
-                yield memory_item_to_resource(urn, loader=self.read_resource)
+                yield memory_item_to_resource(urn, items, loader=self.read_resource)
 
     def _urn_matches_kwargs(self, urn: URN, **kwargs) -> bool:
         filter_items = ("account_id", "region", "service", "resource_type")
