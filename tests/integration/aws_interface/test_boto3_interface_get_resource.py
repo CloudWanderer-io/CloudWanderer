@@ -23,7 +23,7 @@ class TestBoto3InterfaceGetResource(unittest.TestCase, GenericAssertionHelpers):
 
     @classmethod
     def tearDownClass(cls):
-        get_default_mocker().stop_general_mock()
+        get_default_mocker().stop_moto_services()
 
     def setUp(self):
         self.aws_interface = CloudWandererAWSInterface()

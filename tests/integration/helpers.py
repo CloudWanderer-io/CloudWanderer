@@ -150,6 +150,8 @@ class SetupMocking:
             "cloudwanderer.aws_interface.CloudWandererAWSInterface.limit_resources", new=self.limit_resources
         )
         self.service_mocks = {}
+        self.regions_mock = PropertyMock(return_value=[])
+        self.regions_patcher = patch("moto.ec2.models.RegionsAndZonesBackend.regions", new=self.regions_mock)
         clear_aws_credentials()
 
     def start_general_mock(
@@ -157,10 +159,7 @@ class SetupMocking:
     ):
         restrict_regions = ["eu-west-2", "us-east-1"] if restrict_regions is None else restrict_regions
         if restrict_regions:
-            ec2.models.RegionsAndZonesBackend.regions = [
-                ec2.models.Region(region_name, "ec2.{region_name}.amazonaws.com", "opt-in-not-required")
-                for region_name in restrict_regions
-            ]
+            self.start_restrict_regions(regions=restrict_regions)
         if restrict_services:
             self.start_restrict_services(services=["ec2", "s3", "iam"])
         if limit_resources is not False:
@@ -168,7 +167,12 @@ class SetupMocking:
         self.start_moto_services()
 
     def stop_general_mock(self):
-        stop_methods = [self.stop_moto_services, self.stop_restrict_services, self.stop_limit_collections_list]
+        stop_methods = [
+            self.stop_moto_services,
+            self.stop_restrict_services,
+            self.stop_limit_collections_list,
+            self.stop_restrict_regions,
+        ]
         for method in stop_methods:
             try:
                 method()
@@ -208,6 +212,16 @@ class SetupMocking:
 
     def stop_limit_collections_list(self):
         self.collections_patcher.stop()
+
+    def start_restrict_regions(self, regions):
+        self.regions_mock.return_value = [
+            ec2.models.Region(region_name, "ec2.{region_name}.amazonaws.com", "opt-in-not-required")
+            for region_name in regions
+        ]
+        self.regions_patcher.start()
+
+    def stop_restrict_regions(self):
+        self.regions_patcher.stop()
 
 
 DEFAULT_MOCKER = None

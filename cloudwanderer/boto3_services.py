@@ -39,6 +39,7 @@ from .exceptions import (
     ResourceNotFoundError,
     UnsupportedResourceTypeError,
 )
+from .models import CleanupAction, GetAction, GetAndCleanUp
 from .urn import URN
 
 logger = logging.getLogger(__file__)
@@ -83,12 +84,14 @@ class CloudWandererBoto3ResourceFactory:
             service_context=service_context,
         )
 
+    @lru_cache()
     def _get_service_model(self, service_name: str) -> botocore.model.ServiceModel:
         """Return the botocore service model corresponding to this service.
 
         Arguments:
             service_name: The service name to get the service model of.
         """
+        logger.debug("Getting service model for %s", service_name)
         client = self.boto3_session.client(service_name)
         return client.meta.service_model
 
@@ -153,23 +156,63 @@ class Boto3Services:
             region_name: The region to instantiate the service for.
             **kwargs: Additional keyword args will be passed to the Boto3 client.
         """
-        service_definition = self._loader.get_service_definition(service_name=service_name)
-        service_method = self._factory.load(
-            service_name=service_name,
-            service_definition=service_definition["service"],
-            resource_definitions=service_definition["resources"],
-        )
+        service_method = self._get_service_method(service_name)
         return CloudWandererBoto3Service(
-            boto3_service=service_method(
-                client=self.boto3_session.client(service_name, region_name=region_name, **kwargs)
-            ),
+            boto3_service=service_method(client=self._get_client(service_name, region_name=region_name, **kwargs)),
             service_map=ServiceMap.factory(
                 name=service_name,
                 definition=self._service_mapping_loader.get_service_mapping(service_name=service_name),
             ),
             account_id=self.account_id,
+            enabled_regions=self.enabled_regions,
             region_name=region_name,
             boto3_session=self.boto3_session,
+        )
+
+    def get_empty_service(self, service_name: str, region_name: str = None) -> "CloudWandererBoto3Service":
+        """Return the :class`CloudWandererBoto3Service` by this name without a Boto3 Client instantiated.
+
+        Useful for querying service/resource metadata.
+
+        Arguments:
+            service_name: The name of the service to instantiate.
+            region_name: The region to instantiate the service for.
+        """
+        logger.debug("Getting empty service for %s in %s", service_name, region_name)
+        service_method = self._get_service_method(service_name)
+        return CloudWandererBoto3Service(
+            boto3_service=service_method(client=self._get_default_client(service_name)),
+            service_map=self._get_service_map(service_name),
+            account_id=self.account_id,
+            enabled_regions=self.enabled_regions,
+            region_name=region_name,
+            boto3_session=self.boto3_session,
+        )
+
+    @lru_cache()
+    def _get_service_map(self, service_name: str) -> ServiceMap:
+        logger.debug("Getting service map for %s", service_name)
+        return ServiceMap.factory(
+            name=service_name,
+            definition=self._service_mapping_loader.get_service_mapping(service_name=service_name),
+        )
+
+    @lru_cache()
+    def _get_default_client(self, service_name: str) -> botocore.client.BaseClient:
+        logger.debug("Getting default client for %s", service_name)
+        return self._get_client(service_name=service_name, region_name="us-east-1")
+
+    def _get_client(self, service_name: str, region_name: str, **kwargs) -> botocore.client.BaseClient:
+        return self.boto3_session.client(service_name, region_name=region_name, **kwargs)
+
+    @lru_cache()
+    def _get_service_method(self, service_name: str) -> Callable:
+        logger.debug("Getting service_method for %s", service_name)
+        service_definition = self._loader.get_service_definition(service_name=service_name)
+        return self._factory.load(
+            service_name=service_name,
+            service_definition=service_definition["service"],
+            resource_definitions=service_definition["resources"],
         )
 
     def get_resource_from_urn(self, urn: URN) -> "CloudWandererBoto3Resource":
@@ -193,6 +236,13 @@ class Boto3Services:
             raise BadUrnRegionError(f"{urn}'s service does not have resources in {urn.region}")
         return service.get_resource_from_urn(urn)
 
+    @property
+    @lru_cache()
+    def enabled_regions(self) -> List[str]:
+        """Return a list of enabled regions in this account."""
+        regions = self.boto3_session.client("ec2").describe_regions()["Regions"]
+        return [region["RegionName"] for region in regions if region["OptInStatus"] != "not-opted-in"]
+
 
 class CloudWandererBoto3Service:
     """Wraps Boto3 :class:`~boto3.resources.base.ServiceResource` service-level objects.
@@ -209,6 +259,7 @@ class CloudWandererBoto3Service:
         account_id: str,
         region_name: str,
         boto3_session: boto3.session.Session,
+        enabled_regions: List[str] = None,
     ) -> None:
         """Instantiate CloudWandererBoto3Service.
 
@@ -218,12 +269,14 @@ class CloudWandererBoto3Service:
             account_id: The ID of the AWS account our session is in.
             region_name: The region to get resources from for this service.
             boto3_session: The Boto3 session that created this client.
+            enabled_regions: The list of regions currently enabled.
         """
         self.boto3_service = boto3_service
         self.boto3_session = boto3_session
         self.service_map = service_map
         self.account_id = account_id
         self.region_name = region_name
+        self._enabled_regions = enabled_regions
 
     @property
     def resource_types(self) -> List[str]:
@@ -326,6 +379,8 @@ class CloudWandererBoto3Service:
             resource_type: The snake_case resource type to get.
         """
         collection_class = self._get_collection_from_resource_type(resource_type)
+        if not collection_class:
+            return
         collection = getattr(self.boto3_service, collection_class.name)
         yield from (
             CloudWandererBoto3Resource(
@@ -347,6 +402,8 @@ class CloudWandererBoto3Service:
             resource_type: The CloudWanderer style (snake_case) resource type name.
         """
         boto3_resource_type = self._get_boto3_resource_type_from_subresource_name(subresource_name=resource_type)
+        if not boto3_resource_type:
+            return None
         return self._get_collection_from_boto3_resource_type(boto3_resource_type)
 
     def _get_boto3_resource_type_from_subresource_name(self, subresource_name: str) -> str:
@@ -359,9 +416,12 @@ class CloudWandererBoto3Service:
             subresource_name: The snake_case CloudWanderer style subresource name.
         """
         return next(
-            resource.resource.type
-            for resource in self._subresources
-            if botocore.xform_name(resource.name) == subresource_name
+            (
+                resource.resource.type
+                for resource in self._subresources
+                if botocore.xform_name(resource.name) == subresource_name
+            ),
+            None,
         )
 
     def _get_collection_from_boto3_resource_type(self, boto3_resource_type: str) -> Collection:
@@ -407,11 +467,14 @@ class CloudWandererBoto3Service:
         return [self.region]
 
     @property
-    @lru_cache()
     def enabled_regions(self) -> List[str]:
         """Return a list of enabled regions in this account."""
-        regions = self.boto3_session.client("ec2").describe_regions()["Regions"]
-        return [region["RegionName"] for region in regions if region["OptInStatus"] != "not-opted-in"]
+        if not self._enabled_regions:
+            regions = self.boto3_session.client("ec2").describe_regions()["Regions"]
+            self._enabled_regions = [
+                region["RegionName"] for region in regions if region["OptInStatus"] != "not-opted-in"
+            ]
+        return self._enabled_regions
 
     @property
     def name(self) -> str:
@@ -577,6 +640,36 @@ class CloudWandererBoto3Resource:
             collection_resource_name = botocore.xform_name(collection_model.resource.model.name)
             models[collection_resource_name] = collection_model
         yield from models.values()
+
+    @property
+    def get_and_cleanup_actions(self) -> GetAndCleanUp:
+        """Return the query and cleanup actions to be performed if getting this resource type in this region."""
+        actions = GetAndCleanUp([], [])
+
+        actions.get_actions.append(
+            GetAction(
+                service_name=self.service,
+                region=self.cloudwanderer_boto3_service.region,
+                resource_type=self.resource_type,
+            )
+        )
+        for region in self.cloudwanderer_boto3_service.get_regions_discovered_from_region:
+            actions.cleanup_actions.append(
+                CleanupAction(
+                    service_name=self.service,
+                    region=region,
+                    resource_type=self.resource_type,
+                )
+            )
+            for subresource_type in self.subresource_types:
+                actions.cleanup_actions.append(
+                    CleanupAction(
+                        service_name=self.service,
+                        region=region,
+                        resource_type=subresource_type,
+                    )
+                )
+        return actions
 
     @property
     def _boto3_collection_models(self) -> Iterator[Tuple[ResourceMap, Collection]]:

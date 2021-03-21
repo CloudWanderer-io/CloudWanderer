@@ -134,12 +134,13 @@ Retrieving all VPCs from all Regions
     ...     vpc.load()
     ...     print('vpc_state: ', vpc.state)
     ...     print('is_default:', vpc.is_default)
-    vpc_region: eu-west-2
-    vpc_state:  available
-    is_default: True
     vpc_region: us-east-1
     vpc_state:  available
     is_default: True
+    vpc_region: eu-west-2
+    vpc_state:  available
+    is_default: True
+
 
 You'll notice here we're calling a property ``urn`` in order to print the region.
 :doc:`URNs <reference/urn>` are CloudWanderer's way of uniquely identifying a resource.
@@ -241,7 +242,7 @@ e.g.
     ...     resource_type='vpc',
     ... ))
     >>> str(vpc.urn)
-    'urn:aws:123456789012:eu-west-2:ec2:vpc:vpc-11111111'
+    'urn:aws:123456789012:us-east-1:ec2:vpc:vpc-11111111'
     >>> storage_connector.delete_resource(urn=vpc.urn)
     >>> vpc = storage_connector.read_resource(
     ...     urn=vpc.urn

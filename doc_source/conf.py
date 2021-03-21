@@ -98,10 +98,6 @@ import boto3
 import cloudwanderer
 from moto import ec2
 
-ec2.models.RegionsAndZonesBackend.regions = [
-    ec2.models.Region(region_name, "ec2.{region_name}.amazonaws.com", "opt-in-not-required")
-    for region_name in ['eu-west-2', 'us-east-1']
-]
 ec2.models.random_vpc_id = MagicMock(return_value='vpc-11111111')
 from tests.integration.helpers import get_default_mocker
 from tests.integration.mocks import add_infra

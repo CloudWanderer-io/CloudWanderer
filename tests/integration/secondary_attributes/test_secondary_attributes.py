@@ -44,7 +44,7 @@ class TestSecondaryAttributes(unittest.TestCase):
         results = []
         aws_interface = CloudWandererAWSInterface(boto3_session=boto3.Session(region_name=region_name))
 
-        resources = aws_interface.get_resources(service_names=[service_name], resource_types=[resource_type])
+        resources = aws_interface.get_resources(service_name=service_name, resource_type=resource_type)
         for resource in resources:
             for secondary_attribute in resource.cloudwanderer_metadata.secondary_attributes:
                 if attribute_name == secondary_attribute.name:

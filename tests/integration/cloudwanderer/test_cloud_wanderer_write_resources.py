@@ -2,6 +2,8 @@ import re
 import unittest
 from unittest.mock import ANY
 
+import boto3
+
 from cloudwanderer import CloudWanderer
 from cloudwanderer.storage_connectors import MemoryStorageConnector
 
@@ -57,11 +59,10 @@ class TestCloudWandererWriteResources(unittest.TestCase, GenericAssertionHelpers
         },
     ]
 
-    @classmethod
-    def setUpClass(cls):
-        cls.enabled_regions = ["eu-west-2", "us-east-1", "ap-east-1"]
+    def setUp(self):
+        self.enabled_regions = ["eu-west-2", "us-east-1", "ap-east-1"]
         get_default_mocker().start_general_mock(
-            restrict_regions=cls.enabled_regions,
+            restrict_regions=self.enabled_regions,
             restrict_services=["ec2", "s3", "iam"],
             limit_resources=[
                 "ec2:instance",
@@ -70,15 +71,12 @@ class TestCloudWandererWriteResources(unittest.TestCase, GenericAssertionHelpers
                 "iam:role",
             ],
         )
-        add_infra(regions=cls.enabled_regions)
-
-    @classmethod
-    def tearDownClass(cls):
-        get_default_mocker().stop_general_mock()
-
-    def setUp(self):
+        add_infra(regions=self.enabled_regions)
         self.storage_connector = MemoryStorageConnector()
         self.wanderer = CloudWanderer(storage_connectors=[self.storage_connector])
+
+    def tearDown(self):
+        get_default_mocker().stop_general_mock()
 
     def test_write_resources(self):
 
@@ -180,3 +178,61 @@ class TestCloudWandererWriteResources(unittest.TestCase, GenericAssertionHelpers
 
         self.assert_dictionary_overlap(self.storage_connector.read_all(), self.us_east_1_resources)
         self.assert_no_dictionary_overlap(self.storage_connector.read_all(), self.eu_west_2_resources)
+
+    def test_cleanup_resources_of_type_us_east_1(self):
+        self.wanderer.write_resources(service_names=["iam"], resource_types=["role"], regions=["us-east-1"])
+
+        self.assert_dictionary_overlap(
+            self.storage_connector.read_all(),
+            [
+                {
+                    "urn": "urn:aws:.*:us-east-1:iam:role:.*",
+                    "attr": "role_managed_policy_attachments",
+                    "AttachedPolicies": [
+                        {
+                            "PolicyName": "APIGatewayServiceRolePolicy",
+                            "PolicyArn": "arn:aws:iam::aws:policy/aws-service-role/APIGatewayServiceRolePolicy",
+                        }
+                    ],
+                    "IsTruncated": False,
+                },
+                {
+                    "urn": "urn:aws:.*:us-east-1:iam:role_policy:.*",
+                    "attr": "BaseResource",
+                    "PolicyName": "test-role-policy",
+                    "PolicyDocument": ANY,
+                },
+            ],
+        )
+
+        # Delete the role
+        iam_resource = boto3.resource("iam")
+        iam_resource.Role("test-role").detach_policy(
+            PolicyArn="arn:aws:iam::aws:policy/aws-service-role/APIGatewayServiceRolePolicy"
+        )
+        iam_resource.Role("test-role").Policy("test-role-policy").delete()
+        iam_resource.Role("test-role").delete()
+
+        self.wanderer.write_resources(service_names=["iam"], resource_types=["role"], regions=["us-east-1"])
+        self.assert_no_dictionary_overlap(
+            self.storage_connector.read_all(),
+            [
+                {
+                    "urn": "urn:aws:.*:us-east-1:iam:role:.*",
+                    "attr": "role_managed_policy_attachments",
+                    "AttachedPolicies": [
+                        {
+                            "PolicyName": "APIGatewayServiceRolePolicy",
+                            "PolicyArn": "arn:aws:iam::aws:policy/aws-service-role/APIGatewayServiceRolePolicy",
+                        }
+                    ],
+                    "IsTruncated": False,
+                },
+                {
+                    "urn": "urn:aws:.*:us-east-1:iam:role_policy:.*",
+                    "attr": "BaseResource",
+                    "PolicyName": "test-role-policy",
+                    "PolicyDocument": ANY,
+                },
+            ],
+        )
