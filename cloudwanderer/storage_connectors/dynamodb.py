@@ -169,9 +169,11 @@ class DynamoDbConnector(BaseStorageConnector):
     def write_resource(self, resource: CloudWandererResource) -> None:
         logger.debug(f"Writing: {resource.urn} to {self.table_name}")
         item = {
-            **self._generate_index_values_for_write(resource.urn),
+            **self._generate_urn_index_values(resource.urn),
             **standardise_data_types(resource.cloudwanderer_metadata.resource_data or {}),
         }
+        if resource.parent_urn is not None:
+            item["_parent_urn"] = str(resource.parent_urn)
         self.dynamodb_table.put_item(Item=item)
         for secondary_attribute in resource.cloudwanderer_metadata.secondary_attributes:
             self._write_secondary_attribute(
@@ -191,12 +193,12 @@ class DynamoDbConnector(BaseStorageConnector):
         """
         logger.debug(f"Writing: {attribute_type} of {urn} to {self.table_name}")
         item = {
-            **self._generate_index_values_for_write(urn, attribute_type),
+            **self._generate_urn_index_values(urn, attribute_type),
             **standardise_data_types(secondary_attribute or {}),
         }
         self.dynamodb_table.put_item(Item=item)
 
-    def _generate_index_values_for_write(self, urn: URN, attr: str = "BaseResource") -> dict:
+    def _generate_urn_index_values(self, urn: URN, attr: str = "BaseResource") -> dict:
         values = {
             "_id": _primary_key_from_urn(urn),
             "_attr": attr,
@@ -249,6 +251,10 @@ class DynamoDbConnector(BaseStorageConnector):
         resource_records = self.dynamodb_table.query(KeyConditionExpression=Key("_id").eq(_primary_key_from_urn(urn)))[
             "Items"
         ]
+        resource_records += self.dynamodb_table.query(
+            IndexName="parent_urn", KeyConditionExpression=Key("_parent_urn").eq(str(urn))
+        )["Items"]
+        print(resource_records)
         with self.dynamodb_table.batch_writer() as batch:
             for record in resource_records:
                 logger.debug("Deleting %s", record["_id"])

@@ -1,6 +1,7 @@
 {
     "table": {
-        "AttributeDefinitions": [{
+        "AttributeDefinitions": [
+            {
                 "AttributeName": "_id",
                 "AttributeType": "S"
             },
@@ -23,10 +24,15 @@
             {
                 "AttributeName": "_resource_type_range",
                 "AttributeType": "S"
+            },
+            {
+                "AttributeName": "_parent_urn",
+                "AttributeType": "S"
             }
         ],
         "BillingMode": "PAY_PER_REQUEST",
-        "KeySchema": [{
+        "KeySchema": [
+            {
                 "AttributeName": "_id",
                 "KeyType": "HASH"
             },
@@ -35,7 +41,8 @@
                 "KeyType": "RANGE"
             }
         ],
-        "GlobalSecondaryIndexes": [{
+        "GlobalSecondaryIndexes": [
+            {
                 "IndexName": "resource_type",
                 "Projection": {
                     "ProjectionType": "INCLUDE",
@@ -46,7 +53,8 @@
                         "_service"
                     ]
                 },
-                "KeySchema": [{
+                "KeySchema": [
+                    {
                         "AttributeName": "_resource_type_index",
                         "KeyType": "HASH"
                     },
@@ -67,13 +75,26 @@
                         "_service"
                     ]
                 },
-                "KeySchema": [{
+                "KeySchema": [
+                    {
                         "AttributeName": "_account_id_index",
                         "KeyType": "HASH"
                     },
                     {
                         "AttributeName": "_resource_type",
                         "KeyType": "RANGE"
+                    }
+                ]
+            },
+            {
+                "IndexName": "parent_urn",
+                "Projection": {
+                    "ProjectionType": "INCLUDE"
+                },
+                "KeySchema": [
+                    {
+                        "AttributeName": "_parent_urn",
+                        "KeyType": "HASH"
                     }
                 ]
             }

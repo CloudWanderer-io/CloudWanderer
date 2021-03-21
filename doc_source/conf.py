@@ -26,7 +26,7 @@ copyright = "2020, Sam Martin"
 author = "Sam Martin"
 
 # The full version, including alpha/beta/rc tags
-release = "0.13.2"
+release = "0.14.0"
 
 nitpicky = True
 nitpick_ignore = [

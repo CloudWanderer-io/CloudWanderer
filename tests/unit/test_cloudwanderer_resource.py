@@ -98,3 +98,10 @@ class TestCloudWandererResource(unittest.TestCase):
             resource_data=None,
             secondary_attributes=[],
         )
+
+    def test_subresource(self):
+        parent_urn = URN.from_string("urn:aws:111111111111:us-east-1:iam:role:test-role")
+        urn = URN.from_string("urn:aws:111111111111:us-east-1:iam:role_policy:test-role/test-policy")
+        cwr = CloudWandererResource(urn=urn, parent_urn=parent_urn, resource_data={}, secondary_attributes=[])
+
+        assert cwr.parent_urn == parent_urn

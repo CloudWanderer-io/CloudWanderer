@@ -74,6 +74,7 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
         for subresource in resource.get_subresources():
             yield CloudWandererResource(
                 urn=subresource.urn,
+                parent_urn=urn,
                 resource_data=subresource.normalised_raw_data,
                 secondary_attributes=list(subresource.get_secondary_attributes()),
             )
