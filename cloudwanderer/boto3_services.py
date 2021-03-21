@@ -643,7 +643,7 @@ class CloudWandererBoto3Resource:
 
     @property
     def get_and_cleanup_actions(self) -> GetAndCleanUp:
-        """Return the query and cleanup actions to be performed if getting this resource type."""
+        """Return the query and cleanup actions to be performed if getting this resource type in this region."""
         actions = GetAndCleanUp([], [])
 
         actions.get_actions.append(
