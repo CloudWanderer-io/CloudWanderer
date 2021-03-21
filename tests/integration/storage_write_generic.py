@@ -37,8 +37,14 @@ class StorageWriteTestMixin:
             resource_data={},
             secondary_attributes=[],
         )
-        cls.role_policy = CloudWandererResource(
-            urn=generate_urn(service="iam", resource_type="role_policy", id="test-role/test-policy"),
+        cls.role_policy_1 = CloudWandererResource(
+            urn=generate_urn(service="iam", resource_type="role_policy", id="test-role/test-policy-1"),
+            parent_urn=cls.role.urn,
+            resource_data={},
+            secondary_attributes=[],
+        )
+        cls.role_policy_2 = CloudWandererResource(
+            urn=generate_urn(service="iam", resource_type="role_policy", id="test-role/test-policy-2"),
             parent_urn=cls.role.urn,
             resource_data={},
             secondary_attributes=[],
@@ -90,16 +96,21 @@ class StorageWriteTestMixin:
     def test_delete_subresources_from_resource(self):
         """If we are deleting a parent resource we should delete all its subresources."""
         self.connector.write_resource(resource=self.role)
-        self.connector.write_resource(resource=self.role_policy)
+        self.connector.write_resource(resource=self.role_policy_1)
+        self.connector.write_resource(resource=self.role_policy_2)
         role_before_delete = self.connector.read_resource(urn=self.role.urn)
-        role_policy_before_delete = self.connector.read_resource(urn=self.role_policy.urn)
+        role_policy_1_before_delete = self.connector.read_resource(urn=self.role_policy_1.urn)
+        role_policy_2_before_delete = self.connector.read_resource(urn=self.role_policy_2.urn)
 
         # Delete the parent and ensure the subresources are also deleted
         self.connector.delete_resource(urn=self.role.urn)
         role_after_delete = self.connector.read_resource(urn=self.role.urn)
-        role_policy_after_delete = self.connector.read_resource(urn=self.role_policy.urn)
+        role_policy_1_after_delete = self.connector.read_resource(urn=self.role_policy_1.urn)
+        role_policy_2_after_delete = self.connector.read_resource(urn=self.role_policy_2.urn)
 
         assert role_before_delete.urn == self.role.urn
-        assert role_policy_before_delete.urn == self.role_policy.urn
+        assert role_policy_1_before_delete.urn == self.role_policy_1.urn
+        assert role_policy_2_before_delete.urn == self.role_policy_2.urn
         assert role_after_delete is None
-        assert role_policy_after_delete is None
+        assert role_policy_1_after_delete is None
+        assert role_policy_2_after_delete is None

@@ -144,7 +144,7 @@ def memory_item_to_resource(urn: URN, items: dict = None, loader: Callable = Non
 
     """
     items = items or {}
-    attributes = [attribute for item_type, attribute in items.items() if item_type != "BaseResource"]
+    attributes = [attribute for item_type, attribute in items.items() if item_type not in ["BaseResource", "ParentUrn"]]
     base_resource = next(iter(resource for item_type, resource in items.items() if item_type == "BaseResource"), {})
     return CloudWandererResource(
         urn=urn,

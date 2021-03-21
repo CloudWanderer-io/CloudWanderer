@@ -254,7 +254,6 @@ class DynamoDbConnector(BaseStorageConnector):
         resource_records += self.dynamodb_table.query(
             IndexName="parent_urn", KeyConditionExpression=Key("_parent_urn").eq(str(urn))
         )["Items"]
-        print(resource_records)
         with self.dynamodb_table.batch_writer() as batch:
             for record in resource_records:
                 logger.debug("Deleting %s", record["_id"])

@@ -37,8 +37,17 @@ class TestCloudWandererGetResources(unittest.TestCase, GenericAssertionHelpers):
         self.assert_dictionary_overlap(result, [{"urn": "urn:aws:.*:eu-west-2:ec2:instance:.*"}])
 
     def test_get_resources_of_type_in_region_us_east_1(self):
-        result = self.aws_interface.get_resources(service_name="ec2", resource_type="instance", region="us-east-1")
-        self.assert_dictionary_overlap(result, [{"urn": "urn:aws:.*:us-east-1:ec2:instance:.*"}])
+        result = self.aws_interface.get_resources(service_name="iam", resource_type="role", region="us-east-1")
+        self.assert_dictionary_overlap(
+            result,
+            [
+                {"urn": "urn:aws:.*:us-east-1:iam:role:test-role"},
+                {
+                    "urn": "urn:aws:.*:us-east-1:iam:role_policy:test-role/test-role-policy",
+                    "parent_urn": "urn:aws:.*:us-east-1:iam:role:test-role",
+                },
+            ],
+        )
 
     def test_get_resources_unsupported_service(self):
         with self.assertRaises(UnsupportedServiceError):

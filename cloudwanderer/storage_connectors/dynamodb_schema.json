@@ -89,7 +89,7 @@
             {
                 "IndexName": "parent_urn",
                 "Projection": {
-                    "ProjectionType": "INCLUDE"
+                    "ProjectionType": "KEYS_ONLY"
                 },
                 "KeySchema": [
                     {

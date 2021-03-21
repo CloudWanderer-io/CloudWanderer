@@ -115,6 +115,7 @@ class CloudWandererResource:
         return str(
             f"{self.__class__.__name__}("
             f"urn={repr(self.urn)}, "
+            f"parent_urn={repr(self.parent_urn)}, "
             f"resource_data={self.cloudwanderer_metadata.resource_data}, "
             f"secondary_attributes={self.cloudwanderer_metadata.secondary_attributes})"
         )
