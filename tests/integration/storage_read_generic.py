@@ -1,10 +1,11 @@
 import logging
 from itertools import combinations
 from time import sleep
+from typing import List
 from unittest.mock import ANY, patch
 
 import cloudwanderer
-from cloudwanderer.cloud_wanderer_resource import SecondaryAttribute
+from cloudwanderer.cloud_wanderer_resource import CloudWandererResource, SecondaryAttribute
 
 from .helpers import GenericAssertionHelpers, TestStorageConnectorReadMixin, get_default_mocker
 from .mocks import add_infra, generate_mock_session
@@ -87,7 +88,7 @@ class StorageReadTestMixin(TestStorageConnectorReadMixin, GenericAssertionHelper
 
     def test_account_id(self):
         try:
-            result = list(self.connector.read_resources(account_id="111111111111"))
+            result: List[CloudWandererResource] = list(self.connector.read_resources(account_id="111111111111"))
         except self.valid_exceptions as ex:
             logging.info("Received: %s while testing account_id= but was in valid_exceptions", ex)
             return
@@ -109,7 +110,6 @@ class StorageReadTestMixin(TestStorageConnectorReadMixin, GenericAssertionHelper
                 },
             ],
         )
-
         for account_id in ["111111111111"]:
             self.expected_urns.extend(
                 [
@@ -258,14 +258,14 @@ class StorageReadTestMixin(TestStorageConnectorReadMixin, GenericAssertionHelper
 
     def test_resource_urn(self):
         try:
-            result = list(
+            result: List[CloudWandererResource] = list(
                 self.connector.read_resources(
                     urn=cloudwanderer.URN(
                         account_id="222222222222",
                         region="us-east-1",
                         service="iam",
-                        resource_type="group",
-                        resource_id="test-group",
+                        resource_type="role",
+                        resource_id="test-role",
                     )
                 )
             )
@@ -274,8 +274,18 @@ class StorageReadTestMixin(TestStorageConnectorReadMixin, GenericAssertionHelper
 
         self.assert_secondary_attributes(
             result,
-            {},
-            [],
+            {"role_inline_policy_attachments", "role_managed_policy_attachments"},
+            [
+                {"PolicyNames": ["test-role-policy"], "IsTruncated": False},
+                {
+                    "AttachedPolicies": [
+                        {
+                            "PolicyName": "APIGatewayServiceRolePolicy",
+                            "PolicyArn": "arn:aws:iam::aws:policy/aws-service-role/APIGatewayServiceRolePolicy",
+                        }
+                    ]
+                },
+            ],
         )
 
         for account_id in ["111111111111", "222222222222"]:
@@ -293,8 +303,8 @@ class StorageReadTestMixin(TestStorageConnectorReadMixin, GenericAssertionHelper
                     "account_id": "222222222222",
                     "region": "us-east-1",
                     "service": "iam",
-                    "resource_type": "group",
-                    "resource_id": "test-group",
+                    "resource_type": "role",
+                    "resource_id": "test-role",
                 }
             ]
         )
@@ -304,13 +314,40 @@ class StorageReadTestMixin(TestStorageConnectorReadMixin, GenericAssertionHelper
                     "account_id": "111111111111",
                     "region": "us-east-1",
                     "service": "iam",
-                    "resource_type": "group",
-                    "resource_id": "test-group",
+                    "resource_type": "role",
+                    "resource_id": "test-role",
                 }
             ]
         )
+
+        assert result[0].parent_urn is None
         self.assert_has_matching_urns(result, self.expected_urns)
         self.assert_does_not_have_matching_urns(result, self.not_expected_urns)
+
+    def test_subresource_urn(self):
+        try:
+            result = next(
+                self.connector.read_resources(
+                    urn=cloudwanderer.URN(
+                        account_id="222222222222",
+                        region="us-east-1",
+                        service="iam",
+                        resource_type="role_policy",
+                        resource_id="test-role/test-role-policy",
+                    )
+                ),
+                None,
+            )
+        except self.valid_exceptions:
+            return
+        assert isinstance(result.parent_urn, cloudwanderer.URN)
+        assert result.parent_urn == cloudwanderer.URN(
+            account_id="222222222222",
+            region="us-east-1",
+            service="iam",
+            resource_type="role",
+            resource_id="test-role",
+        )
 
     def test_arg_permutations(self):
         """Try all possible combinations of arguments and compare against the memory storage connector's results."""

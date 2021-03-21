@@ -1,5 +1,7 @@
 # 0.14.0
 
+ - Added new DynamoDB secondary index `parent_urn`
+ - Fixed bug where subresources were not cleaned up when `write_resource` was called on `CloudWanderer`
  - Changed `AWSInterface` `get_resources` to expect specific service, resource type, region arguments instead of reusing the arguments from CloudWanderer `write_resources`.
  - Added `get_actions` to `AWSInterface` which returns a list of `GetAndCleanUp` objects which pair `GetAction`s and `CleanUpAction`s.
  - CloudWanderer's `write_resources` now contains the logic for iterating over each `GetAction`, calling `get_resources` on `AWSInterface` and calling `delete_resource_of_type_in_account_region` on each StorageConnector in accordance with the `CleanUpAction`.

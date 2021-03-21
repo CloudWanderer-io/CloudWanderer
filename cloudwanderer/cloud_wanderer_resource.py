@@ -44,17 +44,24 @@ class CloudWandererResource:
     """
 
     def __init__(
-        self, urn: URN, resource_data: dict, secondary_attributes: List[dict] = None, loader: Callable = None
+        self,
+        urn: URN,
+        resource_data: dict,
+        secondary_attributes: List[dict] = None,
+        loader: Callable = None,
+        parent_urn: URN = None,
     ) -> None:
         """Initialise the resource.
 
         Arguments:
-            urn (URN): The AWS URN of the resource.
-            resource_data (dict): The dictionary containing the raw data about this resource.
-            secondary_attributes (List[dict]): A list of secondary attribute raw dictionaries.
-            loader (Callable): The method which can be used to fulfil the :meth:`CloudWandererResource.load`.
+            urn: The URN of the resource.
+            parent_urn: The URN of the parent resource (if one exists)
+            resource_data: The dictionary containing the raw data about this resource.
+            secondary_attributes: A list of secondary attribute raw dictionaries.
+            loader: The method which can be used to fulfil the :meth:`CloudWandererResource.load`.
         """
         self.urn = urn
+        self.parent_urn = parent_urn
         self.cloudwanderer_metadata = ResourceMetadata(
             resource_data=resource_data or {}, secondary_attributes=secondary_attributes or []
         )
@@ -108,6 +115,7 @@ class CloudWandererResource:
         return str(
             f"{self.__class__.__name__}("
             f"urn={repr(self.urn)}, "
+            f"parent_urn={repr(self.parent_urn)}, "
             f"resource_data={self.cloudwanderer_metadata.resource_data}, "
             f"secondary_attributes={self.cloudwanderer_metadata.secondary_attributes})"
         )

@@ -95,8 +95,10 @@ def _dynamodb_items_to_resources(items: Iterable[dict], loader: Callable) -> Ite
             if attribute["_attr"] != "BaseResource"
         ]
         base_resource = next(iter(resource for resource in grouped_items if resource["_attr"] == "BaseResource"))
+        parent_urn = URN.from_string(base_resource["_parent_urn"]) if base_resource.get("_parent_urn") else None
         yield CloudWandererResource(
             urn=_urn_from_primary_key(base_resource["_id"]),
+            parent_urn=parent_urn,
             resource_data=base_resource,
             secondary_attributes=attributes,
             loader=loader,
@@ -169,9 +171,11 @@ class DynamoDbConnector(BaseStorageConnector):
     def write_resource(self, resource: CloudWandererResource) -> None:
         logger.debug(f"Writing: {resource.urn} to {self.table_name}")
         item = {
-            **self._generate_index_values_for_write(resource.urn),
+            **self._generate_urn_index_values(resource.urn),
             **standardise_data_types(resource.cloudwanderer_metadata.resource_data or {}),
         }
+        if resource.parent_urn is not None:
+            item["_parent_urn"] = str(resource.parent_urn)
         self.dynamodb_table.put_item(Item=item)
         for secondary_attribute in resource.cloudwanderer_metadata.secondary_attributes:
             self._write_secondary_attribute(
@@ -191,12 +195,12 @@ class DynamoDbConnector(BaseStorageConnector):
         """
         logger.debug(f"Writing: {attribute_type} of {urn} to {self.table_name}")
         item = {
-            **self._generate_index_values_for_write(urn, attribute_type),
+            **self._generate_urn_index_values(urn, attribute_type),
             **standardise_data_types(secondary_attribute or {}),
         }
         self.dynamodb_table.put_item(Item=item)
 
-    def _generate_index_values_for_write(self, urn: URN, attr: str = "BaseResource") -> dict:
+    def _generate_urn_index_values(self, urn: URN, attr: str = "BaseResource") -> dict:
         values = {
             "_id": _primary_key_from_urn(urn),
             "_attr": attr,
@@ -225,8 +229,15 @@ class DynamoDbConnector(BaseStorageConnector):
         result = self.dynamodb_table.query(KeyConditionExpression=Key("_id").eq(_primary_key_from_urn(urn)))
         return next(_dynamodb_items_to_resources(result["Items"], loader=self.read_resource), None)
 
-    def read_resources(self, **kwargs) -> Iterator["CloudWandererResource"]:
-        query_generator = DynamoDbQueryGenerator(**kwargs)
+    def read_resources(
+        self,
+        account_id: str = None,
+        region: str = None,
+        service: str = None,
+        resource_type: str = None,
+        urn: URN = None,
+    ) -> Iterator["CloudWandererResource"]:
+        query_generator = DynamoDbQueryGenerator(account_id, region, service, resource_type, urn)
         for condition_expression in query_generator.condition_expressions:
             query_args = {"Select": "ALL_PROJECTED_ATTRIBUTES", "KeyConditionExpression": condition_expression}
             if query_generator.index is not None:
@@ -249,6 +260,9 @@ class DynamoDbConnector(BaseStorageConnector):
         resource_records = self.dynamodb_table.query(KeyConditionExpression=Key("_id").eq(_primary_key_from_urn(urn)))[
             "Items"
         ]
+        resource_records += self.dynamodb_table.query(
+            IndexName="parent_urn", KeyConditionExpression=Key("_parent_urn").eq(str(urn))
+        )["Items"]
         with self.dynamodb_table.batch_writer() as batch:
             for record in resource_records:
                 logger.debug("Deleting %s", record["_id"])
