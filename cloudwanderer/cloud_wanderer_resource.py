@@ -38,8 +38,14 @@ class ResourceMetadata:
 class CloudWandererResource:
     """A simple representation of a resource that prevents any storage metadata polluting the resource dictionary.
 
+    This can be a resource, or a subresource.
+    A subresource in CloudWanderer is a resource which does not have a unique identifier of its own and depends
+    upon its parent for its identity.
+
     Attributes:
-        urn (URN): The URN of the resource.
+        urn: The URN of the resource.
+        subresource_urns: The URNs of this resource's subresources (e.g. role_policies for a role).
+        parent_urn: The URN of this resource's parent (only exists if this is a subresource).
         cloudwanderer_metadata (ResourceMetadata): The metadata of this resource (including attributes).
     """
 
@@ -49,18 +55,21 @@ class CloudWandererResource:
         resource_data: dict,
         secondary_attributes: List[dict] = None,
         loader: Callable = None,
+        subresource_urns: List[URN] = None,
         parent_urn: URN = None,
     ) -> None:
         """Initialise the resource.
 
         Arguments:
             urn: The URN of the resource.
+            subresource_urns: The URNs of the subresources of this resource.
             parent_urn: The URN of the parent resource (if one exists)
             resource_data: The dictionary containing the raw data about this resource.
             secondary_attributes: A list of secondary attribute raw dictionaries.
             loader: The method which can be used to fulfil the :meth:`CloudWandererResource.load`.
         """
         self.urn = urn
+        self.subresource_urns = subresource_urns or []
         self.parent_urn = parent_urn
         self.cloudwanderer_metadata = ResourceMetadata(
             resource_data=resource_data or {}, secondary_attributes=secondary_attributes or []
@@ -115,6 +124,7 @@ class CloudWandererResource:
         return str(
             f"{self.__class__.__name__}("
             f"urn={repr(self.urn)}, "
+            f"subresource_urns={repr(self.subresource_urns)}, "
             f"parent_urn={repr(self.parent_urn)}, "
             f"resource_data={self.cloudwanderer_metadata.resource_data}, "
             f"secondary_attributes={self.cloudwanderer_metadata.secondary_attributes})"

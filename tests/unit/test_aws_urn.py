@@ -50,3 +50,18 @@ class TestURN(unittest.TestCase):
     def test_is_subresource(self):
         assert self.test_urn_subresource.is_subresource
         assert not self.test_urn_resource.is_subresource
+
+    def test_equality(self):
+        assert URN(
+            account_id="123456789012",
+            region="us-east-1",
+            service="iam",
+            resource_type="role_policy",
+            resource_id="test-role/test-role-policy",
+        ) == URN(
+            account_id="123456789012",
+            region="us-east-1",
+            service="iam",
+            resource_type="role_policy",
+            resource_id="test-role/test-role-policy",
+        )

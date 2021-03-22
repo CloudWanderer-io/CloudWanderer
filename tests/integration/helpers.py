@@ -9,6 +9,7 @@ import moto
 from jmespath.lexer import LexerError
 from moto import ec2
 
+from cloudwanderer import URN
 from cloudwanderer.cloud_wanderer_resource import CloudWandererResource
 
 DEFAULT_SESSION = boto3.Session(aws_access_key_id="11111111", aws_secret_access_key="111111", aws_session_token="1111")
@@ -120,7 +121,10 @@ class GenericAssertionHelpers:
             KeyError: Occurs when the key does not exist
         """
         try:
-            return str(getattr(resource, key))
+            value = getattr(resource, key)
+            if isinstance(value, URN):
+                return str(value)
+            return value
         except AttributeError:
             try:
                 return resource.get_secondary_attribute(jmes_path=key)

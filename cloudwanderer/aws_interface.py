@@ -64,20 +64,22 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
                 "for resource non-existence we are interpreting this as the resource does not exist."
             )
             return None
+        subresource_urns = []
+        if include_subresources:
+            for subresource in resource.get_subresources():
+                subresource_urns.append(subresource.urn)
+                yield CloudWandererResource(
+                    urn=subresource.urn,
+                    parent_urn=urn,
+                    resource_data=subresource.normalised_raw_data,
+                    secondary_attributes=list(subresource.get_secondary_attributes()),
+                )
         yield CloudWandererResource(
             urn=urn,
+            subresource_urns=subresource_urns,
             resource_data=resource.normalised_raw_data,
             secondary_attributes=list(resource.get_secondary_attributes()),
         )
-        if not include_subresources:
-            return
-        for subresource in resource.get_subresources():
-            yield CloudWandererResource(
-                urn=subresource.urn,
-                parent_urn=urn,
-                resource_data=subresource.normalised_raw_data,
-                secondary_attributes=list(subresource.get_secondary_attributes()),
-            )
 
     def get_resources(
         self, service_name: str, resource_type: str, region: str = None, **kwargs
@@ -98,18 +100,21 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
         try:
             for resource in service.get_resources(resource_type=resource_type):
                 logger.debug("Found %s", resource.urn)
-                yield CloudWandererResource(
-                    urn=resource.urn,
-                    resource_data=resource.normalised_raw_data,
-                    secondary_attributes=list(resource.get_secondary_attributes()),
-                )
+                subresource_urns = []
                 for subresource in resource.get_subresources():
+                    subresource_urns.append(subresource.urn)
                     yield CloudWandererResource(
                         urn=subresource.urn,
                         parent_urn=resource.urn,
                         resource_data=subresource.normalised_raw_data,
                         secondary_attributes=list(subresource.get_secondary_attributes()),
                     )
+                yield CloudWandererResource(
+                    urn=resource.urn,
+                    subresource_urns=subresource_urns,
+                    resource_data=resource.normalised_raw_data,
+                    secondary_attributes=list(resource.get_secondary_attributes()),
+                )
         except botocore.exceptions.EndpointConnectionError:
             logger.info("%s %s not supported in %s", service_name, resource_type, region)
             return

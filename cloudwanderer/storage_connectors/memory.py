@@ -72,8 +72,10 @@ class MemoryStorageConnector(BaseStorageConnector):
         self._data[str(resource.urn)]["BaseResource"] = standardise_data_types(
             resource.cloudwanderer_metadata.resource_data
         )
-        if resource.parent_urn is not None:
-            self._data[str(resource.urn)]["ParentUrn"] = resource.parent_urn
+
+        self._data[str(resource.urn)]["ParentUrn"] = resource.parent_urn
+        self._data[str(resource.urn)]["SubresourceUrns"] = resource.subresource_urns
+
         for secondary_attribute in resource.cloudwanderer_metadata.secondary_attributes:
             self._write_secondary_attribute(
                 urn=resource.urn, attribute_type=secondary_attribute.name, secondary_attribute=secondary_attribute
@@ -144,10 +146,15 @@ def memory_item_to_resource(urn: URN, items: dict = None, loader: Callable = Non
 
     """
     items = items or {}
-    attributes = [attribute for item_type, attribute in items.items() if item_type not in ["BaseResource", "ParentUrn"]]
+    attributes = [
+        attribute
+        for item_type, attribute in items.items()
+        if item_type not in ["SubresourceUrns", "BaseResource", "ParentUrn"]
+    ]
     base_resource = next(iter(resource for item_type, resource in items.items() if item_type == "BaseResource"), {})
     return CloudWandererResource(
         urn=urn,
+        subresource_urns=items.get("SubresourceUrns"),
         parent_urn=items.get("ParentUrn"),
         resource_data=base_resource,
         secondary_attributes=attributes,
