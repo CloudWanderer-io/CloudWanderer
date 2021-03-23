@@ -156,7 +156,7 @@ Once you've called :meth:`~cloudwanderer.cloud_wanderer_resource.CloudWandererRe
 the AWS resource that is returned by its describe method. E.g. for VPCs see :attr:`boto3:EC2.Client.describe_vpcs`.
 These attributes are stored as snake_case instead of the APIs camelCase, so ``isDefault`` becomes ``is_default``.
 
-Retrieving Role Policies
+Retrieving Subresources
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Let's say we want to get a list of role policies. We can start by getting the role
@@ -166,7 +166,7 @@ Let's say we want to get a list of role policies. We can start by getting the ro
     >>> role = next(storage_connector.read_resources(service_name='iam', resource_type='role'))
     >>> role.load()
 
-Next we need to find out what policies are attached.
+Next we need to find out what policies are attached, we can either do this with the secondary attributes.
 
 .. doctest ::
 
@@ -175,17 +175,18 @@ Next we need to find out what policies are attached.
     >>> role.get_secondary_attribute(jmes_path='[].PolicyNames[0]')
     ['test-role-policy']
 
+Or we can do it with the :attr:`~cloudwanderer.cloud_wanderer_resource.CloudWandererResource.subresource_urns` property.
+
+.. doctest ::
+
+    >>> role.subresource_urns
+    [URN(account_id='123456789012', region='us-east-1', service='iam', resource_type='role_policy', resource_id='test-role/test-role-policy')]
+
 Then we can lookup the inline policy
 
 .. doctest ::
 
-    >>> inline_policy_urn = cloudwanderer.URN(
-    ...     account_id = role.urn.account_id,
-    ...     region=role.urn.region,
-    ...     service='iam',
-    ...     resource_type='role_policy',
-    ...     resource_id=f"{role.urn.resource_id}/test-role-policy"
-    ... )
+    >>> inline_policy_urn = role.subresource_urns[0]
     >>> inline_policy = storage_connector.read_resource(urn=inline_policy_urn)
     >>> inline_policy.policy_document
     {'Version': '2012-10-17', 'Statement': {'Effect': 'Allow', 'Action': 's3:ListBucket', 'Resource': 'arn:aws:s3:::example_bucket'}}
@@ -226,6 +227,14 @@ Deleting Stale Resources
 
 CloudWanderer deletes resources which no longer exist automatically when you run:
 :meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resources`.
+
+This has some complexity with *regional* resources that only exist via global APIs.
+For example S3 buckets are regional resources, but S3 is a global *service* so when you call
+:meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resources` for S3 buckets
+in ``us-east-1`` you will get buckets from **all** regions due to the nature of the API.
+
+This also means that you will delete S3 buckets that no longer exist from **all** regions when you call
+:meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resources` in ``us-east-1``.
 
 Individual Resources
 ^^^^^^^^^^^^^^^^^^^^^
