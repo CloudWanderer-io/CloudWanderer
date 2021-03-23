@@ -58,7 +58,7 @@ class MemoryStorageConnector(BaseStorageConnector):
         """Return the raw dictionaries stored in memory."""
         for urn_str, items in self._data.items():
             for item_type, item in items.items():
-                item_dict = item if isinstance(item, dict) else {}
+                item_dict = item if isinstance(item, dict) else {"value": item}
                 yield {
                     **{
                         "urn": urn_str,

@@ -63,10 +63,21 @@ class TestCloudWandererWriteResource(unittest.TestCase, GenericAssertionHelpers)
                 "attr": "BaseResource",
                 "urn": "urn:aws:123456789012:us-east-1:iam:role_policy:test-role/test-role-policy",
             },
-            {"attr": "ParentUrn", "urn": "urn:aws:123456789012:us-east-1:iam:role_policy:test-role/test-role-policy"},
+            {
+                "attr": "ParentUrn",
+                "urn": "urn:aws:123456789012:us-east-1:iam:role_policy:test-role/test-role-policy",
+                "value": URN(
+                    account_id="123456789012",
+                    region="us-east-1",
+                    service="iam",
+                    resource_type="role",
+                    resource_id="test-role",
+                ),
+            },
             {
                 "attr": "SubresourceUrns",
                 "urn": "urn:aws:123456789012:us-east-1:iam:role_policy:test-role/test-role-policy",
+                "value": [],
             },
             {
                 "Arn": "arn:aws:iam::123456789012:role/test-role",
@@ -83,8 +94,20 @@ class TestCloudWandererWriteResource(unittest.TestCase, GenericAssertionHelpers)
                 "attr": "BaseResource",
                 "urn": "urn:aws:123456789012:us-east-1:iam:role:test-role",
             },
-            {"attr": "ParentUrn", "urn": "urn:aws:123456789012:us-east-1:iam:role:test-role"},
-            {"attr": "SubresourceUrns", "urn": "urn:aws:123456789012:us-east-1:iam:role:test-role"},
+            {"attr": "ParentUrn", "urn": "urn:aws:123456789012:us-east-1:iam:role:test-role", "value": None},
+            {
+                "attr": "SubresourceUrns",
+                "urn": "urn:aws:123456789012:us-east-1:iam:role:test-role",
+                "value": [
+                    URN(
+                        account_id="123456789012",
+                        region="us-east-1",
+                        service="iam",
+                        resource_type="role_policy",
+                        resource_id="test-role/test-role-policy",
+                    )
+                ],
+            },
             {
                 "IsTruncated": False,
                 "PolicyNames": ["test-role-policy"],
@@ -121,8 +144,8 @@ class TestCloudWandererWriteResource(unittest.TestCase, GenericAssertionHelpers)
                 "attr": "BaseResource",
                 "urn": "urn:aws:123456789012:eu-west-2:s3:bucket:test-eu-west-2",
             },
-            {"attr": "ParentUrn", "urn": "urn:aws:123456789012:eu-west-2:s3:bucket:test-eu-west-2"},
-            {"attr": "SubresourceUrns", "urn": "urn:aws:123456789012:eu-west-2:s3:bucket:test-eu-west-2"},
+            {"attr": "ParentUrn", "urn": "urn:aws:123456789012:eu-west-2:s3:bucket:test-eu-west-2", "value": None},
+            {"attr": "SubresourceUrns", "urn": "urn:aws:123456789012:eu-west-2:s3:bucket:test-eu-west-2", "value": []},
         ]
 
     @patch("cloudwanderer.storage_connectors.MemoryStorageConnector.delete_resource")
@@ -180,8 +203,16 @@ class TestCloudWandererWriteResource(unittest.TestCase, GenericAssertionHelpers)
                 "attr": "BaseResource",
                 "urn": "urn:aws:123456789012:eu-west-2:secretsmanager:secret:test-secret",
             },
-            {"attr": "ParentUrn", "urn": "urn:aws:123456789012:eu-west-2:secretsmanager:secret:test-secret"},
-            {"attr": "SubresourceUrns", "urn": "urn:aws:123456789012:eu-west-2:secretsmanager:secret:test-secret"},
+            {
+                "attr": "ParentUrn",
+                "urn": "urn:aws:123456789012:eu-west-2:secretsmanager:secret:test-secret",
+                "value": None,
+            },
+            {
+                "attr": "SubresourceUrns",
+                "urn": "urn:aws:123456789012:eu-west-2:secretsmanager:secret:test-secret",
+                "value": [],
+            },
         ]
 
     def test_cleanup_iam_role(self):

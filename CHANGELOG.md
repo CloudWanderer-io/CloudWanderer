@@ -1,5 +1,6 @@
 # 0.14.0
 
+ - Added `parent_urn` and `subresource_urn` properties to the `CloudWanderResource` class.
  - Added new DynamoDB secondary index `parent_urn`
  - Fixed bug where subresources were not cleaned up when `write_resource` was called on `CloudWanderer`
  - Changed `AWSInterface` `get_resources` to expect specific service, resource type, region arguments instead of reusing the arguments from CloudWanderer `write_resources`.
