@@ -1,4 +1,4 @@
-from cloudwanderer.cloud_wanderer_resource import CloudWandererResource, SecondaryAttribute
+from cloudwanderer.cloud_wanderer_resource import URN, CloudWandererResource, SecondaryAttribute
 
 from .helpers import get_default_mocker
 from .mocks import add_infra, generate_mock_session, generate_urn
@@ -34,8 +34,13 @@ class StorageWriteTestMixin:
         ]
         cls.role = CloudWandererResource(
             urn=generate_urn(service="iam", resource_type="role", id="test-role"),
-            resource_data={},
-            secondary_attributes=[],
+            resource_data={"RoleName": "test-role"},
+            subresource_urns=[
+                generate_urn(service="iam", resource_type="role_policy", id="test-role/test-role-policy")
+            ],
+            secondary_attributes=[
+                SecondaryAttribute(name="role_inline_policy_attachments", **{"PolicyNames": ["test-role"]})
+            ],
         )
         cls.role_policy_1 = CloudWandererResource(
             urn=generate_urn(service="iam", resource_type="role_policy", id="test-role/test-policy-1"),
@@ -56,11 +61,21 @@ class StorageWriteTestMixin:
 
     def test_write_resource_and_attribute(self):
 
-        self.connector.write_resource(resource=self.vpcs[0])
-        result = self.connector.read_resource(urn=self.vpcs[0].urn)
-        assert result.urn == self.vpcs[0].urn
-        assert result.is_default is True
-        assert result.cloudwanderer_metadata.secondary_attributes[0]["EnableDnsSupport"] == {"Value": True}
+        self.connector.write_resource(resource=self.role)
+        result = self.connector.read_resource(urn=self.role.urn)
+        result.load()
+        assert result.urn == self.role.urn
+        assert result.role_name == "test-role"
+        assert result.get_secondary_attribute(name="role_inline_policy_attachments") == [{"PolicyNames": ["test-role"]}]
+        assert result.subresource_urns == [
+            URN(
+                account_id="111111111111",
+                region="eu-west-2",
+                service="iam",
+                resource_type="role_policy",
+                resource_id="test-role/test-role-policy",
+            )
+        ]
 
     def test_write_and_delete(self):
         self.connector.write_resource(resource=self.ec2_instances[0])

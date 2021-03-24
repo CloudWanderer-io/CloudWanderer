@@ -7,7 +7,7 @@ import os
 import pathlib
 from functools import reduce
 from random import randrange
-from typing import Callable, Iterable, Iterator, List
+from typing import Any, Callable, Dict, Iterable, Iterator, List
 
 import boto3
 from boto3.dynamodb.conditions import Attr, ConditionBase, Key
@@ -90,21 +90,30 @@ def _dynamodb_items_to_resources(items: Iterable[dict], loader: Callable) -> Ite
     for _, group in itertools.groupby(items, lambda x: x["_id"]):
         grouped_items = list(group)
         attributes = [
-            SecondaryAttribute(name=attribute["_attr"], **attribute)
+            SecondaryAttribute(name=attribute["_attr"], **_strip_dynamodb_attrs(attribute))
             for attribute in grouped_items
             if attribute["_attr"] != "BaseResource"
         ]
-        base_resource = next(iter(resource for resource in grouped_items if resource["_attr"] == "BaseResource"))
+        base_resource = next(resource for resource in grouped_items if resource["_attr"] == "BaseResource")
         parent_urn = URN.from_string(base_resource["_parent_urn"]) if base_resource.get("_parent_urn") else None
         subresource_urns = [URN.from_string(urn) for urn in base_resource.get("_subresource_urns", [])]
         yield CloudWandererResource(
             urn=_urn_from_primary_key(base_resource["_id"]),
             parent_urn=parent_urn,
             subresource_urns=subresource_urns,
-            resource_data=base_resource,
+            resource_data=_strip_dynamodb_attrs(base_resource),
             secondary_attributes=attributes,
             loader=loader,
         )
+
+
+def _strip_dynamodb_attrs(raw_dict: Dict[str, Any]) -> Dict[str, Any]:
+    """Remove any underscore prefixed keys as these are attributes we use to identify the DynamoDB record.
+
+    Arguments:
+        raw_dict: The raw dictionary of the DynamoDB record that needs cleaning.
+    """
+    return {k: v for k, v in raw_dict.items() if not k.startswith("_")}
 
 
 class DynamoDbConnector(BaseStorageConnector):
