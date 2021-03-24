@@ -1,6 +1,6 @@
 import unittest
 
-from cloudwanderer import CloudWandererAWSInterface
+from cloudwanderer import URN, CloudWandererAWSInterface
 from cloudwanderer.exceptions import UnsupportedServiceError
 
 from ..helpers import GenericAssertionHelpers, get_default_mocker
@@ -41,7 +41,12 @@ class TestCloudWandererGetResources(unittest.TestCase, GenericAssertionHelpers):
         self.assert_dictionary_overlap(
             result,
             [
-                {"urn": "urn:aws:.*:us-east-1:iam:role:test-role"},
+                {
+                    "urn": "urn:aws:.*:us-east-1:iam:role:test-role",
+                    "subresource_urns": [
+                        URN.from_string("urn:aws:123456789012:us-east-1:iam:role_policy:test-role/test-role-policy"),
+                    ],
+                },
                 {
                     "urn": "urn:aws:.*:us-east-1:iam:role_policy:test-role/test-role-policy",
                     "parent_urn": "urn:aws:.*:us-east-1:iam:role:test-role",

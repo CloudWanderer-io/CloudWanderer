@@ -321,6 +321,15 @@ class StorageReadTestMixin(TestStorageConnectorReadMixin, GenericAssertionHelper
         )
 
         assert result[0].parent_urn is None
+        assert result[0].subresource_urns == [
+            cloudwanderer.URN(
+                account_id="222222222222",
+                region="us-east-1",
+                service="iam",
+                resource_type="role_policy",
+                resource_id="test-role/test-role-policy",
+            )
+        ]
         self.assert_has_matching_urns(result, self.expected_urns)
         self.assert_does_not_have_matching_urns(result, self.not_expected_urns)
 

@@ -7,20 +7,20 @@ from cloudwanderer.cloud_wanderer_resource import CloudWandererResource, Seconda
 
 class TestCloudWandererResource(unittest.TestCase):
     def test_default(self):
-        urn = URN.from_string("urn:aws:111111111111:eu-west-2:ec2:vpc:vpc-11111111")
+        urn = URN.from_string("urn:aws:111111111111:us-east-1:iam:role:test-role")
         cwr = CloudWandererResource(
             urn=urn,
-            resource_data={"CidrBlock": "10.0.0.0/0"},
+            resource_data={"RoleName": "test-role"},
+            subresource_urns=[URN.from_string("urn:aws:111111111111:us-east-1:iam:role_policy:test-role/test-policy")],
             secondary_attributes=[
-                SecondaryAttribute(name="vpc_enable_dns_support", **{"EnableDnsSupport": {"Value": True}})
+                SecondaryAttribute(name="role_inline_policy_attachments", **{"PolicyNames": ["test-policy"]})
             ],
         )
 
         assert cwr.urn == urn
-        assert cwr.cidr_block == "10.0.0.0/0"
-        assert cwr.get_secondary_attribute(jmes_path="[].EnableDnsSupport.Value")[0] is True
-        assert cwr.get_secondary_attribute(name="vpc_enable_dns_support") == [{"EnableDnsSupport": {"Value": True}}]
-        self.assertRaises(AttributeError, getattr, cwr, "enable_dns_support")
+        assert cwr.role_name == "test-role"
+        assert cwr.get_secondary_attribute(jmes_path="[].PolicyNames")[0] == ["test-policy"]
+        assert cwr.get_secondary_attribute(name="role_inline_policy_attachments") == [{"PolicyNames": ["test-policy"]}]
         assert cwr.is_inflated is True
 
     def test_clashing_attributes(self):
@@ -68,6 +68,7 @@ class TestCloudWandererResource(unittest.TestCase):
             "CloudWandererResource("
             "urn=URN(account_id='111111111111', region='eu-west-2', service='ec2', "
             "resource_type='vpc', resource_id='vpc-11111111'), "
+            "subresource_urns=[], "
             "parent_urn=None, "
             "resource_data={'CidrBlock': '10.0.0.0/0'}, secondary_attributes=[{'EnableDnsSupport': {'Value': True}}]"
             ")"
@@ -84,6 +85,7 @@ class TestCloudWandererResource(unittest.TestCase):
             "CloudWandererResource("
             "urn=URN(account_id='111111111111', region='eu-west-2', service='ec2', "
             "resource_type='vpc', resource_id='vpc-11111111'), "
+            "subresource_urns=[], "
             "parent_urn=None, "
             "resource_data={'CidrBlock': '10.0.0.0/0'}, secondary_attributes=[{'EnableDnsSupport': {'Value': True}}]"
             ")"

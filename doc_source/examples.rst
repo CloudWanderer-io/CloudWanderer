@@ -4,6 +4,32 @@ Examples
 Getting Started
 ------------------------------------------
 
+CloudWanderer is made up of three core components.
+
+1. The cloud interface (e.g. :class:`~cloudwanderer.aws_interface.CloudWandererAWSInterface`).
+   Responsible for discovering the resources that exist in your cloud provider.
+2. The storage connector (e.g. :class:`~cloudwanderer.storage_connectors.DynamoDbConnector`).
+   Responsible for storing the discovered resources in your storage mechanism of choice.
+3. The :class:`~cloudwanderer.cloud_wanderer.CloudWanderer` class.
+   Responsible for bringing the interface and storage connectors together to make them easier to work with.
+
+
+
+Testing with the Memory Connector
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you don't mind that your data is thrown away as soon as your ``python`` executable stops you can
+test CloudWanderer using the Memory Storage Connector!
+
+.. doctest ::
+
+    >>> import cloudwanderer
+    >>> wanderer = cloudwanderer.CloudWanderer(
+    ...     storage_connectors=[cloudwanderer.storage_connectors.MemoryStorageConnector()]
+    ... )
+
+It's wise to do this in an interactive environment otherwise you may spend an inordinate amount of time re-querying
+your AWS environment!
 
 Testing with a local DynamoDB
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -36,22 +62,6 @@ This creates an alternative storage connector that points at your local DynamoDB
 
 This passes the storage connector that points at your local DynamoDB into a new wanderer
 and now all subsequent CloudWanderer operations will occur against your local DynamoDB!
-
-Testing With the Memory Connector
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-If you don't mind that your data is thrown away as soon as your ``python`` executable stops you can
-test CloudWanderer using the Memory Storage Connector!
-
-.. doctest ::
-
-    >>> import cloudwanderer
-    >>> wanderer = cloudwanderer.CloudWanderer(
-    ...     storage_connectors=[cloudwanderer.storage_connectors.MemoryStorageConnector()]
-    ... )
-
-It's wise to do this in an interactive environment otherwise you may spend an inordinate amount of time re-querying
-your AWS environment!
 
 Writing Resources
 --------------------
@@ -117,7 +127,9 @@ without discovering all of the other resources of that type as well.
 
 .. warning::
 
-    If the resource is not found it will delete it from your storage connector.
+    If the resource is not found it will delete it from your storage connector. This applies to both
+    :meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resource` and
+    :meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resources`.
 
 
 Reading Resources
@@ -156,8 +168,25 @@ Once you've called :meth:`~cloudwanderer.cloud_wanderer_resource.CloudWandererRe
 the AWS resource that is returned by its describe method. E.g. for VPCs see :attr:`boto3:EC2.Client.describe_vpcs`.
 These attributes are stored as snake_case instead of the APIs camelCase, so ``isDefault`` becomes ``is_default``.
 
-Retrieving Role Policies
+Reading Subresources
+------------------------------------
+
+What is a Subresource?
 ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In CloudWanderer, a subresource is a resource which does not have its own unique identifier in the cloud provider. It depends upon
+its parent resource for its identity.
+
+An example of a subresource is a *AWS IAM Role Inline Policy*. The Role has an ARN (AWS's unique identifier), but the policy does not.
+When interacting with the AWS API you can only retrieve an inline policy by specifyng the policy name **and** the role name/ARN.
+This makes it qualify as a subresource in CloudWanderer terminology.
+
+This is unlike Boto3, where a subresource is any resource dependent on a parent resource (e.g. a subnet is a subresource of a VPC).
+A subnet does not fit the CloudWanderer definition of a subresource however, because a subnet has its own unique identifier and
+can therefore be retrieved from the API without specifying the VPC of which it is a part.
+
+How do I list Subresources?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Let's say we want to get a list of role policies. We can start by getting the role
 
@@ -166,7 +195,7 @@ Let's say we want to get a list of role policies. We can start by getting the ro
     >>> role = next(storage_connector.read_resources(service_name='iam', resource_type='role'))
     >>> role.load()
 
-Next we need to find out what policies are attached.
+Next we need to find out what policies are attached, we can either do this with the secondary attributes.
 
 .. doctest ::
 
@@ -175,28 +204,34 @@ Next we need to find out what policies are attached.
     >>> role.get_secondary_attribute(jmes_path='[].PolicyNames[0]')
     ['test-role-policy']
 
+Or we can do it with the :attr:`~cloudwanderer.cloud_wanderer_resource.CloudWandererResource.subresource_urns` property.
+
+.. doctest ::
+
+    >>> role.subresource_urns
+    [URN(account_id='123456789012', region='us-east-1', service='iam', resource_type='role_policy', resource_id='test-role/test-role-policy')]
+
 Then we can lookup the inline policy
 
 .. doctest ::
 
-    >>> inline_policy_urn = cloudwanderer.URN(
-    ...     account_id = role.urn.account_id,
-    ...     region=role.urn.region,
-    ...     service='iam',
-    ...     resource_type='role_policy',
-    ...     resource_id=f"{role.urn.resource_id}/test-role-policy"
-    ... )
+    >>> inline_policy_urn = role.subresource_urns[0]
     >>> inline_policy = storage_connector.read_resource(urn=inline_policy_urn)
     >>> inline_policy.policy_document
     {'Version': '2012-10-17', 'Statement': {'Effect': 'Allow', 'Action': 's3:ListBucket', 'Resource': 'arn:aws:s3:::example_bucket'}}
 
-Reading Secondary Resource Attributes
+Reading Secondary Attributes
 ---------------------------------------
+
+What is a Secondary Attribute?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Some resources require additional API calls beyond the initial
 ``list`` or ``describe`` call to retrieve all their metadata. These are known as Secondary Attributes.
-These secondary attributes are written as part of :meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resources`
-which we called earlier.
+These secondary attributes are written as part of :meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resources`.
+
+How do I retrieve Secondary Attributes?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Let's say we want to get the value of ``enableDnsSupport`` for a VPC.
 We can get this one of two ways, either by looping over the dictionaries in
@@ -226,6 +261,14 @@ Deleting Stale Resources
 
 CloudWanderer deletes resources which no longer exist automatically when you run:
 :meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resources`.
+
+This has some complexity with *regional* resources that only exist via global APIs.
+For example S3 buckets are regional resources, but S3 is a global *service* so when you call
+:meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resources` for S3 buckets
+in ``us-east-1`` you will get buckets from **all** regions due to the nature of the API.
+
+This also means that you will delete S3 buckets that no longer exist from **all** regions when you call
+:meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resources` in ``us-east-1``.
 
 Individual Resources
 ^^^^^^^^^^^^^^^^^^^^^

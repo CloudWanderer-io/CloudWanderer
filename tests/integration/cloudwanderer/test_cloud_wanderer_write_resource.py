@@ -50,6 +50,36 @@ class TestCloudWandererWriteResource(unittest.TestCase, GenericAssertionHelpers)
 
         assert list(self.storage_connector.read_all()) == [
             {
+                "PolicyDocument": {
+                    "Statement": {
+                        "Action": "s3:ListBucket",
+                        "Effect": "Allow",
+                        "Resource": "arn:aws:s3:::example_bucket",
+                    },
+                    "Version": "2012-10-17",
+                },
+                "PolicyName": "test-role-policy",
+                "RoleName": "test-role",
+                "attr": "BaseResource",
+                "urn": "urn:aws:123456789012:us-east-1:iam:role_policy:test-role/test-role-policy",
+            },
+            {
+                "attr": "ParentUrn",
+                "urn": "urn:aws:123456789012:us-east-1:iam:role_policy:test-role/test-role-policy",
+                "value": URN(
+                    account_id="123456789012",
+                    region="us-east-1",
+                    service="iam",
+                    resource_type="role",
+                    resource_id="test-role",
+                ),
+            },
+            {
+                "attr": "SubresourceUrns",
+                "urn": "urn:aws:123456789012:us-east-1:iam:role_policy:test-role/test-role-policy",
+                "value": [],
+            },
+            {
                 "Arn": "arn:aws:iam::123456789012:role/test-role",
                 "AssumeRolePolicyDocument": {},
                 "CreateDate": ANY,
@@ -63,6 +93,20 @@ class TestCloudWandererWriteResource(unittest.TestCase, GenericAssertionHelpers)
                 "Tags": None,
                 "attr": "BaseResource",
                 "urn": "urn:aws:123456789012:us-east-1:iam:role:test-role",
+            },
+            {"attr": "ParentUrn", "urn": "urn:aws:123456789012:us-east-1:iam:role:test-role", "value": None},
+            {
+                "attr": "SubresourceUrns",
+                "urn": "urn:aws:123456789012:us-east-1:iam:role:test-role",
+                "value": [
+                    URN(
+                        account_id="123456789012",
+                        region="us-east-1",
+                        service="iam",
+                        resource_type="role_policy",
+                        resource_id="test-role/test-role-policy",
+                    )
+                ],
             },
             {
                 "IsTruncated": False,
@@ -81,21 +125,6 @@ class TestCloudWandererWriteResource(unittest.TestCase, GenericAssertionHelpers)
                 "attr": "role_managed_policy_attachments",
                 "urn": "urn:aws:123456789012:us-east-1:iam:role:test-role",
             },
-            {
-                "PolicyDocument": {
-                    "Statement": {
-                        "Action": "s3:ListBucket",
-                        "Effect": "Allow",
-                        "Resource": "arn:aws:s3:::example_bucket",
-                    },
-                    "Version": "2012-10-17",
-                },
-                "PolicyName": "test-role-policy",
-                "RoleName": "test-role",
-                "attr": "BaseResource",
-                "urn": "urn:aws:123456789012:us-east-1:iam:role_policy:test-role/test-role-policy",
-            },
-            {"attr": "ParentUrn", "urn": "urn:aws:123456789012:us-east-1:iam:role_policy:test-role/test-role-policy"},
         ]
 
     def test_write_valid_s3_bucket_eu_west_2(self):
@@ -115,6 +144,8 @@ class TestCloudWandererWriteResource(unittest.TestCase, GenericAssertionHelpers)
                 "attr": "BaseResource",
                 "urn": "urn:aws:123456789012:eu-west-2:s3:bucket:test-eu-west-2",
             },
+            {"attr": "ParentUrn", "urn": "urn:aws:123456789012:eu-west-2:s3:bucket:test-eu-west-2", "value": None},
+            {"attr": "SubresourceUrns", "urn": "urn:aws:123456789012:eu-west-2:s3:bucket:test-eu-west-2", "value": []},
         ]
 
     @patch("cloudwanderer.storage_connectors.MemoryStorageConnector.delete_resource")
@@ -171,7 +202,17 @@ class TestCloudWandererWriteResource(unittest.TestCase, GenericAssertionHelpers)
                 "VersionIdsToStages": ANY,
                 "attr": "BaseResource",
                 "urn": "urn:aws:123456789012:eu-west-2:secretsmanager:secret:test-secret",
-            }
+            },
+            {
+                "attr": "ParentUrn",
+                "urn": "urn:aws:123456789012:eu-west-2:secretsmanager:secret:test-secret",
+                "value": None,
+            },
+            {
+                "attr": "SubresourceUrns",
+                "urn": "urn:aws:123456789012:eu-west-2:secretsmanager:secret:test-secret",
+                "value": [],
+            },
         ]
 
     def test_cleanup_iam_role(self):
