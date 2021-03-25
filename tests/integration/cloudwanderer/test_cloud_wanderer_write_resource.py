@@ -6,28 +6,24 @@ import boto3
 from cloudwanderer import URN, CloudWanderer
 from cloudwanderer.storage_connectors import MemoryStorageConnector
 
-from ..helpers import DEFAULT_SESSION, get_default_mocker
+from ..helpers import DEFAULT_SESSION, GenericAssertionHelpers, get_default_mocker
 from ..mocks import add_infra
 
 
-class TestCloudWandererWriteResource(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.enabled_regions = ["eu-west-2", "us-east-1", "ap-east-1"]
+class TestCloudWandererWriteResource(unittest.TestCase, GenericAssertionHelpers):
+    def setUp(self):
+        self.enabled_regions = ["eu-west-2", "us-east-1", "ap-east-1"]
         mocker = get_default_mocker()
         mocker.start_moto_services(mocker.default_moto_services + ["mock_secretsmanager"])
-        add_infra(regions=cls.enabled_regions)
+        add_infra(regions=self.enabled_regions)
         secretsmanager = boto3.client("secretsmanager")
         secretsmanager.create_secret(Name="test-secret", SecretString="Ssshhh")
-        cls.instances = list(DEFAULT_SESSION.resource("ec2").instances.all())
-
-    @classmethod
-    def tearDownClass(cls):
-        get_default_mocker().stop_general_mock()
-
-    def setUp(self):
+        self.instances = list(DEFAULT_SESSION.resource("ec2").instances.all())
         self.storage_connector = MemoryStorageConnector()
         self.wanderer = CloudWanderer(storage_connectors=[self.storage_connector])
+
+    def tearDown(self) -> None:
+        get_default_mocker().stop_general_mock()
 
     def test_write_valid_ec2_instance(self):
         self.wanderer.write_resource(
@@ -54,6 +50,36 @@ class TestCloudWandererWriteResource(unittest.TestCase):
 
         assert list(self.storage_connector.read_all()) == [
             {
+                "PolicyDocument": {
+                    "Statement": {
+                        "Action": "s3:ListBucket",
+                        "Effect": "Allow",
+                        "Resource": "arn:aws:s3:::example_bucket",
+                    },
+                    "Version": "2012-10-17",
+                },
+                "PolicyName": "test-role-policy",
+                "RoleName": "test-role",
+                "attr": "BaseResource",
+                "urn": "urn:aws:123456789012:us-east-1:iam:role_policy:test-role/test-role-policy",
+            },
+            {
+                "attr": "ParentUrn",
+                "urn": "urn:aws:123456789012:us-east-1:iam:role_policy:test-role/test-role-policy",
+                "value": URN(
+                    account_id="123456789012",
+                    region="us-east-1",
+                    service="iam",
+                    resource_type="role",
+                    resource_id="test-role",
+                ),
+            },
+            {
+                "attr": "SubresourceUrns",
+                "urn": "urn:aws:123456789012:us-east-1:iam:role_policy:test-role/test-role-policy",
+                "value": [],
+            },
+            {
                 "Arn": "arn:aws:iam::123456789012:role/test-role",
                 "AssumeRolePolicyDocument": {},
                 "CreateDate": ANY,
@@ -67,6 +93,20 @@ class TestCloudWandererWriteResource(unittest.TestCase):
                 "Tags": None,
                 "attr": "BaseResource",
                 "urn": "urn:aws:123456789012:us-east-1:iam:role:test-role",
+            },
+            {"attr": "ParentUrn", "urn": "urn:aws:123456789012:us-east-1:iam:role:test-role", "value": None},
+            {
+                "attr": "SubresourceUrns",
+                "urn": "urn:aws:123456789012:us-east-1:iam:role:test-role",
+                "value": [
+                    URN(
+                        account_id="123456789012",
+                        region="us-east-1",
+                        service="iam",
+                        resource_type="role_policy",
+                        resource_id="test-role/test-role-policy",
+                    )
+                ],
             },
             {
                 "IsTruncated": False,
@@ -84,20 +124,6 @@ class TestCloudWandererWriteResource(unittest.TestCase):
                 "IsTruncated": False,
                 "attr": "role_managed_policy_attachments",
                 "urn": "urn:aws:123456789012:us-east-1:iam:role:test-role",
-            },
-            {
-                "PolicyDocument": {
-                    "Statement": {
-                        "Action": "s3:ListBucket",
-                        "Effect": "Allow",
-                        "Resource": "arn:aws:s3:::example_bucket",
-                    },
-                    "Version": "2012-10-17",
-                },
-                "PolicyName": "test-role-policy",
-                "RoleName": "test-role",
-                "attr": "BaseResource",
-                "urn": "urn:aws:123456789012:us-east-1:iam:role_policy:test-role/test-role-policy",
             },
         ]
 
@@ -118,6 +144,8 @@ class TestCloudWandererWriteResource(unittest.TestCase):
                 "attr": "BaseResource",
                 "urn": "urn:aws:123456789012:eu-west-2:s3:bucket:test-eu-west-2",
             },
+            {"attr": "ParentUrn", "urn": "urn:aws:123456789012:eu-west-2:s3:bucket:test-eu-west-2", "value": None},
+            {"attr": "SubresourceUrns", "urn": "urn:aws:123456789012:eu-west-2:s3:bucket:test-eu-west-2", "value": []},
         ]
 
     @patch("cloudwanderer.storage_connectors.MemoryStorageConnector.delete_resource")
@@ -174,5 +202,49 @@ class TestCloudWandererWriteResource(unittest.TestCase):
                 "VersionIdsToStages": ANY,
                 "attr": "BaseResource",
                 "urn": "urn:aws:123456789012:eu-west-2:secretsmanager:secret:test-secret",
-            }
+            },
+            {
+                "attr": "ParentUrn",
+                "urn": "urn:aws:123456789012:eu-west-2:secretsmanager:secret:test-secret",
+                "value": None,
+            },
+            {
+                "attr": "SubresourceUrns",
+                "urn": "urn:aws:123456789012:eu-west-2:secretsmanager:secret:test-secret",
+                "value": [],
+            },
         ]
+
+    def test_cleanup_iam_role(self):
+        role_urn = URN(
+            account_id="123456789012",
+            region="us-east-1",
+            service="iam",
+            resource_type="role",
+            resource_id="test-role",
+        )
+        role_keys = [
+            {"attr": "BaseResource", "urn": "urn:aws:123456789012:us-east-1:iam:role:test-role"},
+            {"attr": "role_inline_policy_attachments", "urn": "urn:aws:123456789012:us-east-1:iam:role:test-role"},
+            {"attr": "role_managed_policy_attachments", "urn": "urn:aws:123456789012:us-east-1:iam:role:test-role"},
+            {
+                "attr": "BaseResource",
+                "urn": "urn:aws:123456789012:us-east-1:iam:role_policy:test-role/test-role-policy",
+            },
+        ]
+
+        # Initial discovery
+        self.wanderer.write_resource(urn=role_urn)
+        self.assert_dictionary_overlap(self.storage_connector.read_all(), role_keys)
+
+        # Delete the role from AWS
+        iam_resource = boto3.resource("iam")
+        iam_resource.Role("test-role").detach_policy(
+            PolicyArn="arn:aws:iam::aws:policy/aws-service-role/APIGatewayServiceRolePolicy"
+        )
+        iam_resource.Role("test-role").Policy("test-role-policy").delete()
+        iam_resource.Role("test-role").delete()
+
+        # Delete the role from storage
+        self.wanderer.write_resource(urn=role_urn)
+        self.assert_no_dictionary_overlap(self.storage_connector.read_all(), role_keys)

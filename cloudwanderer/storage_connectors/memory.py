@@ -42,10 +42,10 @@ class MemoryStorageConnector(BaseStorageConnector):
             urn = URN.from_string(urn_str)
             if kwargs.get("urn") is not None:
                 if urn == kwargs["urn"]:
-                    yield memory_item_to_resource(urn, loader=self.read_resource)
+                    yield memory_item_to_resource(urn, items, loader=self.read_resource)
                 continue
             if self._urn_matches_kwargs(urn, **kwargs):
-                yield memory_item_to_resource(urn, loader=self.read_resource)
+                yield memory_item_to_resource(urn, items, loader=self.read_resource)
 
     def _urn_matches_kwargs(self, urn: URN, **kwargs) -> bool:
         filter_items = ("account_id", "region", "service", "resource_type")
@@ -58,12 +58,13 @@ class MemoryStorageConnector(BaseStorageConnector):
         """Return the raw dictionaries stored in memory."""
         for urn_str, items in self._data.items():
             for item_type, item in items.items():
+                item_dict = item if isinstance(item, dict) else {"value": item}
                 yield {
                     **{
                         "urn": urn_str,
                         "attr": item_type,
                     },
-                    **item,
+                    **item_dict,
                 }
 
     def write_resource(self, resource: CloudWandererResource) -> None:
@@ -71,6 +72,10 @@ class MemoryStorageConnector(BaseStorageConnector):
         self._data[str(resource.urn)]["BaseResource"] = standardise_data_types(
             resource.cloudwanderer_metadata.resource_data
         )
+
+        self._data[str(resource.urn)]["ParentUrn"] = resource.parent_urn
+        self._data[str(resource.urn)]["SubresourceUrns"] = resource.subresource_urns
+
         for secondary_attribute in resource.cloudwanderer_metadata.secondary_attributes:
             self._write_secondary_attribute(
                 urn=resource.urn, attribute_type=secondary_attribute.name, secondary_attribute=secondary_attribute
@@ -95,6 +100,12 @@ class MemoryStorageConnector(BaseStorageConnector):
             del self._data[str(urn)]
         except KeyError:
             pass
+        subresources_to_delete = set()
+        for subresource_urn, resource_dict in self._data.items():
+            if resource_dict.get("ParentUrn") == urn:
+                subresources_to_delete.add(subresource_urn)
+        for subresource_urn in subresources_to_delete:
+            del self._data[subresource_urn]
 
     def delete_resource_of_type_in_account_region(
         self, service: str, resource_type: str, account_id: str, region: str, urns_to_keep: List[URN] = None
@@ -135,6 +146,17 @@ def memory_item_to_resource(urn: URN, items: dict = None, loader: Callable = Non
 
     """
     items = items or {}
-    attributes = [attribute for item_type, attribute in items.items() if item_type != "BaseResource"]
+    attributes = [
+        attribute
+        for item_type, attribute in items.items()
+        if item_type not in ["SubresourceUrns", "BaseResource", "ParentUrn"]
+    ]
     base_resource = next(iter(resource for item_type, resource in items.items() if item_type == "BaseResource"), {})
-    return CloudWandererResource(urn=urn, resource_data=base_resource, secondary_attributes=attributes, loader=loader)
+    return CloudWandererResource(
+        urn=urn,
+        subresource_urns=items.get("SubresourceUrns"),
+        parent_urn=items.get("ParentUrn"),
+        resource_data=base_resource,
+        secondary_attributes=attributes,
+        loader=loader,
+    )

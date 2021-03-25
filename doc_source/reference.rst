@@ -11,3 +11,4 @@ Reference
     reference/storage_connectors
     reference/urn
     reference/exceptions
+    reference/models

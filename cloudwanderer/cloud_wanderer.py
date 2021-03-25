@@ -76,25 +76,31 @@ class CloudWanderer:
 
         """
         urns = []
-        resources = self.cloud_interface.get_resources(
+        actions = self.cloud_interface.get_actions(
             regions=regions,
             service_names=service_names,
             resource_types=resource_types,
             exclude_resources=exclude_resources,
             **kwargs,
         )
-        for resource in resources:
-            urns.extend(list(self._write_resource(resource)))
-
-        for storage_connector in self.storage_connectors:
-            self.cloud_interface.cleanup_resources(
-                storage_connector=storage_connector,
-                regions=regions,
-                service_names=service_names,
-                resource_types=resource_types,
-                exclude_resources=exclude_resources,
-                urns_to_keep=urns,
-            )
+        for action_set in actions:
+            for get_action in action_set.get_actions:
+                resources = self.cloud_interface.get_resources(
+                    region=get_action.region,
+                    service_name=get_action.service_name,
+                    resource_type=get_action.resource_type,
+                )
+                for resource in resources:
+                    urns.extend(list(self._write_resource(resource)))
+            for cleanup_action in action_set.cleanup_actions:
+                for storage_connector in self.storage_connectors:
+                    storage_connector.delete_resource_of_type_in_account_region(
+                        account_id=self.cloud_interface.account_id,
+                        region=cleanup_action.region,
+                        service=cleanup_action.service_name,
+                        resource_type=cleanup_action.resource_type,
+                        urns_to_keep=urns,
+                    )
 
     def write_resources_concurrently(
         self,

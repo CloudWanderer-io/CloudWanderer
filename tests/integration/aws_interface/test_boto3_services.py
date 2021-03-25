@@ -9,6 +9,7 @@ from cloudwanderer.boto3_services import (
     ResourceSummary,
 )
 from cloudwanderer.cloud_wanderer_resource import SecondaryAttribute
+from cloudwanderer.models import CleanupAction, GetAction, GetAndCleanUp
 from cloudwanderer.urn import URN
 
 from ..helpers import DEFAULT_SESSION, get_default_mocker
@@ -84,6 +85,10 @@ class TestBoto3Services(unittest.TestCase):
 
         with self.assertRaises(cloudwanderer.exceptions.BadUrnSubResourceError):
             self.services.get_resource_from_urn(urn)
+
+    def test_get_enabled_regions(self):
+        for region in ["us-east-1", "ap-northeast-1", "eu-west-2"]:
+            assert region in self.services.enabled_regions
 
 
 class TestCloudWandererBoto3Service(unittest.TestCase):
@@ -301,3 +306,27 @@ class TestCloudWandererBoto3Resource(unittest.TestCase):
             },
             "RoleName": "test-role",
         }
+
+    def test_get_and_cleanup_actions_regional_resource(self):
+        assert self.resource.get_and_cleanup_actions == GetAndCleanUp(
+            get_actions=[GetAction(service_name="ec2", region="eu-west-2", resource_type="vpc")],
+            cleanup_actions=[CleanupAction(service_name="ec2", region="eu-west-2", resource_type="vpc")],
+        )
+
+    def test_get_and_cleanup_actions_global_service_regional_resource(self):
+        assert self.bucket_resources[0].get_and_cleanup_actions == GetAndCleanUp(
+            get_actions=[GetAction(service_name="s3", region="us-east-1", resource_type="bucket")],
+            cleanup_actions=[
+                CleanupAction(service_name="s3", region=region, resource_type="bucket")
+                for region in self.service.enabled_regions
+            ],
+        )
+
+    def test_get_and_cleanup_actions_global_service_global_resource(self):
+        assert self.role_resource.get_and_cleanup_actions == GetAndCleanUp(
+            get_actions=[GetAction(service_name="iam", region="us-east-1", resource_type="role")],
+            cleanup_actions=[
+                CleanupAction(service_name="iam", region="us-east-1", resource_type="role"),
+                CleanupAction(service_name="iam", region="us-east-1", resource_type="role_policy"),
+            ],
+        )

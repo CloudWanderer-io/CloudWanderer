@@ -23,7 +23,7 @@ class TestBoto3InterfaceGetResource(unittest.TestCase, GenericAssertionHelpers):
 
     @classmethod
     def tearDownClass(cls):
-        get_default_mocker().stop_general_mock()
+        get_default_mocker().stop_moto_services()
 
     def setUp(self):
         self.aws_interface = CloudWandererAWSInterface()
@@ -42,7 +42,7 @@ class TestBoto3InterfaceGetResource(unittest.TestCase, GenericAssertionHelpers):
         assert set(self.instances[0].meta.data).issubset(next(result).cloudwanderer_metadata.resource_data)
 
     def test_get_valid_iam_role(self):
-        result = next(
+        result = list(
             self.aws_interface.get_resource(
                 urn=URN(
                     account_id="123456789012",
@@ -52,7 +52,7 @@ class TestBoto3InterfaceGetResource(unittest.TestCase, GenericAssertionHelpers):
                     resource_id="test-role",
                 )
             )
-        )
+        )[1]
 
         assert result.cloudwanderer_metadata.resource_data == {
             "Arn": "arn:aws:iam::123456789012:role/test-role",
@@ -78,6 +78,15 @@ class TestBoto3InterfaceGetResource(unittest.TestCase, GenericAssertionHelpers):
                 ],
                 "IsTruncated": False,
             },
+        ]
+        assert result.subresource_urns == [
+            URN(
+                account_id="123456789012",
+                region="us-east-1",
+                service="iam",
+                resource_type="role_policy",
+                resource_id="test-role/test-role-policy",
+            )
         ]
 
     def test_get_valid_s3_bucket_eu_west_2(self):
@@ -187,7 +196,7 @@ class TestBoto3InterfaceGetResource(unittest.TestCase, GenericAssertionHelpers):
             )
         )
 
-        assert results[1].cloudwanderer_metadata.resource_data == {
+        assert results[0].cloudwanderer_metadata.resource_data == {
             "PolicyDocument": {
                 "Statement": {"Action": "s3:ListBucket", "Effect": "Allow", "Resource": "arn:aws:s3:::example_bucket"},
                 "Version": "2012-10-17",
