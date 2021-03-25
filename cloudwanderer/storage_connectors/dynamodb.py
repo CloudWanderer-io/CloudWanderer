@@ -184,12 +184,10 @@ class DynamoDbConnector(BaseStorageConnector):
         item = {
             **self._generate_urn_index_values(resource.urn),
             **standardise_data_types(resource.cloudwanderer_metadata.resource_data or {}),
-            **{
-                "_subresource_urns": [str(urn) for urn in resource.subresource_urns],
-                "_parent_urn": str(resource.parent_urn) if resource.parent_urn else None,
-            },
+            **{"_subresource_urns": [str(urn) for urn in resource.subresource_urns]},
         }
-
+        if resource.parent_urn:
+            item["_parent_urn"] = str(resource.parent_urn)
         self.dynamodb_table.put_item(Item=item)
         for secondary_attribute in resource.cloudwanderer_metadata.secondary_attributes:
             self._write_secondary_attribute(
