@@ -8,16 +8,20 @@ import pathlib
 import sys
 from functools import reduce
 from random import randrange
-from typing import Any, Callable, Dict, Generator, Iterable, Iterator, List, Optional, TypedDict, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, Generator, Iterable, Iterator, List, Optional, Union
 
 if sys.version_info >= (3, 8):
-    from typing import Literal
+    from typing import Literal, TypedDict
 else:
-    from typing_extensions import Literal
+    from typing_extensions import Literal, TypedDict
 
 import boto3
 from boto3.dynamodb.conditions import Attr, ConditionBase, Key
-from mypy_boto3_dynamodb import DynamoDBServiceResource
+
+if TYPE_CHECKING:
+    from mypy_boto3_dynamodb import DynamoDBServiceResource
+else:
+    DynamoDBServiceResource = object
 
 from ..cloud_wanderer_resource import CloudWandererResource, SecondaryAttribute
 from ..urn import URN

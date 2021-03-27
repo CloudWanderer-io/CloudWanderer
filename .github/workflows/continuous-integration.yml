@@ -26,6 +26,9 @@ jobs:
       - name: Lint with pydocstyle
         run: |
           pydocstyle
+      - name: Type check with mypy
+        run: |
+          mypy cloudwanderer
       - name: Test with pytest
         run: |
           pytest
