@@ -1,10 +1,11 @@
 """Helper classes and methods for interacting with boto3."""
 import logging
-from functools import lru_cache
 from typing import List
 
 import boto3
-import botocore
+import botocore  # type: ignore
+
+from .typing_helpers import lru_cache_property
 
 logger = logging.getLogger(__name__)
 
@@ -12,21 +13,24 @@ logger = logging.getLogger(__name__)
 class Boto3CommonAttributesMixin:
     """Mixin that provides common informational attributes unique to boto3."""
 
-    @property
-    @lru_cache()
+    def __init__(self) -> None:
+        self.boto3_session = boto3.session.Session()
+
+    @property  # type: ignore
+    @lru_cache_property
     def account_id(self) -> str:
         """Return the AWS Account ID our Boto3 session is authenticated against."""
         sts = self.boto3_session.client("sts")
         return sts.get_caller_identity()["Account"]
 
-    @property
-    @lru_cache()
+    @property  # type: ignore
+    @lru_cache_property
     def region_name(self) -> str:
         """Return the default AWS region."""
         return self.boto3_session.region_name
 
-    @property
-    @lru_cache()
+    @property  # type: ignore
+    @lru_cache_property  # type: ignore
     def enabled_regions(self) -> List[str]:
         """Return a list of enabled regions in this account."""
         regions = self.boto3_session.client("ec2").describe_regions()["Regions"]

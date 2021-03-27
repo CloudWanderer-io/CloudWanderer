@@ -18,11 +18,11 @@ Glossary:
 
 import logging
 from functools import lru_cache
-from typing import Callable, Iterator, List, NamedTuple, Tuple
+from typing import Generator, List, NamedTuple, Optional, Tuple, Type
 
 import boto3
-import botocore
-import jmespath
+import botocore  # type: ignore
+import jmespath  # type: ignore
 from boto3.resources.base import ServiceResource
 from boto3.resources.factory import ResourceFactory
 from boto3.resources.model import Action, Collection, ResourceModel
@@ -40,6 +40,7 @@ from .exceptions import (
     UnsupportedResourceTypeError,
 )
 from .models import CleanupAction, GetAction, GetAndCleanUp
+from .typing_helpers import lru_cache_property
 from .urn import URN
 
 logger = logging.getLogger(__file__)
@@ -54,11 +55,11 @@ class CloudWandererBoto3ResourceFactory:
         Arguments:
             boto3_session (boto3.session.Session): The :class:`boto3.session.Session` object to use for any queries.
         """
-        self.boto3_session = boto3_session or boto3.Session()
+        self.boto3_session = boto3_session or boto3.session.Session()
         self.emitter = self.boto3_session.events
         self.factory = ResourceFactory(self.emitter)
 
-    def load(self, service_name: str, resource_definitions: dict, service_definition: dict) -> ResourceModel:
+    def load(self, service_name: str, resource_definitions: dict, service_definition: dict) -> Type:
         """Load the specified resource definition dictionaries into a Resource object.
 
         Arguments:
@@ -92,7 +93,7 @@ class CloudWandererBoto3ResourceFactory:
             service_name: The service name to get the service model of.
         """
         logger.debug("Getting service model for %s", service_name)
-        client = self.boto3_session.client(service_name)
+        client = self.boto3_session.client(service_name=service_name)
         return client.meta.service_model
 
 
@@ -139,8 +140,8 @@ class Boto3Services:
         """Return a list of service names that can be loaded by :meth:`Boto3Services.get_service`."""
         return self._loader.available_services
 
-    @property
-    @lru_cache()
+    @property  # type: ignore
+    @lru_cache_property
     def account_id(self) -> str:
         """Return the AWS Account ID our Boto3 session is authenticated against."""
         if self._account_id:
@@ -202,11 +203,11 @@ class Boto3Services:
         logger.debug("Getting default client for %s", service_name)
         return self._get_client(service_name=service_name, region_name="us-east-1")
 
-    def _get_client(self, service_name: str, region_name: str, **kwargs) -> botocore.client.BaseClient:
+    def _get_client(self, service_name: str, region_name: str = None, **kwargs) -> botocore.client.BaseClient:
         return self.boto3_session.client(service_name, region_name=region_name, **kwargs)
 
     @lru_cache()
-    def _get_service_method(self, service_name: str) -> Callable:
+    def _get_service_method(self, service_name: str) -> Type:
         logger.debug("Getting service_method for %s", service_name)
         service_definition = self._loader.get_service_definition(service_name=service_name)
         return self._factory.load(
@@ -236,8 +237,8 @@ class Boto3Services:
             raise BadUrnRegionError(f"{urn}'s service does not have resources in {urn.region}")
         return service.get_resource_from_urn(urn)
 
-    @property
-    @lru_cache()
+    @property  # type: ignore
+    @lru_cache_property
     def enabled_regions(self) -> List[str]:
         """Return a list of enabled regions in this account."""
         regions = self.boto3_session.client("ec2").describe_regions()["Regions"]
@@ -257,8 +258,8 @@ class CloudWandererBoto3Service:
         boto3_service: ServiceResource,
         service_map: ServiceMap,
         account_id: str,
-        region_name: str,
         boto3_session: boto3.session.Session,
+        region_name: str = None,
         enabled_regions: List[str] = None,
     ) -> None:
         """Instantiate CloudWandererBoto3Service.
@@ -281,11 +282,13 @@ class CloudWandererBoto3Service:
     @property
     def resource_types(self) -> List[str]:
         """Return a list of snake_case resource types available on this service."""
-        collection_resource_types = [collection.resource.type for collection in self._collections]
+        collection_resource_types = [
+            collection.resource.type for collection in self._collections if collection.resource
+        ]
         return [
             botocore.xform_name(resource.name)
             for resource in self._subresources
-            if resource.resource.type in collection_resource_types
+            if resource.resource and resource.resource.type in collection_resource_types
         ]
 
     @property
@@ -295,6 +298,9 @@ class CloudWandererBoto3Service:
 
         for resource_type in self.resource_types:
             resource = self._get_empty_resource(resource_type)
+            if not resource:
+                logger.debug("No %s resource type found %s", resource_type, self.name)
+                continue
             summaries.append(
                 ResourceSummary(
                     resource_type=resource_type,
@@ -304,7 +310,7 @@ class CloudWandererBoto3Service:
             )
         return summaries
 
-    def _get_empty_resource(self, resource_type: str) -> "CloudWandererBoto3Resource":
+    def _get_empty_resource(self, resource_type: str) -> Optional["CloudWandererBoto3Resource"]:
         """Return a resource object of resource_type which is not associated with a specific AWS resource.
 
         Useful for interrogating metadata about that type of resource.
@@ -314,6 +320,8 @@ class CloudWandererBoto3Service:
         """
         boto3_resource = self._get_boto3_resource(resource_type)
         boto3_resource_getter = getattr(self.boto3_service, boto3_resource.name)
+        if not boto3_resource.resource:
+            return None
         blank_args = ["" for identifier in boto3_resource.resource.identifiers]
         return CloudWandererBoto3Resource(
             account_id=self.account_id,
@@ -336,8 +344,8 @@ class CloudWandererBoto3Service:
             botocore.exceptions.ClientError: Boto3 Client Error
         """
         try:
-            boto3_resource = self._get_boto3_resource(urn.resource_type)
-            boto3_resource_getter = getattr(self.boto3_service, boto3_resource.name)
+            boto3_service_resource = self._get_boto3_resource(urn.resource_type)
+            boto3_resource_getter = getattr(self.boto3_service, boto3_service_resource.name)
             boto3_resource = boto3_resource_getter(urn.resource_id)
         except ValueError:
             raise BadUrnSubResourceError(f"{urn} is a sub resource, please call get_resource against its parent.")
@@ -361,7 +369,7 @@ class CloudWandererBoto3Service:
             service_map=self.service_map,
         )
 
-    def _get_boto3_resource(self, resource_type: str) -> Callable:
+    def _get_boto3_resource(self, resource_type: str) -> Action:
         """Return a callable Boto3 service resource of resource_type.
 
         Arguments:
@@ -372,7 +380,7 @@ class CloudWandererBoto3Service:
         )
         return action
 
-    def get_resources(self, resource_type: str) -> Iterator["CloudWandererBoto3Resource"]:
+    def get_resources(self, resource_type: str) -> Generator["CloudWandererBoto3Resource", None, None]:
         """Yield all resources of resource_type in this region.
 
         Arguments:
@@ -392,7 +400,7 @@ class CloudWandererBoto3Service:
             for boto3_resource in collection.all()
         )
 
-    def _get_collection_from_resource_type(self, resource_type: str) -> Collection:
+    def _get_collection_from_resource_type(self, resource_type: str) -> Optional[Collection]:
         """Return a collection given a CloudWanderer style (snake_case singular) resource type.
 
         The resource type we're passed in is NOT a Boto3 style resource type.
@@ -406,7 +414,7 @@ class CloudWandererBoto3Service:
             return None
         return self._get_collection_from_boto3_resource_type(boto3_resource_type)
 
-    def _get_boto3_resource_type_from_subresource_name(self, subresource_name: str) -> str:
+    def _get_boto3_resource_type_from_subresource_name(self, subresource_name: str) -> Optional[str]:
         """Return the resource_type for a given subresource name.
 
         Resource names *almost* always match their resource type, but not always.
@@ -419,7 +427,7 @@ class CloudWandererBoto3Service:
             (
                 resource.resource.type
                 for resource in self._subresources
-                if botocore.xform_name(resource.name) == subresource_name
+                if botocore.xform_name(resource.name) == subresource_name and resource.resource
             ),
             None,
         )
@@ -430,7 +438,11 @@ class CloudWandererBoto3Service:
         Arguments:
             boto3_resource_type: The PascalCase name for the Boto3 resource type.
         """
-        return next(collection for collection in self._collections if collection.resource.type == boto3_resource_type)
+        return next(
+            collection
+            for collection in self._collections
+            if collection.resource and collection.resource.type == boto3_resource_type
+        )
 
     @property
     def _collections(self) -> List[Collection]:
@@ -438,7 +450,7 @@ class CloudWandererBoto3Service:
 
     @property
     def _subresources(self) -> List[Action]:
-        return self.boto3_service.meta.resource_model.subresources
+        return self.boto3_service.meta.resource_model.subresources  # type: ignore
 
     @property
     def region(self) -> str:
@@ -575,7 +587,7 @@ class CloudWandererBoto3Resource:
             names.append(botocore.xform_name(secondary_attribute_model.name))
         return names
 
-    def get_secondary_attributes(self) -> Iterator[boto3.resources.base.ServiceResource]:
+    def get_secondary_attributes(self) -> Generator[SecondaryAttribute, None, None]:
         """Return the secondary attributes for this resource."""
         for secondary_attribute_model in self.secondary_attribute_models:
             secondary_attribute = getattr(self.boto3_resource, secondary_attribute_model.name)()
@@ -586,14 +598,14 @@ class CloudWandererBoto3Resource:
             )
 
     @property
-    def secondary_attribute_models(self) -> Iterator[ResourceModel]:
+    def secondary_attribute_models(self) -> Generator[ResourceModel, None, None]:
         """Return the secondary attribute models it's possible for this resource type to have."""
         for subresource_mapping, subresource_model in self._boto3_subresource_models:
             if subresource_mapping.type == "secondaryAttribute":
                 yield subresource_model
 
     @property
-    def _boto3_subresource_models(self) -> Iterator[Tuple[ResourceMap, ResourceModel]]:
+    def _boto3_subresource_models(self) -> Generator[Tuple[ResourceMap, ResourceModel], None, None]:
         """Return the Boto3 subresource mappings and models that exist for this resource type.
 
         This is used exclusively for secondary attributes because secondary attributes have a 1:1 relationship with
@@ -609,10 +621,12 @@ class CloudWandererBoto3Resource:
         """Return a list of CloudWanderer style subresource types it's possible for this resource type to have."""
         types = []
         for subresource_model in self.subresource_models:
+            if not subresource_model.resource:
+                continue
             types.append(botocore.xform_name(subresource_model.resource.model.name))
         return types
 
-    def get_subresources(self) -> Iterator["CloudWandererBoto3Resource"]:
+    def get_subresources(self) -> Generator["CloudWandererBoto3Resource", None, None]:
         """Return the CloudWanderer style subresources of this resource."""
         for subresource_model in self.subresource_models:
             collection = getattr(self.boto3_resource, subresource_model.name)
@@ -631,13 +645,17 @@ class CloudWandererBoto3Resource:
                 )
 
     @property
-    def subresource_models(self) -> Iterator[Collection]:
+    def subresource_models(self) -> Generator[Collection, None, None]:
         """Yield the Boto3 models for the CloudWanderer style subresources of this resource type."""
         models = {}
         for collection_resource_map, collection_model in self._boto3_collection_models:
-            if not self._is_collection_model_a_subresource(collection_resource_map, collection_model):
+            response_resource = collection_model.resource
+            if not response_resource or not self._is_collection_model_a_subresource(
+                collection_resource_map, response_resource.model
+            ):
                 continue
-            collection_resource_name = botocore.xform_name(collection_model.resource.model.name)
+
+            collection_resource_name = botocore.xform_name(response_resource.model.name)
             models[collection_resource_name] = collection_model
         yield from models.values()
 
@@ -672,30 +690,32 @@ class CloudWandererBoto3Resource:
         return actions
 
     @property
-    def _boto3_collection_models(self) -> Iterator[Tuple[ResourceMap, Collection]]:
+    def _boto3_collection_models(self) -> Generator[Tuple[ResourceMap, Collection], None, None]:
         """Yield the ResourceMaps and Collections for this resource type.
 
         This is used exclusively for subresources because subresources have a 1:many relationship with
         their parent resource.
         """
         for boto3_collection in self.boto3_resource.meta.resource_model.collections:
+            if boto3_collection.resource is None:
+                continue
             collection_resource_map = self.service_map.get_resource_map(boto3_collection.resource.model.name)
             yield collection_resource_map, boto3_collection
 
     def _is_collection_model_a_subresource(
-        self, collection_resource_map: ResourceMap, collection_model: Collection
+        self, collection_resource_map: ResourceMap, resource_model: ResourceModel
     ) -> bool:
-        if collection_resource_map.type == "secondaryAttribute":
+        if collection_resource_map.type == "secondaryAttribute" or resource_model is None:
             return False
-        collection_resource_name = botocore.xform_name(collection_model.resource.model.name)
-        if len(collection_model.resource.model.identifiers) != 2:
+        collection_resource_name = botocore.xform_name(resource_model.name)
+        if len(resource_model.identifiers) != 2:
             logger.debug(
                 "%s has %s identifiers, when valid subresources have 2, skipping",
                 collection_resource_name,
-                len(collection_model.resource.model.identifiers),
+                len(resource_model.identifiers),
             )
             return False
-        if collection_model.resource.model.name in self.resource_map.ignored_subresource_types:
+        if resource_model.name in self.resource_map.ignored_subresource_types:
             logger.debug(
                 "% is defined as an ignored subresource type by the %s servicemap, skipping",
                 collection_resource_name,
@@ -707,10 +727,12 @@ class CloudWandererBoto3Resource:
             return False
         return True
 
-    @lru_cache()
+    @lru_cache
     def _get_region(self) -> str:
         """Return the region for a resource which requires an API call to determine its region."""
         region_request_definition = self.resource_map.region_request
+        if region_request_definition is None:
+            return self.region
         method = getattr(self._boto3_client, region_request_definition.operation)
         result = method(**region_request_definition.build_params(self.boto3_resource))
         return (

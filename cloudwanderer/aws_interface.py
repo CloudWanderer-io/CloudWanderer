@@ -4,11 +4,10 @@ Provides simpler methods for :class:`~.cloud_wanderer.CloudWanderer` to call.
 """
 
 import logging
-from typing import Iterator, List
+from typing import Iterator, List, Optional
 
 import boto3
-import botocore
-from boto3.resources.model import ResourceModel
+import botocore  # type: ignore
 
 from .boto3_helpers import Boto3CommonAttributesMixin
 from .boto3_loaders import ServiceMappingLoader
@@ -42,7 +41,7 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
             service_mapping_loader:
                 An optional loader to allow the injection of additional custom service mappings
         """
-        self.boto3_session = boto3_session or boto3.Session()
+        self.boto3_session = boto3_session or boto3.session.Session()
         self.boto3_services = Boto3Services(
             boto3_session=boto3_session, service_loader=service_loader, service_mapping_loader=service_mapping_loader
         )
@@ -83,7 +82,7 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
 
     def get_resources(
         self, service_name: str, resource_type: str, region: str = None, **kwargs
-    ) -> Iterator[ResourceModel]:
+    ) -> Iterator[CloudWandererResource]:
         """Return all resources of resource_type from Boto3.
 
         Arguments:
@@ -171,13 +170,16 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
                         logger.debug("Skipping %s as it does not exist in limit_resources", service_resource)
                         continue
                     resource = service._get_empty_resource(resource_type=resource_type)
+                    if not resource:
+                        logger.debug("No %s resource type found", service_resource)
+                        continue
                     actions = resource.get_and_cleanup_actions
                     if actions:
                         get_and_cleanup_actions.append(actions)
         return get_and_cleanup_actions
 
     def _get_resource_types_for_service(
-        self, service: CloudWandererBoto3Service, resource_types: List[str]
+        self, service: CloudWandererBoto3Service, resource_types: Optional[List[str]]
     ) -> List[str]:
         if resource_types:
             logger.debug("Validating if %s are %s resource types", resource_types, service.name)

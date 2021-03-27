@@ -9,12 +9,14 @@ import logging
 import os
 import pathlib
 from functools import lru_cache
-from typing import Any, List, NamedTuple
+from typing import Any, Dict, List, NamedTuple, Optional
 
 import boto3
-import botocore
-from boto3.resources.base import ServiceResource
-from botocore.exceptions import UnknownServiceError
+import botocore  # type: ignore
+from boto3.resources.base import ServiceResource  # type: ignore
+from botocore.exceptions import UnknownServiceError  # type: ignore
+
+from cloudwanderer.typing_helpers import lru_cache_property
 
 from .exceptions import UnsupportedServiceError
 from .utils import load_json_definitions
@@ -28,8 +30,8 @@ class CustomServiceLoader:
     def __init__(self, definition_path: str = "resource_definitions") -> None:
         self.service_definitions_path = os.path.join(pathlib.Path(__file__).parent.absolute(), definition_path)
 
-    @property
-    @lru_cache()
+    @property  # type: ignore
+    @lru_cache_property
     def service_definitions(self) -> dict:
         """Return our custom resource definitions."""
         return load_json_definitions(self.service_definitions_path)
@@ -56,7 +58,7 @@ class MergedServiceLoader:
         self.boto3_loader.search_paths.append(os.path.join(os.path.dirname(boto3.__file__), "data"))
 
         # This does not need to honour the user's session because it is *only* used to list resources
-        self.non_specific_boto3_session = boto3.Session()
+        self.non_specific_boto3_session = boto3.session.Session()
 
     @property
     def available_services(self) -> List[str]:
@@ -126,7 +128,7 @@ class ServiceMappingLoader:
     This includes things like, whether it is a global service, whether it has regional resources, etc.
     """
 
-    def __init__(self) -> str:
+    def __init__(self) -> None:
         """Load and retrieve service mappings."""
         self.service_mappings_path = os.path.join(pathlib.Path(__file__).parent.absolute(), "service_mappings")
 
@@ -138,9 +140,9 @@ class ServiceMappingLoader:
         """
         return self.service_maps.get(service_name, {})
 
-    @property
+    @property  # type: ignore
     @lru_cache()
-    def service_maps(self) -> List[dict]:
+    def service_maps(self) -> Dict[str, Any]:
         """Return our custom resource definitions."""
         return load_json_definitions(self.service_mappings_path)
 
@@ -189,12 +191,12 @@ class ServiceMap(NamedTuple):
 class ResourceMap(NamedTuple):
     """Specification for additional CloudWanderer specific metadata about a Boto3 resource type."""
 
-    type: str
-    region_request: dict
+    type: Optional[str]
+    region_request: Optional["ResourceRegionRequest"]
     ignored_subresources: list
 
     @classmethod
-    def factory(cls, definition: dict) -> "ResourceMap":
+    def factory(cls, definition: Dict[str, Any]) -> "ResourceMap":
         return cls(
             type=definition.get("type"),
             region_request=ResourceRegionRequest.factory(definition.get("regionRequest")),
@@ -216,7 +218,7 @@ class ResourceRegionRequest(NamedTuple):
     default_value: str
 
     @classmethod
-    def factory(cls, definition: dict) -> "ResourceRegionRequest":
+    def factory(cls, definition: Optional[Dict[str, Any]]) -> Optional["ResourceRegionRequest"]:
         if not definition:
             return None
         return cls(

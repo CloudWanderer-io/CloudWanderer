@@ -1,8 +1,6 @@
 """Allows CloudWanderer to store resources in memory."""
 import logging
-from typing import Callable, Iterator, List
-
-import boto3
+from typing import Any, Callable, Dict, Iterator, List, Optional
 
 from ..cloud_wanderer_resource import CloudWandererResource
 from ..urn import URN
@@ -26,26 +24,39 @@ class MemoryStorageConnector(BaseStorageConnector):
     """
 
     def __init__(self) -> None:
-        self._data = {}
+        self._data: Dict[str, Any] = {}
 
     def init(self) -> None:
         """Do nothing. Dummy method to fulfil interface requirements."""
 
-    def read_resource(self, urn: URN) -> CloudWandererResource:
+    def read_resource(self, urn: URN) -> Optional[CloudWandererResource]:
         try:
             return memory_item_to_resource(urn, self._data[str(urn)], loader=self.read_resource)
         except KeyError:
             return None
 
-    def read_resources(self, **kwargs) -> Iterator["CloudWandererResource"]:
+    def read_resources(
+        self,
+        account_id: str = None,
+        region: str = None,
+        service: str = None,
+        resource_type: str = None,
+        urn: URN = None,
+    ) -> Iterator["CloudWandererResource"]:
         for urn_str, items in self._data.items():
-            urn = URN.from_string(urn_str)
-            if kwargs.get("urn") is not None:
-                if urn == kwargs["urn"]:
-                    yield memory_item_to_resource(urn, items, loader=self.read_resource)
+            item_urn = URN.from_string(urn_str)
+            if urn is not None:
+                if item_urn == urn:
+                    yield memory_item_to_resource(item_urn, items, loader=self.read_resource)
                 continue
-            if self._urn_matches_kwargs(urn, **kwargs):
-                yield memory_item_to_resource(urn, items, loader=self.read_resource)
+            if self._urn_matches_kwargs(
+                item_urn,
+                account_id=account_id,
+                region=region,
+                service=service,
+                resource_type=resource_type,
+            ):
+                yield memory_item_to_resource(item_urn, items, loader=self.read_resource)
 
     def _urn_matches_kwargs(self, urn: URN, **kwargs) -> bool:
         filter_items = ("account_id", "region", "service", "resource_type")
@@ -81,9 +92,7 @@ class MemoryStorageConnector(BaseStorageConnector):
                 urn=resource.urn, attribute_type=secondary_attribute.name, secondary_attribute=secondary_attribute
             )
 
-    def _write_secondary_attribute(
-        self, urn: URN, attribute_type: str, secondary_attribute: boto3.resources.base.ServiceResource
-    ) -> None:
+    def _write_secondary_attribute(self, urn: URN, attribute_type: str, secondary_attribute: Dict[str, Any]) -> None:
         """Write the specified resource attribute to storage.
 
         Arguments:
@@ -110,6 +119,7 @@ class MemoryStorageConnector(BaseStorageConnector):
     def delete_resource_of_type_in_account_region(
         self, service: str, resource_type: str, account_id: str, region: str, urns_to_keep: List[URN] = None
     ) -> None:
+        urns_to_keep = urns_to_keep or []
         urns_to_delete = []
         for urn_str, items in self._data.items():
             urn = URN.from_string(urn_str)
@@ -136,7 +146,7 @@ class MemoryStorageConnector(BaseStorageConnector):
         return f"<{self.__class__.__name__}>"
 
 
-def memory_item_to_resource(urn: URN, items: dict = None, loader: Callable = None) -> CloudWandererResource:
+def memory_item_to_resource(urn: URN, items: Dict[str, Any] = None, loader: Callable = None) -> CloudWandererResource:
     """Convert a resource and its attributes to a CloudWandererResource.
 
     Arguments:
@@ -151,7 +161,9 @@ def memory_item_to_resource(urn: URN, items: dict = None, loader: Callable = Non
         for item_type, attribute in items.items()
         if item_type not in ["SubresourceUrns", "BaseResource", "ParentUrn"]
     ]
-    base_resource = next(iter(resource for item_type, resource in items.items() if item_type == "BaseResource"), {})
+    base_resource: Dict[str, Any] = next(
+        iter(resource for item_type, resource in items.items() if item_type == "BaseResource"), {}
+    )
     return CloudWandererResource(
         urn=urn,
         subresource_urns=items.get("SubresourceUrns"),
