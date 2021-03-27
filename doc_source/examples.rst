@@ -192,7 +192,7 @@ Let's say we want to get a list of role policies. We can start by getting the ro
 
 .. doctest ::
 
-    >>> role = next(storage_connector.read_resources(service_name='iam', resource_type='role'))
+    >>> role = next(storage_connector.read_resources(service='iam', resource_type='role'))
     >>> role.load()
 
 Next we need to find out what policies are attached, we can either do this with the secondary attributes.
