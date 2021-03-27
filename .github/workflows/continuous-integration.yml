@@ -20,15 +20,15 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+      - name: Type check with mypy
+        run: |
+          mypy
       - name: Lint with flake8
         run: |
           flake8 --count --statistics
       - name: Lint with pydocstyle
         run: |
           pydocstyle
-      - name: Type check with mypy
-        run: |
-          mypy cloudwanderer
       - name: Test with pytest
         run: |
           pytest
