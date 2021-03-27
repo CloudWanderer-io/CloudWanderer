@@ -727,7 +727,7 @@ class CloudWandererBoto3Resource:
             return False
         return True
 
-    @lru_cache
+    @lru_cache()
     def _get_region(self) -> str:
         """Return the region for a resource which requires an API call to determine its region."""
         region_request_definition = self.resource_map.region_request
