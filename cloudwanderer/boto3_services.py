@@ -93,7 +93,7 @@ class CloudWandererBoto3ResourceFactory:
             service_name: The service name to get the service model of.
         """
         logger.debug("Getting service model for %s", service_name)
-        client = self.boto3_session.client(service_name=service_name)
+        client = self.boto3_session.client(service_name=service_name)  # type: ignore
         return client.meta.service_model
 
 
@@ -204,7 +204,7 @@ class Boto3Services:
         return self._get_client(service_name=service_name, region_name="us-east-1")
 
     def _get_client(self, service_name: str, region_name: str = None, **kwargs) -> botocore.client.BaseClient:
-        return self.boto3_session.client(service_name, region_name=region_name, **kwargs)
+        return self.boto3_session.client(service_name, region_name=region_name, **kwargs)  # type: ignore
 
     @lru_cache()
     def _get_service_method(self, service_name: str) -> Type:
@@ -598,20 +598,20 @@ class CloudWandererBoto3Resource:
             )
 
     @property
-    def secondary_attribute_models(self) -> Generator[ResourceModel, None, None]:
+    def secondary_attribute_models(self) -> Generator[Action, None, None]:
         """Return the secondary attribute models it's possible for this resource type to have."""
         for subresource_mapping, subresource_model in self._boto3_subresource_models:
             if subresource_mapping.type == "secondaryAttribute":
                 yield subresource_model
 
     @property
-    def _boto3_subresource_models(self) -> Generator[Tuple[ResourceMap, ResourceModel], None, None]:
+    def _boto3_subresource_models(self) -> Generator[Tuple[ResourceMap, Action], None, None]:
         """Return the Boto3 subresource mappings and models that exist for this resource type.
 
         This is used exclusively for secondary attributes because secondary attributes have a 1:1 relationship with
         their parent resource.
         """
-        subresource_models = self.boto3_resource.meta.resource_model.subresources
+        subresource_models: List[Action] = self.boto3_resource.meta.resource_model.subresources  # type: ignore
         for subresource_model in subresource_models:
             subresource_mapping = self.service_map.get_resource_map(subresource_model.name)
             yield subresource_mapping, subresource_model

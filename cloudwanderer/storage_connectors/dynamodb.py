@@ -5,9 +5,15 @@ import logging
 import operator
 import os
 import pathlib
+import sys
 from functools import reduce
 from random import randrange
-from typing import Any, Callable, Dict, Generator, Iterable, Iterator, List, Literal, Optional, TypedDict, Union
+from typing import Any, Callable, Dict, Generator, Iterable, Iterator, List, Optional, TypedDict, Union
+
+if sys.version_info >= (3, 8):
+    from typing import Literal
+else:
+    from typing_extensions import Literal
 
 import boto3
 from boto3.dynamodb.conditions import Attr, ConditionBase, Key
