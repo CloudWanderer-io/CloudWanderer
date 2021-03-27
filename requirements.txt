@@ -12,4 +12,5 @@ sphinx_rtd_theme
 darglint
 pre-commit
 boto3-stubs[dynamodb]
+mypy==0.812
 typing_extensions; python_version < "3.8.0"
