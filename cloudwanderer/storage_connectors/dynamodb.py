@@ -306,13 +306,11 @@ class DynamoDbConnector(BaseStorageConnector):
         Arguments:
             urn (URN): The URN of the resource to delete from Dynamo
         """
-        resource_records = list(
-            self._paginated_query(DynamoDBQueryArgs(KeyConditionExpression=Key("_id").eq(_primary_key_from_urn(urn))))
-        )
-        resource_records += list(
+        resource_records = itertools.chain(
+            self._paginated_query(DynamoDBQueryArgs(KeyConditionExpression=Key("_id").eq(_primary_key_from_urn(urn)))),
             self._paginated_query(
                 DynamoDBQueryArgs(IndexName="parent_urn", KeyConditionExpression=Key("_parent_urn").eq(str(urn)))
-            )
+            ),
         )
         with self.dynamodb_table.batch_writer() as batch:
             for record in resource_records:
