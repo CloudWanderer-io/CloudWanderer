@@ -297,7 +297,8 @@ class DynamoDbConnector(BaseStorageConnector):
 
     def read_all(self) -> Iterator[dict]:
         """Return raw data from all DynamoDB table records (not just resources)."""
-        yield from self.dynamodb_table.scan()["Items"]
+        paginator = self.dynamodb_table.meta.client.get_paginator("scan")
+        yield from (item for page in paginator.paginate(TableName=self.dynamodb_table.name) for item in page["Items"])
 
     def delete_resource(self, urn: URN) -> None:
         """Delete the resource and all its resource attributes from DynamoDB.
