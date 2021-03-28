@@ -264,8 +264,10 @@ class DynamoDbConnector(BaseStorageConnector):
         Arguments:
             urn (URN): The AWS URN of the resource to return
         """
-        result = self.dynamodb_table.query(KeyConditionExpression=Key("_id").eq(_primary_key_from_urn(urn)))
-        return next(_dynamodb_items_to_resources(result["Items"], loader=self.read_resource), None)
+        result = self._paginated_query(
+            DynamoDBQueryArgs(KeyConditionExpression=Key("_id").eq(_primary_key_from_urn(urn)))
+        )
+        return next(_dynamodb_items_to_resources(result, loader=self.read_resource), None)
 
     def read_resources(
         self,
@@ -277,17 +279,21 @@ class DynamoDbConnector(BaseStorageConnector):
     ) -> Iterator["CloudWandererResource"]:
         query_generator = DynamoDbQueryGenerator(account_id, region, service, resource_type, urn)
         for condition_expression in query_generator.condition_expressions:
-            query_args: DynamoDBQueryArgs = {
-                "Select": "ALL_PROJECTED_ATTRIBUTES",
-                "KeyConditionExpression": condition_expression,
-            }
+            query_args = DynamoDBQueryArgs(
+                Select="ALL_PROJECTED_ATTRIBUTES",
+                KeyConditionExpression=condition_expression,
+            )
             if query_generator.index is not None:
                 query_args["IndexName"] = query_generator.index
             if query_generator.condition_expressions is not None:
                 query_args["FilterExpression"] = query_generator.filter_expression
-            # TODO: Validate this paginates
-            result = self.dynamodb_table.query(**query_args)
-            yield from _dynamodb_items_to_resources(result["Items"], loader=self.read_resource)
+
+            yield from _dynamodb_items_to_resources(self._paginated_query(query_args), loader=self.read_resource)
+
+    def _paginated_query(self, query_args: DynamoDBQueryArgs) -> Generator[Dict[str, Any], None, None]:
+        paginator = self.dynamodb.meta.client.get_paginator("query")
+        pages = paginator.paginate(TableName=self.dynamodb_table.name, **query_args)
+        yield from (item for result in pages for item in result["Items"])
 
     def read_all(self) -> Iterator[dict]:
         """Return raw data from all DynamoDB table records (not just resources)."""
@@ -299,12 +305,14 @@ class DynamoDbConnector(BaseStorageConnector):
         Arguments:
             urn (URN): The URN of the resource to delete from Dynamo
         """
-        resource_records = self.dynamodb_table.query(KeyConditionExpression=Key("_id").eq(_primary_key_from_urn(urn)))[
-            "Items"
-        ]
-        resource_records += self.dynamodb_table.query(
-            IndexName="parent_urn", KeyConditionExpression=Key("_parent_urn").eq(str(urn))
-        )["Items"]
+        resource_records = list(
+            self._paginated_query(DynamoDBQueryArgs(KeyConditionExpression=Key("_id").eq(_primary_key_from_urn(urn))))
+        )
+        resource_records += list(
+            self._paginated_query(
+                DynamoDBQueryArgs(IndexName="parent_urn", KeyConditionExpression=Key("_parent_urn").eq(str(urn)))
+            )
+        )
         with self.dynamodb_table.batch_writer() as batch:
             for record in resource_records:
                 logger.debug("Deleting %s", record["_id"])

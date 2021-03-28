@@ -1,3 +1,10 @@
+# 0.14.1
+
+ - Implemented `mypy` type checking
+ - Corrected a huge number of type hints
+ - Reformalised arguments for `get_resources` on storage_connectors.
+ - Fixed DynamoDB pagination
+
 # 0.14.0
 
  - Added `parent_urn` and `subresource_urn` properties to the `CloudWanderResource` class.
