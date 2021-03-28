@@ -1,11 +1,8 @@
 boto3>=1.17.22
-moto==2.0.1
 docker
 flake8
-pytest
 parameterized
 pydocstyle
-mock==4.0.2
 flake8-annotations
 sphinx
 sphinx_rtd_theme
