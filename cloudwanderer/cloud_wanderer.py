@@ -81,7 +81,6 @@ class CloudWanderer:
             service_names=service_names,
             resource_types=resource_types,
             exclude_resources=exclude_resources,
-            **kwargs,
         )
         for action_set in actions:
             for get_action in action_set.get_actions:
@@ -148,9 +147,11 @@ class CloudWanderer:
                         **kwargs,
                     )
                 )
-        thread_results = []
+        thread_results: List[CloudWandererConcurrentWriteThreadResult] = []
         for thread in threads:
-            thread_results.append(CloudWandererConcurrentWriteThreadResult(storage_connectors=thread.result()))
+            result = thread.result()
+            if result:
+                thread_results.append(CloudWandererConcurrentWriteThreadResult(storage_connectors=result))
         return thread_results
 
     def _write_resource(self, resource: CloudWandererResource) -> Iterator[URN]:

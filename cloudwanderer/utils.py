@@ -5,12 +5,12 @@ import os
 from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import Callable, List, Union
+from typing import Any, Callable, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
 
-def exception_logging_wrapper(method: Callable, return_value: object = None, **kwargs) -> None:
+def exception_logging_wrapper(method: Callable, return_value: object = None, **kwargs) -> Optional[Any]:
     """Log exceptions raised by method_name.
 
     Increases visibility of multi-threaded exceptions.
@@ -42,7 +42,7 @@ def json_object_hook(dct: dict) -> dict:
     return dct
 
 
-def json_default(item: object) -> object:
+def json_default(item: object) -> Optional[object]:
     """JSON object type converter that handles datetime objects.
 
     Arguments:
@@ -50,9 +50,10 @@ def json_default(item: object) -> object:
     """
     if isinstance(item, datetime):
         return item.isoformat()
+    return None
 
 
-def standardise_data_types(resource: dict) -> dict:
+def standardise_data_types(resource: dict) -> Dict[str, Any]:
     """Return a dictionary normalised to datatypes acceptable for DynamoDB.
 
     Arguments:
@@ -62,7 +63,7 @@ def standardise_data_types(resource: dict) -> dict:
     return result
 
 
-def load_json_definitions(path: str) -> List[Union[list, dict]]:
+def load_json_definitions(path: str) -> Dict[str, Any]:
     """Return the parsed contents of all JSON files in a given path.
 
     Arguments:

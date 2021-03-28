@@ -1,6 +1,6 @@
 """Module containing abstract classes for CloudWanderer storage connectors."""
 from abc import ABC, abstractmethod
-from typing import Iterator, List
+from typing import Iterator, List, Optional
 
 from ..cloud_wanderer_resource import CloudWandererResource
 from ..urn import URN
@@ -26,7 +26,7 @@ class BaseStorageConnector(ABC):
         """Return all records from storage."""
 
     @abstractmethod
-    def read_resource(self, urn: URN) -> "CloudWandererResource":
+    def read_resource(self, urn: URN) -> Optional[CloudWandererResource]:
         """Return a resource matching the supplied urn from storage.
 
         Arguments:
@@ -34,20 +34,24 @@ class BaseStorageConnector(ABC):
         """
 
     @abstractmethod
-    def read_resources(self, **kwargs) -> Iterator["CloudWandererResource"]:
+    def read_resources(
+        self,
+        account_id: str = None,
+        region: str = None,
+        service: str = None,
+        resource_type: str = None,
+        urn: URN = None,
+    ) -> Iterator["CloudWandererResource"]:
         """Yield a resource matching the supplied urn from storage.
 
         All arguments are optional.
 
         Arguments:
-            kwargs: Optional arguments narrowing the scope of the resources returned.
-
-        Keyword Arguments:
-            urn (~cloudwanderer.urn.URN): The AWS URN of the resource to return
-            account_id (:class:`str`): AWS Account ID
-            region (:class:`str`): AWS region (e.g. ``'eu-west-2'``)
-            service (:class:`str`): Service name (e.g. ``'ec2'``)
-            resource_type (:class:`str`): Resource Type (e.g. ``'instance'``)
+            urn: The AWS URN of the resource to return
+            account_id: AWS Account ID
+            region: AWS region (e.g. ``'eu-west-2'``)
+            service: Service name (e.g. ``'ec2'``)
+            resource_type: Resource Type (e.g. ``'instance'``)
         """
 
     @abstractmethod

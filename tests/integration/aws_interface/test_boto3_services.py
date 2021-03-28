@@ -330,3 +330,9 @@ class TestCloudWandererBoto3Resource(unittest.TestCase):
                 CleanupAction(service_name="iam", region="us-east-1", resource_type="role_policy"),
             ],
         )
+
+    def test_secondary_attribute_models(self):
+        assert [x.name for x in self.role_resource.secondary_attribute_models] == [
+            "RoleInlinePolicyAttachments",
+            "RoleManagedPolicyAttachments",
+        ]

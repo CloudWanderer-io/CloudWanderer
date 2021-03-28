@@ -2,8 +2,8 @@
 import logging
 from typing import Callable, List
 
-import jmespath
-from botocore import xform_name
+import jmespath  # type: ignore
+from botocore import xform_name  # type: ignore
 
 from .urn import URN
 
@@ -22,7 +22,7 @@ class ResourceMetadata:
             The list of the resource's :class:`SecondaryAttribute` objects.
     """
 
-    def __init__(self, resource_data: dict, secondary_attributes: list) -> None:
+    def __init__(self, resource_data: dict, secondary_attributes: List["SecondaryAttribute"]) -> None:
         """Initialise the data class.
 
         Arguments:
@@ -53,7 +53,7 @@ class CloudWandererResource:
         self,
         urn: URN,
         resource_data: dict,
-        secondary_attributes: List[dict] = None,
+        secondary_attributes: List["SecondaryAttribute"] = None,
         loader: Callable = None,
         subresource_urns: List[URN] = None,
         parent_urn: URN = None,
@@ -98,7 +98,7 @@ class CloudWandererResource:
         """Return whether this resource has all the attributes from storage."""
         return bool([key for key in self.cloudwanderer_metadata.resource_data if not key.startswith("_")])
 
-    def get_secondary_attribute(self, name: str = None, jmes_path: str = None) -> None:
+    def get_secondary_attribute(self, name: str = None, jmes_path: str = None) -> List["SecondaryAttribute"]:
         """Get an attribute not returned in the resource's standard ``describe`` method.
 
         Arguments:
