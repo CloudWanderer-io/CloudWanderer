@@ -20,19 +20,55 @@ class TestCloudWandererResourcesDirective(unittest.TestCase):
         )
 
     def test_get_boto3_resources(self):
-        results = [str(x) for x in self.resources_directive.get_boto3_resources()]
+        results = self.resources_directive.get_boto3_resources()
 
-        expected_results = [
-            "<list_item>CloudFormation<bullet_list><list_item>Stacks</list_item></bullet_list></list_item>",
-            "<list_item>CloudWatch<bullet_list><list_item>Alarms</list_item><list_item>Metrics</list_item></bullet_list></list_item>",
-            "<list_item>DynamoDB<bullet_list><list_item>Tables</list_item></bullet_list></list_item>",
-            "<list_item>EC2<bullet_list><list_item>ClassicAddresses</list_item><list_item>DhcpOptionsSets</list_item><list_item>Images</list_item><list_item>Instances</list_item><list_item>InternetGateways</list_item><list_item>KeyPairs</list_item><list_item>NetworkAcls</list_item><list_item>NetworkInterfaces</list_item><list_item>PlacementGroups</list_item><list_item>RouteTables</list_item><list_item>SecurityGroups</list_item><list_item>Snapshots</list_item><list_item>Subnets</list_item><list_item>Volumes</list_item><list_item>VpcAddresses</list_item><list_item>VpcPeeringConnections</list_item><list_item>Vpcs</list_item></bullet_list></list_item>",
-            "<list_item>Glacier<bullet_list><list_item>Vaults</list_item></bullet_list></list_item>",
-            "<list_item>IAM<bullet_list><list_item>Groups</list_item><list_item>InstanceProfiles</list_item><list_item>Policies</list_item><list_item>Roles</list_item><list_item>SamlProviders</list_item><list_item>ServerCertificates</list_item><list_item>Users</list_item><list_item>VirtualMfaDevices</list_item></bullet_list></list_item>",
-            "<list_item>OpsWorks<bullet_list><list_item>Stacks</list_item></bullet_list></list_item>",
-            "<list_item>S3<bullet_list><list_item>Buckets</list_item></bullet_list></list_item>",
-            "<list_item>SNS<bullet_list><list_item>PlatformApplications</list_item><list_item>Subscriptions</list_item><list_item>Topics</list_item></bullet_list></list_item>",
-            "<list_item>SQS<bullet_list><list_item>Queues</list_item></bullet_list></list_item>",
-        ]
-        for expected_result in expected_results:
-            assert expected_result in results
+        assert (
+            results
+            == """* :doc:`CloudFormation <resource_properties/cloudformation>`
+    * :class:`Stacks<cloudformation.stack>`
+* :doc:`CloudWatch <resource_properties/cloudwatch>`
+    * :class:`Alarms<cloudwatch.alarm>`
+    * :class:`Metrics<cloudwatch.metric>`
+* :doc:`DynamoDB <resource_properties/dynamodb>`
+    * :class:`Tables<dynamodb.table>`
+* :doc:`EC2 <resource_properties/ec2>`
+    * :class:`ClassicAddresses<ec2.classic_address>`
+    * :class:`DhcpOptionsSets<ec2.dhcp_options>`
+    * :class:`Images<ec2.image>`
+    * :class:`Instances<ec2.instance>`
+    * :class:`InternetGateways<ec2.internet_gateway>`
+    * :class:`KeyPairs<ec2.key_pair_info>`
+    * :class:`NetworkAcls<ec2.network_acl>`
+    * :class:`NetworkInterfaces<ec2.network_interface>`
+    * :class:`PlacementGroups<ec2.placement_group>`
+    * :class:`RouteTables<ec2.route_table>`
+    * :class:`SecurityGroups<ec2.security_group>`
+    * :class:`Snapshots<ec2.snapshot>`
+    * :class:`Subnets<ec2.subnet>`
+    * :class:`Volumes<ec2.volume>`
+    * :class:`VpcAddresses<ec2.vpc_address>`
+    * :class:`VpcPeeringConnections<ec2.vpc_peering_connection>`
+    * :class:`Vpcs<ec2.vpc>`
+* :doc:`Glacier <resource_properties/glacier>`
+    * :class:`Vaults<glacier.vault>`
+* :doc:`IAM <resource_properties/iam>`
+    * :class:`Groups<iam.group>`
+    * :class:`InstanceProfiles<iam.instance_profile>`
+    * :class:`Policies<iam.policy>`
+    * :class:`Roles<iam.role>`
+    * :class:`SamlProviders<iam.saml_provider>`
+    * :class:`ServerCertificates<iam.server_certificate>`
+    * :class:`Users<iam.user>`
+    * :class:`VirtualMfaDevices<iam.virtual_mfa_device>`
+* :doc:`OpsWorks <resource_properties/opsworks>`
+    * :class:`Stacks<opsworks.stack>`
+* :doc:`S3 <resource_properties/s3>`
+    * :class:`Buckets<s3.bucket>`
+* :doc:`SNS <resource_properties/sns>`
+    * :class:`PlatformApplications<sns.platform_application>`
+    * :class:`Subscriptions<sns.subscription>`
+    * :class:`Topics<sns.topic>`
+* :doc:`SQS <resource_properties/sqs>`
+    * :class:`Queues<sqs.queue>`
+"""
+        )

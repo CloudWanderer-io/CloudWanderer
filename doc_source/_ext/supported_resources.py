@@ -82,12 +82,12 @@ class SummarisedResources:
             service_model = service.boto3_service.meta.client.meta.service_model
             service_id = service_model.metadata["serviceId"]
             service_definition = self.merged_loader._get_custom_service_definition(service_name)
-            resource_list = nodes.bullet_list()
-            for collection_name in service_definition["service"].get("hasMany", {}):
-                resource_name = collection_name
+            resource_list = []
+            for collection_name, collection in service_definition["service"].get("hasMany", {}).items():
+                resource_name = collection["resource"]["type"]
                 if collection_name not in self.boto3_resources.get(service_name, []):
-                    resource_list += nodes.Text(resource_name)
-            if resource_list.children:
+                    resource_list.append((collection_name, resource_name))
+            if resource_list:
                 service_summary[service_id] = resource_list
         return service_summary
 
@@ -100,8 +100,9 @@ class SummarisedResources:
             service_model = service.boto3_service.meta.client.meta.service_model
             service_id = service_model.metadata["serviceId"]
             service_definition = self.merged_loader._get_boto3_definition(service_name)
-            for collection_name in service_definition["service"]["hasMany"]:
-                services_summary[service_id].append(collection_name)
+            for collection_name, collection in service_definition["service"].get("hasMany", {}).items():
+                resource_name = collection["resource"]["type"]
+                services_summary[service_id].append((collection_name, resource_name))
         return services_summary
 
 
@@ -117,19 +118,37 @@ class CloudWandererResourcesDirective(SphinxDirective):
     def run(self) -> list:
         targetid = "cloudwanderer-%d" % self.env.new_serialno("cloudwanderer")
         targetnode = nodes.target("", "", ids=[targetid])
-
-        return [targetnode, self.get_cloudwanderer_resources()]
+        services_section = nodes.section(ids=["cloudwanderer_resources"])
+        services_section += nodes.title("", "CloudWanderer Provided Resources")
+        services_section += self.parse_rst(self.get_cloudwanderer_resources()).children
+        return [targetnode, services_section]
 
     def get_cloudwanderer_resources(self) -> list:
-        service_list = nodes.bullet_list()
+        service_list = ""
 
-        for service_name, resource_types in sorted(self.summarised_resources.cloudwanderer_resources.items()):
-            resource_list = nodes.bullet_list()
-            for resource_type in resource_types:
-                resource_list += nodes.list_item("", nodes.Text(resource_type))
-            if resource_list.children:
-                service_list += nodes.list_item("", nodes.Text(service_name), resource_list)
+        for service_name, resource_type_tuple in sorted(self.summarised_resources.cloudwanderer_resources.items()):
+            resource_list = ""
+            for collection_name, resource_type in resource_type_tuple:
+                resource_type_snake = botocore.xform_name(resource_type.replace(" ", ""))
+                standardised_service_name = service_name.replace(" ", "").lower()
+                reference = f"{standardised_service_name}.{resource_type_snake}"
+                resource_list += f"    * :class:`{collection_name}<{reference}>`\n"
+            if resource_list:
+                service_list += (
+                    f"* :doc:`{service_name} <resource_properties/{standardised_service_name}>`\n" + resource_list
+                )
         return service_list
+
+    def parse_rst(self, text: str) -> docutils.nodes.document:
+        parser = sphinx.parsers.RSTParser()
+        parser.set_application(self.env.app)
+
+        settings = OptionParser(
+            defaults=self.env.settings, components=(sphinx.parsers.RSTParser,), read_config_files=True
+        ).get_default_values()
+        document = docutils.utils.new_document("<rst-doc>", settings=settings)
+        parser.parse(text, document)
+        return document
 
 
 class Boto3ResourcesDirective(SphinxDirective):
@@ -144,19 +163,38 @@ class Boto3ResourcesDirective(SphinxDirective):
     def run(self) -> list:
         targetid = "cloudwanderer-%d" % self.env.new_serialno("cloudwanderer")
         targetnode = nodes.target("", "", ids=[targetid])
+        services_section = nodes.section(ids=["boto3_resources"])
+        services_section += nodes.title("", "Boto3 Provided Resouces")
+        services_section += self.parse_rst(self.get_boto3_resources()).children
 
-        return [targetnode, self.get_boto3_resources()]
+        return [targetnode, services_section]
 
     def get_boto3_resources(self) -> list:
-        service_list = nodes.bullet_list()
+        service_list = ""
 
-        for service_name, resource_types in sorted(self.summarised_resources.boto3_resources.items()):
-            resource_list = nodes.bullet_list()
-            for resource_type in resource_types:
-                resource_list += nodes.list_item("", nodes.Text(resource_type))
-            if resource_list.children:
-                service_list += nodes.list_item("", nodes.Text(service_name), resource_list)
+        for service_name, resource_type_tuple in sorted(self.summarised_resources.boto3_resources.items()):
+            resource_list = ""
+            for collection_name, resource_type in resource_type_tuple:
+                resource_type_snake = botocore.xform_name(resource_type.replace(" ", ""))
+                standardised_service_name = service_name.replace(" ", "").lower()
+                reference = f"{standardised_service_name}.{resource_type_snake}"
+                resource_list += f"    * :class:`{collection_name}<{reference}>`\n"
+            if resource_list:
+                service_list += (
+                    f"* :doc:`{service_name} <resource_properties/{standardised_service_name}>`\n" + resource_list
+                )
         return service_list
+
+    def parse_rst(self, text: str) -> docutils.nodes.document:
+        parser = sphinx.parsers.RSTParser()
+        parser.set_application(self.env.app)
+
+        settings = OptionParser(
+            defaults=self.env.settings, components=(sphinx.parsers.RSTParser,), read_config_files=True
+        ).get_default_values()
+        document = docutils.utils.new_document("<rst-doc>", settings=settings)
+        parser.parse(text, document)
+        return document
 
 
 class CloudWandererSecondaryAttributesDirective(SphinxDirective):
@@ -173,23 +211,48 @@ class CloudWandererSecondaryAttributesDirective(SphinxDirective):
     def run(self) -> list:
         targetid = "cloudwanderer-%d" % self.env.new_serialno("cloudwanderer")
         targetnode = nodes.target("", "", ids=[targetid])
+        services_section = nodes.section(ids=["cloudwanderer_secondary_attributes"])
+        services_section += nodes.title("", "Secondary Attributes")
+        services_section += self.parse_rst(self.get_cloudwanderer_secondary_attributes()).children
 
-        return [targetnode, self.get_cloudwanderer_secondary_attributes()]
+        return [targetnode, services_section]
 
     def get_cloudwanderer_secondary_attributes(self) -> list:
-        service_list = nodes.bullet_list()
+        service_list = ""
 
         for service_name in sorted(self.services.available_services):
+            service_friendly_name = service_name
             service = self.services.get_service(service_name)
             resources = sorted(service.resource_summary)
-            resource_list = nodes.bullet_list()
-            for resource in resources:
-                for secondary_attribute in resource.secondary_attribute_names:
-                    resource_list += nodes.list_item("", nodes.Text(secondary_attribute))
-
-            if resource_list.children:
-                service_list += nodes.list_item("", nodes.Text(service_name), resource_list)
+            resource_list = ""
+            for resource_summary in resources:
+                secondary_attributes_list = ""
+                service_friendly_name = resource_summary.service_friendly_name
+                for secondary_attribute in resource_summary.secondary_attribute_names:
+                    qualified_name = f"{service_name}.{resource_summary.resource_type}.{secondary_attribute}"
+                    secondary_attributes_list += f"         * :class:`~{qualified_name}`\n"
+                if secondary_attributes_list:
+                    resource_link = (
+                        f":class:`{resource_summary.resource_friendly_name}"
+                        f"<{service_name}.{resource_summary.resource_type}>`"
+                    )
+                    resource_list += f"    * {resource_link}\n{secondary_attributes_list}"
+            if resource_list:
+                service_list += (
+                    f"* :doc:`{service_friendly_name} <resource_properties/{service_name}>`\n{resource_list}"
+                )
         return service_list
+
+    def parse_rst(self, text: str) -> docutils.nodes.document:
+        parser = sphinx.parsers.RSTParser()
+        parser.set_application(self.env.app)
+
+        settings = OptionParser(
+            defaults=self.env.settings, components=(sphinx.parsers.RSTParser,), read_config_files=True
+        ).get_default_values()
+        document = docutils.utils.new_document("<rst-doc>", settings=settings)
+        parser.parse(text, document)
+        return document
 
 
 class CloudWandererResourceDefinitionsDirective(SphinxDirective):

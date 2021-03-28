@@ -11,13 +11,8 @@ To increase resource coverage, CloudWanderer implements additional definitions.
 These definitions are very fast to write and test as they provide only the functionality
 required to query the resource rather than the much more featureful Boto3 resources which expose additional actions.
 
-CloudWanderer Provided Resources
-"""""""""""""""""""""""""""""""""""""
-
 .. supported-resources:cloudwanderer-resources ::
 
-Boto3 Provided Resources
-"""""""""""""""""""""""""""""""
 
 .. supported-resources:boto3-resources ::
 

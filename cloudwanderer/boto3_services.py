@@ -295,6 +295,8 @@ class CloudWandererBoto3Service:
     def resource_summary(self) -> List["ResourceSummary"]:
         """Return a summary of resource types in this service."""
         summaries = []
+        service_model = self.boto3_service.meta.client.meta.service_model
+        service_friendly_name = service_model.metadata["serviceId"]
 
         for resource_type in self.resource_types:
             resource = self._get_empty_resource(resource_type)
@@ -304,6 +306,8 @@ class CloudWandererBoto3Service:
             summaries.append(
                 ResourceSummary(
                     resource_type=resource_type,
+                    resource_friendly_name=resource.boto3_resource.meta.resource_model.name,
+                    service_friendly_name=service_friendly_name,
                     secondary_attribute_names=resource.secondary_attribute_names,
                     subresource_types=resource.subresource_types,
                 )
@@ -748,5 +752,7 @@ class ResourceSummary(NamedTuple):
     """A summary of a resource's subresource types and secondary attribute names."""
 
     resource_type: str
+    resource_friendly_name: str
+    service_friendly_name: str
     subresource_types: List[str]
     secondary_attribute_names: List[str]
