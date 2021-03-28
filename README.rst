@@ -13,7 +13,7 @@
       :target: https://github.com/CloudWanderer-io/CloudWanderer/actions?query=branch%3Amain
 
 .. |docs|
-   image:: https://readthedocs.org/projects/cloudwanderer/badge/?version=latest
+   image:: https://readthedocs.org/projects/cloudwanderer/badge/?version=latest&style=flat-square
       :target: https://www.cloudwanderer.io/en/latest/?badge=latest
       :alt: Documentation Status
 
