@@ -170,13 +170,19 @@ class TestCloudWandererBoto3Service(unittest.TestCase):
     def test_resource_summary(self):
         assert (
             ResourceSummary(
-                resource_type="vpc", subresource_types=[], secondary_attribute_names=["vpc_enable_dns_support"]
+                resource_type="vpc",
+                resource_friendly_name="Vpc",
+                service_friendly_name="EC2",
+                subresource_types=[],
+                secondary_attribute_names=["vpc_enable_dns_support"],
             )
             in self.service.resource_summary
         )
         assert (
             ResourceSummary(
                 resource_type="role",
+                resource_friendly_name="Role",
+                service_friendly_name="IAM",
                 subresource_types=["role_policy"],
                 secondary_attribute_names=["role_inline_policy_attachments", "role_managed_policy_attachments"],
             )

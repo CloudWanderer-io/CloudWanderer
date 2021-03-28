@@ -20,13 +20,15 @@ class TestCloudWandererResourcesDirective(unittest.TestCase):
         )
 
     def test_get_cloudwanderer_resources(self):
-        results = [str(x) for x in self.resources_directive.get_cloudwanderer_resources()]
+        results = self.resources_directive.get_cloudwanderer_resources()
 
-        expected_results = [
-            "<list_item>API Gateway<bullet_list><list_item>RestApis</list_item></bullet_list></list_item>",
-            "<list_item>Lambda<bullet_list><list_item>Functions</list_item></bullet_list></list_item>",
-            "<list_item>Secrets Manager<bullet_list><list_item>Secrets</list_item></bullet_list></list_item>",
-        ]
-
-        for expected_result in expected_results:
-            assert expected_result in results
+        assert (
+            results
+            == """* :doc:`API Gateway <resource_properties/apigateway>`
+    * :class:`RestApis<apigateway.rest_api>`
+* :doc:`Lambda <resource_properties/lambda>`
+    * :class:`Functions<lambda.function>`
+* :doc:`Secrets Manager <resource_properties/secretsmanager>`
+    * :class:`Secrets<secretsmanager.secret>`
+"""
+        )
