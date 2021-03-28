@@ -1,2 +1,0 @@
-sphinx-argparse
-boto3
