@@ -1,3 +1,9 @@
+# 0.15.0
+
+- Added `lambda` `layer` resource type.
+- Added `py.typed` for PEP561 support.
+- Added documentation on writing custom resource definitions.
+
 # 0.14.1
 
  - Implemented `mypy` type checking
