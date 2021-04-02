@@ -1,12 +1,20 @@
 import logging
+import sys
 from abc import ABC
-from typing import Any, Dict, List, NamedTuple, TypedDict
+from typing import Any, Dict, List, NamedTuple
+
+if sys.version_info >= (3, 8):
+    from typing import TypedDict
+else:
+    from typing_extensions import TypedDict
+
 from unittest.mock import MagicMock, patch
 
 import boto3
 
 from cloudwanderer import URN, CloudWanderer
 from cloudwanderer.aws_interface import CloudWandererAWSInterface
+from cloudwanderer.exceptions import UnsupportedResourceTypeError
 from cloudwanderer.storage_connectors import MemoryStorageConnector
 
 from ..helpers import DEFAULT_SESSION, GenericAssertionHelpers
@@ -44,8 +52,13 @@ class NoMotoMock(ABC, GenericAssertionHelpers):
     def test_write_resource(self):
         for scenario in self.single_resource_scenarios:
             logging.info("Testing fetching %s", scenario.urn)
-            self.wanderer.write_resource(urn=scenario.urn)
 
+            if issubclass(scenario.expected_results, UnsupportedResourceTypeError):
+                with self.assertRaises(UnsupportedResourceTypeError):
+                    self.wanderer.write_resource(urn=scenario.urn)
+                continue
+
+            self.wanderer.write_resource(urn=scenario.urn)
             self.assert_dictionary_overlap(
                 self.storage_connector.read_all(),
                 scenario.expected_results,

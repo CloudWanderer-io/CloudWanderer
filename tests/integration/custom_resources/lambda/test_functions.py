@@ -2,10 +2,10 @@ import unittest
 
 from cloudwanderer import URN
 
-from .helpers import CloudWandererCalls, MultipleResourceScenario, NoMotoMock, SingleResourceScenario
+from ..helpers import CloudWandererCalls, MultipleResourceScenario, NoMotoMock, SingleResourceScenario
 
 
-class TestLambdaResources(NoMotoMock, unittest.TestCase):
+class TestLambdaFunctions(NoMotoMock, unittest.TestCase):
     expected_result = {
         "FunctionName": "TestFunction",
         "FunctionArn": "arn:aws:lambda:eu-west-2:012345678912:function:TestFunction",
@@ -44,18 +44,6 @@ class TestLambdaResources(NoMotoMock, unittest.TestCase):
             "get_function.return_value": {"Configuration": function_payload},
             "get_paginator.return_value.paginate.return_value": [
                 {
-                    "ResponseMetadata": {
-                        "RequestId": "9aecdaee-943b-4c7f-906e-3f485269e951",
-                        "HTTPStatusCode": 200,
-                        "HTTPHeaders": {
-                            "date": "Sun, 21 Feb 2021 15:07:55 GMT",
-                            "content-type": "application/json",
-                            "content-length": "15683",
-                            "connection": "keep-alive",
-                            "x-amzn-requestid": "9aecdaee-943b-4c7f-906e-3f485269e951",
-                        },
-                        "RetryAttempts": 0,
-                    },
                     "Functions": [function_payload],
                 }
             ],

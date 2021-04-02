@@ -16,6 +16,22 @@
                     ],
                     "path": "Functions[]"
                 }
+            },
+            "Layers": {
+                "request": {
+                    "operation": "ListLayers"
+                },
+                "resource": {
+                    "type": "Layer",
+                    "identifiers": [
+                        {
+                            "target": "LayerName",
+                            "source": "response",
+                            "path": "Layers[].LayerName"
+                        }
+                    ],
+                    "path": "Layers[]"
+                }
             }
         }
     },
@@ -41,6 +57,15 @@
                 },
                 "path": "Configuration"
             }
+        },
+        "Layer": {
+            "identifiers": [
+                {
+                    "name": "LayerName",
+                    "memberName": "LayerName"
+                }
+            ],
+            "shape": "LayersListItem"
         }
     }
 }
