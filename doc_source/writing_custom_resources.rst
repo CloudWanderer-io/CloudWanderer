@@ -9,4 +9,5 @@ what these definitions look like and how to create your own.
     :maxdepth: 2
 
     writing_custom_resources/anatomy_of_a_custom_resource
-    writing_custom_resources/example
+    writing_custom_resources/example_resource
+    writing_custom_resources/example_subresource

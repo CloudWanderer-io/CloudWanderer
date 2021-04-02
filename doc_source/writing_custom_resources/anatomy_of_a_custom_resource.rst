@@ -66,9 +66,12 @@ A collection definition is the way CloudWanderer and Boto3 determine how they ca
     The name of the API method we need to call in order to list this type of resource
 * Collection Resource Type (line 9)
     The type of the resource that this collection contains (this *must* match the name on line 23).
+    This does **not** have to match any Boto3 or BotoCore names and will be the name you supply when calling
+    :class:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resources` with the ``service_names`` argument.
 * Collection Resource Identifier (lines 11-15)
     A specification for the components of the API response which make up the unique identifiers for this resource type.
 * Collection Resource Path (line 17)
+    The `JMESPath <https://jmespath.org>`_ to the Resource metadata in the collection request response
 
 Resource definition
 """"""""""""""""""""""
@@ -76,6 +79,8 @@ A resource definition is the way CloudWanderer and Boto3 determine how to unders
 
 * Resource Type (line 23)
     Must match the one specified in the collection on line 9!
+    This does **not** have to match any Boto3 or BotoCore names and will be the name you supply when calling
+    :class:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resources` with the ``service_names`` argument.
 * Resource Identifier(s) (lines 25-28)
     A specification for the unique identifiers for this resource, can get values from either the load API response or (as in this case) the members passed from the collection.
 * Resource Shape (line 30)

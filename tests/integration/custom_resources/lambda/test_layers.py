@@ -19,13 +19,37 @@ class TestLambdaLayers(NoMotoMock, unittest.TestCase):
         },
     }
 
+    layer_version_payload = {
+        "LayerVersionArn": "arn:aws:lambda:eu-west-1:123456789012:layer:test-layer:1",
+        "Version": 1,
+        "Description": "This is a test layer!",
+        "CreatedDate": "2020-10-17T13:18:00.303+0000",
+        "CompatibleRuntimes": ["nodejs10.x"],
+    }
+
+    layer_version_expected = {
+        "urn": "urn:aws:123456789012:eu-west-2:lambda:layer_version:test-layer/1",
+        "attr": "BaseResource",
+        "LayerName": None,
+        "LayerArn": None,
+        "LatestMatchingVersion": None,
+        "LayerVersionArn": "arn:aws:lambda:eu-west-1:123456789012:layer:test-layer:1",
+        "Version": 1,
+        "Description": "This is a test layer!",
+        "CreatedDate": "2020-10-17T13:18:00.303+0000",
+        "CompatibleRuntimes": ["nodejs10.x"],
+    }
+
     mock = {
         "lambda": {
             "get_layer.return_value": {"Configuration": layer_payload},
-            "get_paginator.return_value.paginate.return_value": [
-                {
-                    "Layers": [layer_payload],
-                }
+            "get_paginator.return_value.paginate.side_effect": [
+                [
+                    {
+                        "Layers": [layer_payload],
+                    }
+                ],
+                [{"LayerVersions": [layer_version_payload]}],
             ],
         }
     }
@@ -39,6 +63,6 @@ class TestLambdaLayers(NoMotoMock, unittest.TestCase):
     multiple_resource_scenarios = [
         MultipleResourceScenario(
             arguments=CloudWandererCalls(regions=["eu-west-1"], service_names=["lambda"], resource_types=["layer"]),
-            expected_results=[layer_payload],
+            expected_results=[layer_version_expected],
         )
     ]

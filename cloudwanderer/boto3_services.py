@@ -43,7 +43,7 @@ from .models import CleanupAction, GetAction, GetAndCleanUp
 from .typing_helpers import lru_cache_property
 from .urn import URN
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 
 class CloudWandererBoto3ResourceFactory:
@@ -539,7 +539,7 @@ class CloudWandererBoto3Resource:
         id_members = [x.name for x in self.boto3_resource.meta.resource_model.identifiers]
         resource_ids = []
         for id_member in id_members:
-            id_part = getattr(self.boto3_resource, id_member)
+            id_part = str(getattr(self.boto3_resource, id_member))
             if id_part.startswith("arn:"):
                 id_part = "".join(id_part.split(":")[5:])
             resource_ids.append(id_part)

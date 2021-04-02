@@ -1,4 +1,4 @@
-Example of Writing a Custom Resource
+Writing a Custom Resource
 ======================================
 
 In this example  we're going to write a custom resource for Lambda Layers.
@@ -81,9 +81,15 @@ Populate the mock
 Populate the scenarios
 """""""""""""""""""""""""""
 
-Now we need to populate our scenarios. Because Lambda Layers do not have a `Describe` API call and there is no other way to retrieve the metadata for a specific layer without listing
-all of the, our ``expected_results`` value for ``single_resource_scenario`` is :class:`~cloudwanderer.exceptions.UnsupportedResourceTypeError`.
-Because we split out our `return_value` into a separate `layer_payload` property when we set up the mockdata, we can re-use that as our ``expected_results`` value for the ``multiple_resource_scenarios``.
+Now we need to populate our scenarios.
+
+* Single resource scenarios
+    These scenarios are the expected argument and return values from :class:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resource`.
+    Lambda Layers do not have a ``Describe*`` API call and there is no other way to retrieve the metadata for a specific layer without listing
+    all of them. This means that our ``expected_results`` value for ``single_resource_scenario`` is :class:`~cloudwanderer.exceptions.UnsupportedResourceTypeError`.
+* Multiple resource scenarios
+    These scenarios are the expected argument and return values from :class:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resources`.
+    Because we split out our ``return_value`` into a separate ``layer_payload`` property when we set up the mockdata, we can re-use that as our ``expected_results`` value for the ``multiple_resource_scenarios``.
 
 .. code-block:: python
 
@@ -128,7 +134,7 @@ Visit https://github.com/boto/botocore/tree/develop/botocore/data and open the l
 In our case this is https://github.com/boto/botocore/blob/develop/botocore/data/lambda/2015-03-31/service-2.json
 
 Look for the PascalCase name of the Boto3 method we would use to query this resource. In our case ``list_layers`` becomes ``ListLayers``.
-This is our *Request Operation Name*.
+This is our **Request Operation Name**.
 
 .. image:: ../images/writing_custom_resources/botocore_1.png
    :width: 600
@@ -148,7 +154,7 @@ We can see this has the shape ``LayersList``, let's search for that.
 .. image:: ../images/writing_custom_resources/botocore_3.png
    :width: 600
 
-This is helpful! Our next stop is right below the last, we can see that this contains a ``LayersListItem`` which is our shape for this resource.
+This is helpful! Our next stop is right below the last, we can see that this contains a ``LayersListItem`` which is our **Resource Shape**.
 
 Determining the collection resource identifier
 """"""""""""""""""""""""""""""""""""""""""""""""""
@@ -259,7 +265,7 @@ There's very little to our resource.
 We're specifying that we're inheriting the ``LayerName`` as an identifier from the collection memnbers.
 The most crucial things here are:
 
-#. That the name on line 4 matches the resource type specified in the collection.
+#. That the name on line 4 matches the resource type specified in the collection. This does **not** have to match any Boto3 or BotoCore names and will be the name you supply when calling :class:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resources` with the ``service_names`` argument.
 #. That the shape on line 11 is the shape we found in the Botocore ``service-2.json`` definition.
 
 
@@ -267,6 +273,25 @@ The most crucial things here are:
 
     Normally we would have a ``load`` key inside our resource, however in this case Lambda Layers have no ``Describe`` API method
     therefore we cannot load them by layer name. The impact of this is that we cannot use :meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resource` with this resource type.
+
+Running the tests
+-----------------------
+Now you've put all the pieces together you need to run the tests.
+You can `see the full test code on github <https://github.com/CloudWanderer-io/CloudWanderer/blob/b1a25614b16ca70bc650c0a1bab9684c1018f205/tests/integration/custom_resources/lambda/test_layers.py>`_.
+As well as the `full resource specification (alongside Lambda Function) <https://github.com/CloudWanderer-io/CloudWanderer/blob/b1a25614b16ca70bc650c0a1bab9684c1018f205/cloudwanderer/resource_definitions/lambda.json>`_.
+
+To run the tests:
+
+.. code-block :: shell
+
+    # Install the pre-reqs
+    $ pip install -r requirements-test.txt -r requirements.txt
+    # Install the package in interactive mode
+    $ pip install -e .
+    # Run the tests
+    $ pytest tests/integration/custom_resources/lambda/test_layers.py
+    === 2 passed in 2.28s ==
+
 
 Submit a PR!
 -------------------
