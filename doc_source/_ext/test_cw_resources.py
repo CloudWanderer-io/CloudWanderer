@@ -28,6 +28,7 @@ class TestCloudWandererResourcesDirective(unittest.TestCase):
     * :class:`RestApis<apigateway.rest_api>`
 * :doc:`Lambda <resource_properties/lambda>`
     * :class:`Functions<lambda.function>`
+    * :class:`Layers<lambda.layer>`
 * :doc:`Secrets Manager <resource_properties/secretsmanager>`
     * :class:`Secrets<secretsmanager.secret>`
 """
