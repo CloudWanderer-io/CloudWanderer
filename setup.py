@@ -22,6 +22,6 @@ setup(
     url="https://github.com/CloudWanderer-io/CloudWanderer",
     install_requires=["boto3", "jmespath", 'typing_extensions; python_version < "3.8.0"'],
     package_data={
-        "": ["**/*.json"],
+        "": ["**/*.json", "py.typed"],
     },
 )
