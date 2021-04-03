@@ -42,15 +42,10 @@ class TestLambdaLayers(NoMotoMock, unittest.TestCase):
 
     mock = {
         "lambda": {
-            "get_layer.return_value": {"Configuration": layer_payload},
-            "get_paginator.return_value.paginate.side_effect": [
-                [
-                    {
-                        "Layers": [layer_payload],
-                    }
-                ],
-                [{"LayerVersions": [layer_version_payload]}],
-            ],
+            "list_layers.return_value": {
+                "Layers": [layer_payload],
+            },
+            "list_layer_versions.return_value": {"LayerVersions": [layer_version_payload]},
         }
     }
 
@@ -63,6 +58,6 @@ class TestLambdaLayers(NoMotoMock, unittest.TestCase):
     multiple_resource_scenarios = [
         MultipleResourceScenario(
             arguments=CloudWandererCalls(regions=["eu-west-1"], service_names=["lambda"], resource_types=["layer"]),
-            expected_results=[layer_version_expected],
+            expected_results=[layer_payload, layer_version_expected],
         )
     ]

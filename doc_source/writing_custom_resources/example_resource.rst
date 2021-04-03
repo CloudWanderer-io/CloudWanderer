@@ -68,12 +68,9 @@ Populate the mock
 
         mock = {
             "lambda": {
-                "get_layer.return_value": {"Configuration": layer_payload},
-                "get_layer.return_value.paginate.return_value": [
-                    {
-                        "Layers": [layer_payload],
-                    }
-                ],
+                "list_layers.return_value": {
+                   "Layers": [layer_payload],
+                }
             }
         }
 
@@ -262,7 +259,7 @@ Populate the resource
     }
 
 There's very little to our resource.
-We're specifying that we're inheriting the ``LayerName`` as an identifier from the collection memnbers.
+We're specifying that we're inheriting the ``LayerName`` as an identifier from the collection members.
 The most crucial things here are:
 
 #. That the name on line 4 matches the resource type specified in the collection. This does **not** have to match any Boto3 or BotoCore names and will be the name you supply when calling :class:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resources` with the ``service_names`` argument.
@@ -277,8 +274,8 @@ The most crucial things here are:
 Running the tests
 -----------------------
 Now you've put all the pieces together you need to run the tests.
-You can `see the full test code on github <https://github.com/CloudWanderer-io/CloudWanderer/blob/b1a25614b16ca70bc650c0a1bab9684c1018f205/tests/integration/custom_resources/lambda/test_layers.py>`_.
-As well as the `full resource specification (alongside Lambda Function) <https://github.com/CloudWanderer-io/CloudWanderer/blob/b1a25614b16ca70bc650c0a1bab9684c1018f205/cloudwanderer/resource_definitions/lambda.json>`_.
+You can `see the full test code on github <https://github.com/CloudWanderer-io/CloudWanderer/blob/master/tests/integration/custom_resources/lambda/test_layers.py>`_.
+As well as the `full resource specification (alongside Lambda Function) <https://github.com/CloudWanderer-io/CloudWanderer/blob/master/cloudwanderer/resource_definitions/lambda.json>`_.
 
 To run the tests:
 
