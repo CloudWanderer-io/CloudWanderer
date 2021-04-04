@@ -1,0 +1,46 @@
+{
+    "service": {
+        "hasMany": {
+            "AutoScalingGroups": {
+                "request": {
+                    "operation": "DescribeAutoScalingGroups"
+                },
+                "resource": {
+                    "type": "AutoScalingGroup",
+                    "identifiers": [
+                        {
+                            "target": "AutoScalingGroupName",
+                            "source": "response",
+                            "path": "AutoScalingGroups[].AutoScalingGroupName"
+                        }
+                    ],
+                    "path": "AutoScalingGroups[]"
+                }
+            }
+        }
+    },
+    "resources": {
+        "AutoScalingGroup": {
+            "identifiers": [
+                {
+                    "name": "AutoScalingGroupName",
+                    "memberName": "AutoScalingGroupName"
+                }
+            ],
+            "shape": "AutoScalingGroup",
+            "load": {
+                "request": {
+                    "operation": "DescribeAutoScalingGroups",
+                    "params": [
+                        {
+                            "target": "AutoScalingGroupNames[0]",
+                            "source": "identifier",
+                            "name": "AutoScalingGroupName"
+                        }
+                    ]
+                },
+                "path": "AutoScalingGroups[0]"
+            }
+        }
+    }
+}
