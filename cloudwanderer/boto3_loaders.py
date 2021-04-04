@@ -193,6 +193,7 @@ class ResourceMap(NamedTuple):
 
     type: Optional[str]
     region_request: Optional["ResourceRegionRequest"]
+    parent_resource_type: str
     ignored_subresources: list
 
     @classmethod
@@ -201,6 +202,7 @@ class ResourceMap(NamedTuple):
             type=definition.get("type"),
             region_request=ResourceRegionRequest.factory(definition.get("regionRequest")),
             ignored_subresources=definition.get("ignoredSubresources", []),
+            parent_resource_type=definition.get("parentResourceType", ""),
         )
 
     @property

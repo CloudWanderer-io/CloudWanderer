@@ -63,6 +63,11 @@ class TestResourceMap(unittest.TestCase):
         assert resource_map.ignored_subresources == [{"type": "ObjectSummary"}]
         assert resource_map.ignored_subresource_types == ["ObjectSummary"]
 
+    def test_subresource_map(self):
+        resource_map = ResourceMap.factory(definition={"type": "resource", "parentResourceType": "role"})
+
+        assert resource_map.parent_resource_type == "role"
+
 
 class TestResourceRegionRequest(unittest.TestCase):
     def test_factory(self):
