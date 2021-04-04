@@ -23,7 +23,6 @@ class TestAPIGatewayResources(unittest.TestCase, GenericAssertionHelpers):
         get_default_mocker().stop_moto_services()
 
     def test_write_api_gateway(self):
-
         self.wanderer.write_resource(
             urn=URN(
                 account_id=self.wanderer.cloud_interface.account_id,
@@ -40,7 +39,6 @@ class TestAPIGatewayResources(unittest.TestCase, GenericAssertionHelpers):
         )
 
     def test_write_api_gateways(self):
-
         self.wanderer.write_resources(regions=["eu-west-2"], service_names=["apigateway"])
 
         self.assert_dictionary_overlap(

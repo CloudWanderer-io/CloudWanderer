@@ -35,6 +35,14 @@ class URN:
             resource_type (str): AWS Resource Type (e.g. ``instance``)
             resource_id (str): AWS Resource Id (e.g. ``i-11111111``)
             cloud_name (str): The name of the cloud this resource exists in (defaults to ``'aws'``)
+
+        Attributes:
+            account_id (str): AWS Account ID (e.g. ``111111111111``).
+            region (str): AWS region (e.g. ``eu-west-1``).
+            service (str): AWS Service (e.g. ``ec2``).
+            resource_type (str): AWS Resource Type (e.g. ``instance``)
+            resource_id (str): AWS Resource Id (e.g. ``i-11111111``)
+            cloud_name (str): The name of the cloud this resource exists in (defaults to ``'aws'``)
         """
         self.cloud_name = cloud_name or "aws"
         self.account_id = account_id

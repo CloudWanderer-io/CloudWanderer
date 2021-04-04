@@ -1,7 +1,7 @@
 import logging
 import os
 import re
-from typing import List, Union
+from typing import Any, List, NamedTuple, Union
 from unittest.mock import PropertyMock, patch
 
 import boto3
@@ -62,6 +62,25 @@ class TestStorageConnectorReadMixin:
             self.assertFalse(self.has_matching_urn(iterable, **urn), f"{urn} is in {iterable}")
 
 
+class ItemResult(NamedTuple):
+    result: bool
+    expected_value: Any
+    received_value: Any
+
+
+class OverlapResult(NamedTuple):
+    expected_item: Any
+    received_item: Any
+    results: List[ItemResult]
+
+    def __repr__(self):
+        return (
+            f"\nExpected\n\t{self.expected_item}\n"
+            f"got\n\t{self.received_item}\n"
+            f"differing on:\n\t{[x for x in self.results if not x.result]}"
+        )
+
+
 class GenericAssertionHelpers:
     def assert_dictionary_overlap(self, received, expected):
         """Asserts that every item in expected has an equivalent item in received.
@@ -69,19 +88,22 @@ class GenericAssertionHelpers:
         Where all key/values from the received item exist in the expected item.
         """
         received = received if isinstance(received, list) else list(received)
-        unmatched, _ = self.get_resource_overlap(received, expected)
-        self.assertEqual(unmatched, [], f"{unmatched} was not found in {received}")
+        unmatched, _, partial_matches = self.get_resource_overlap(received, expected)
+        if unmatched and partial_matches:
+            assert False, f"{partial_matches}"
+        assert unmatched == [], f"{unmatched} was not found in {received}"
 
     def assert_no_dictionary_overlap(self, received, expected):
         """Asserts that NO item in expected has an equivalent item in received."""
         received = received if isinstance(received, list) else list(received)
-        _, matched = self.get_resource_overlap(received, expected)
+        _, matched, _ = self.get_resource_overlap(received, expected)
         self.assertEqual(matched, [], f"{matched} was found in {received}")
 
     def get_resource_overlap(self, received, expected):
         """Returns CloudWandererResources/dicts from received that match the keys in the list of dicts in expected."""
         remaining = expected.copy()
         matched = []
+        partial_matches = []
         for received_item in received:
             for expected_item in expected:
                 if expected_item not in remaining:
@@ -97,15 +119,34 @@ class GenericAssertionHelpers:
                             continue
                     if isinstance(received_value, str) and isinstance(expected_value, str):
                         # Allow regex matching of strings (as moto randomly generates resource IDs)
-                        matching.append(re.match(expected_value, received_value))
+                        matching.append(
+                            ItemResult(
+                                result=bool(
+                                    re.match(expected_value, received_value) or expected_value == received_value
+                                ),
+                                expected_value=expected_value,
+                                received_value=received_value,
+                            )
+                        )
                     else:
-                        matching.append(expected_value == received_value)
+                        matching.append(
+                            ItemResult(
+                                result=expected_value == received_value,
+                                expected_value=expected_value,
+                                received_value=received_value,
+                            )
+                        )
 
-                if all(matching):
+                if all([x.result for x in matching]):
                     remaining.remove(expected_item)
                     matched.append(expected_item)
                     break
-        return remaining, matched
+                if any(x.result for x in matching):
+                    partial_matches.append(
+                        OverlapResult(received_item=received_item, expected_item=expected_item, results=matching)
+                    )
+
+        return remaining, matched, partial_matches
 
     def get_secondary_attributes_from_resources(self, resources: list):
         return [
