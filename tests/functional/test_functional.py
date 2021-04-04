@@ -7,11 +7,13 @@ import botocore
 from cloudwanderer import URN, CloudWanderer
 from cloudwanderer.aws_interface import CloudWandererAWSInterface
 from cloudwanderer.cloud_wanderer import CloudWandererConcurrentWriteThreadResult
-from cloudwanderer.exceptions import BadUrnRegionError, BadUrnSubResourceError
+from cloudwanderer.exceptions import BadUrnRegionError, BadUrnSubResourceError, UnsupportedResourceTypeError
 from cloudwanderer.storage_connectors import DynamoDbConnector
 
 
 class TestFunctional(unittest.TestCase):
+    resources_not_supporting_load = ["lambda:layer"]
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         logging.basicConfig(level="debug")
@@ -74,6 +76,10 @@ class TestFunctional(unittest.TestCase):
                     self.wanderer.write_resource(urn=urn)
                 except (BadUrnSubResourceError, BadUrnRegionError):
                     pass
+                except UnsupportedResourceTypeError as ex:
+                    if f"{service_name}:{resource_type}" in self.resources_not_supporting_load:
+                        continue
+                    raise ex
 
     def test_write_single_resource_of_every_found_type(self):
         for service_name in self.wanderer.cloud_interface.boto3_services.available_services:
@@ -93,8 +99,12 @@ class TestFunctional(unittest.TestCase):
                 if resource.urn.is_subresource:
                     continue
                 logging.info("Found %s, testing write_resource", resource.urn)
-
-                self.wanderer.write_resource(urn=resource.urn)
+                try:
+                    self.wanderer.write_resource(urn=resource.urn)
+                except UnsupportedResourceTypeError as ex:
+                    if f"{service_name}:{resource_type}" in self.resources_not_supporting_load:
+                        continue
+                    raise ex
 
     def test_read_all(self):
         results = list(self.storage_connector.read_all())
