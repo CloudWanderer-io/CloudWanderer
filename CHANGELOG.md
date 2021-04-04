@@ -1,8 +1,10 @@
 # 0.15.0
 
 - Added `lambda` `layer` resource type.
+- Added `lambda` `layer_version` subresource type.
 - Added `py.typed` for PEP561 support.
 - Added documentation on writing custom resource definitions.
+- Fixed bug where resources could not build URNs if they had non-string ID components.
 
 # 0.14.1
 

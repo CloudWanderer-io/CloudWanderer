@@ -37,7 +37,6 @@ class TestCloudWandererResourcesDirective(unittest.TestCase):
     * :class:`Images<ec2.image>`
     * :class:`Instances<ec2.instance>`
     * :class:`InternetGateways<ec2.internet_gateway>`
-    * :class:`KeyPairs<ec2.key_pair_info>`
     * :class:`NetworkAcls<ec2.network_acl>`
     * :class:`NetworkInterfaces<ec2.network_interface>`
     * :class:`PlacementGroups<ec2.placement_group>`
@@ -53,12 +52,19 @@ class TestCloudWandererResourcesDirective(unittest.TestCase):
     * :class:`Vaults<glacier.vault>`
 * :doc:`IAM <resource_properties/iam>`
     * :class:`Groups<iam.group>`
+         * :class:`Policies<iam.group.group_policy>`
     * :class:`InstanceProfiles<iam.instance_profile>`
     * :class:`Policies<iam.policy>`
+         * :class:`Versions<iam.policy.policy_version>`
     * :class:`Roles<iam.role>`
+         * :class:`Policies<iam.role.role_policy>`
     * :class:`SamlProviders<iam.saml_provider>`
     * :class:`ServerCertificates<iam.server_certificate>`
     * :class:`Users<iam.user>`
+         * :class:`AccessKeys<iam.user.access_key>`
+         * :class:`MfaDevices<iam.user.mfa_device>`
+         * :class:`Policies<iam.user.user_policy>`
+         * :class:`SigningCertificates<iam.user.signing_certificate>`
     * :class:`VirtualMfaDevices<iam.virtual_mfa_device>`
 * :doc:`OpsWorks <resource_properties/opsworks>`
     * :class:`Stacks<opsworks.stack>`

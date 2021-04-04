@@ -42,11 +42,9 @@ class TestLambdaFunctions(NoMotoMock, unittest.TestCase):
     mock = {
         "lambda": {
             "get_function.return_value": {"Configuration": function_payload},
-            "get_paginator.return_value.paginate.return_value": [
-                {
-                    "Functions": [function_payload],
-                }
-            ],
+            "list_functions.return_value": {
+                "Functions": [function_payload],
+            },
         }
     }
 

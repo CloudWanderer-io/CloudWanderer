@@ -85,8 +85,21 @@ class SummarisedResources:
             resource_list = []
             for collection_name, collection in service_definition["service"].get("hasMany", {}).items():
                 resource_name = collection["resource"]["type"]
-                if collection_name not in self.boto3_resources.get(service_name, []):
-                    resource_list.append((collection_name, resource_name))
+                if collection_name in self.boto3_resources.get(service_name, []):
+                    continue
+                try:
+                    resource = service._get_empty_resource(botocore.xform_name(resource_name))
+                except StopIteration:
+                    continue
+                subresource_summary = []
+                for subresource_collection_model in resource.subresource_models:
+                    subresource_collection_name = (
+                        subresource_collection_model.name.replace("_", " ").title().replace(" ", "")
+                    )
+                    subresource_name = subresource_collection_model.resource.type
+                    subresource_summary.append((subresource_collection_name, subresource_name))
+                resource_list.append((collection_name, resource_name, subresource_summary))
+
             if resource_list:
                 service_summary[service_id] = resource_list
         return service_summary
@@ -101,8 +114,22 @@ class SummarisedResources:
             service_id = service_model.metadata["serviceId"]
             service_definition = self.merged_loader._get_boto3_definition(service_name)
             for collection_name, collection in service_definition["service"].get("hasMany", {}).items():
+
                 resource_name = collection["resource"]["type"]
-                services_summary[service_id].append((collection_name, resource_name))
+                try:
+                    resource = service._get_empty_resource(botocore.xform_name(resource_name))
+                except StopIteration:
+                    print(f"Could not find resource: {resource_name}")
+                    continue
+                subresource_summary = []
+                for subresource_collection_model in resource.subresource_models:
+                    subresource_collection_name = (
+                        subresource_collection_model.name.replace("_", " ").title().replace(" ", "")
+                    )
+                    subresource_name = subresource_collection_model.resource.type
+                    subresource_summary.append((subresource_collection_name, subresource_name))
+                services_summary[service_id].append((collection_name, resource_name, subresource_summary))
+
         return services_summary
 
 
@@ -128,11 +155,15 @@ class CloudWandererResourcesDirective(SphinxDirective):
 
         for service_name, resource_type_tuple in sorted(self.summarised_resources.cloudwanderer_resources.items()):
             resource_list = ""
-            for collection_name, resource_type in resource_type_tuple:
+            for collection_name, resource_type, subresource_summary in resource_type_tuple:
                 resource_type_snake = botocore.xform_name(resource_type.replace(" ", ""))
                 standardised_service_name = service_name.replace(" ", "").lower()
                 reference = f"{standardised_service_name}.{resource_type_snake}"
                 resource_list += f"    * :class:`{collection_name}<{reference}>`\n"
+                for subresource_collection, subresource_type in subresource_summary:
+                    subresource_type_snake = botocore.xform_name(subresource_type)
+                    reference = f"{standardised_service_name}.{resource_type_snake}.{subresource_type_snake}"
+                    resource_list += f"         * :class:`{subresource_collection}<{reference}>`\n"
             if resource_list:
                 service_list += (
                     f"* :doc:`{service_name} <resource_properties/{standardised_service_name}>`\n" + resource_list
@@ -174,11 +205,15 @@ class Boto3ResourcesDirective(SphinxDirective):
 
         for service_name, resource_type_tuple in sorted(self.summarised_resources.boto3_resources.items()):
             resource_list = ""
-            for collection_name, resource_type in resource_type_tuple:
+            for collection_name, resource_type, subresource_summary in resource_type_tuple:
                 resource_type_snake = botocore.xform_name(resource_type.replace(" ", ""))
                 standardised_service_name = service_name.replace(" ", "").lower()
                 reference = f"{standardised_service_name}.{resource_type_snake}"
                 resource_list += f"    * :class:`{collection_name}<{reference}>`\n"
+                for subresource_collection, subresource_type in subresource_summary:
+                    subresource_type_snake = botocore.xform_name(subresource_type)
+                    reference = f"{standardised_service_name}.{resource_type_snake}.{subresource_type_snake}"
+                    resource_list += f"         * :class:`{subresource_collection}<{reference}>`\n"
             if resource_list:
                 service_list += (
                     f"* :doc:`{service_name} <resource_properties/{standardised_service_name}>`\n" + resource_list
