@@ -65,3 +65,7 @@ class TestURN(unittest.TestCase):
             resource_type="role_policy",
             resource_id="test-role/test-role-policy",
         )
+
+    def test_parent_resource_id(self):
+
+        assert self.test_urn_subresource.parent_resource_id == "test-role"

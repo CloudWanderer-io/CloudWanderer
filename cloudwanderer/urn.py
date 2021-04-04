@@ -73,6 +73,12 @@ class URN:
         """
         return "/" in self.resource_id
 
+    @property
+    def parent_resource_id(self) -> str:
+        if not self.is_subresource:
+            return ""
+        return self.resource_id.split("/")[0]
+
     def __eq__(self, other: Any) -> bool:
         """Allow comparison of one URN to another.
 
