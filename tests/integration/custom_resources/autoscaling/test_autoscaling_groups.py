@@ -8,11 +8,11 @@ from ..helpers import CloudWandererCalls, MultipleResourceScenario, NoMotoMock, 
 class TestAutoScalingGroups(NoMotoMock, unittest.TestCase):
     auto_scaling_group_payload = {
         "AutoScalingGroupName": "test",
-        "AutoScalingGroupARN": "arn:aws:autoscaling:eu-west-1:111111111111:autoScalingGroup:7ccb5b52-f617-417e-95c2-27104e51e1cb:autoScalingGroupName/test-group",  # noqa
+        "AutoScalingGroupARN": "arn:aws:autoscaling:eu-west-1:111111111111:autoScalingGroup:11111111-1111-1111-1111-111111111111:autoScalingGroupName/test-group",  # noqa
         "MixedInstancesPolicy": {
             "LaunchTemplate": {
                 "LaunchTemplateSpecification": {
-                    "LaunchTemplateId": "lt-0655a3e590d9c5e6c",
+                    "LaunchTemplateId": "lt-11111111111111111",
                     "LaunchTemplateName": "test",
                     "Version": "$Default",
                 },
