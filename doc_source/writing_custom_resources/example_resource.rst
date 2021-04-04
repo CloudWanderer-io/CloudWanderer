@@ -46,8 +46,8 @@ We need to populate the following attributes in this class:
 * ``single_resource_scenarios``
 * ``multiple_resource_scenarios``
 
-Because we're inheriting from ``NoMotoMock`` in the helpers file, we don't actually need to specify any tests as the scenarios we specify
-will be run automatically.
+We don't actually need to specify any tests as the scenarios we specify
+will be run automatically will be run by the ``NoMotoMock`` mixin we're inheriting from.
 
 Populate the mock
 """"""""""""""""""""""
@@ -74,6 +74,9 @@ Populate the mock
             }
         }
 
+We're populating the ``return_value`` of ``list_layers`` as this is the name of the Boto3 client method that
+will be used internally to fetch the resource. We don't need to worry about handling pagination as this is
+handled for us by the ``NoMotoMock`` mixin.
 
 Populate the scenarios
 """""""""""""""""""""""""""
@@ -127,8 +130,8 @@ Getting the request operation name
 
 We need to lookup the API request operation name in the BotoCore service definition so that we can
 confirm we have the right API method name and as the starting point for discovering the resource shape.
-Visit https://github.com/boto/botocore/tree/develop/botocore/data and open the latest ``service-2.json`` for your service.
-In our case this is https://github.com/boto/botocore/blob/develop/botocore/data/lambda/2015-03-31/service-2.json
+Visit `Botocore's specification data on GitHub <https://github.com/boto/botocore/tree/develop/botocore/data>`_ and open the latest ``service-2.json`` for your service.
+In our case this is `lambda/2015-03-31/service-2.json <https://github.com/boto/botocore/blob/develop/botocore/data/lambda/2015-03-31/service-2.json>`_
 
 Look for the PascalCase name of the Boto3 method we would use to query this resource. In our case ``list_layers`` becomes ``ListLayers``.
 This is our **Request Operation Name**.
@@ -167,16 +170,16 @@ Don't be fooled into using the ``ARN`` if another shorter unique identifier is a
 Our identifier has three elements:
 
 * Target (the name we will use to refer to the identifier later)
-* Source (Where the identifier can be found, in this case ``response`` because it comes from the ``ListLayers`` response)
+* Source (where the identifier can be found, in this case ``response`` because it comes from the ``ListLayers`` response)
 * Path (the `JMESPath <https://jmespath.org/>`_ to the identifier within the ``ListLayers`` response)
 
 The trickiest of these is the ``Path``. The easiest way to figure out what it is is to take the JSON payload you retrieved earlier from ``aws lambda list-layers``
-and paste it into https://jmespath.org/ and build your JMESPath there.
+and paste it into `jmespath.org <https://jmespath.org/>`_ and build your JMESPath there.
 
 .. image:: ../images/writing_custom_resources/jmespath.png
    :width: 600
 
-Then we end up with something that looks like this:
+Putting those three pieces together we end up with something that looks like this:
 
 .. code-block:: json
 
@@ -199,7 +202,7 @@ You can re-use the JSON output you pasted into https://jmespath.org above and tr
 Populating the collection
 """""""""""""""""""""""""""""""""""""""""""""
 
-Now we have the various components we can write our ``hasMany`` specification:
+Now we have the various components we can write our collection specification:
 
 .. code-block:: json
     :linenos:
@@ -262,7 +265,7 @@ There's very little to our resource.
 We're specifying that we're inheriting the ``LayerName`` as an identifier from the collection members.
 The most crucial things here are:
 
-#. That the name on line 4 matches the resource type specified in the collection. This does **not** have to match any Boto3 or BotoCore names and will be the name you supply when calling :class:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resources` with the ``service_names`` argument.
+#. That the resource name on line 4 matches the resource type specified in the collection. This does **not** have to match any Boto3 or BotoCore names and will be the name you supply when calling :class:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resources` with the ``service_names`` argument.
 #. That the shape on line 11 is the shape we found in the Botocore ``service-2.json`` definition.
 
 
@@ -271,29 +274,4 @@ The most crucial things here are:
     Normally we would have a ``load`` key inside our resource, however in this case Lambda Layers have no ``Describe`` API method
     therefore we cannot load them by layer name. The impact of this is that we cannot use :meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resource` with this resource type.
 
-Running the tests
------------------------
-Now you've put all the pieces together you need to run the tests.
-You can `see the full test code on github <https://github.com/CloudWanderer-io/CloudWanderer/blob/master/tests/integration/custom_resources/lambda/test_layers.py>`_.
-As well as the `full resource specification (alongside Lambda Function) <https://github.com/CloudWanderer-io/CloudWanderer/blob/master/cloudwanderer/resource_definitions/lambda.json>`_.
-
-To run the tests:
-
-.. code-block :: shell
-
-    # Install the pre-reqs
-    $ pip install -r requirements-test.txt -r requirements.txt
-    # Install the package in interactive mode
-    $ pip install -e .
-    # Run the tests
-    $ pytest tests/integration/custom_resources/lambda/test_layers.py
-    === 2 passed in 2.28s ==
-
-
-Submit a PR!
--------------------
-
-Congratulations! You have successfully created a new custom resource.
-If you submit a Pull Request to https://github.com/CloudWanderer-io/CloudWanderer/ with your new resource we
-will get it merged in and released for everyone to use as quickly as we possibly can!
-If you find you're not getting the attention you deserve for whatever reason, contact us on `twitter <https://twitter.com/cloudwandererio>`_.
+.. include:: tests.rst
