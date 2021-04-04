@@ -1,0 +1,1 @@
+find ../aws-config-resource-schema/config/properties | sed -E "s/.*\/AWS::([^:]+)::([^\.]+).*|.*/\1 \2/g" | sort | xargs -I {} echo "gh issue create --title 'New Resource: {}' --label "enhancement" --project 'Resource Coverage' --body 'To ensure feature parity with AWS Config Advanced Query we need to support: **{}**'" > advanced-query-parity.delta
