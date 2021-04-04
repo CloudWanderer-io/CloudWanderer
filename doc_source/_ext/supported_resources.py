@@ -93,7 +93,9 @@ class SummarisedResources:
                     continue
                 subresource_summary = []
                 for subresource_collection_model in resource.subresource_models:
-                    subresource_collection_name = subresource_collection_model.name.replace("_", " ").title()
+                    subresource_collection_name = (
+                        subresource_collection_model.name.replace("_", " ").title().replace(" ", "")
+                    )
                     subresource_name = subresource_collection_model.resource.type
                     subresource_summary.append((subresource_collection_name, subresource_name))
                 resource_list.append((collection_name, resource_name, subresource_summary))
