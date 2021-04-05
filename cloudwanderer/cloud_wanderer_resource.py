@@ -101,9 +101,11 @@ class CloudWandererResource:
         return bool([key for key in self.cloudwanderer_metadata.resource_data if not key.startswith("_")])
 
     @property
-    def parent_urn(self) -> Optional[str]:
+    def parent_urn(self) -> Optional[URN]:
         if not self.urn.is_subresource:
             return None
+        if not self.parent_resource_type:
+            raise ValueError(f"Subresouce {self.urn} missing parent resource type.")
         return URN(
             account_id=self.urn.account_id,
             region=self.urn.region,

@@ -24,7 +24,13 @@ class URN:
     """A dataclass for building and querying AWS URNs."""
 
     def __init__(
-        self, account_id: str, region: str, service: str, resource_type: str, resource_id: str, cloud_name: str = None
+        self,
+        account_id: str,
+        region: str,
+        service: str,
+        resource_type: str,
+        resource_id: str,
+        cloud_name: str = None,
     ) -> None:
         """Initialise an AWS Urn.
 
