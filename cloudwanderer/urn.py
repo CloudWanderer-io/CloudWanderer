@@ -75,9 +75,17 @@ class URN:
 
     @property
     def parent_resource_id(self) -> str:
+        """Return the id of the parent resource if there is one."""
         if not self.is_subresource:
             return ""
         return self.resource_id.split("/")[0]
+
+    @property
+    def subresource_id(self) -> str:
+        """Return the ID of the child resource if there is one."""
+        if not self.is_subresource:
+            return ""
+        return self.resource_id.split("/")[1]
 
     def __eq__(self, other: Any) -> bool:
         """Allow comparison of one URN to another.

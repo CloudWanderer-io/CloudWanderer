@@ -225,12 +225,9 @@ class Boto3Services:
         Raises:
             BadUrnAccountIdError: When the account ID of the URN does not match the account id of the current session.
             BadUrnRegionError: When the region of the URN is not possible with the service and/or resource type.
-            BadUrnSubResourceError: Subresources must be queried via their parent resource.
         """
         if urn.account_id != self.account_id:
             raise BadUrnAccountIdError(f"{urn} exists in an account other than the current one ({self.account_id}).")
-        if urn.is_subresource:
-            raise BadUrnSubResourceError(f"{urn} is a sub resource, please call get_resource against its parent.")
 
         service = self.get_service(urn.service, urn.region)
         if service.service_map.global_service_region != urn.region and not service.service_map.regional_resources:
@@ -350,7 +347,10 @@ class CloudWandererBoto3Service:
         try:
             boto3_service_resource = self._get_boto3_resource(urn.resource_type)
             boto3_resource_getter = getattr(self.boto3_service, boto3_service_resource.name)
-            boto3_resource = boto3_resource_getter(urn.resource_id)
+            if urn.is_subresource:
+                boto3_resource = boto3_resource_getter(urn.parent_resource_id, urn.subresource_id)
+            else:
+                boto3_resource = boto3_resource_getter(urn.resource_id)
         except ValueError:
             raise BadUrnSubResourceError(f"{urn} is a sub resource, please call get_resource against its parent.")
 
@@ -692,6 +692,11 @@ class CloudWandererBoto3Resource:
                     )
                 )
         return actions
+
+    @property
+    def parent_resource_type(self) -> str:
+        """Return the resource type of the parent (if it has one)."""
+        return self.resource_map.parent_resource_type
 
     @property
     def _boto3_collection_models(self) -> Generator[Tuple[ResourceMap, Collection], None, None]:
