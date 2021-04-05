@@ -85,7 +85,8 @@ class TestBoto3InterfaceGetResource(unittest.TestCase, GenericAssertionHelpers):
                 region="us-east-1",
                 service="iam",
                 resource_type="role_policy",
-                resource_id="test-role/test-role-policy",
+                parent_resource_id="test-role",
+                resource_id="test-role-policy",
             )
         ]
 
@@ -213,7 +214,8 @@ class TestBoto3InterfaceGetResource(unittest.TestCase, GenericAssertionHelpers):
                     region="us-east-1",
                     service="iam",
                     resource_type="role_policy",
-                    resource_id="test-role/test-role-policy",
+                    parent_resource_id="test-role",
+                    resource_id="test-role-policy",
                 )
             )
         )

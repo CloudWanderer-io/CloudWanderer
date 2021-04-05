@@ -96,8 +96,6 @@ class TestFunctional(unittest.TestCase):
                         resource_type,
                     )
                     continue
-                if resource.urn.is_subresource:
-                    continue
                 logging.info("Found %s, testing write_resource", resource.urn)
                 try:
                     self.wanderer.write_resource(urn=resource.urn)

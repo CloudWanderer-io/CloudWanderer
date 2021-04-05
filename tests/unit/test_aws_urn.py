@@ -10,7 +10,8 @@ class TestURN(unittest.TestCase):
             region="us-east-1",
             service="iam",
             resource_type="role_policy",
-            resource_id="test-role/test-policy",
+            parent_resource_id="test-role",
+            resource_id="test-policy",
         )
         self.test_urn_resource = URN(
             account_id="111111111111",
@@ -29,7 +30,7 @@ class TestURN(unittest.TestCase):
     def test_from_string_with_nonstandard_extra_parts(self):
         assert (
             URN.from_string(
-                "urn:aws:111111111111:us-east-1:iam:" "role_policy:test-role/test-policy:this:should:not:be:included"
+                "urn:aws:111111111111:us-east-1:iam:" "role_policy:test-role/test-policy/this/should/not/be/included"
             )
             == self.test_urn_subresource
         )
@@ -44,7 +45,8 @@ class TestURN(unittest.TestCase):
             "region='us-east-1', "
             "service='iam', "
             "resource_type='role_policy', "
-            "resource_id='test-role/test-policy')"
+            "resource_id='test-policy', "
+            "parent_resource_id='test-role')"
         )
 
     def test_is_subresource(self):
@@ -69,5 +71,24 @@ class TestURN(unittest.TestCase):
     def test_parent_resource_id(self):
         assert self.test_urn_subresource.parent_resource_id == "test-role"
 
-    def test_subresource_id(self):
-        assert self.test_urn_subresource.subresource_id == "test-policy"
+    def test_resource_id_with_slashes(self):
+        urn = URN(
+            account_id="080863329876",
+            region="eu-west-1",
+            service="cloudwatch",
+            resource_type="metric",
+            resource_id="AWS/Logs/IncomingBytes",
+        )
+
+        assert str(urn) == r"urn:aws:080863329876:eu-west-1:cloudwatch:metric:AWS\/Logs\/IncomingBytes"
+
+    def test_resource_id_with_slashes_from_string(self):
+        urn = URN.from_string(r"urn:aws:080863329876:eu-west-1:cloudwatch:metric:AWS\/Logs\/IncomingBytes")
+
+        assert urn == URN(
+            account_id="080863329876",
+            region="eu-west-1",
+            service="cloudwatch",
+            resource_type="metric",
+            resource_id="AWS/Logs/IncomingBytes",
+        )

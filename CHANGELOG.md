@@ -1,3 +1,8 @@
+# 0.16.0
+
+- Allow subresources in `write_resource`
+- Escaped URNs with forward slashes
+
 # 0.15.0
 
 - Added `lambda` `layer` resource type.

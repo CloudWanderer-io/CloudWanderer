@@ -35,7 +35,6 @@ from .exceptions import (
     BadRequestError,
     BadUrnAccountIdError,
     BadUrnRegionError,
-    BadUrnSubResourceError,
     ResourceNotFoundError,
     UnsupportedResourceTypeError,
 )
@@ -338,22 +337,17 @@ class CloudWandererBoto3Service:
             urn (URN): The urn of the resource to get.
 
         Raises:
-            BadUrnSubResourceError: Occurs when we try to fetch a subresource diretly.
             BadRequestError: Occurs when the AWS API returns a 4xx HTTP error other than 404.
             ResourceNotFoundError: Occurs when the AWS API Returns a 404 HTTP error.
             UnsupportedResourceTypeError: Occurs when the definition for the resource does not support loading by id.
             botocore.exceptions.ClientError: Boto3 Client Error
         """
-        try:
-            boto3_service_resource = self._get_boto3_resource(urn.resource_type)
-            boto3_resource_getter = getattr(self.boto3_service, boto3_service_resource.name)
-            if urn.is_subresource:
-                boto3_resource = boto3_resource_getter(urn.parent_resource_id, urn.subresource_id)
-            else:
-                boto3_resource = boto3_resource_getter(urn.resource_id)
-        except ValueError:
-            raise BadUrnSubResourceError(f"{urn} is a sub resource, please call get_resource against its parent.")
-
+        boto3_service_resource = self._get_boto3_resource(urn.resource_type)
+        boto3_resource_getter = getattr(self.boto3_service, boto3_service_resource.name)
+        if urn.is_subresource:
+            boto3_resource = boto3_resource_getter(urn.parent_resource_id, urn.resource_id)
+        else:
+            boto3_resource = boto3_resource_getter(urn.resource_id)
         if not hasattr(boto3_resource, "load"):
             raise UnsupportedResourceTypeError(f"{urn.resource_type} does not support loading by ID.")
 
@@ -499,7 +493,7 @@ class CloudWandererBoto3Service:
 
 
 class CloudWandererBoto3Resource:
-    """Wraps Boto3 R:class:`~boto3.resources.base.ServiceResource` resource-level objects.
+    """Wraps Boto3 :class:`~boto3.resources.base.ServiceResource` resource-level objects.
 
     Allows us to provide additional functionality specific to CloudWanderer.
 
@@ -536,14 +530,25 @@ class CloudWandererBoto3Resource:
 
         Used for URN generation.
         """
+        id_member_index = 1 if self.is_subresource else 0
+        return self._get_id_from_nth_identifier(id_member_index)
+
+    @property
+    def parent_resource_id(self) -> Optional[str]:
+        """Return the ID of the parent resource if this resource is a subresource).
+
+        Used for URN generation.
+        """
+        if not self.is_subresource:
+            return None
+        return self._get_id_from_nth_identifier(0)
+
+    def _get_id_from_nth_identifier(self, n: int) -> str:
         id_members = [x.name for x in self.boto3_resource.meta.resource_model.identifiers]
-        resource_ids = []
-        for id_member in id_members:
-            id_part = str(getattr(self.boto3_resource, id_member))
-            if id_part.startswith("arn:"):
-                id_part = "".join(id_part.split(":")[5:])
-            resource_ids.append(id_part)
-        return "/".join(resource_ids)
+        identifier = str(getattr(self.boto3_resource, id_members[n]))
+        if identifier.startswith("arn:"):
+            identifier = "".join(identifier.split(":")[5:])
+        return identifier
 
     @property
     def raw_data(self) -> dict:
@@ -566,6 +571,7 @@ class CloudWandererBoto3Resource:
             service=self.service,
             resource_type=self.resource_type,
             resource_id=self.id,
+            parent_resource_id=self.parent_resource_id,
         )
 
     @property
@@ -697,6 +703,11 @@ class CloudWandererBoto3Resource:
     def parent_resource_type(self) -> str:
         """Return the resource type of the parent (if it has one)."""
         return self.resource_map.parent_resource_type
+
+    @property
+    def is_subresource(self) -> bool:
+        """Return whether or not this resource is a subresource."""
+        return bool(len(self.boto3_resource.meta.resource_model.identifiers) == 2)
 
     @property
     def _boto3_collection_models(self) -> Generator[Tuple[ResourceMap, Collection], None, None]:

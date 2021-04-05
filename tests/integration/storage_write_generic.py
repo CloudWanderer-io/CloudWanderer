@@ -17,14 +17,14 @@ class StorageWriteTestMixin:
         add_infra(count=100, regions=["eu-west-2"])
         cls.ec2_instances = [
             CloudWandererResource(
-                urn=generate_urn(service="ec2", resource_type="instance", id=instance.instance_id),
+                urn=generate_urn(service="ec2", resource_type="instance", resource_id=instance.instance_id),
                 resource_data=instance.meta.data,
             )
             for instance in cls.mock_session.resource("ec2").instances.all()
         ]
         cls.vpcs = [
             CloudWandererResource(
-                urn=generate_urn(service="ec2", resource_type="vpc", id=vpc.vpc_id),
+                urn=generate_urn(service="ec2", resource_type="vpc", resource_id=vpc.vpc_id),
                 resource_data=vpc.meta.data,
                 secondary_attributes=[
                     SecondaryAttribute(name="EnableDnsSupport", **{"EnableDnsSupport": {"Value": True}})
@@ -33,23 +33,29 @@ class StorageWriteTestMixin:
             for vpc in cls.mock_session.resource("ec2").vpcs.all()
         ]
         cls.role = CloudWandererResource(
-            urn=generate_urn(service="iam", resource_type="role", id="test-role"),
+            urn=generate_urn(service="iam", resource_type="role", resource_id="test-role"),
             resource_data={"RoleName": "test-role"},
             subresource_urns=[
-                generate_urn(service="iam", resource_type="role_policy", id="test-role/test-role-policy")
+                generate_urn(
+                    service="iam", resource_type="role_policy", resource_id="test-role-policy", parent_id="test-role"
+                )
             ],
             secondary_attributes=[
                 SecondaryAttribute(name="role_inline_policy_attachments", **{"PolicyNames": ["test-role"]})
             ],
         )
         cls.role_policy_1 = CloudWandererResource(
-            urn=generate_urn(service="iam", resource_type="role_policy", id="test-role/test-policy-1"),
+            urn=generate_urn(
+                service="iam", resource_type="role_policy", resource_id="test-role-policy-1", parent_id="test-role"
+            ),
             parent_urn=cls.role.urn,
             resource_data={},
             secondary_attributes=[],
         )
         cls.role_policy_2 = CloudWandererResource(
-            urn=generate_urn(service="iam", resource_type="role_policy", id="test-role/test-policy-2"),
+            urn=generate_urn(
+                service="iam", resource_type="role_policy", resource_id="test-role-policy-2", parent_id="test-role"
+            ),
             parent_urn=cls.role.urn,
             resource_data={},
             secondary_attributes=[],
@@ -73,7 +79,8 @@ class StorageWriteTestMixin:
                 region="eu-west-2",
                 service="iam",
                 resource_type="role_policy",
-                resource_id="test-role/test-role-policy",
+                resource_id="test-role-policy",
+                parent_resource_id="test-role",
             )
         ]
 

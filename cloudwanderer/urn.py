@@ -8,16 +8,17 @@ find a resource in AWS, whereas AWS ARNs do not always provide this information.
     # Format
     'urn:aws:<account_id>:<region>:<service>:<resource_type>:<resource_id>'
     # e.g.
-    'urn:aws:111111111111:eu-west-2:ec2:vpc:vpc-11111111'
+    'urn:aws:111111111111:eu-west-2:iam:vpc:vpc-11111111'
 
 Example:
     >>> from cloudwanderer import URN
-    >>> URN.from_string('urn:aws:111111111111:eu-west-2:ec2:vpc:vpc-11111111')
-    URN(account_id='111111111111', region='eu-west-2', service='ec2', \
+    >>> URN.from_string('urn:aws:111111111111:eu-west-2:iam:vpc:vpc-11111111')
+    URN(account_id='111111111111', region='eu-west-2', service='iam', \
 resource_type='vpc', resource_id='vpc-11111111')
 
 """
-from typing import Any
+import re
+from typing import Any, Optional
 
 
 class URN:
@@ -30,25 +31,28 @@ class URN:
         service: str,
         resource_type: str,
         resource_id: str,
+        parent_resource_id: Optional[str] = None,
         cloud_name: str = None,
     ) -> None:
         """Initialise an AWS Urn.
 
         Arguments:
             account_id (str): AWS Account ID (e.g. ``111111111111``).
-            region (str): AWS region (e.g. ``eu-west-1``).
-            service (str): AWS Service (e.g. ``ec2``).
-            resource_type (str): AWS Resource Type (e.g. ``instance``)
-            resource_id (str): AWS Resource Id (e.g. ``i-11111111``)
+            region (str): AWS region (e.g. `us-east-1``).
+            service (str): AWS Service (e.g. ``iam``).
+            resource_type (str): AWS Resource Type (e.g. ``role_policy``)
+            resource_id (str): AWS Resource Id (e.g. ``test-role-policy``)
+            parent_resource_id: Parent Resource Id (e.g. ``test-role``)
             cloud_name (str): The name of the cloud this resource exists in (defaults to ``'aws'``)
 
         Attributes:
-            account_id (str): AWS Account ID (e.g. ``111111111111``).
-            region (str): AWS region (e.g. ``eu-west-1``).
-            service (str): AWS Service (e.g. ``ec2``).
-            resource_type (str): AWS Resource Type (e.g. ``instance``)
-            resource_id (str): AWS Resource Id (e.g. ``i-11111111``)
-            cloud_name (str): The name of the cloud this resource exists in (defaults to ``'aws'``)
+            account_id: AWS Account ID (e.g. ``111111111111``).
+            region: AWS region (e.g. `us-east-1``).
+            service: AWS Service (e.g. ``iam``).
+            resource_type: AWS Resource Type (e.g. ``role_policy``)
+            resource_id: AWS Resource Id (e.g. ``test-role-policy``)
+            parent_resource_id: Parent Resource Id (e.g. ``test-role``)
+            cloud_name: The name of the cloud this resource exists in (defaults to ``'aws'``)
         """
         self.cloud_name = cloud_name or "aws"
         self.account_id = account_id
@@ -56,6 +60,7 @@ class URN:
         self.service = service
         self.resource_type = resource_type
         self.resource_id = resource_id
+        self.parent_resource_id = parent_resource_id or ""
 
     @classmethod
     def from_string(cls, urn_string: str) -> "URN":
@@ -68,7 +73,44 @@ class URN:
             URN: The instantiated AWS URN.
         """
         parts = urn_string.split(":")
-        return cls(account_id=parts[2], region=parts[3], service=parts[4], resource_type=parts[5], resource_id=parts[6])
+        resource_ids = re.split(r"(?<!\\)/", parts[6])
+        if len(resource_ids) == 1:
+            resource_id = cls.unescape_id(resource_ids[0])
+            parent_resource_id = None
+        else:
+            resource_id = resource_ids[1]
+            parent_resource_id = resource_ids[0]
+        return cls(
+            account_id=parts[2],
+            region=parts[3],
+            service=parts[4],
+            resource_type=parts[5],
+            resource_id=cls.unescape_id(resource_id),
+            parent_resource_id=cls.unescape_id(parent_resource_id),
+        )
+
+    @staticmethod
+    def unescape_id(escaped_id: Optional[str]) -> str:
+        """Return an unescaped ID with the forward slashes unescaped.
+
+        Arguments:
+            escaped_id: The id to unescape.
+        """
+        if escaped_id is None:
+            return None
+        return escaped_id.replace(r"\/", r"/")
+
+    @staticmethod
+    def escape_id(unescaped_id: Optional[str]) -> str:
+        """Return an escaped ID with the forward slashes escaped.
+
+        Arguments:
+            unescaped_id: The id to escape.
+        """
+        if unescaped_id is None:
+            return None
+        escape_translation = str.maketrans({"/": r"\/"})
+        return unescaped_id.translate(escape_translation)
 
     @property
     def is_subresource(self) -> bool:
@@ -77,21 +119,7 @@ class URN:
         A subresource is a resource which does not have its own cloud provider identity and is only  accessible
         by referring to a parent resource.
         """
-        return "/" in self.resource_id
-
-    @property
-    def parent_resource_id(self) -> str:
-        """Return the id of the parent resource if there is one."""
-        if not self.is_subresource:
-            return ""
-        return self.resource_id.split("/")[0]
-
-    @property
-    def subresource_id(self) -> str:
-        """Return the ID of the child resource if there is one."""
-        if not self.is_subresource:
-            return ""
-        return self.resource_id.split("/")[1]
+        return bool(self.parent_resource_id)
 
     def __eq__(self, other: Any) -> bool:
         """Allow comparison of one URN to another.
@@ -109,19 +137,13 @@ class URN:
             f"region='{self.region}', "
             f"service='{self.service}', "
             f"resource_type='{self.resource_type}', "
-            f"resource_id='{self.resource_id}')"
+            f"resource_id='{self.resource_id}', "
+            f"parent_resource_id='{self.parent_resource_id}')"
         )
 
     def __str__(self) -> str:
         """Return a string representation of the URN."""
-        return ":".join(
-            [
-                "urn",
-                self.cloud_name,
-                self.account_id,
-                self.region,
-                self.service,
-                self.resource_type,
-                self.resource_id,
-            ]
-        )
+        base = ":".join(["urn", self.cloud_name, self.account_id, self.region, self.service, self.resource_type])
+        if self.parent_resource_id:
+            return f"{base}:{self.escape_id(self.parent_resource_id)}/{self.escape_id(self.resource_id)}"
+        return f"{base}:{self.escape_id(self.resource_id)}"

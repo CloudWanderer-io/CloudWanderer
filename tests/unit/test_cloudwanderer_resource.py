@@ -67,7 +67,7 @@ class TestCloudWandererResource(unittest.TestCase):
         assert str(cwr) == str(
             "CloudWandererResource("
             "urn=URN(account_id='111111111111', region='eu-west-2', service='ec2', "
-            "resource_type='vpc', resource_id='vpc-11111111'), "
+            "resource_type='vpc', resource_id='vpc-11111111', parent_resource_id=''), "
             "subresource_urns=[], "
             "parent_resource_type=None, "
             "resource_data={'CidrBlock': '10.0.0.0/0'}, secondary_attributes=[{'EnableDnsSupport': {'Value': True}}]"
@@ -84,7 +84,7 @@ class TestCloudWandererResource(unittest.TestCase):
         assert repr(cwr) == str(
             "CloudWandererResource("
             "urn=URN(account_id='111111111111', region='eu-west-2', service='ec2', "
-            "resource_type='vpc', resource_id='vpc-11111111'), "
+            "resource_type='vpc', resource_id='vpc-11111111', parent_resource_id=''), "
             "subresource_urns=[], "
             "parent_resource_type=None, "
             "resource_data={'CidrBlock': '10.0.0.0/0'}, secondary_attributes=[{'EnableDnsSupport': {'Value': True}}]"

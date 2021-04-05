@@ -72,11 +72,13 @@ class TestBoto3Services(unittest.TestCase):
         with self.assertRaises(cloudwanderer.exceptions.BadUrnRegionError):
             self.services.get_resource_from_urn(urn)
 
-    def test_get_resource_from_urn_subresource(self):
-        urn = URN.from_string("urn:aws:123456789012:eu-west-2:iam:role_policy:test-role/test-policy")
+    @patch("cloudwanderer.boto3_services.Boto3Services.get_service")
+    def test_get_resource_from_urn_subresource(self, mock_get_service):
+        urn = URN.from_string("urn:aws:123456789012:us-east-1:iam:role_policy:test-role/test-policy")
 
-        with self.assertRaises(cloudwanderer.exceptions.BadUrnSubResourceError):
-            self.services.get_resource_from_urn(urn)
+        self.services.get_resource_from_urn(urn)
+
+        mock_get_service.return_value.get_resource_from_urn.assert_called_with(urn)
 
     def test_get_enabled_regions(self):
         for region in ["us-east-1", "ap-northeast-1", "eu-west-2"]:
