@@ -71,6 +71,9 @@ class URN:
 
         Returns:
             URN: The instantiated AWS URN.
+
+        Raises:
+            ValueError: When no valid resource id found
         """
         parts = urn_string.split(":")
         resource_ids = re.split(r"(?<!\\)/", parts[6])
@@ -78,19 +81,21 @@ class URN:
             resource_id = cls.unescape_id(resource_ids[0])
             parent_resource_id = None
         else:
-            resource_id = resource_ids[1]
-            parent_resource_id = resource_ids[0]
+            resource_id = cls.unescape_id(resource_ids[1])
+            parent_resource_id = cls.unescape_id(resource_ids[0])
+        if resource_id is None:
+            raise ValueError("Resource ID cannot be None")
         return cls(
             account_id=parts[2],
             region=parts[3],
             service=parts[4],
             resource_type=parts[5],
-            resource_id=cls.unescape_id(resource_id),
-            parent_resource_id=cls.unescape_id(parent_resource_id),
+            resource_id=resource_id,
+            parent_resource_id=parent_resource_id,
         )
 
     @staticmethod
-    def unescape_id(escaped_id: Optional[str]) -> str:
+    def unescape_id(escaped_id: Optional[str]) -> Optional[str]:
         """Return an unescaped ID with the forward slashes unescaped.
 
         Arguments:
@@ -101,7 +106,7 @@ class URN:
         return escaped_id.replace(r"\/", r"/")
 
     @staticmethod
-    def escape_id(unescaped_id: Optional[str]) -> str:
+    def escape_id(unescaped_id: Optional[str]) -> Optional[str]:
         """Return an escaped ID with the forward slashes escaped.
 
         Arguments:
