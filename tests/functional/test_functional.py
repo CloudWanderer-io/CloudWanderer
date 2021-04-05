@@ -56,6 +56,10 @@ class TestFunctional(unittest.TestCase):
             regions=["us-east-1"], exclude_resources=["ec2:image", "ec2:snapshot", "iam:policy"]
         )
 
+    def test_write_resource_type(self):
+        """It is sufficient for this not to throw an exception."""
+        self.wanderer.write_resources(regions=["us-east-1"], service_names=["cloudwatch"], resource_types=["metric"])
+
     def test_write_custom_resource_definition(self):
         """It is sufficient for this not to throw an exception."""
         self.wanderer.write_resources(service_names=["lambda"])
@@ -111,7 +115,7 @@ class TestFunctional(unittest.TestCase):
             assert isinstance(result, dict)
 
     def test_read_resource_of_type(self):
-        vpcs = list(self.storage_connector.read_resources(service="ec2", resource_type="vpc"))
+        vpcs = list(self.storage_connector.read_resources(service="cloudwatch", resource_type="metric"))
         vpcs[0].load()
         assert len(vpcs) > 0
         assert isinstance(vpcs[0].get_secondary_attribute(name="vpc_enable_dns_support")[0], dict)

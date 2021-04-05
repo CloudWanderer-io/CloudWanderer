@@ -81,6 +81,23 @@ class TestURN(unittest.TestCase):
         )
 
         assert str(urn) == r"urn:aws:080863329876:eu-west-1:cloudwatch:metric:AWS\/Logs\/IncomingBytes"
+        assert urn.resource_id == r"AWS/Logs/IncomingBytes"
+        assert not urn.is_subresource
+
+    def test_parent_resource_id_with_slashes(self):
+        urn = URN(
+            account_id="080863329876",
+            region="eu-west-1",
+            service="cloudwatch",
+            resource_type="metric",
+            resource_id="IncomingBytes",
+            parent_resource_id="AWS/Logs",
+        )
+
+        assert str(urn) == r"urn:aws:080863329876:eu-west-1:cloudwatch:metric:AWS\/Logs/IncomingBytes"
+        assert urn.parent_resource_id == r"AWS/Logs"
+        assert urn.resource_id == r"IncomingBytes"
+        assert urn.is_subresource
 
     def test_resource_id_with_slashes_from_string(self):
         urn = URN.from_string(r"urn:aws:080863329876:eu-west-1:cloudwatch:metric:AWS\/Logs\/IncomingBytes")

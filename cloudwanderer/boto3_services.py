@@ -707,6 +707,8 @@ class CloudWandererBoto3Resource:
     @property
     def is_subresource(self) -> bool:
         """Return whether or not this resource is a subresource."""
+        if self.resource_map.type == "baseResource":
+            return False
         return bool(len(self.boto3_resource.meta.resource_model.identifiers) == 2)
 
     @property
