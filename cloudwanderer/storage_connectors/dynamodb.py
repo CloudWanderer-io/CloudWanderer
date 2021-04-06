@@ -123,11 +123,9 @@ def _dynamodb_items_to_resources(items: Iterable[dict], loader: Callable) -> Ite
             if attribute["_attr"] != "BaseResource"
         ]
         base_resource = next(resource for resource in grouped_items if resource["_attr"] == "BaseResource")
-        parent_urn = URN.from_string(base_resource["_parent_urn"]) if base_resource.get("_parent_urn") else None
         subresource_urns = [URN.from_string(urn) for urn in base_resource.get("_subresource_urns", [])]
         yield CloudWandererResource(
             urn=_urn_from_primary_key(base_resource["_id"]),
-            parent_urn=parent_urn,
             subresource_urns=subresource_urns,
             resource_data=_strip_dynamodb_attrs(base_resource),
             secondary_attributes=attributes,
@@ -214,8 +212,7 @@ class DynamoDbConnector(BaseStorageConnector):
             **standardise_data_types(resource.cloudwanderer_metadata.resource_data or {}),
             **{"_subresource_urns": [str(urn) for urn in resource.subresource_urns]},
         }
-        if resource.urn.is_subresource:
-            print(resource.urn)
+        if resource.is_subresource:
             item["_parent_urn"] = str(resource.parent_urn)
         self.dynamodb_table.put_item(Item=item)
         for secondary_attribute in resource.cloudwanderer_metadata.secondary_attributes:

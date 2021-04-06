@@ -324,8 +324,7 @@ class StorageReadTestMixin(TestStorageConnectorReadMixin, GenericAssertionHelper
                 region="us-east-1",
                 service="iam",
                 resource_type="role_policy",
-                parent_resource_id="test-role",
-                resource_id="test-role-policy",
+                resource_id_parts=["test-role", "test-role-policy"],
             )
         ]
         self.assert_has_matching_urns(result, self.expected_urns)
@@ -340,8 +339,7 @@ class StorageReadTestMixin(TestStorageConnectorReadMixin, GenericAssertionHelper
                         region="us-east-1",
                         service="iam",
                         resource_type="role_policy",
-                        parent_resource_id="test-role",
-                        resource_id="test-role-policy",
+                        resource_id_parts=["test-role", "test-role-policy"],
                     )
                 ),
                 None,

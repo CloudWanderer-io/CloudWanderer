@@ -56,7 +56,8 @@ class TestResourceMap(unittest.TestCase):
                     "defaultValue": "us-east-1",
                 },
                 "ignoredSubresources": [{"type": "ObjectSummary"}],
-            }
+            },
+            boto3_definition={"resources": {}},
         )
 
         assert isinstance(resource_map.region_request, ResourceRegionRequest)
@@ -64,7 +65,9 @@ class TestResourceMap(unittest.TestCase):
         assert resource_map.ignored_subresource_types == ["ObjectSummary"]
 
     def test_subresource_map(self):
-        resource_map = ResourceMap.factory(definition={"type": "resource", "parentResourceType": "role"})
+        resource_map = ResourceMap.factory(
+            definition={"type": "resource", "parentResourceType": "role"}, boto3_definition={}
+        )
 
         assert resource_map.parent_resource_type == "role"
 

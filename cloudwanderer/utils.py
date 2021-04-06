@@ -79,3 +79,13 @@ def load_json_definitions(path: str) -> Dict[str, Any]:
         with open(file_path) as definition_path:
             definitions[service_name] = json.load(definition_path)
     return definitions
+
+
+def snake_to_pascal(snake_case: str) -> str:
+    """Return a PascalCase version of a snake_case name.
+
+    Arguments:
+        snake_case: the string to turn into PascalCase.
+    """
+    snake_case = snake_case.lower()
+    return snake_case.replace("_", " ").title().replace(" ", "")

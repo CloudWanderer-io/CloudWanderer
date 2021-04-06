@@ -69,7 +69,6 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
                 subresource_urns.append(subresource.urn)
                 yield CloudWandererResource(
                     urn=subresource.urn,
-                    parent_urn=urn,
                     resource_data=subresource.normalised_raw_data,
                     secondary_attributes=list(subresource.get_secondary_attributes()),
                 )
@@ -104,7 +103,6 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
                     subresource_urns.append(subresource.urn)
                     yield CloudWandererResource(
                         urn=subresource.urn,
-                        parent_urn=resource.urn,
                         resource_data=subresource.normalised_raw_data,
                         secondary_attributes=list(subresource.get_secondary_attributes()),
                     )

@@ -41,6 +41,7 @@ from .exceptions import (
 from .models import CleanupAction, GetAction, GetAndCleanUp
 from .typing_helpers import lru_cache_property
 from .urn import URN
+from .utils import snake_to_pascal
 
 logger = logging.getLogger(__name__)
 
@@ -343,9 +344,10 @@ class CloudWandererBoto3Service:
             botocore.exceptions.ClientError: Boto3 Client Error
         """
         boto3_service_resource = self._get_boto3_resource(urn.resource_type)
+        resource_map = self.service_map.get_resource_map(snake_to_pascal(urn.resource_type))
         boto3_resource_getter = getattr(self.boto3_service, boto3_service_resource.name)
-        if urn.is_subresource:
-            boto3_resource = boto3_resource_getter(urn.parent_resource_id, urn.resource_id)
+        if resource_map.type == "subresource":
+            boto3_resource = boto3_resource_getter(*urn.resource_id_parts)
         else:
             boto3_resource = boto3_resource_getter(urn.resource_id)
         if not hasattr(boto3_resource, "load"):
@@ -526,29 +528,20 @@ class CloudWandererBoto3Resource:
 
     @property
     def id(self) -> str:
-        """Return the id of the resource.
-
-        Used for URN generation.
-        """
-        id_member_index = 1 if self.is_subresource else 0
-        return self._get_id_from_nth_identifier(id_member_index)
+        """Return the resource ID."""
+        return self.urn.resource_id
 
     @property
-    def parent_resource_id(self) -> Optional[str]:
-        """Return the ID of the parent resource if this resource is a subresource).
-
-        Used for URN generation.
-        """
-        if not self.is_subresource:
-            return None
-        return self._get_id_from_nth_identifier(0)
-
-    def _get_id_from_nth_identifier(self, n: int) -> str:
+    def id_parts(self) -> List[str]:
         id_members = [x.name for x in self.boto3_resource.meta.resource_model.identifiers]
-        identifier = str(getattr(self.boto3_resource, id_members[n]))
-        if identifier.startswith("arn:"):
-            identifier = "".join(identifier.split(":")[5:])
-        return identifier
+        raw_id_parts = [str(getattr(self.boto3_resource, id_member)) for id_member in id_members]
+        id_parts = []
+        for identifier in raw_id_parts:
+            if identifier.startswith("arn:"):
+                id_parts.append("".join(identifier.split(":")[5:]))
+            else:
+                id_parts.append(identifier)
+        return id_parts
 
     @property
     def raw_data(self) -> dict:
@@ -570,8 +563,7 @@ class CloudWandererBoto3Resource:
             region=self.region,
             service=self.service,
             resource_type=self.resource_type,
-            resource_id=self.id,
-            parent_resource_id=self.parent_resource_id,
+            resource_id_parts=self.id_parts,
         )
 
     @property

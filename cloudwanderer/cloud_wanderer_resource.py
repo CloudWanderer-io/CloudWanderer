@@ -5,7 +5,9 @@ from typing import Callable, List, Optional
 import jmespath  # type: ignore
 from botocore import xform_name  # type: ignore
 
+from .boto3_loaders import ServiceMap, ServiceMappingLoader
 from .urn import URN
+from .utils import snake_to_pascal
 
 logger = logging.getLogger(__name__)
 
@@ -56,26 +58,30 @@ class CloudWandererResource:
         secondary_attributes: List["SecondaryAttribute"] = None,
         loader: Optional[Callable] = None,
         subresource_urns: List[URN] = None,
-        parent_resource_type: Optional[str] = None,
-        parent_urn: Optional[URN] = None,
     ) -> None:
         """Initialise the resource.
 
         Arguments:
             urn: The URN of the resource.
             subresource_urns: The URNs of the subresources of this resource.
-            parent_resource_type: The resource type of the parent resource (if one exists)
-            parent_urn: The URN of the parent resource (if one exists) (not required if parent_resource_type is passed)
             resource_data: The dictionary containing the raw data about this resource.
             secondary_attributes: A list of secondary attribute raw dictionaries.
             loader: The method which can be used to fulfil the :meth:`CloudWandererResource.load`.
         """
         self.urn = urn
         self.subresource_urns = subresource_urns or []
-        self.parent_resource_type = parent_urn.resource_type if parent_urn else parent_resource_type
         self.cloudwanderer_metadata = ResourceMetadata(
             resource_data=resource_data or {}, secondary_attributes=secondary_attributes or []
         )
+        service_mapping_loader = ServiceMappingLoader()
+        self.cloudwanderer_service_metadata = ServiceMap.factory(
+            name=urn.service,
+            definition=service_mapping_loader.get_service_mapping(service_name=urn.service),
+        )
+        self.cloudwanderer_resource_metadata = self.cloudwanderer_service_metadata.get_resource_map(
+            snake_to_pascal(urn.resource_type)
+        )
+
         self._loader = loader
         self._set_resource_data_attrs()
 
@@ -101,17 +107,28 @@ class CloudWandererResource:
         return bool([key for key in self.cloudwanderer_metadata.resource_data if not key.startswith("_")])
 
     @property
+    def is_subresource(self) -> bool:
+        """Return whether this resource is a subresource or not."""
+        return self.cloudwanderer_resource_metadata.type == "subresource"
+
+    @property
     def parent_urn(self) -> Optional[URN]:
-        if not self.urn.is_subresource:
+        if not self.is_subresource:
             return None
-        if not self.parent_resource_type:
-            raise ValueError(f"Subresouce {self.urn} missing parent resource type.")
+        parent_resource_type = self.cloudwanderer_resource_metadata.parent_resource_type
+        if not parent_resource_type:
+            raise ValueError(f"{self.urn.resource_type} missing parent resource type in service map.")
+        parent_resource_metadata = jmespath.search(
+            f"resources.{snake_to_pascal(parent_resource_type)}", self.cloudwanderer_service_metadata.boto3_definition
+        )
+        parent_identifiers = parent_resource_metadata.get("identifiers")
+        parent_slice = len(parent_identifiers)
         return URN(
             account_id=self.urn.account_id,
             region=self.urn.region,
             service=self.urn.service,
-            resource_type=self.parent_resource_type,
-            resource_id=self.urn.parent_resource_id,
+            resource_type=self.cloudwanderer_resource_metadata.parent_resource_type,
+            resource_id_parts=self.urn.resource_id_parts[:parent_slice],
         )
 
     def get_secondary_attribute(self, name: str = None, jmes_path: str = None) -> List["SecondaryAttribute"]:
@@ -141,7 +158,6 @@ class CloudWandererResource:
             f"{self.__class__.__name__}("
             f"urn={repr(self.urn)}, "
             f"subresource_urns={repr(self.subresource_urns)}, "
-            f"parent_resource_type={repr(self.parent_resource_type)}, "
             f"resource_data={self.cloudwanderer_metadata.resource_data}, "
             f"secondary_attributes={self.cloudwanderer_metadata.secondary_attributes})"
         )

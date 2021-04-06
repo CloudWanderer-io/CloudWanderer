@@ -29,6 +29,7 @@ class TestCloudWandererBoto3Service(unittest.TestCase):
 
     def test_get_resources_from_urn(self):
         vpc = next(self.service.get_resources("vpc"))
+        print(vpc.urn)
         assert isinstance(self.service.get_resource_from_urn(vpc.urn), CloudWandererBoto3Resource)
 
     def test_get_global_endpoint_resources_in_regional_resource_region(self):

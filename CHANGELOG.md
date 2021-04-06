@@ -2,6 +2,10 @@
 
 - Allow subresources in `write_resource`
 - Escaped URNs with forward slashes
+- URNs are now made up of unlimited resource ids.
+- Provided way to explicitly specify base resources with multiple identifiers as a base resource.
+- Added Boto3 resource/service definitions as part of service maps as the first steps to making service maps wrap Boto3 definitions fully.
+- Resources and subresources no longer have to have specific numbers of identifiers, fixing a bug that caused cloudwatch metrics to be misidentified as a subresource.
 
 # 0.15.0
 

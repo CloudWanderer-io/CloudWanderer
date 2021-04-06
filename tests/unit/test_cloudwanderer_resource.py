@@ -67,9 +67,8 @@ class TestCloudWandererResource(unittest.TestCase):
         assert str(cwr) == str(
             "CloudWandererResource("
             "urn=URN(account_id='111111111111', region='eu-west-2', service='ec2', "
-            "resource_type='vpc', resource_id='vpc-11111111', parent_resource_id=''), "
+            "resource_type='vpc', resource_id_parts=['vpc-11111111']), "
             "subresource_urns=[], "
-            "parent_resource_type=None, "
             "resource_data={'CidrBlock': '10.0.0.0/0'}, secondary_attributes=[{'EnableDnsSupport': {'Value': True}}]"
             ")"
         )
@@ -84,9 +83,8 @@ class TestCloudWandererResource(unittest.TestCase):
         assert repr(cwr) == str(
             "CloudWandererResource("
             "urn=URN(account_id='111111111111', region='eu-west-2', service='ec2', "
-            "resource_type='vpc', resource_id='vpc-11111111', parent_resource_id=''), "
+            "resource_type='vpc', resource_id_parts=['vpc-11111111']), "
             "subresource_urns=[], "
-            "parent_resource_type=None, "
             "resource_data={'CidrBlock': '10.0.0.0/0'}, secondary_attributes=[{'EnableDnsSupport': {'Value': True}}]"
             ")"
         )
@@ -103,24 +101,9 @@ class TestCloudWandererResource(unittest.TestCase):
             secondary_attributes=[],
         )
 
-    def test_subresource_with_parent_resource_type(self):
+    def test_subresource(self):
         parent_urn = URN.from_string("urn:aws:111111111111:us-east-1:iam:role:test-role")
         urn = URN.from_string("urn:aws:111111111111:us-east-1:iam:role_policy:test-role/test-policy")
-        cwr = CloudWandererResource(urn=urn, parent_resource_type="role", resource_data={}, secondary_attributes=[])
+        cwr = CloudWandererResource(urn=urn, resource_data={}, secondary_attributes=[])
 
-        assert cwr.parent_urn == parent_urn
-
-    def test_subresource_with_parent_urn(self):
-        parent_urn = URN.from_string("urn:aws:111111111111:us-east-1:iam:role:test-role")
-        urn = URN.from_string("urn:aws:111111111111:us-east-1:iam:role_policy:test-role/test-policy")
-        cwr = CloudWandererResource(urn=urn, parent_urn=parent_urn, resource_data={}, secondary_attributes=[])
-
-        assert cwr.parent_urn == parent_urn
-
-    def test_subresource_without_supplied_parent(self):
-        parent_urn = URN.from_string("urn:aws:111111111111:us-east-1:iam:role:test-role")
-        urn = URN.from_string("urn:aws:111111111111:us-east-1:iam:role_policy:test-role/test-policy")
-        cwr = CloudWandererResource(urn=urn, parent_resource_type="role", resource_data={}, secondary_attributes=[])
-
-        assert cwr.parent_resource_type == "role"
         assert cwr.parent_urn == parent_urn
