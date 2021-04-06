@@ -130,4 +130,4 @@ dmypy.json
 doc_build
 .vscode
 workspace.code-workspace
-*.png
+/*.png
