@@ -209,7 +209,7 @@ Or we can do it with the :attr:`~cloudwanderer.cloud_wanderer_resource.CloudWand
 .. doctest ::
 
     >>> role.subresource_urns
-    [URN(account_id='123456789012', region='us-east-1', service='iam', resource_type='role_policy', resource_id='test-role-policy', parent_resource_id='test-role')]
+    [URN(account_id='123456789012', region='us-east-1', service='iam', resource_type='role_policy', resource_id_parts=['test-role', 'test-role-policy'])]
 
 Then we can lookup the inline policy
 

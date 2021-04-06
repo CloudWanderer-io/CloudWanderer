@@ -67,7 +67,7 @@ Get a list of VPCs back.
    >>> vpcs = storage_connector.read_resources(service='ec2', resource_type='vpc')
    >>> first_vpc = next(vpcs)
    >>> first_vpc.urn
-   URN(account_id='123456789012', region='us-east-1', service='ec2', resource_type='vpc', resource_id='vpc-11111111', parent_resource_id='')
+   URN(account_id='123456789012', region='us-east-1', service='ec2', resource_type='vpc', resource_id_parts=['vpc-11111111'])
 
 Load the full details of the resource.
 

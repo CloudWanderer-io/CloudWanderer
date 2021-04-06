@@ -12,7 +12,7 @@ from cloudwanderer.storage_connectors import DynamoDbConnector
 
 
 class TestFunctional(unittest.TestCase):
-    resources_not_supporting_load = ["lambda:layer"]
+    resources_not_supporting_load = ["lambda:layer", "iam:virtual_mfa_device"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

@@ -41,7 +41,6 @@ from .exceptions import (
 from .models import CleanupAction, GetAction, GetAndCleanUp
 from .typing_helpers import lru_cache_property
 from .urn import URN
-from .utils import snake_to_pascal
 
 logger = logging.getLogger(__name__)
 
@@ -344,12 +343,8 @@ class CloudWandererBoto3Service:
             botocore.exceptions.ClientError: Boto3 Client Error
         """
         boto3_service_resource = self._get_boto3_resource(urn.resource_type)
-        resource_map = self.service_map.get_resource_map(snake_to_pascal(urn.resource_type))
         boto3_resource_getter = getattr(self.boto3_service, boto3_service_resource.name)
-        if resource_map.type == "subresource":
-            boto3_resource = boto3_resource_getter(*urn.resource_id_parts)
-        else:
-            boto3_resource = boto3_resource_getter(urn.resource_id)
+        boto3_resource = boto3_resource_getter(*urn.resource_id_parts)
         if not hasattr(boto3_resource, "load"):
             raise UnsupportedResourceTypeError(f"{urn.resource_type} does not support loading by ID.")
 
