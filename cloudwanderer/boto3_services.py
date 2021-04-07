@@ -343,6 +343,8 @@ class CloudWandererBoto3Service:
             BadUrnIdentifiersError: Occurs when the URN contains fewer identifiers than is required by the reource type.
         """
         boto3_service_resource = self._get_boto3_resource(urn.resource_type)
+        if not boto3_service_resource or not boto3_service_resource.resource:
+            raise UnsupportedResourceTypeError(f"Resource type {urn.resource_type} not found")
         boto3_resource_getter = getattr(self.boto3_service, boto3_service_resource.name)
         if len(urn.resource_id_parts) != len(boto3_service_resource.resource.identifiers):
             raise BadUrnIdentifiersError(
@@ -635,7 +637,8 @@ class CloudWandererBoto3Resource:
         subresources = []
         for subresource_type in self.subresource_types:
             resource = self.cloudwanderer_boto3_service._get_empty_resource(subresource_type)
-
+            if not resource:
+                continue
             subresources.append(
                 ResourceSummary(
                     resource_type=subresource_type,
@@ -793,5 +796,5 @@ class ResourceSummary(NamedTuple):
     resource_type: str
     resource_type_pascal: str
     service_friendly_name: str
-    subresources: List["ResourceSummary"]
+    subresources: List["ResourceSummary"]  # type: ignore
     secondary_attribute_names: List[str]
