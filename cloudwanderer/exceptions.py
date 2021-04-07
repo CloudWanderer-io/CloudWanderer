@@ -5,6 +5,10 @@ class BadUrnRegionError(Exception):
     """Raised when an URN is passed to get_resource with a region that is not possible."""
 
 
+class BadUrnIdentifiersError(Exception):
+    """Raised when an URN has the wrong number or type of identifier parts."""
+
+
 class BadUrnAccountIdError(Exception):
     """Raised when an URN is passed to get_resource with an account other than the one the session is for."""
 

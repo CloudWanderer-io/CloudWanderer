@@ -206,7 +206,7 @@ In the ``resources`` definiton we've added the highlighted lines.
     }
 
 You'll notice we've added the collection specification inside the ``Layer`` resource instead of inside the ``service``
-as we did in :page:`example_resource`, this is what allows us to reference the ``LayerName`` of the parent resource
+as we did in :doc:`example_resource`, this is what allows us to reference the ``LayerName`` of the parent resource
 when we call ``ListLayerVersions`` in our collection API call.
 
 .. include:: tests.rst

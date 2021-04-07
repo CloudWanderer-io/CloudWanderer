@@ -34,6 +34,7 @@ from .cloud_wanderer_resource import SecondaryAttribute
 from .exceptions import (
     BadRequestError,
     BadUrnAccountIdError,
+    BadUrnIdentifiersError,
     BadUrnRegionError,
     ResourceNotFoundError,
     UnsupportedResourceTypeError,
@@ -291,8 +292,6 @@ class CloudWandererBoto3Service:
     def resource_summary(self) -> List["ResourceSummary"]:
         """Return a summary of resource types in this service."""
         summaries = []
-        service_model = self.boto3_service.meta.client.meta.service_model
-        service_friendly_name = service_model.metadata["serviceId"]
 
         for resource_type in self.resource_types:
             resource = self._get_empty_resource(resource_type)
@@ -302,10 +301,10 @@ class CloudWandererBoto3Service:
             summaries.append(
                 ResourceSummary(
                     resource_type=resource_type,
-                    resource_friendly_name=resource.boto3_resource.meta.resource_model.name,
-                    service_friendly_name=service_friendly_name,
+                    resource_type_pascal=resource.friendly_name,
+                    service_friendly_name=self.friendly_name,
                     secondary_attribute_names=resource.secondary_attribute_names,
-                    subresource_types=resource.subresource_types,
+                    subresources=resource.subresource_summary,
                 )
             )
         return summaries
@@ -341,10 +340,17 @@ class CloudWandererBoto3Service:
             ResourceNotFoundError: Occurs when the AWS API Returns a 404 HTTP error.
             UnsupportedResourceTypeError: Occurs when the definition for the resource does not support loading by id.
             botocore.exceptions.ClientError: Boto3 Client Error
+            BadUrnIdentifiersError: Occurs when the URN contains fewer identifiers than is required by the reource type.
         """
         boto3_service_resource = self._get_boto3_resource(urn.resource_type)
         boto3_resource_getter = getattr(self.boto3_service, boto3_service_resource.name)
-        boto3_resource = boto3_resource_getter(*urn.resource_id_parts)
+        if len(urn.resource_id_parts) != len(boto3_service_resource.resource.identifiers):
+            raise BadUrnIdentifiersError(
+                f"An URN of type {urn.service} {urn.resource_type} should have "
+                f"{len(boto3_service_resource.resource.identifiers)} "
+                f"ID components instead of {len(urn.resource_id_parts)}"
+            )
+        boto3_resource = boto3_resource_getter(*urn.resource_id_parts_parsed)
         if not hasattr(boto3_resource, "load"):
             raise UnsupportedResourceTypeError(f"{urn.resource_type} does not support loading by ID.")
 
@@ -488,6 +494,11 @@ class CloudWandererBoto3Service:
         """Return the snake_case name of this service."""
         return self.boto3_service.meta.service_name
 
+    @property
+    def friendly_name(self) -> str:
+        """Return the friendly name of this service."""
+        return self.boto3_service.meta.client.meta.service_model.metadata["serviceId"]
+
 
 class CloudWandererBoto3Resource:
     """Wraps Boto3 :class:`~boto3.resources.base.ServiceResource` resource-level objects.
@@ -510,6 +521,11 @@ class CloudWandererBoto3Resource:
         self.cloudwanderer_boto3_service = cloudwanderer_boto3_service
         self.service_map = service_map
         self.resource_map = self.service_map.get_resource_map(self.boto3_resource.meta.resource_model.name)
+
+    @property
+    def friendly_name(self) -> str:
+        """Return a friendly name for this resource type."""
+        return self.boto3_resource.meta.resource_model.name
 
     @property
     def resource_type(self) -> str:
@@ -547,7 +563,7 @@ class CloudWandererBoto3Resource:
     def normalised_raw_data(self) -> dict:
         """Return the raw data ditionary for this resource, ensuring that all keys for this resource are present."""
         result = {attribute: None for attribute in get_shape(self.boto3_resource).members.keys()}
-        result.update(self.boto3_resource.meta.data or {})
+        result.update(self.raw_data or {})
         return _clean_boto3_metadata(result)
 
     @property
@@ -614,6 +630,24 @@ class CloudWandererBoto3Resource:
             yield subresource_mapping, subresource_model
 
     @property
+    def subresource_summary(self) -> List["ResourceSummary"]:
+        """Return a summary of subresource types in this resource."""
+        subresources = []
+        for subresource_type in self.subresource_types:
+            resource = self.cloudwanderer_boto3_service._get_empty_resource(subresource_type)
+
+            subresources.append(
+                ResourceSummary(
+                    resource_type=subresource_type,
+                    resource_type_pascal=resource.friendly_name,
+                    service_friendly_name=self.cloudwanderer_boto3_service.friendly_name,
+                    subresources=resource.subresource_summary,
+                    secondary_attribute_names=self.secondary_attribute_names,
+                )
+            )
+        return subresources
+
+    @property
     def subresource_types(self) -> List[str]:
         """Return a list of CloudWanderer style subresource types it's possible for this resource type to have."""
         types = []
@@ -628,7 +662,7 @@ class CloudWandererBoto3Resource:
         for subresource_model in self.subresource_models:
             collection = getattr(self.boto3_resource, subresource_model.name)
             for boto3_resource in collection.all():
-                if hasattr(boto3_resource, "load"):
+                if hasattr(boto3_resource, "load") and not boto3_resource.meta.data:
                     # If the resource does not have a `load` that means that the response returned
                     # by the collection request (e.g. listAccessKeys) contains all the information that is
                     # available for this resource.
@@ -714,25 +748,25 @@ class CloudWandererBoto3Resource:
     def _is_collection_model_a_subresource(
         self, collection_resource_map: ResourceMap, resource_model: ResourceModel
     ) -> bool:
-        if collection_resource_map.type == "secondaryAttribute" or resource_model is None:
+        if collection_resource_map.type in ["secondaryAttribute", "baseResource"] or resource_model is None:
             return False
         collection_resource_name = botocore.xform_name(resource_model.name)
-        if len(resource_model.identifiers) != 2:
+        if len(resource_model.identifiers) == 1:
             logger.debug(
-                "%s has %s identifiers, when valid subresources have 2, skipping",
+                "%s has %s identifiers, meaning it must be a baseResource",
                 collection_resource_name,
                 len(resource_model.identifiers),
             )
             return False
         if resource_model.name in self.resource_map.ignored_subresource_types:
             logger.debug(
-                "% is defined as an ignored subresource type by the %s servicemap, skipping",
+                "% is defined as an ignored subresource type by the %s servicemap",
                 collection_resource_name,
                 self.service_map.name,
             )
             return False
         if collection_resource_name in self.cloudwanderer_boto3_service.resource_types:
-            logger.debug("%s is an independent resource, not a subresource skipping", collection_resource_name)
+            logger.debug("%s is an independent resource, not a subresource", collection_resource_name)
             return False
         return True
 
@@ -757,7 +791,7 @@ class ResourceSummary(NamedTuple):
     """A summary of a resource's subresource types and secondary attribute names."""
 
     resource_type: str
-    resource_friendly_name: str
+    resource_type_pascal: str
     service_friendly_name: str
-    subresource_types: List[str]
+    subresources: List["ResourceSummary"]
     secondary_attribute_names: List[str]

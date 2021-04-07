@@ -23,6 +23,15 @@
             "ignoredSubresources": [
                 {
                     "type": "ObjectSummary"
+                },
+                {
+                    "type": "MultipartUpload"
+                },
+                {
+                    "type": "MultipartUploadPart"
+                },
+                {
+                    "type": "ObjectVersion"
                 }
             ]
         }

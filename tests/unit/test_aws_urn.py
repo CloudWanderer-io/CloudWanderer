@@ -100,9 +100,23 @@ class TestURN(unittest.TestCase):
             resource_type="metric",
             resource_id="AWS/Logs/IncomingBytes",
         )
+        assert urn.resource_id_parts == ["AWS/Logs/IncomingBytes"]
 
     def test_from_string_errors_with_no_id(self):
         with self.assertRaisesRegex(
-            ValueError, "Resource ID must be supplied as the 7th element in a colon separated list"
+            ValueError, "Resource ID must be supplied as the 7th element in a colon separated string"
         ):
             URN.from_string(r"urn:aws:080863329876:eu-west-1:cloudwatch:metric")
+
+    def test_resource_id_with_integer(self):
+        urn = URN.from_string(r"urn:aws:080863329876:eu-west-1:lambda:layer_version:test_layer/1")
+
+        assert urn == URN(
+            account_id="080863329876",
+            region="eu-west-1",
+            service="lambda",
+            resource_type="layer_version",
+            resource_id_parts=["test_layer", "1"],
+        )
+        assert urn.resource_id_parts == ["test_layer", "1"]
+        assert urn.resource_id_parts_parsed == ["test_layer", 1]

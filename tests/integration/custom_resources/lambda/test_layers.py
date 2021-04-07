@@ -33,6 +33,7 @@ class TestLambdaLayers(NoMotoMock, unittest.TestCase):
                 "Layers": [layer_payload],
             },
             "list_layer_versions.return_value": {"LayerVersions": [layer_version_payload]},
+            "get_layer_version.return_value": layer_version_payload,
         }
     }
 
@@ -40,7 +41,11 @@ class TestLambdaLayers(NoMotoMock, unittest.TestCase):
         SingleResourceScenario(
             urn=URN.from_string("urn:aws:123456789012:eu-west-1:lambda:layer:test-layer"),
             expected_results=UnsupportedResourceTypeError,
-        )
+        ),
+        SingleResourceScenario(
+            urn=URN.from_string("urn:aws:123456789012:eu-west-1:lambda:layer_version:test-layer/1"),
+            expected_results=[layer_version_payload],
+        ),
     ]
     multiple_resource_scenarios = [
         MultipleResourceScenario(

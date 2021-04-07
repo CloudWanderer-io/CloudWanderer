@@ -18,7 +18,7 @@ resource_type='vpc', resource_id_parts=['vpc-11111111'])
 
 """
 import re
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 
 
 class URN:
@@ -85,7 +85,7 @@ class URN:
         try:
             resource_id_parts = re.split(r"(?<!\\)/", parts[6])
         except IndexError:
-            raise ValueError("Resource ID must be supplied as the 7th element in a colon separated list")
+            raise ValueError("Resource ID must be supplied as the 7th element in a colon separated string")
         return cls(
             account_id=parts[2],
             region=parts[3],
@@ -93,6 +93,11 @@ class URN:
             resource_type=parts[5],
             resource_id_parts=[cls.unescape_id(id_part) for id_part in resource_id_parts],
         )
+
+    @property
+    def resource_id_parts_parsed(self) -> List[Union[str, int]]:
+        """Return the URNs ID parts parsed to their original types where possible."""
+        return [int(part) if part.isnumeric() else part for part in self.resource_id_parts]
 
     @staticmethod
     def unescape_id(escaped_id: Optional[str]) -> Optional[str]:
