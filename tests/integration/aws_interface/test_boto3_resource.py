@@ -164,3 +164,11 @@ class TestCloudWandererBoto3Resource(unittest.TestCase):
     def test_id_parts(self):
         assert self.role_resource.id_parts == ["test-role"]
         assert self.role_policy_resource.id_parts == ["test-role", "test-role-policy"]
+
+    def test_parent_resource_type(self):
+        assert self.role_resource.parent_resource_type == ""
+        assert self.role_policy_resource.parent_resource_type == "role"
+
+    def test_resource_type_pascal(self):
+        assert self.role_resource.resource_type_pascal == "Role"
+        assert self.role_policy_resource.resource_type_pascal == "RolePolicy"

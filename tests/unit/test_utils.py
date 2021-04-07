@@ -4,7 +4,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import cloudwanderer
-from cloudwanderer.utils import exception_logging_wrapper, load_json_definitions
+from cloudwanderer.utils import exception_logging_wrapper, load_json_definitions, snake_to_pascal
 
 
 class TestUtils(unittest.TestCase):
@@ -21,3 +21,7 @@ class TestUtils(unittest.TestCase):
     def test_load_json_definitions(self):
         result = load_json_definitions(Path(cloudwanderer.__file__).parent.joinpath("service_mappings"))
         assert {"iam", "cloudformation", "ec2", "s3", "lambda"}.issubset(set(result.keys()))
+
+    def test_snake_to_pascal(self):
+        assert snake_to_pascal("lambda_layer") == "LambdaLayer"
+        assert snake_to_pascal("lambda_layer_version") == "LambdaLayerVersion"

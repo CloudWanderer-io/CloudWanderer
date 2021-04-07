@@ -2,10 +2,19 @@
 
 - Allow subresources in `write_resource`
 - Escaped URNs with forward slashes
-- URNs are now made up of unlimited resource ids.
 - Provided way to explicitly specify base resources with multiple identifiers as a base resource.
+- URNs are now made up of unlimited resource ids aka `resource_id_parts`.
+- URNs now have a `resource_id_parts_parsed` which will attempt to convert non-string id parts into their appropriate type (fixing a bug preventing us from getting lambda layer versions from URN)
 - Added Boto3 resource/service definitions as part of service maps as the first steps to making service maps wrap Boto3 definitions fully.
-- Resources and subresources no longer have to have specific numbers of identifiers, fixing a bug that caused cloudwatch metrics to be misidentified as a subresource.
+- Resources and subresources no longer have to have specific numbers of identifiers, fixing a bug that caused Cloudwatch Metrics to be misidentified as a subresource.
+- Service and Resource maps now have a `boto3_definition` attribute which is the start of the work to have service maps properly superordinate to Boto3 definitions.
+- `resource_summary` now includes more detailed information about subresources
+- `CloudWandererResource` now generates `parent_urn` property from service mapping data using its news `boto3_definition` property.
+
+## Resources
+
+- Added load operation for lambda layer versions
+
 
 # 0.15.0
 

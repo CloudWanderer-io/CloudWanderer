@@ -224,7 +224,7 @@ class TestBoto3InterfaceGetResource(unittest.TestCase, GenericAssertionHelpers):
                     "Action": "s3:ListBucket",
                     "Effect": "Allow",
                     "Resource": "arn:aws:s3:::example_bucket",
-                },  # noqa
+                },
                 "Version": "2012-10-17",
             },
             "PolicyName": "test-role-policy",
