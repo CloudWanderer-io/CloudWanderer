@@ -24,6 +24,7 @@ class TestCloudWandererBoto3Resource(unittest.TestCase):
 
         cls.resource = next(cls.service.get_resources("vpc"))
         cls.role_resource = next(cls.iam_service.get_resources("role"))
+        cls.role_policy_resource = next(cls.role_resource.get_subresources())
         cls.bucket_resources = list(cls.s3_service.get_resources("bucket"))
 
     @classmethod
@@ -155,3 +156,19 @@ class TestCloudWandererBoto3Resource(unittest.TestCase):
             "RoleInlinePolicyAttachments",
             "RoleManagedPolicyAttachments",
         ]
+
+    def test_is_subresource(self):
+        assert not self.role_resource.is_subresource
+        assert self.role_policy_resource.is_subresource
+
+    def test_id_parts(self):
+        assert self.role_resource.id_parts == ["test-role"]
+        assert self.role_policy_resource.id_parts == ["test-role", "test-role-policy"]
+
+    def test_parent_resource_type(self):
+        assert self.role_resource.parent_resource_type == ""
+        assert self.role_policy_resource.parent_resource_type == "role"
+
+    def test_resource_type_pascal(self):
+        assert self.role_resource.resource_type_pascal == "Role"
+        assert self.role_policy_resource.resource_type_pascal == "RolePolicy"

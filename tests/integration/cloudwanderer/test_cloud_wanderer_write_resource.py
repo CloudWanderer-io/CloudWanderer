@@ -104,7 +104,7 @@ class TestCloudWandererWriteResource(unittest.TestCase, GenericAssertionHelpers)
                         region="us-east-1",
                         service="iam",
                         resource_type="role_policy",
-                        resource_id="test-role/test-role-policy",
+                        resource_id_parts=["test-role", "test-role-policy"],
                     )
                 ],
             },

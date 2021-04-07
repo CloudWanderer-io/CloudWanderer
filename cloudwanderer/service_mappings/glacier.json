@@ -1,0 +1,12 @@
+{
+    "service": {},
+    "resources": {
+        "Vault": {
+            "ignoredSubresources": [
+                {
+                    "type": "MultipartUpload"
+                }
+            ]
+        }
+    }
+}

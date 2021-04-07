@@ -51,8 +51,9 @@ class CustomServiceLoader:
 class MergedServiceLoader:
     """A class to merge the services from a custom service loader with those of Boto3."""
 
-    def __init__(self, custom_service_loader: CustomServiceLoader = None) -> None:
-        self.custom_service_loader = custom_service_loader or CustomServiceLoader()
+    @lru_cache()  # type: ignore
+    def __init__(self) -> None:
+        self.custom_service_loader = CustomServiceLoader()
         botocore_session = botocore.session.get_session()
         self.boto3_loader = botocore_session.get_component("data_loader")
         self.boto3_loader.search_paths.append(os.path.join(os.path.dirname(boto3.__file__), "data"))
@@ -128,6 +129,7 @@ class ServiceMappingLoader:
     This includes things like, whether it is a global service, whether it has regional resources, etc.
     """
 
+    @lru_cache()  # type: ignore
     def __init__(self) -> None:
         """Load and retrieve service mappings."""
         self.service_mappings_path = os.path.join(pathlib.Path(__file__).parent.absolute(), "service_mappings")
@@ -156,6 +158,7 @@ class ServiceMap(NamedTuple):
     global_service_region: str
     regional_resources: bool
     service_definition: dict
+    boto3_definition: dict
 
     @property
     def is_global_service(self) -> bool:
@@ -173,7 +176,10 @@ class ServiceMap(NamedTuple):
         Arguments:
             boto3_resource_name: The (PascalCase) name of the resource map to get.
         """
-        return ResourceMap.factory(self.resource_definition.get(boto3_resource_name, {}))
+        return ResourceMap.factory(
+            definition=self.resource_definition.get(boto3_resource_name, {}),
+            boto3_definition=self.boto3_definition["resources"].get(boto3_resource_name, {}),
+        )
 
     @classmethod
     def factory(cls, name: str, definition: dict) -> "ServiceMap":
@@ -185,6 +191,7 @@ class ServiceMap(NamedTuple):
             global_service_region=service_definition.get("globalServiceRegion"),
             service_definition=service_definition,
             resource_definition=definition.get("resources", {}),
+            boto3_definition=MergedServiceLoader().get_service_definition(service_name=name),
         )
 
 
@@ -193,14 +200,18 @@ class ResourceMap(NamedTuple):
 
     type: Optional[str]
     region_request: Optional["ResourceRegionRequest"]
+    parent_resource_type: str
     ignored_subresources: list
+    boto3_definition: Dict[str, Any]
 
     @classmethod
-    def factory(cls, definition: Dict[str, Any]) -> "ResourceMap":
+    def factory(cls, definition: Dict[str, Any], boto3_definition: Dict[str, Any]) -> "ResourceMap":
         return cls(
             type=definition.get("type"),
             region_request=ResourceRegionRequest.factory(definition.get("regionRequest")),
             ignored_subresources=definition.get("ignoredSubresources", []),
+            parent_resource_type=definition.get("parentResourceType", ""),
+            boto3_definition=boto3_definition,
         )
 
     @property

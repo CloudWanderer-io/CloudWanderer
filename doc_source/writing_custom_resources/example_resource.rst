@@ -274,4 +274,26 @@ The most crucial things here are:
     Normally we would have a ``load`` key inside our resource, however in this case Lambda Layers have no ``Describe`` API method
     therefore we cannot load them by layer name. The impact of this is that we cannot use :meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resource` with this resource type.
 
+Writing the Service Map
+----------------------------
+The service map is CloudWanderer's store for resource type metadata that does not fit into the Boto3 specification.
+It broadly follows the structure of Boto3's to try and keep things simple and consistent.
+For our new Layer resource we just need to ensure that the following exists in ``service_mappings/lambda.json``
+
+.. code-block:: json
+    :linenos:
+
+    {
+        "service": {
+            "globalService": false,
+            "regionalResources": true
+        },
+        "resources": {
+            "Layer": {
+                "type": "baseResource"
+            }
+        }
+    }
+
+.. include:: service_map_key.rst
 .. include:: tests.rst

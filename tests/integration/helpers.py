@@ -91,7 +91,7 @@ class GenericAssertionHelpers:
         unmatched, _, partial_matches = self.get_resource_overlap(received, expected)
         if unmatched and partial_matches:
             assert False, f"{partial_matches}"
-        assert unmatched == [], f"{unmatched} was not found in {received}"
+        assert unmatched == [], f"\n\t{unmatched}\n was not found in\n\t{received}"
 
     def assert_no_dictionary_overlap(self, received, expected):
         """Asserts that NO item in expected has an equivalent item in received."""

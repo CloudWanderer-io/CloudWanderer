@@ -1,0 +1,7 @@
+{
+    "resources": {
+        "Metric": {
+            "type": "baseResource"
+        }
+    }
+}

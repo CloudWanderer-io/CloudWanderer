@@ -85,7 +85,11 @@ def add_infra(count=1, regions=["us-east-1", "eu-west-2", "ap-east-1"]):
     )
 
 
-def generate_urn(service, resource_type, id):
+def generate_urn(service, resource_type, resource_id_parts):
     return URN(
-        account_id="111111111111", region="eu-west-2", service=service, resource_type=resource_type, resource_id=id
+        account_id="111111111111",
+        region="eu-west-2",
+        service=service,
+        resource_type=resource_type,
+        resource_id_parts=resource_id_parts,
     )

@@ -29,6 +29,7 @@ class TestCloudWandererBoto3Service(unittest.TestCase):
 
     def test_get_resources_from_urn(self):
         vpc = next(self.service.get_resources("vpc"))
+        print(vpc.urn)
         assert isinstance(self.service.get_resource_from_urn(vpc.urn), CloudWandererBoto3Resource)
 
     def test_get_global_endpoint_resources_in_regional_resource_region(self):
@@ -86,19 +87,28 @@ class TestCloudWandererBoto3Service(unittest.TestCase):
         assert (
             ResourceSummary(
                 resource_type="vpc",
-                resource_friendly_name="Vpc",
+                resource_type_pascal="Vpc",
                 service_friendly_name="EC2",
-                subresource_types=[],
+                subresources=[],
                 secondary_attribute_names=["vpc_enable_dns_support"],
             )
             in self.service.resource_summary
         )
+
         assert (
             ResourceSummary(
                 resource_type="role",
-                resource_friendly_name="Role",
+                resource_type_pascal="Role",
                 service_friendly_name="IAM",
-                subresource_types=["role_policy"],
+                subresources=[
+                    ResourceSummary(
+                        resource_type="role_policy",
+                        resource_type_pascal="RolePolicy",
+                        service_friendly_name="IAM",
+                        subresources=[],
+                        secondary_attribute_names=["role_inline_policy_attachments", "role_managed_policy_attachments"],
+                    )
+                ],
                 secondary_attribute_names=["role_inline_policy_attachments", "role_managed_policy_attachments"],
             )
             in self.iam_service.resource_summary

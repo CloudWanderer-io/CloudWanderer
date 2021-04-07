@@ -108,7 +108,25 @@
                     "memberName": "Version"
                 }
             ],
-            "shape": "LayerVersionsListItem"
+            "shape": "LayerVersionsListItem",
+            "load": {
+                "request": {
+                    "operation": "GetLayerVersion",
+                    "params": [
+                        {
+                            "target": "LayerName",
+                            "source": "identifier",
+                            "name": "LayerName"
+                        },
+                        {
+                            "target": "VersionNumber",
+                            "source": "identifier",
+                            "name": "Version"
+                        }
+                    ]
+                },
+                "path": "@"
+            }
         }
     }
 }

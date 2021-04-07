@@ -268,7 +268,7 @@ class CloudWandererSecondaryAttributesDirective(SphinxDirective):
                     secondary_attributes_list += f"         * :class:`~{qualified_name}`\n"
                 if secondary_attributes_list:
                     resource_link = (
-                        f":class:`{resource_summary.resource_friendly_name}"
+                        f":class:`{resource_summary.resource_type_pascal}"
                         f"<{service_name}.{resource_summary.resource_type}>`"
                     )
                     resource_list += f"    * {resource_link}\n{secondary_attributes_list}"

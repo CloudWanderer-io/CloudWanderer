@@ -85,7 +85,7 @@ class TestBoto3InterfaceGetResource(unittest.TestCase, GenericAssertionHelpers):
                 region="us-east-1",
                 service="iam",
                 resource_type="role_policy",
-                resource_id="test-role/test-role-policy",
+                resource_id_parts=["test-role", "test-role-policy"],
             )
         ]
 
@@ -199,6 +199,32 @@ class TestBoto3InterfaceGetResource(unittest.TestCase, GenericAssertionHelpers):
         assert results[0].cloudwanderer_metadata.resource_data == {
             "PolicyDocument": {
                 "Statement": {"Action": "s3:ListBucket", "Effect": "Allow", "Resource": "arn:aws:s3:::example_bucket"},
+                "Version": "2012-10-17",
+            },
+            "PolicyName": "test-role-policy",
+            "RoleName": "test-role",
+        }
+
+    def test_get_subresource(self):
+        results = list(
+            self.aws_interface.get_resource(
+                urn=URN(
+                    account_id="123456789012",
+                    region="us-east-1",
+                    service="iam",
+                    resource_type="role_policy",
+                    resource_id_parts=["test-role", "test-role-policy"],
+                )
+            )
+        )
+
+        assert results[0].cloudwanderer_metadata.resource_data == {
+            "PolicyDocument": {
+                "Statement": {
+                    "Action": "s3:ListBucket",
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:s3:::example_bucket",
+                },
                 "Version": "2012-10-17",
             },
             "PolicyName": "test-role-policy",
