@@ -13,6 +13,7 @@
 
 ## Resources
 
+- Added AutoScalingGroup fixing [#123](https://github.com/CloudWanderer-io/CloudWanderer/issues/123)
 - Added load operation for lambda layer versions
 
 
