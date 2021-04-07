@@ -1,6 +1,15 @@
 {
-    "service":{
+    "service": {
         "globalService": false,
         "regionalResources": true
+    },
+    "resources": {
+        "Layer": {
+            "type": "baseResource"
+        },
+        "LayerVersion": {
+            "type": "subresource",
+            "parentResourceType": "Layer"
+        }
     }
 }

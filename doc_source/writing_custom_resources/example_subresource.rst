@@ -44,7 +44,7 @@ alongside the tests for lambda layers.
 
 .. code-block:: python
     :linenos:
-    :emphasize-lines: 4-10, 17, 30
+    :emphasize-lines: 4-10, 17-18, 27-30, 36
 
     class TestLambdaLayers(NoMotoMock, unittest.TestCase):
         ...
@@ -63,6 +63,7 @@ alongside the tests for lambda layers.
                     "Layers": [layer_payload],
                 },
                 "list_layer_versions.return_value": {"LayerVersions": [layer_version_payload]},
+                "get_layer_version.return_value": layer_version_payload,
             }
         }
 
@@ -70,8 +71,13 @@ alongside the tests for lambda layers.
             SingleResourceScenario(
                 urn=URN.from_string("urn:aws:123456789012:eu-west-1:lambda:layer:test-layer"),
                 expected_results=UnsupportedResourceTypeError,
-            )
+            ),
+            SingleResourceScenario(
+                urn=URN.from_string("urn:aws:123456789012:eu-west-1:lambda:layer_version:test-layer/1"),
+                expected_results=[layer_version_payload],
+            ),
         ]
+
         multiple_resource_scenarios = [
             MultipleResourceScenario(
                 arguments=CloudWandererCalls(regions=["eu-west-1"], service_names=["lambda"], resource_types=["layer"]),
@@ -79,9 +85,8 @@ alongside the tests for lambda layers.
             )
         ]
 
-We've added our test payload as a class variable, referenced it in the mock on line 17, and expected it as a result in
-line 30. We have not added it to ``single_resource_scenarios`` purely because lambda layers cannot be discovered individually
-and neither can subresources.
+We've added our test payload as a class variable, referenced it in the mock on line 17, as well as the mock on line 18, and expected it as a result in
+lines 27-29 and 36. We have added it to ``single_resource_scenarios`` and ``get_layer_version.return_value`` because while lambda layers cannot be discovered individually, lambda layer **versions** can!
 
 Populate the definition
 ---------------------------
@@ -206,7 +211,38 @@ In the ``resources`` definiton we've added the highlighted lines.
     }
 
 You'll notice we've added the collection specification inside the ``Layer`` resource instead of inside the ``service``
-as we did in :page:`example_resource`, this is what allows us to reference the ``LayerName`` of the parent resource
+as we did in :doc:`example_resource`, this is what allows us to reference the ``LayerName`` of the parent resource
 when we call ``ListLayerVersions`` in our collection API call.
 
+Writing the Service Map
+------------------------------
+
+The service map is CloudWanderer's store for resource type metadata that does not fit into the Boto3 specification.
+It broadly follows the structure of Boto3's to try and keep things simple and consistent.
+For our new Layer resource we just need to ensure that the following exists in ``service_mappings/lambda.json``
+
+.. code-block:: json
+    :linenos:
+    :emphasize-lines: 10-13
+
+    {
+        "service": {
+            "globalService": false,
+            "regionalResources": true
+        },
+        "resources": {
+            "Layer": {
+                "type": "baseResource"
+            },
+            "LayerVersion": {
+                "type": "subresource",
+                "parentResourceType": "Layer"
+            }
+        }
+    }
+
+We added the ``LayerVersion`` key to ``resources`` to indicate that we've added a subresource whose parent resource type is ``Layer``.
+This allows CloudWanderer to determine the proper relationship between these resources and properly generate URNs.
+
+.. include:: service_map_key.rst
 .. include:: tests.rst

@@ -7,12 +7,17 @@ import botocore
 from cloudwanderer import URN, CloudWanderer
 from cloudwanderer.aws_interface import CloudWandererAWSInterface
 from cloudwanderer.cloud_wanderer import CloudWandererConcurrentWriteThreadResult
-from cloudwanderer.exceptions import BadUrnRegionError, BadUrnSubResourceError, UnsupportedResourceTypeError
+from cloudwanderer.exceptions import (
+    BadUrnIdentifiersError,
+    BadUrnRegionError,
+    BadUrnSubResourceError,
+    UnsupportedResourceTypeError,
+)
 from cloudwanderer.storage_connectors import DynamoDbConnector
 
 
 class TestFunctional(unittest.TestCase):
-    resources_not_supporting_load = ["lambda:layer"]
+    resources_not_supporting_load = ["lambda:layer", "iam:virtual_mfa_device"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -56,6 +61,10 @@ class TestFunctional(unittest.TestCase):
             regions=["us-east-1"], exclude_resources=["ec2:image", "ec2:snapshot", "iam:policy"]
         )
 
+    def test_write_resource_type(self):
+        """It is sufficient for this not to throw an exception."""
+        self.wanderer.write_resources(regions=["us-east-1"], service_names=["cloudwatch"], resource_types=["metric"])
+
     def test_write_custom_resource_definition(self):
         """It is sufficient for this not to throw an exception."""
         self.wanderer.write_resources(service_names=["lambda"])
@@ -65,21 +74,48 @@ class TestFunctional(unittest.TestCase):
             service = self.wanderer.cloud_interface.boto3_services.get_service(service_name)
             for resource_type in service.resource_types:
                 logging.info("Testing %s %s", service_name, resource_type)
-                urn = URN(
-                    account_id=self.wanderer.cloud_interface.account_id,
-                    region="eu-west-2",
-                    service=service_name,
-                    resource_type=resource_type,
-                    resource_id="fake-resource-id",
-                )
                 try:
-                    self.wanderer.write_resource(urn=urn)
-                except (BadUrnSubResourceError, BadUrnRegionError):
-                    pass
-                except UnsupportedResourceTypeError as ex:
-                    if f"{service_name}:{resource_type}" in self.resources_not_supporting_load:
-                        continue
-                    raise ex
+                    self._write_resource_with_fake_id(service_name, resource_type, ["fake-resource-id"] * 1)
+                except BadUrnIdentifiersError:
+                    self._write_resource_with_fake_id(service_name, resource_type, ["fake-resource-id"] * 2)
+
+    def test_write_single_non_existent_subresource_of_every_type(self):
+        identifier_mapping = {"layer_version:version": "1"}
+        for service_name in self.wanderer.cloud_interface.boto3_services.available_services:
+            service = self.wanderer.cloud_interface.boto3_services.get_service(service_name)
+            for resource_summary in service.resource_summary:
+                for subresource in resource_summary.subresources:
+
+                    resource_type = subresource.resource_type
+                    resource = service._get_empty_resource(resource_type)
+                    identifiers = resource.boto3_resource.meta.resource_model.identifiers
+                    args = [
+                        identifier_mapping.get(
+                            f"{resource_type}:{identifier.name}", f"{resource_type}:{identifier.name}"
+                        )
+                        for identifier in identifiers
+                    ]
+                    print(args)
+                    logging.info("Testing %s %s", service_name, resource_type)
+
+                    self._write_resource_with_fake_id(service_name, resource_type, args)
+
+    def _write_resource_with_fake_id(self, service_name, resource_type, args) -> None:
+        urn = URN(
+            account_id=self.wanderer.cloud_interface.account_id,
+            region="eu-west-2",
+            service=service_name,
+            resource_type=resource_type,
+            resource_id_parts=args,
+        )
+        try:
+            self.wanderer.write_resource(urn=urn)
+        except (BadUrnSubResourceError, BadUrnRegionError):
+            pass
+        except UnsupportedResourceTypeError as ex:
+            if f"{service_name}:{resource_type}" in self.resources_not_supporting_load:
+                return
+            raise ex
 
     def test_write_single_resource_of_every_found_type(self):
         for service_name in self.wanderer.cloud_interface.boto3_services.available_services:
@@ -95,8 +131,6 @@ class TestFunctional(unittest.TestCase):
                         service_name,
                         resource_type,
                     )
-                    continue
-                if resource.urn.is_subresource:
                     continue
                 logging.info("Found %s, testing write_resource", resource.urn)
                 try:

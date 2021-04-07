@@ -8,48 +8,65 @@ find a resource in AWS, whereas AWS ARNs do not always provide this information.
     # Format
     'urn:aws:<account_id>:<region>:<service>:<resource_type>:<resource_id>'
     # e.g.
-    'urn:aws:111111111111:eu-west-2:ec2:vpc:vpc-11111111'
+    'urn:aws:111111111111:eu-west-2:iam:vpc:vpc-11111111'
 
 Example:
     >>> from cloudwanderer import URN
-    >>> URN.from_string('urn:aws:111111111111:eu-west-2:ec2:vpc:vpc-11111111')
-    URN(account_id='111111111111', region='eu-west-2', service='ec2', \
-resource_type='vpc', resource_id='vpc-11111111')
+    >>> URN.from_string('urn:aws:111111111111:eu-west-2:iam:vpc:vpc-11111111')
+    URN(account_id='111111111111', region='eu-west-2', service='iam', \
+resource_type='vpc', resource_id_parts=['vpc-11111111'])
 
 """
-from typing import Any
+import re
+from typing import Any, List, Optional, Union
 
 
 class URN:
     """A dataclass for building and querying AWS URNs."""
 
     def __init__(
-        self, account_id: str, region: str, service: str, resource_type: str, resource_id: str, cloud_name: str = None
+        self,
+        account_id: str,
+        region: str,
+        service: str,
+        resource_type: str,
+        resource_id: Optional[str] = None,
+        resource_id_parts: Optional[list] = None,
+        cloud_name: str = None,
     ) -> None:
         """Initialise an AWS Urn.
 
         Arguments:
-            account_id (str): AWS Account ID (e.g. ``111111111111``).
-            region (str): AWS region (e.g. ``eu-west-1``).
-            service (str): AWS Service (e.g. ``ec2``).
-            resource_type (str): AWS Resource Type (e.g. ``instance``)
-            resource_id (str): AWS Resource Id (e.g. ``i-11111111``)
-            cloud_name (str): The name of the cloud this resource exists in (defaults to ``'aws'``)
+            account_id: AWS Account ID (e.g. ``111111111111``).
+            region: AWS region (e.g. `us-east-1``).
+            service: AWS Service (e.g. ``iam``).
+            resource_type: AWS Resource Type (e.g. ``role_policy``)
+            resource_id: AWS Resource Id (e.g. ``test-role-policy``)
+            resource_id_parts: AWS Resource Id (e.g. ``test-role-policy``)
+            cloud_name: The name of the cloud this resource exists in (defaults to ``'aws'``)
 
         Attributes:
-            account_id (str): AWS Account ID (e.g. ``111111111111``).
-            region (str): AWS region (e.g. ``eu-west-1``).
-            service (str): AWS Service (e.g. ``ec2``).
-            resource_type (str): AWS Resource Type (e.g. ``instance``)
-            resource_id (str): AWS Resource Id (e.g. ``i-11111111``)
-            cloud_name (str): The name of the cloud this resource exists in (defaults to ``'aws'``)
+            account_id: AWS Account ID (e.g. ``111111111111``).
+            region: AWS region (e.g. `us-east-1``).
+            service: AWS Service (e.g. ``iam``).
+            resource_type: AWS Resource Type (e.g. ``role_policy``)
+            resource_id: AWS Resource Id (e.g. ``test-role-policy``)
+            resource_id_parts: AWS Resource ID parts (e.g. ``['test-role', 'test-role-policy']``)
+            cloud_name: The name of the cloud this resource exists in (defaults to ``'aws'``)
+
+        Raises:
+            ValueError: If incorrect values are supplied.
         """
         self.cloud_name = cloud_name or "aws"
         self.account_id = account_id
         self.region = region
         self.service = service
         self.resource_type = resource_type
-        self.resource_id = resource_id
+        resource_id_parts = [resource_id] if resource_id else resource_id_parts
+        if not resource_id_parts or not all(resource_id_parts):
+            raise ValueError("resource_id or id_parts must be supplied with non empty values")
+        self.resource_id_parts: List[str] = resource_id_parts
+        self.resource_id = "/".join(self.escape_id(id_part) or "" for id_part in self.resource_id_parts)
 
     @classmethod
     def from_string(cls, urn_string: str) -> "URN":
@@ -60,18 +77,49 @@ class URN:
 
         Returns:
             URN: The instantiated AWS URN.
+
+        Raises:
+            ValueError: When no valid resource id found
         """
         parts = urn_string.split(":")
-        return cls(account_id=parts[2], region=parts[3], service=parts[4], resource_type=parts[5], resource_id=parts[6])
+        try:
+            resource_id_parts = re.split(r"(?<!\\)/", parts[6])
+        except IndexError:
+            raise ValueError("Resource ID must be supplied as the 7th element in a colon separated string")
+        return cls(
+            account_id=parts[2],
+            region=parts[3],
+            service=parts[4],
+            resource_type=parts[5],
+            resource_id_parts=[cls.unescape_id(id_part) for id_part in resource_id_parts],
+        )
 
     @property
-    def is_subresource(self) -> bool:
-        """Return whether or not this urn pertains to a subresource.
+    def resource_id_parts_parsed(self) -> List[Union[str, int]]:
+        """Return the URNs ID parts parsed to their original types where possible."""
+        return [int(part) if part.isnumeric() else part for part in self.resource_id_parts]
 
-        A subresource is a resource which does not have its own cloud provider identity and is only  accessible
-        by referring to a parent resource.
+    @staticmethod
+    def unescape_id(escaped_id: Optional[str]) -> Optional[str]:
+        """Return an unescaped ID with the forward slashes unescaped.
+
+        Arguments:
+            escaped_id: The id to unescape.
         """
-        return "/" in self.resource_id
+        if escaped_id is None:
+            return None
+        return escaped_id.replace(r"\/", r"/")
+
+    @staticmethod
+    def escape_id(unescaped_id: Optional[str]) -> Optional[str]:
+        """Return an escaped ID with the forward slashes escaped.
+
+        Arguments:
+            unescaped_id: The id to escape.
+        """
+        if unescaped_id is None:
+            return None
+        return re.sub(r"(?<!\\)/", r"\/", unescaped_id)
 
     def __eq__(self, other: Any) -> bool:
         """Allow comparison of one URN to another.
@@ -89,19 +137,10 @@ class URN:
             f"region='{self.region}', "
             f"service='{self.service}', "
             f"resource_type='{self.resource_type}', "
-            f"resource_id='{self.resource_id}')"
+            f"resource_id_parts={self.resource_id_parts})"
         )
 
     def __str__(self) -> str:
         """Return a string representation of the URN."""
-        return ":".join(
-            [
-                "urn",
-                self.cloud_name,
-                self.account_id,
-                self.region,
-                self.service,
-                self.resource_type,
-                self.resource_id,
-            ]
-        )
+        base = ":".join(["urn", self.cloud_name, self.account_id, self.region, self.service, self.resource_type])
+        return f"{base}:{self.resource_id}"

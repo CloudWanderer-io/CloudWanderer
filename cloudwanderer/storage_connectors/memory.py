@@ -167,7 +167,6 @@ def memory_item_to_resource(urn: URN, items: Dict[str, Any] = None, loader: Call
     return CloudWandererResource(
         urn=urn,
         subresource_urns=items.get("SubresourceUrns"),
-        parent_urn=items.get("ParentUrn"),
         resource_data=base_resource,
         secondary_attributes=attributes,
         loader=loader,
