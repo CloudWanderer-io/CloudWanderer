@@ -131,3 +131,4 @@ doc_build
 .vscode
 workspace.code-workspace
 /*.png
+.DS_Store
