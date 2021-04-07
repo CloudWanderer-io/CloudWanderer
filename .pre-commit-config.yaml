@@ -19,3 +19,4 @@ repos:
     rev: v0.812
     hooks:
       - id: mypy
+        exclude: ^doc_source/

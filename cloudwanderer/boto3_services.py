@@ -301,7 +301,7 @@ class CloudWandererBoto3Service:
             summaries.append(
                 ResourceSummary(
                     resource_type=resource_type,
-                    resource_type_pascal=resource.friendly_name,
+                    resource_type_pascal=resource.resource_type_pascal,
                     service_friendly_name=self.friendly_name,
                     secondary_attribute_names=resource.secondary_attribute_names,
                     subresources=resource.subresource_summary,
@@ -525,7 +525,7 @@ class CloudWandererBoto3Resource:
         self.resource_map = self.service_map.get_resource_map(self.boto3_resource.meta.resource_model.name)
 
     @property
-    def friendly_name(self) -> str:
+    def resource_type_pascal(self) -> str:
         """Return a friendly name for this resource type."""
         return self.boto3_resource.meta.resource_model.name
 
@@ -642,7 +642,7 @@ class CloudWandererBoto3Resource:
             subresources.append(
                 ResourceSummary(
                     resource_type=subresource_type,
-                    resource_type_pascal=resource.friendly_name,
+                    resource_type_pascal=resource.resource_type_pascal,
                     service_friendly_name=self.cloudwanderer_boto3_service.friendly_name,
                     subresources=resource.subresource_summary,
                     secondary_attribute_names=self.secondary_attribute_names,
