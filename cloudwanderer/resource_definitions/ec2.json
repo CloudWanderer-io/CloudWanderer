@@ -1,5 +1,24 @@
 {
-    "service": {},
+    "service": {
+        "hasMany": {
+            "VpcEndpoints": {
+                "request": {
+                    "operation": "DescribeVpcEndpoints"
+                },
+                "resource": {
+                    "type": "VpcEndpoint",
+                    "identifiers": [
+                        {
+                            "target": "Id",
+                            "source": "response",
+                            "path": "VpcEndpoints[].VpcEndpointId"
+                        }
+                    ],
+                    "path": "VpcEndpoints[]"
+                }
+            }
+        }
+    },
     "resources": {
         "Vpc": {
             "identifiers": [
@@ -63,6 +82,28 @@
                     ]
                 },
                 "path": "@"
+            }
+        },
+        "VpcEndpoint": {
+            "identifiers": [
+                {
+                    "name": "Id",
+                    "memberName": "VpcEndpointId"
+                }
+            ],
+            "shape": "VpcEndpoint",
+            "load": {
+                "request": {
+                    "operation": "DescribeVpcEndpoints",
+                    "params": [
+                        {
+                            "target": "VpcEndpointId[0]",
+                            "source": "identifier",
+                            "name": "Id"
+                        }
+                    ]
+                },
+                "path": "VpcEndpoints[0]"
             }
         }
     }

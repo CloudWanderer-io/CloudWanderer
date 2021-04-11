@@ -22,7 +22,7 @@ class TestCloudWandererBoto3Service(unittest.TestCase):
         get_default_mocker().stop_general_mock()
 
     def test_resource_types(self):
-        assert {"instance", "internet_gateway", "key_pair"}.issubset(set(self.service.resource_types))
+        assert {"instance", "internet_gateway", "vpc"}.issubset(set(self.service.resource_types))
 
     def test_get_resources(self):
         assert isinstance(next(self.service.get_resources("vpc")), CloudWandererBoto3Resource)
