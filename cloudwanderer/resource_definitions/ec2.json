@@ -16,6 +16,22 @@
                     ],
                     "path": "VpcEndpoints[]"
                 }
+            },
+            "ElasticIps": {
+                "request": {
+                    "operation": "DescribeAddresses"
+                },
+                "resource": {
+                    "type": "ElasticIp",
+                    "identifiers": [
+                        {
+                            "target": "Id",
+                            "source": "response",
+                            "path": "Addresses[].AllocationId"
+                        }
+                    ],
+                    "path": "Addresses[]"
+                }
             }
         }
     },
@@ -104,6 +120,28 @@
                     ]
                 },
                 "path": "VpcEndpoints[0]"
+            }
+        },
+        "ElasticIp": {
+            "identifiers": [
+                {
+                    "name": "Id",
+                    "memberName": "AllocationId"
+                }
+            ],
+            "shape": "Address",
+            "load": {
+                "request": {
+                    "operation": "DescribeAddresses",
+                    "params": [
+                        {
+                            "target": "AllocationId[0]",
+                            "source": "identifier",
+                            "name": "Id"
+                        }
+                    ]
+                },
+                "path": "Addresses[0]"
             }
         }
     }

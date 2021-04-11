@@ -2,6 +2,7 @@
 
 ## New Resources
  - Added vpc endpoints support
+ - Added elastic IP support
 
 
 # 0.16.1
