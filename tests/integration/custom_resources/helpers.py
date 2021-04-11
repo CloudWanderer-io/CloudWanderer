@@ -1,7 +1,7 @@
 import logging
 import sys
 from abc import ABC
-from typing import Any, Dict, List, NamedTuple, Union
+from typing import Any, Dict, List, NamedTuple, Optional, Union
 
 if sys.version_info >= (3, 8):
     from typing import TypedDict
@@ -74,7 +74,7 @@ class NoMotoMock(ABC, GenericAssertionHelpers):
         self.boto3_client_mock.side_effect = lambda service_name, **kwargs: self.service_mocks[service_name]
 
     def test_write_resource(self):
-        for scenario in self.single_resource_scenarios:
+        for i, scenario in enumerate(self.single_resource_scenarios):
             logging.info("Testing fetching %s", scenario.urn)
 
             if isinstance(scenario.expected_results, type):
@@ -87,6 +87,10 @@ class NoMotoMock(ABC, GenericAssertionHelpers):
                 self.storage_connector.read_all(),
                 scenario.expected_results,
             )
+            if scenario.expected_call is None:
+                continue
+            mock_method = getattr(self.service_mocks[scenario.expected_call.service], scenario.expected_call.method)
+            mock_method.assert_called_with(*scenario.expected_call.args, **scenario.expected_call.kwargs)
 
     def test_write_resources(self):
         for scenario in self.multiple_resource_scenarios:
@@ -100,6 +104,14 @@ class NoMotoMock(ABC, GenericAssertionHelpers):
 class SingleResourceScenario(NamedTuple):
     urn: URN
     expected_results: List[Union[Dict[str, Any], type]]
+    expected_call: Optional["ExpectedCall"] = None
+
+
+class ExpectedCall(NamedTuple):
+    service: str
+    method: str
+    args: List[Any]
+    kwargs: Dict[str, Any]
 
 
 class MultipleResourceScenario(NamedTuple):
