@@ -13,12 +13,11 @@ from typing import Any, Dict, List, NamedTuple, Optional
 
 import boto3
 import botocore  # type: ignore
+import jmespath
 from boto3.resources.base import ServiceResource
 from botocore.exceptions import UnknownServiceError  # type: ignore
 
-from cloudwanderer.cache_helpers import cached_property
-
-from .cache_helpers import memoized_method
+from .cache_helpers import cached_property, memoized_method
 from .exceptions import UnsupportedServiceError
 from .utils import load_json_definitions
 
@@ -95,7 +94,12 @@ class MergedServiceLoader:
             )
 
         return {
-            "service": {**boto3_definition.get("service", {}), **custom_service_definition.get("service", {})},
+            "service": {
+                "hasMany": {
+                    **(jmespath.search("service.hasMany", boto3_definition) or {}),
+                    **(jmespath.search("service.hasMany", custom_service_definition) or {}),
+                }
+            },
             "resources": {**boto3_definition.get("resources", {}), **custom_service_definition.get("resources", {})},
         }
 

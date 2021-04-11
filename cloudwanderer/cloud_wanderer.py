@@ -3,9 +3,8 @@ import concurrent.futures
 import logging
 from typing import Callable, Iterator, List, NamedTuple
 
-from cloudwanderer.cloud_wanderer_resource import CloudWandererResource
-
 from .aws_interface import CloudWandererAWSInterface
+from .cloud_wanderer_resource import CloudWandererResource
 from .storage_connectors import BaseStorageConnector
 from .urn import URN
 from .utils import exception_logging_wrapper
