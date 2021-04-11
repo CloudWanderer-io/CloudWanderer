@@ -5,7 +5,7 @@ from typing import List
 import boto3
 import botocore  # type: ignore
 
-from .typing_helpers import lru_cache_property
+from .cache_helpers import cached_property
 
 logger = logging.getLogger(__name__)
 
@@ -16,21 +16,18 @@ class Boto3CommonAttributesMixin:
     def __init__(self) -> None:
         self.boto3_session = boto3.session.Session()
 
-    @property  # type: ignore
-    @lru_cache_property
+    @cached_property
     def account_id(self) -> str:
         """Return the AWS Account ID our Boto3 session is authenticated against."""
         sts = self.boto3_session.client("sts")
         return sts.get_caller_identity()["Account"]
 
-    @property  # type: ignore
-    @lru_cache_property
+    @cached_property
     def region_name(self) -> str:
         """Return the default AWS region."""
         return self.boto3_session.region_name
 
-    @property  # type: ignore
-    @lru_cache_property  # type: ignore
+    @cached_property  # type: ignore
     def enabled_regions(self) -> List[str]:
         """Return a list of enabled regions in this account."""
         regions = self.boto3_session.client("ec2").describe_regions()["Regions"]
