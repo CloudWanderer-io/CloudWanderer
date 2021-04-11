@@ -16,13 +16,13 @@ class TestVPCEndpoints(NoMotoMock, unittest.TestCase):
         "PolicyDocument": '{\n    "Statement": [\n        {\n            "Action": "*",\n            "Effect": "Allow",\n            "Resource": "*",\n            "Principal": "*"\n        }\n    ]\n}',  # noqa
         "RouteTableIds": [],
         "SubnetIds": ["subnet-11111111", "subnet-22222222", "subnet-33333333"],
-        "Groups": [{"GroupId": "sg-1ada517f", "GroupName": "default"}],
+        "Groups": [{"GroupId": "sg-11111111", "GroupName": "default"}],
         "PrivateDnsEnabled": False,
         "RequesterManaged": False,
         "NetworkInterfaceIds": [
-            "eni-0ef6e89300b0c3ef5",
-            "eni-0b7a4724c43de6a3f",
-            "eni-04dcdd8b35b807fa0",
+            "eni-11111111111111111",
+            "eni-22222222222222222",
+            "eni-33333333333333333",
         ],
         "DnsEntries": [
             {
