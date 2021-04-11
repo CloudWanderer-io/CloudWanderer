@@ -1,0 +1,46 @@
+{
+    "service": {
+        "hasMany": {
+            "TargetGroups": {
+                "request": {
+                    "operation": "DescribeTargetGroups"
+                },
+                "resource": {
+                    "type": "TargetGroup",
+                    "identifiers": [
+                        {
+                            "target": "Name",
+                            "source": "response",
+                            "path": "TargetGroups[].TargetGroupName"
+                        }
+                    ],
+                    "path": "TargetGroups[]"
+                }
+            }
+        }
+    },
+    "resources": {
+        "TargetGroup": {
+            "identifiers": [
+                {
+                    "name": "Name",
+                    "memberName": "TargetGroupName"
+                }
+            ],
+            "shape": "TargetGroup",
+            "load": {
+                "request": {
+                    "operation": "DescribeTargetGroups",
+                    "params": [
+                        {
+                            "target": "Names[0]",
+                            "source": "identifier",
+                            "name": "Name"
+                        }
+                    ]
+                },
+                "path": "TargetGroups[0]"
+            }
+        }
+    }
+}
