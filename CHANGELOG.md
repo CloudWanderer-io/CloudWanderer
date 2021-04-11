@@ -1,3 +1,7 @@
+# 0.16.1
+
+- Fixed memory leak due where decorating with `lru_cache` caused old objects' caches not to be garbage collected.
+
 # 0.16.0
 
 - Allow subresources in `write_resource`

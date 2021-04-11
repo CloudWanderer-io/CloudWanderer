@@ -16,8 +16,9 @@ import botocore  # type: ignore
 from boto3.resources.base import ServiceResource
 from botocore.exceptions import UnknownServiceError  # type: ignore
 
-from cloudwanderer.typing_helpers import lru_cache_property
+from cloudwanderer.cache_helpers import cached_property
 
+from .cache_helpers import memoized_method
 from .exceptions import UnsupportedServiceError
 from .utils import load_json_definitions
 
@@ -30,8 +31,7 @@ class CustomServiceLoader:
     def __init__(self, definition_path: str = "resource_definitions") -> None:
         self.service_definitions_path = os.path.join(pathlib.Path(__file__).parent.absolute(), definition_path)
 
-    @property  # type: ignore
-    @lru_cache_property
+    @cached_property
     def service_definitions(self) -> dict:
         """Return our custom resource definitions."""
         return load_json_definitions(self.service_definitions_path)
@@ -76,7 +76,7 @@ class MergedServiceLoader:
         """Return a list of services defined by Boto3."""
         return self.non_specific_boto3_session.get_available_resources()
 
-    @lru_cache()
+    @memoized_method()
     def get_service_definition(self, service_name: str) -> dict:
         """Return a combined dictionary service definition of both CloudWanderer and Boto3 services.
 
@@ -142,8 +142,7 @@ class ServiceMappingLoader:
         """
         return self.service_maps.get(service_name, {})
 
-    @property  # type: ignore
-    @lru_cache()
+    @cached_property
     def service_maps(self) -> Dict[str, Any]:
         """Return our custom resource definitions."""
         return load_json_definitions(self.service_mappings_path)

@@ -17,7 +17,6 @@ Glossary:
 """
 
 import logging
-from functools import lru_cache
 from typing import Generator, List, NamedTuple, Optional, Tuple, Type
 
 import boto3
@@ -30,6 +29,7 @@ from boto3.utils import ServiceContext
 
 from .boto3_helpers import _clean_boto3_metadata, get_shape
 from .boto3_loaders import MergedServiceLoader, ResourceMap, ServiceMap, ServiceMappingLoader
+from .cache_helpers import cached_property, memoized_method
 from .cloud_wanderer_resource import SecondaryAttribute
 from .exceptions import (
     BadRequestError,
@@ -40,7 +40,6 @@ from .exceptions import (
     UnsupportedResourceTypeError,
 )
 from .models import CleanupAction, GetAction, GetAndCleanUp
-from .typing_helpers import lru_cache_property
 from .urn import URN
 
 logger = logging.getLogger(__name__)
@@ -85,7 +84,7 @@ class CloudWandererBoto3ResourceFactory:
             service_context=service_context,
         )
 
-    @lru_cache()
+    @memoized_method()
     def _get_service_model(self, service_name: str) -> botocore.model.ServiceModel:
         """Return the botocore service model corresponding to this service.
 
@@ -140,8 +139,7 @@ class Boto3Services:
         """Return a list of service names that can be loaded by :meth:`Boto3Services.get_service`."""
         return self._loader.available_services
 
-    @property  # type: ignore
-    @lru_cache_property
+    @cached_property
     def account_id(self) -> str:
         """Return the AWS Account ID our Boto3 session is authenticated against."""
         if self._account_id:
@@ -190,7 +188,7 @@ class Boto3Services:
             boto3_session=self.boto3_session,
         )
 
-    @lru_cache()
+    @memoized_method()
     def _get_service_map(self, service_name: str) -> ServiceMap:
         logger.debug("Getting service map for %s", service_name)
         return ServiceMap.factory(
@@ -198,7 +196,7 @@ class Boto3Services:
             definition=self._service_mapping_loader.get_service_mapping(service_name=service_name),
         )
 
-    @lru_cache()
+    @memoized_method()
     def _get_default_client(self, service_name: str) -> botocore.client.BaseClient:
         logger.debug("Getting default client for %s", service_name)
         return self._get_client(service_name=service_name, region_name="us-east-1")
@@ -206,7 +204,7 @@ class Boto3Services:
     def _get_client(self, service_name: str, region_name: str = None, **kwargs) -> botocore.client.BaseClient:
         return self.boto3_session.client(service_name, region_name=region_name, **kwargs)  # type: ignore
 
-    @lru_cache()
+    @memoized_method()
     def _get_service_method(self, service_name: str) -> Type:
         logger.debug("Getting service_method for %s", service_name)
         service_definition = self._loader.get_service_definition(service_name=service_name)
@@ -234,8 +232,7 @@ class Boto3Services:
             raise BadUrnRegionError(f"{urn}'s service does not have resources in {urn.region}")
         return service.get_resource_from_urn(urn)
 
-    @property  # type: ignore
-    @lru_cache_property
+    @cached_property
     def enabled_regions(self) -> List[str]:
         """Return a list of enabled regions in this account."""
         regions = self.boto3_session.client("ec2").describe_regions()["Regions"]
@@ -773,7 +770,7 @@ class CloudWandererBoto3Resource:
             return False
         return True
 
-    @lru_cache()
+    @memoized_method()
     def _get_region(self) -> str:
         """Return the region for a resource which requires an API call to determine its region."""
         region_request_definition = self.resource_map.region_request
