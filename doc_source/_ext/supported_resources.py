@@ -98,7 +98,7 @@ class SummarisedResources:
                     )
                     subresource_name = subresource_collection_model.resource.type
                     subresource_summary.append((subresource_collection_name, subresource_name))
-                resource_list.append((collection_name, resource_name, subresource_summary))
+                resource_list.append((service_name, collection_name, resource_name, subresource_summary))
 
             if resource_list:
                 service_summary[service_id] = resource_list
@@ -128,7 +128,7 @@ class SummarisedResources:
                     )
                     subresource_name = subresource_collection_model.resource.type
                     subresource_summary.append((subresource_collection_name, subresource_name))
-                services_summary[service_id].append((collection_name, resource_name, subresource_summary))
+                services_summary[service_id].append((service_name, collection_name, resource_name, subresource_summary))
 
         return services_summary
 
@@ -155,19 +155,16 @@ class CloudWandererResourcesDirective(SphinxDirective):
 
         for service_name, resource_type_tuple in sorted(self.summarised_resources.cloudwanderer_resources.items()):
             resource_list = ""
-            for collection_name, resource_type, subresource_summary in resource_type_tuple:
+            for service_name_snake, collection_name, resource_type, subresource_summary in resource_type_tuple:
                 resource_type_snake = botocore.xform_name(resource_type.replace(" ", ""))
-                standardised_service_name = service_name.replace(" ", "").lower()
-                reference = f"{standardised_service_name}.{resource_type_snake}"
+                reference = f"{service_name_snake}.{resource_type_snake}"
                 resource_list += f"    * :class:`{collection_name}<{reference}>`\n"
                 for subresource_collection, subresource_type in subresource_summary:
                     subresource_type_snake = botocore.xform_name(subresource_type)
-                    reference = f"{standardised_service_name}.{resource_type_snake}.{subresource_type_snake}"
+                    reference = f"{service_name_snake}.{resource_type_snake}.{subresource_type_snake}"
                     resource_list += f"         * :class:`{subresource_collection}<{reference}>`\n"
             if resource_list:
-                service_list += (
-                    f"* :doc:`{service_name} <resource_properties/{standardised_service_name}>`\n" + resource_list
-                )
+                service_list += f"* :doc:`{service_name} <resource_properties/{service_name_snake}>`\n" + resource_list
         return service_list
 
     def parse_rst(self, text: str) -> docutils.nodes.document:
@@ -205,19 +202,16 @@ class Boto3ResourcesDirective(SphinxDirective):
 
         for service_name, resource_type_tuple in sorted(self.summarised_resources.boto3_resources.items()):
             resource_list = ""
-            for collection_name, resource_type, subresource_summary in resource_type_tuple:
+            for service_name_snake, collection_name, resource_type, subresource_summary in resource_type_tuple:
                 resource_type_snake = botocore.xform_name(resource_type.replace(" ", ""))
-                standardised_service_name = service_name.replace(" ", "").lower()
-                reference = f"{standardised_service_name}.{resource_type_snake}"
+                reference = f"{service_name_snake}.{resource_type_snake}"
                 resource_list += f"    * :class:`{collection_name}<{reference}>`\n"
                 for subresource_collection, subresource_type in subresource_summary:
                     subresource_type_snake = botocore.xform_name(subresource_type)
-                    reference = f"{standardised_service_name}.{resource_type_snake}.{subresource_type_snake}"
+                    reference = f"{service_name_snake}.{resource_type_snake}.{subresource_type_snake}"
                     resource_list += f"         * :class:`{subresource_collection}<{reference}>`\n"
             if resource_list:
-                service_list += (
-                    f"* :doc:`{service_name} <resource_properties/{standardised_service_name}>`\n" + resource_list
-                )
+                service_list += f"* :doc:`{service_name} <resource_properties/{service_name_snake}>`\n" + resource_list
         return service_list
 
     def parse_rst(self, text: str) -> docutils.nodes.document:
