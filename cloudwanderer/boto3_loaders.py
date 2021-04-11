@@ -13,7 +13,7 @@ from typing import Any, Dict, List, NamedTuple, Optional
 
 import boto3
 import botocore  # type: ignore
-import jmespath
+import jmespath  # type: ignore
 from boto3.resources.base import ServiceResource
 from botocore.exceptions import UnknownServiceError  # type: ignore
 
