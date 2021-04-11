@@ -2,7 +2,7 @@ import unittest
 
 from cloudwanderer import URN
 
-from ..helpers import CloudWandererCalls, MultipleResourceScenario, NoMotoMock, SingleResourceScenario
+from ..helpers import CloudWandererCalls, ExpectedCall, MultipleResourceScenario, NoMotoMock, SingleResourceScenario
 
 
 class TestLambdaFunctions(NoMotoMock, unittest.TestCase):
@@ -52,6 +52,7 @@ class TestLambdaFunctions(NoMotoMock, unittest.TestCase):
         SingleResourceScenario(
             urn=URN.from_string("urn:aws:123456789012:eu-west-2:lambda:function:TestFunction"),
             expected_results=[expected_result],
+            expected_call=ExpectedCall("lambda", "get_function", [], {"FunctionName": "TestFunction"}),
         )
     ]
     multiple_resource_scenarios = [

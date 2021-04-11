@@ -1,5 +1,56 @@
 {
-    "service": {},
+    "service": {
+        "hasMany": {
+            "VpcEndpoints": {
+                "request": {
+                    "operation": "DescribeVpcEndpoints"
+                },
+                "resource": {
+                    "type": "VpcEndpoint",
+                    "identifiers": [
+                        {
+                            "target": "Id",
+                            "source": "response",
+                            "path": "VpcEndpoints[].VpcEndpointId"
+                        }
+                    ],
+                    "path": "VpcEndpoints[]"
+                }
+            },
+            "VpcEndpointServices": {
+                "request": {
+                    "operation": "DescribeVpcEndpointServices"
+                },
+                "resource": {
+                    "type": "VpcEndpointService",
+                    "identifiers": [
+                        {
+                            "target": "Name",
+                            "source": "response",
+                            "path": "ServiceDetails[].ServiceName"
+                        }
+                    ],
+                    "path": "ServiceDetails[]"
+                }
+            },
+            "ElasticIps": {
+                "request": {
+                    "operation": "DescribeAddresses"
+                },
+                "resource": {
+                    "type": "ElasticIp",
+                    "identifiers": [
+                        {
+                            "target": "Id",
+                            "source": "response",
+                            "path": "Addresses[].AllocationId"
+                        }
+                    ],
+                    "path": "Addresses[]"
+                }
+            }
+        }
+    },
     "resources": {
         "Vpc": {
             "identifiers": [
@@ -63,6 +114,72 @@
                     ]
                 },
                 "path": "@"
+            }
+        },
+        "VpcEndpoint": {
+            "identifiers": [
+                {
+                    "name": "Id",
+                    "memberName": "VpcEndpointId"
+                }
+            ],
+            "shape": "VpcEndpoint",
+            "load": {
+                "request": {
+                    "operation": "DescribeVpcEndpoints",
+                    "params": [
+                        {
+                            "target": "VpcEndpointId[0]",
+                            "source": "identifier",
+                            "name": "Id"
+                        }
+                    ]
+                },
+                "path": "VpcEndpoints[0]"
+            }
+        },
+        "VpcEndpointService": {
+            "identifiers": [
+                {
+                    "name": "Name",
+                    "memberName": "ServiceName"
+                }
+            ],
+            "shape": "ServiceDetail",
+            "load": {
+                "request": {
+                    "operation": "DescribeVpcEndpointServices",
+                    "params": [
+                        {
+                            "target": "ServiceNames[0]",
+                            "source": "identifier",
+                            "name": "Name"
+                        }
+                    ]
+                },
+                "path": "ServiceDetails[0]"
+            }
+        },
+        "ElasticIp": {
+            "identifiers": [
+                {
+                    "name": "Id",
+                    "memberName": "AllocationId"
+                }
+            ],
+            "shape": "Address",
+            "load": {
+                "request": {
+                    "operation": "DescribeAddresses",
+                    "params": [
+                        {
+                            "target": "AllocationId[0]",
+                            "source": "identifier",
+                            "name": "Id"
+                        }
+                    ]
+                },
+                "path": "Addresses[0]"
             }
         }
     }

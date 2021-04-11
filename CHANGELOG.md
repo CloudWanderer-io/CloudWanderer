@@ -1,3 +1,13 @@
+# 0.17.0
+
+## New Resources
+ - Added ec2 vpc endpoints support
+ - Added ec2 vpc endpoint services support
+ - Added ec2 elastic IP support
+ - Added elbv2 target group support
+ - Added elbv2 load balancer support
+
+
 # 0.16.1
 
 - Fixed memory leak due where decorating with `lru_cache` caused old objects' caches not to be garbage collected.

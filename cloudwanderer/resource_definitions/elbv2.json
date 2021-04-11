@@ -1,0 +1,84 @@
+{
+    "service": {
+        "hasMany": {
+            "LoadBalancers": {
+                "request": {
+                    "operation": "DescribeLoadBalancers"
+                },
+                "resource": {
+                    "type": "LoadBalancer",
+                    "identifiers": [
+                        {
+                            "target": "Name",
+                            "source": "response",
+                            "path": "LoadBalancers[].LoadBalancerName"
+                        }
+                    ],
+                    "path": "LoadBalancers[]"
+                }
+            },
+            "TargetGroups": {
+                "request": {
+                    "operation": "DescribeTargetGroups"
+                },
+                "resource": {
+                    "type": "TargetGroup",
+                    "identifiers": [
+                        {
+                            "target": "Name",
+                            "source": "response",
+                            "path": "TargetGroups[].TargetGroupName"
+                        }
+                    ],
+                    "path": "TargetGroups[]"
+                }
+            }
+        }
+    },
+    "resources": {
+        "LoadBalancer": {
+            "identifiers": [
+                {
+                    "name": "Name",
+                    "memberName": "LoadBalancerName"
+                }
+            ],
+            "shape": "LoadBalancer",
+            "load": {
+                "request": {
+                    "operation": "DescribeLoadBalancers",
+                    "params": [
+                        {
+                            "target": "Names[0]",
+                            "source": "identifier",
+                            "name": "Name"
+                        }
+                    ]
+                },
+                "path": "LoadBalancers[0]"
+            }
+        },
+        "TargetGroup": {
+            "identifiers": [
+                {
+                    "name": "Name",
+                    "memberName": "TargetGroupName"
+                }
+            ],
+            "shape": "TargetGroup",
+            "load": {
+                "request": {
+                    "operation": "DescribeTargetGroups",
+                    "params": [
+                        {
+                            "target": "Names[0]",
+                            "source": "identifier",
+                            "name": "Name"
+                        }
+                    ]
+                },
+                "path": "TargetGroups[0]"
+            }
+        }
+    }
+}
