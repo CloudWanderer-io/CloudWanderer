@@ -1,8 +1,9 @@
 # 0.17.0
 
 ## New Resources
- - Added vpc endpoints support
- - Added elastic IP support
+ - Added ec2 vpc endpoints support
+ - Added ec2 elastic IP support
+ - Added elbv2 target group support
 
 
 # 0.16.1
