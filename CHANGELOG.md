@@ -2,6 +2,7 @@
 
 ## New Resources
  - Added ec2 vpc endpoints support
+ - Added ec2 vpc endpoint services support
  - Added ec2 elastic IP support
  - Added elbv2 target group support
  - Added elbv2 load balancer support

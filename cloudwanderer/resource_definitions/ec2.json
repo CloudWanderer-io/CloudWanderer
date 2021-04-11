@@ -17,6 +17,22 @@
                     "path": "VpcEndpoints[]"
                 }
             },
+            "VpcEndpointServices": {
+                "request": {
+                    "operation": "DescribeVpcEndpointServices"
+                },
+                "resource": {
+                    "type": "VpcEndpointService",
+                    "identifiers": [
+                        {
+                            "target": "Name",
+                            "source": "response",
+                            "path": "ServiceDetails[].ServiceName"
+                        }
+                    ],
+                    "path": "ServiceDetails[]"
+                }
+            },
             "ElasticIps": {
                 "request": {
                     "operation": "DescribeAddresses"
@@ -120,6 +136,28 @@
                     ]
                 },
                 "path": "VpcEndpoints[0]"
+            }
+        },
+        "VpcEndpointService": {
+            "identifiers": [
+                {
+                    "name": "Name",
+                    "memberName": "ServiceName"
+                }
+            ],
+            "shape": "ServiceDetail",
+            "load": {
+                "request": {
+                    "operation": "DescribeVpcEndpointServices",
+                    "params": [
+                        {
+                            "target": "ServiceNames[0]",
+                            "source": "identifier",
+                            "name": "Name"
+                        }
+                    ]
+                },
+                "path": "ServiceDetails[0]"
             }
         },
         "ElasticIp": {
