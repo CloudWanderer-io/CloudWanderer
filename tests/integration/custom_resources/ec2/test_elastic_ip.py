@@ -2,7 +2,7 @@ import unittest
 
 from cloudwanderer import URN
 
-from ..helpers import CloudWandererCalls, MultipleResourceScenario, NoMotoMock, SingleResourceScenario
+from ..helpers import CloudWandererCalls, ExpectedCall, MultipleResourceScenario, NoMotoMock, SingleResourceScenario
 
 
 class TestElasticIPAddresses(NoMotoMock, unittest.TestCase):
@@ -25,6 +25,9 @@ class TestElasticIPAddresses(NoMotoMock, unittest.TestCase):
         SingleResourceScenario(
             urn=URN.from_string("urn:aws:123456789012:eu-west-2:ec2:elastic_ip:eipalloc-11111111111111111"),
             expected_results=[elastic_ip_payload],
+            expected_call=ExpectedCall(
+                "ec2", "describe_addresses", [], {"AllocationId": ["eipalloc-11111111111111111"]}
+            ),
         )
     ]
     multiple_resource_scenarios = [

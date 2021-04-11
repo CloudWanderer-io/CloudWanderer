@@ -1,6 +1,22 @@
 {
     "service": {
         "hasMany": {
+            "LoadBalancers": {
+                "request": {
+                    "operation": "DescribeLoadBalancers"
+                },
+                "resource": {
+                    "type": "LoadBalancer",
+                    "identifiers": [
+                        {
+                            "target": "Name",
+                            "source": "response",
+                            "path": "LoadBalancers[].LoadBalancerName"
+                        }
+                    ],
+                    "path": "LoadBalancers[]"
+                }
+            },
             "TargetGroups": {
                 "request": {
                     "operation": "DescribeTargetGroups"
@@ -20,6 +36,28 @@
         }
     },
     "resources": {
+        "LoadBalancer": {
+            "identifiers": [
+                {
+                    "name": "Name",
+                    "memberName": "LoadBalancerName"
+                }
+            ],
+            "shape": "LoadBalancer",
+            "load": {
+                "request": {
+                    "operation": "DescribeLoadBalancers",
+                    "params": [
+                        {
+                            "target": "Names[0]",
+                            "source": "identifier",
+                            "name": "Name"
+                        }
+                    ]
+                },
+                "path": "LoadBalancers[0]"
+            }
+        },
         "TargetGroup": {
             "identifiers": [
                 {

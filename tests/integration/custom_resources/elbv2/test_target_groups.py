@@ -2,7 +2,7 @@ import unittest
 
 from cloudwanderer import URN
 
-from ..helpers import CloudWandererCalls, MultipleResourceScenario, NoMotoMock, SingleResourceScenario
+from ..helpers import CloudWandererCalls, ExpectedCall, MultipleResourceScenario, NoMotoMock, SingleResourceScenario
 
 
 class TestTargetGroups(NoMotoMock, unittest.TestCase):
@@ -34,6 +34,7 @@ class TestTargetGroups(NoMotoMock, unittest.TestCase):
         SingleResourceScenario(
             urn=URN.from_string("urn:aws:123456789012:eu-west-2:elbv2:target_group:test-targetgroup"),
             expected_results=[target_groups_payload],
+            expected_call=ExpectedCall("elbv2", "describe_target_groups", [], {"Names": ["test-targetgroup"]}),
         )
     ]
     multiple_resource_scenarios = [

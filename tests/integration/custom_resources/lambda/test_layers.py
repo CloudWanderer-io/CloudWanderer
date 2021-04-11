@@ -3,7 +3,7 @@ import unittest
 from cloudwanderer import URN
 from cloudwanderer.exceptions import UnsupportedResourceTypeError
 
-from ..helpers import CloudWandererCalls, MultipleResourceScenario, NoMotoMock, SingleResourceScenario
+from ..helpers import CloudWandererCalls, ExpectedCall, MultipleResourceScenario, NoMotoMock, SingleResourceScenario
 
 
 class TestLambdaLayers(NoMotoMock, unittest.TestCase):
@@ -45,6 +45,9 @@ class TestLambdaLayers(NoMotoMock, unittest.TestCase):
         SingleResourceScenario(
             urn=URN.from_string("urn:aws:123456789012:eu-west-1:lambda:layer_version:test-layer/1"),
             expected_results=[layer_version_payload],
+            expected_call=ExpectedCall(
+                "lambda", "get_layer_version", [], {"LayerName": "test-layer", "VersionNumber": 1}
+            ),
         ),
     ]
     multiple_resource_scenarios = [

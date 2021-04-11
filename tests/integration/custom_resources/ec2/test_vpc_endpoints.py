@@ -2,7 +2,7 @@ import unittest
 
 from cloudwanderer import URN
 
-from ..helpers import CloudWandererCalls, MultipleResourceScenario, NoMotoMock, SingleResourceScenario
+from ..helpers import CloudWandererCalls, ExpectedCall, MultipleResourceScenario, NoMotoMock, SingleResourceScenario
 
 
 class TestVPCEndpoints(NoMotoMock, unittest.TestCase):
@@ -57,6 +57,9 @@ class TestVPCEndpoints(NoMotoMock, unittest.TestCase):
         SingleResourceScenario(
             urn=URN.from_string("urn:aws:123456789012:eu-west-2:ec2:vpc_endpoint:vpce-11111111111111111"),
             expected_results=[vpc_endpoint_payload],
+            expected_call=ExpectedCall(
+                "ec2", "describe_vpc_endpoints", [], {"VpcEndpointId": ["vpce-11111111111111111"]}
+            ),
         )
     ]
     multiple_resource_scenarios = [
