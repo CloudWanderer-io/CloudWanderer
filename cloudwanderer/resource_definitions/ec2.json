@@ -48,6 +48,86 @@
                     ],
                     "path": "Addresses[]"
                 }
+            },
+            "NatGateways": {
+                "request": {
+                    "operation": "DescribeNatGateways"
+                },
+                "resource": {
+                    "type": "NatGateway",
+                    "identifiers": [
+                        {
+                            "target": "Id",
+                            "source": "response",
+                            "path": "NatGateways[].NatGatewayId"
+                        }
+                    ],
+                    "path": "NatGateways[]"
+                }
+            },
+            "EgressOnlyInternetGateways": {
+                "request": {
+                    "operation": "DescribeEgressOnlyInternetGateways"
+                },
+                "resource": {
+                    "type": "EgressOnlyInternetGateway",
+                    "identifiers": [
+                        {
+                            "target": "Id",
+                            "source": "response",
+                            "path": "EgressOnlyInternetGateways[].EgressOnlyInternetGatewayId"
+                        }
+                    ],
+                    "path": "EgressOnlyInternetGateways[]"
+                }
+            },
+            "VpnGateways": {
+                "request": {
+                    "operation": "DescribeVpnGateways"
+                },
+                "resource": {
+                    "type": "VpnGateway",
+                    "identifiers": [
+                        {
+                            "target": "Id",
+                            "source": "response",
+                            "path": "VpnGateways[].VpnGatewayId"
+                        }
+                    ],
+                    "path": "VpnGateways[]"
+                }
+            },
+            "CustomerGateways": {
+                "request": {
+                    "operation": "DescribeCustomerGateways"
+                },
+                "resource": {
+                    "type": "CustomerGateway",
+                    "identifiers": [
+                        {
+                            "target": "Id",
+                            "source": "response",
+                            "path": "CustomerGateways[].CustomerGatewayId"
+                        }
+                    ],
+                    "path": "CustomerGateways[]"
+                }
+            },
+            "VpnConnections": {
+                "request": {
+                    "operation": "DescribeVpnConnections"
+                },
+                "resource": {
+                    "type": "VpnConnection",
+                    "identifiers": [
+                        {
+                            "target": "Id",
+                            "source": "response",
+                            "path": "VpnConnections[].VpnConnectionId"
+                        }
+                    ],
+                    "path": "VpnConnections[]"
+                }
             }
         }
     },
@@ -129,7 +209,7 @@
                     "operation": "DescribeVpcEndpoints",
                     "params": [
                         {
-                            "target": "VpcEndpointId[0]",
+                            "target": "VpcEndpointIds[0]",
                             "source": "identifier",
                             "name": "Id"
                         }
@@ -173,13 +253,123 @@
                     "operation": "DescribeAddresses",
                     "params": [
                         {
-                            "target": "AllocationId[0]",
+                            "target": "AllocationIds[0]",
                             "source": "identifier",
                             "name": "Id"
                         }
                     ]
                 },
                 "path": "Addresses[0]"
+            }
+        },
+        "NatGateway": {
+            "identifiers": [
+                {
+                    "name": "Id",
+                    "memberName": "NatGatewayId"
+                }
+            ],
+            "shape": "NatGateway",
+            "load": {
+                "request": {
+                    "operation": "DescribeNatGateways",
+                    "params": [
+                        {
+                            "target": "NatGatewayIds[0]",
+                            "source": "identifier",
+                            "name": "Id"
+                        }
+                    ]
+                },
+                "path": "NatGateways[0]"
+            }
+        },
+        "EgressOnlyInternetGateway": {
+            "identifiers": [
+                {
+                    "name": "Id",
+                    "memberName": "EgressOnlyInternetGatewayIds"
+                }
+            ],
+            "shape": "EgressOnlyInternetGateway",
+            "load": {
+                "request": {
+                    "operation": "DescribeEgressOnlyInternetGateways",
+                    "params": [
+                        {
+                            "target": "EgressOnlyInternetGatewayIds[0]",
+                            "source": "identifier",
+                            "name": "Id"
+                        }
+                    ]
+                },
+                "path": "EgressOnlyInternetGateways[0]"
+            }
+        },
+        "VpnGateway": {
+            "identifiers": [
+                {
+                    "name": "Id",
+                    "memberName": "VpnGatewayId"
+                }
+            ],
+            "shape": "VpnGateway",
+            "load": {
+                "request": {
+                    "operation": "DescribeVpnGateways",
+                    "params": [
+                        {
+                            "target": "VpnGatewayIds[0]",
+                            "source": "identifier",
+                            "name": "Id"
+                        }
+                    ]
+                },
+                "path": "VpnGateways[0]"
+            }
+        },
+        "CustomerGateway": {
+            "identifiers": [
+                {
+                    "name": "Id",
+                    "memberName": "CustomerGatewayId"
+                }
+            ],
+            "shape": "CustomerGateway",
+            "load": {
+                "request": {
+                    "operation": "DescribeCustomerGateways",
+                    "params": [
+                        {
+                            "target": "CustomerGatewayIds[0]",
+                            "source": "identifier",
+                            "name": "Id"
+                        }
+                    ]
+                },
+                "path": "CustomerGateways[0]"
+            }
+        },
+        "VpnConnection": {
+            "identifiers": [
+                {
+                    "name": "Id",
+                    "memberName": "VpnConnectionId"
+                }
+            ],
+            "shape": "VpnConnection",
+            "load": {
+                "request": {
+                    "operation": "DescribeVpnConnections",
+                    "params": [
+                        {
+                            "target": "VpnConnectionIds[0]",
+                            "source": "identifier",
+                            "name": "Id"
+                        }
+                    ]
+                },
+                "path": "VpnConnections[0]"
             }
         }
     }

@@ -172,3 +172,23 @@ class TestCloudWandererBoto3Resource(unittest.TestCase):
     def test_resource_type_pascal(self):
         assert self.role_resource.resource_type_pascal == "Role"
         assert self.role_policy_resource.resource_type_pascal == "RolePolicy"
+
+    def test_get_regions_discovered_from_region_regional_service(self):
+        assert self.resource.get_regions_discovered_from_region == ["eu-west-2"]
+
+    def test_get_regions_discovered_from_region_global_service_regional_resources(self):
+        assert sorted(self.bucket_resources[0].get_regions_discovered_from_region) == sorted(
+            ["us-east-1", "eu-west-2", "ap-east-1"]
+        )
+
+    def test_get_regions_discovered_from_region_global_service_regional_resources_wrong_region(self):
+        s3_resource = self.services.get_service("s3", region_name="eu-west-2")._get_empty_resource("bucket")
+
+        assert s3_resource.get_regions_discovered_from_region == []
+
+    def test_get_regions_discovered_from_region_global_service_global_resources(self):
+        assert self.role_resource.get_regions_discovered_from_region == ["us-east-1"]
+
+    def test_get_regions_discovered_from_region_global_service_global_resources_wrong_region(self):
+        role_resource = self.services.get_service("iam", region_name="eu-west-2")._get_empty_resource("role")
+        assert role_resource.get_regions_discovered_from_region == []

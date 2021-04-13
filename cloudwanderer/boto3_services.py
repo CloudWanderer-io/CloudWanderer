@@ -222,14 +222,11 @@ class Boto3Services:
 
         Raises:
             BadUrnAccountIdError: When the account ID of the URN does not match the account id of the current session.
-            BadUrnRegionError: When the region of the URN is not possible with the service and/or resource type.
         """
         if urn.account_id != self.account_id:
             raise BadUrnAccountIdError(f"{urn} exists in an account other than the current one ({self.account_id}).")
 
         service = self.get_service(urn.service, urn.region)
-        if service.service_map.global_service_region != urn.region and not service.service_map.regional_resources:
-            raise BadUrnRegionError(f"{urn}'s service does not have resources in {urn.region}")
         return service.get_resource_from_urn(urn)
 
     @cached_property
@@ -338,10 +335,16 @@ class CloudWandererBoto3Service:
             UnsupportedResourceTypeError: Occurs when the definition for the resource does not support loading by id.
             botocore.exceptions.ClientError: Boto3 Client Error
             BadUrnIdentifiersError: Occurs when the URN contains fewer identifiers than is required by the reource type.
+            BadUrnRegionError: When the region of the URN is not possible with the service and/or resource type.
         """
         boto3_service_resource = self._get_boto3_resource(urn.resource_type)
         if not boto3_service_resource or not boto3_service_resource.resource:
             raise UnsupportedResourceTypeError(f"Resource type {urn.resource_type} not found")
+
+        resource_map = self.service_map.get_resource_map(boto3_service_resource.name)
+        if self.service_map.global_service_region != urn.region and not resource_map.regional_resource:
+            raise BadUrnRegionError(f"{urn}'s service does not have resources in {urn.region}")
+
         boto3_resource_getter = getattr(self.boto3_service, boto3_service_resource.name)
         if len(urn.resource_id_parts) != len(boto3_service_resource.resource.identifiers):
             raise BadUrnIdentifiersError(
@@ -367,6 +370,7 @@ class CloudWandererBoto3Service:
             cloudwanderer_boto3_service=self,
             boto3_resource=boto3_resource,
             service_map=self.service_map,
+            resource_map=resource_map,
         )
 
     def _get_boto3_resource(self, resource_type: str) -> Action:
@@ -390,15 +394,19 @@ class CloudWandererBoto3Service:
         if not collection_class:
             return
         collection = getattr(self.boto3_service, collection_class.name)
-        yield from (
-            CloudWandererBoto3Resource(
+        resource_map = self.service_map.get_resource_map(collection_class.resource.model.name)
+        for boto3_resource in collection.all():
+            if hasattr(boto3_resource, "load") and (
+                not boto3_resource.meta.data or resource_map.requires_load_for_full_metadata
+            ):
+                boto3_resource.load()
+            yield CloudWandererBoto3Resource(
                 account_id=self.account_id,
                 cloudwanderer_boto3_service=self,
                 boto3_resource=boto3_resource,
                 service_map=self.service_map,
+                resource_map=resource_map,
             )
-            for boto3_resource in collection.all()
-        )
 
     def _get_collection_from_resource_type(self, resource_type: str) -> Optional[Collection]:
         """Return a collection given a CloudWanderer style (snake_case singular) resource type.
@@ -470,15 +478,6 @@ class CloudWandererBoto3Service:
         return self.service_map.is_global_service and self.service_map.global_service_region == self.region
 
     @property
-    def get_regions_discovered_from_region(self) -> List[str]:
-        """Return a list of regions resources will have been discovered in by querying this resource in this region."""
-        if not self.should_query_resources_in_region:
-            return []
-        if self.service_map.regional_resources and self.service_map.global_service_region == self.region:
-            return self.enabled_regions
-        return [self.region]
-
-    @property
     def enabled_regions(self) -> List[str]:
         """Return a list of enabled regions in this account."""
         if not self._enabled_regions:
@@ -514,12 +513,15 @@ class CloudWandererBoto3Resource:
         boto3_resource: ServiceResource,
         cloudwanderer_boto3_service: CloudWandererBoto3Service,
         service_map: ServiceMap,
+        resource_map: ResourceMap = None,
     ) -> None:
         self.account_id = account_id
         self.boto3_resource = boto3_resource
         self.cloudwanderer_boto3_service = cloudwanderer_boto3_service
         self.service_map = service_map
-        self.resource_map = self.service_map.get_resource_map(self.boto3_resource.meta.resource_model.name)
+        self.resource_map = resource_map or self.service_map.get_resource_map(
+            self.boto3_resource.meta.resource_model.name
+        )
 
     @property
     def resource_type_pascal(self) -> str:
@@ -585,8 +587,7 @@ class CloudWandererBoto3Resource:
         """
         if not self.service_map.is_global_service:
             return self._boto3_client.meta.region_name
-
-        if not self.service_map.regional_resources:
+        if not self.resource_map.regional_resource:
             return self.service_map.global_service_region
 
         return self._get_region()
@@ -661,18 +662,18 @@ class CloudWandererBoto3Resource:
         """Return the CloudWanderer style subresources of this resource."""
         for subresource_model in self.subresource_models:
             collection = getattr(self.boto3_resource, subresource_model.name)
+            resource_map = self.service_map.get_resource_map(subresource_model.resource.model.name)
             for boto3_resource in collection.all():
-                if hasattr(boto3_resource, "load") and not boto3_resource.meta.data:
-                    # If the resource does not have a `load` that means that the response returned
-                    # by the collection request (e.g. listAccessKeys) contains all the information that is
-                    # available for this resource.
-                    # If it does have a load, then we need to get that additional data.
+                if hasattr(boto3_resource, "load") and (
+                    not boto3_resource.meta.data or resource_map.requires_load_for_full_metadata
+                ):
                     boto3_resource.load()
                 yield CloudWandererBoto3Resource(
                     account_id=self.account_id,
                     cloudwanderer_boto3_service=self.cloudwanderer_boto3_service,
                     boto3_resource=boto3_resource,
                     service_map=self.service_map,
+                    resource_map=resource_map,
                 )
 
     @property
@@ -702,7 +703,7 @@ class CloudWandererBoto3Resource:
                 resource_type=self.resource_type,
             )
         )
-        for region in self.cloudwanderer_boto3_service.get_regions_discovered_from_region:
+        for region in self.get_regions_discovered_from_region:
             actions.cleanup_actions.append(
                 CleanupAction(
                     service_name=self.service,
@@ -724,6 +725,18 @@ class CloudWandererBoto3Resource:
     def parent_resource_type(self) -> str:
         """Return the resource type of the parent (if it has one)."""
         return self.resource_map.parent_resource_type
+
+    @property
+    def get_regions_discovered_from_region(self) -> List[str]:
+        """Return a list of regions resources will have been discovered in by querying this resource in this region."""
+        if not self.cloudwanderer_boto3_service.should_query_resources_in_region:
+            return []
+        if (
+            self.resource_map.regional_resource
+            and self.service_map.global_service_region == self.cloudwanderer_boto3_service.region
+        ):
+            return self.cloudwanderer_boto3_service.enabled_regions
+        return [self.cloudwanderer_boto3_service.region]
 
     @property
     def is_subresource(self) -> bool:
@@ -748,10 +761,12 @@ class CloudWandererBoto3Resource:
     def _is_collection_model_a_subresource(
         self, collection_resource_map: ResourceMap, resource_model: ResourceModel
     ) -> bool:
+
         if collection_resource_map.type in ["secondaryAttribute", "baseResource"] or resource_model is None:
             return False
         collection_resource_name = botocore.xform_name(resource_model.name)
-        if len(resource_model.identifiers) == 1:
+
+        if len(resource_model.identifiers) == 1 and collection_resource_map.type != "subresource":
             logger.debug(
                 "%s has %s identifiers, meaning it must be a baseResource",
                 collection_resource_name,
@@ -772,10 +787,16 @@ class CloudWandererBoto3Resource:
 
     @memoized_method()
     def _get_region(self) -> str:
-        """Return the region for a resource which requires an API call to determine its region."""
+        """Return the region for a resource which requires an API call to determine its region.
+
+        Raises:
+            ValueError: When an expected region request definition is missing
+        """
         region_request_definition = self.resource_map.region_request
         if region_request_definition is None:
-            return self.region
+            raise ValueError(
+                f"{self.resource_type} is expected to have a region request definition in its service map."
+            )
         method = getattr(self._boto3_client, region_request_definition.operation)
         result = method(**region_request_definition.build_params(self.boto3_resource))
         return (

@@ -1,3 +1,16 @@
+# 0.18.0
+
+- Added `requiresLoadForFullMetadata` to service mappings. Allows resources like Regional WebACLs to declare that they get impoverished data from their list operation and need `resource.load()` called to fetch all info.
+- Added support for services which have both regional *and* global resources
+
+## New Resources
+ - Added ec2 nat gateways
+ - Added ec2 egress only internet gateways
+ - Added ec2 vpn gateways
+ - Added ec2 vpn customer gateways
+ - Added ec2 vpn connections
+ - Added wafv2 regional web acls
+
 # 0.17.0
 
 ## New Resources

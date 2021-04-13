@@ -159,7 +159,6 @@ class ServiceMap(NamedTuple):
     resource_definition: dict
     global_service: bool
     global_service_region: str
-    regional_resources: bool
     service_definition: dict
     boto3_definition: dict
 
@@ -190,7 +189,6 @@ class ServiceMap(NamedTuple):
         return cls(
             name=name,
             global_service=service_definition.get("globalService", False),
-            regional_resources=service_definition.get("regionalResources", True),
             global_service_region=service_definition.get("globalServiceRegion"),
             service_definition=service_definition,
             resource_definition=definition.get("resources", {}),
@@ -199,13 +197,21 @@ class ServiceMap(NamedTuple):
 
 
 class ResourceMap(NamedTuple):
-    """Specification for additional CloudWanderer specific metadata about a Boto3 resource type."""
+    """Specification for additional CloudWanderer specific metadata about a Boto3 resource type.
+
+    Attributes:
+        requires_load_for_full_metadata:
+            If set ``resource.load()`` is called when fetching a list of these resources.
+            Resources in a big increase in the number of API calls as one must be made for *each* resource.
+    """
 
     type: Optional[str]
     region_request: Optional["ResourceRegionRequest"]
     parent_resource_type: str
     ignored_subresources: list
     boto3_definition: Dict[str, Any]
+    requires_load_for_full_metadata: bool = False
+    regional_resource: bool = False
 
     @classmethod
     def factory(cls, definition: Dict[str, Any], boto3_definition: Dict[str, Any]) -> "ResourceMap":
@@ -215,6 +221,8 @@ class ResourceMap(NamedTuple):
             ignored_subresources=definition.get("ignoredSubresources", []),
             parent_resource_type=definition.get("parentResourceType", ""),
             boto3_definition=boto3_definition,
+            requires_load_for_full_metadata=definition.get("requiresLoadForFullMetadata", False),
+            regional_resource=definition.get("regionalResource", True),
         )
 
     @property

@@ -10,7 +10,6 @@ class TestServiceMap(unittest.TestCase):
 
         assert service_map.is_default_service
         assert not service_map.is_global_service
-        assert service_map.regional_resources
 
     def test_global_service_map(self):
         service_map = ServiceMap.factory(
@@ -20,7 +19,6 @@ class TestServiceMap(unittest.TestCase):
                     "globalService": True,
                     "globalServiceRegion": "us-east-1",
                     "region": "us-east-1",
-                    "regionalResources": True,
                 },
                 "resources": {
                     "Bucket": {
@@ -38,7 +36,6 @@ class TestServiceMap(unittest.TestCase):
 
         assert not service_map.is_default_service
         assert service_map.is_global_service
-        assert service_map.regional_resources
 
         resource_map = service_map.get_resource_map("Bucket")
         assert isinstance(resource_map, ResourceMap)
@@ -49,6 +46,7 @@ class TestResourceMap(unittest.TestCase):
         resource_map = ResourceMap.factory(
             definition={
                 "type": "resource",
+                "regionalResource": False,
                 "regionRequest": {
                     "operation": "get_bucket_location",
                     "params": [{"target": "Bucket", "source": "resourceAttribute", "name": "name"}],
@@ -56,6 +54,7 @@ class TestResourceMap(unittest.TestCase):
                     "defaultValue": "us-east-1",
                 },
                 "ignoredSubresources": [{"type": "ObjectSummary"}],
+                "requiresLoadForFullMetadata": True,
             },
             boto3_definition={"resources": {}},
         )
@@ -63,6 +62,8 @@ class TestResourceMap(unittest.TestCase):
         assert isinstance(resource_map.region_request, ResourceRegionRequest)
         assert resource_map.ignored_subresources == [{"type": "ObjectSummary"}]
         assert resource_map.ignored_subresource_types == ["ObjectSummary"]
+        assert resource_map.requires_load_for_full_metadata
+        assert not resource_map.regional_resource
 
     def test_subresource_map(self):
         resource_map = ResourceMap.factory(
