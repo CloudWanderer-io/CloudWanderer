@@ -3,10 +3,16 @@ import unittest
 from cloudwanderer.aws_interface import CloudWandererAWSInterface
 from cloudwanderer.models import CleanupAction, GetAction, GetAndCleanUp
 
+from ..helpers import DEFAULT_SESSION, get_default_mocker
+
 
 class TestGetActions(unittest.TestCase):
     def setUp(self):
-        self.aws_interface = CloudWandererAWSInterface()
+        self.aws_interface = CloudWandererAWSInterface(boto3_session=DEFAULT_SESSION)
+        get_default_mocker().start_general_mock()
+
+    def tearDown(self):
+        get_default_mocker().stop_general_mock()
 
     def test_no_arguments_has_global_service_regional_resources_cleanup(self):
         result = self.aws_interface.get_actions()

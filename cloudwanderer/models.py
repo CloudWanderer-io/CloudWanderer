@@ -1,5 +1,5 @@
 """Models for CloudWanderer data."""
-from typing import List, NamedTuple
+from typing import Any, Dict, List, NamedTuple
 
 
 class GetAction(NamedTuple):
@@ -50,3 +50,11 @@ class GetAndCleanUp(NamedTuple):
     def __bool__(self) -> bool:
         """Return whether this GetAndCleanup set is empty."""
         return bool(self.get_actions or self.cleanup_actions)
+
+
+class ResourceFilter(NamedTuple):
+    """A definition for filtering a resource."""
+
+    service_name: str
+    resource_type: str
+    filters: Dict[str, Any]

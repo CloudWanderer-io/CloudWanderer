@@ -17,7 +17,7 @@ Glossary:
 """
 
 import logging
-from typing import Generator, List, NamedTuple, Optional, Tuple, Type
+from typing import Any, Dict, Generator, List, NamedTuple, Optional, Tuple, Type
 
 import boto3
 import botocore  # type: ignore
@@ -384,18 +384,27 @@ class CloudWandererBoto3Service:
         )
         return action
 
-    def get_resources(self, resource_type: str) -> Generator["CloudWandererBoto3Resource", None, None]:
+    def get_resources(
+        self, resource_type: str, resource_filters: Dict[str, Any] = None
+    ) -> Generator["CloudWandererBoto3Resource", None, None]:
         """Yield all resources of resource_type in this region.
 
         Arguments:
             resource_type: The snake_case resource type to get.
+            resource_filters: A resource filter object to apply when fetching resources.
         """
         collection_class = self._get_collection_from_resource_type(resource_type)
-        if not collection_class:
+        if not collection_class or not collection_class.resource:
             return
         collection = getattr(self.boto3_service, collection_class.name)
         resource_map = self.service_map.get_resource_map(collection_class.resource.model.name)
-        for boto3_resource in collection.all():
+        filters = resource_filters or resource_map.default_filters
+        if filters:
+            logger.info("Applying filter %s", filters)
+            result = collection.filter(**filters)
+        else:
+            result = collection.all()
+        for boto3_resource in result:
             if hasattr(boto3_resource, "load") and (
                 not boto3_resource.meta.data or resource_map.requires_load_for_full_metadata
             ):
@@ -662,6 +671,9 @@ class CloudWandererBoto3Resource:
         """Return the CloudWanderer style subresources of this resource."""
         for subresource_model in self.subresource_models:
             collection = getattr(self.boto3_resource, subresource_model.name)
+            if not subresource_model.resource:
+                logger.error("Could not find resource in %s model", subresource_model.name)
+                continue
             resource_map = self.service_map.get_resource_map(subresource_model.resource.model.name)
             for boto3_resource in collection.all():
                 if hasattr(boto3_resource, "load") and (

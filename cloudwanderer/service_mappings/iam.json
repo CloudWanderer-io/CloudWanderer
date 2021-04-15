@@ -60,7 +60,10 @@
         },
         "Policy": {
             "type": "resource",
-            "regionalResource": false
+            "regionalResource": false,
+            "defaultFilters": {
+                "Scope": "Local"
+            }
         },
         "PolicyVersion": {
             "type": "resource",

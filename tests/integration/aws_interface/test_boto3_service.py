@@ -27,6 +27,10 @@ class TestCloudWandererBoto3Service(unittest.TestCase):
     def test_get_resources(self):
         assert isinstance(next(self.service.get_resources("vpc")), CloudWandererBoto3Resource)
 
+    def test_get_resources_filtered(self):
+        results = self.service.get_resources("vpc", resource_filters={"MaxResults": 5})
+        assert isinstance(next(results), CloudWandererBoto3Resource)
+
     def test_get_resources_from_urn(self):
         vpc = next(self.service.get_resources("vpc"))
         print(vpc.urn)
