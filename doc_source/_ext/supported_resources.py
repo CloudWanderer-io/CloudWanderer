@@ -104,7 +104,7 @@ class SummarisedResources:
                 except StopIteration:
                     continue
                 subresource_summary = []
-                for subresource_collection_model in resource.subresource_models:
+                for subresource_collection_model in resource.resource_map.subresource_models:
                     subresource_collection_name = (
                         subresource_collection_model.name.replace("_", " ").title().replace(" ", "")
                     )
@@ -134,7 +134,7 @@ class SummarisedResources:
                     print(f"Could not find resource: {resource_name}")
                     continue
                 subresource_summary = []
-                for subresource_collection_model in resource.subresource_models:
+                for subresource_collection_model in resource.resource_map.subresource_models:
                     subresource_collection_name = (
                         subresource_collection_model.name.replace("_", " ").title().replace(" ", "")
                     )
@@ -376,7 +376,7 @@ class GetCwServices:
         result = ""
         parent_resource_name = resource.resource_type
 
-        for subresource_model in resource.subresource_models:
+        for subresource_model in resource.resource_map.subresource_models:
             subresource_type = botocore.xform_name(subresource_model.resource.model.name)
             subresource = service._get_empty_resource(subresource_type)
             result += self.generate_resource_section(
