@@ -18,11 +18,12 @@ class TestCloudWandererBoto3Resource(unittest.TestCase):
 
         cls.services = Boto3Services(boto3_session=DEFAULT_SESSION)
 
-        cls.service = cls.services.get_service("ec2")
+        cls.service = cls.services.get_service("ec2", region_name="eu-west-2")
         cls.iam_service = cls.services.get_service("iam", region_name="us-east-1")
         cls.s3_service = cls.services.get_service("s3", region_name="us-east-1")
 
         cls.resource = next(cls.service.get_resources("vpc"))
+
         cls.role_resource = next(cls.iam_service.get_resources("role"))
         cls.role_policy_resource = next(cls.role_resource.get_subresources())
         cls.bucket_resources = list(cls.s3_service.get_resources("bucket"))
@@ -94,7 +95,7 @@ class TestCloudWandererBoto3Resource(unittest.TestCase):
         assert self.resource.secondary_attribute_names == ["vpc_enable_dns_support"]
 
     def test_subresource_types(self):
-        assert self.role_resource.subresource_types == ["role_policy"]
+        assert self.role_resource.resource_map.subresource_types == ["role_policy"]
 
     def test_urn(self):
         assert isinstance(self.resource.urn, URN)
@@ -128,13 +129,15 @@ class TestCloudWandererBoto3Resource(unittest.TestCase):
         }
 
     def test_get_and_cleanup_actions_regional_resource(self):
-        assert self.resource.get_and_cleanup_actions == GetAndCleanUp(
+        assert self.resource.resource_map.get_and_cleanup_actions(query_region="eu-west-2") == GetAndCleanUp(
             get_actions=[GetAction(service_name="ec2", region="eu-west-2", resource_type="vpc")],
             cleanup_actions=[CleanupAction(service_name="ec2", region="eu-west-2", resource_type="vpc")],
         )
 
     def test_get_and_cleanup_actions_global_service_regional_resource(self):
-        assert self.bucket_resources[0].get_and_cleanup_actions == GetAndCleanUp(
+        assert self.bucket_resources[0].resource_map.get_and_cleanup_actions(query_region="us-east-1").inflate_actions(
+            regions=self.bucket_resources[0].cloudwanderer_boto3_service.enabled_regions
+        ) == GetAndCleanUp(
             get_actions=[GetAction(service_name="s3", region="us-east-1", resource_type="bucket")],
             cleanup_actions=[
                 CleanupAction(service_name="s3", region=region, resource_type="bucket")
@@ -143,11 +146,13 @@ class TestCloudWandererBoto3Resource(unittest.TestCase):
         )
 
     def test_get_and_cleanup_actions_global_service_global_resource(self):
-        assert self.role_resource.get_and_cleanup_actions == GetAndCleanUp(
+        assert self.role_resource.resource_map.get_and_cleanup_actions(query_region="us-east-1").inflate_actions(
+            regions=self.role_resource.cloudwanderer_boto3_service.enabled_regions
+        ) == GetAndCleanUp(
             get_actions=[GetAction(service_name="iam", region="us-east-1", resource_type="role")],
             cleanup_actions=[
                 CleanupAction(service_name="iam", region="us-east-1", resource_type="role"),
-                CleanupAction(service_name="iam", region="us-east-1", resource_type="role_policy"),
+                # CleanupAction(service_name="iam", region="us-east-1", resource_type="role_policy"),
             ],
         )
 
@@ -173,22 +178,35 @@ class TestCloudWandererBoto3Resource(unittest.TestCase):
         assert self.role_resource.resource_type_pascal == "Role"
         assert self.role_policy_resource.resource_type_pascal == "RolePolicy"
 
-    def test_get_regions_discovered_from_region_regional_service(self):
-        assert self.resource.get_regions_discovered_from_region == ["eu-west-2"]
+    # def test_get_regions_discovered_from_region_regional_service(self):
+    #     assert self.resource.get_regions_discovered_from_region == ["eu-west-2"]
 
-    def test_get_regions_discovered_from_region_global_service_regional_resources(self):
-        assert sorted(self.bucket_resources[0].get_regions_discovered_from_region) == sorted(
-            ["us-east-1", "eu-west-2", "ap-east-1"]
-        )
+    # def test_get_regions_discovered_from_region_global_service_regional_resources(self):
+    #     assert sorted(self.bucket_resources[0].get_regions_discovered_from_region) == sorted(
+    #         ["us-east-1", "eu-west-2", "ap-east-1"]
+    #     )
 
-    def test_get_regions_discovered_from_region_global_service_regional_resources_wrong_region(self):
-        s3_resource = self.services.get_service("s3", region_name="eu-west-2")._get_empty_resource("bucket")
+    # def test_get_regions_discovered_from_region_global_service_regional_resources_wrong_region(self):
+    #     s3_resource = self.services.get_service("s3", region_name="eu-west-2")._get_empty_resource("bucket")
 
-        assert s3_resource.get_regions_discovered_from_region == []
+    #     assert s3_resource.get_regions_discovered_from_region == []
 
-    def test_get_regions_discovered_from_region_global_service_global_resources(self):
-        assert self.role_resource.get_regions_discovered_from_region == ["us-east-1"]
+    # def test_get_regions_discovered_from_region_global_service_global_resources(self):
+    #     assert self.role_resource.get_regions_discovered_from_region == ["us-east-1"]
 
-    def test_get_regions_discovered_from_region_global_service_global_resources_wrong_region(self):
-        role_resource = self.services.get_service("iam", region_name="eu-west-2")._get_empty_resource("role")
-        assert role_resource.get_regions_discovered_from_region == []
+    # def test_get_regions_discovered_from_region_global_service_global_resources_wrong_region(self):
+    #     role_resource = self.services.get_service("iam", region_name="eu-west-2")._get_empty_resource("role")
+    #     assert role_resource.get_regions_discovered_from_region == []
+
+    def test_client_region_global_service_global_resource(self):
+        self.role_resource.client_region == "us-east-1"
+
+    def test_client_region_global_service_regional_resource(self):
+        """Although each bucket is in a different region, the client region remains the same because you can only
+        query s3 buckets from us-east-1."""
+        client_regions = [resource.client_region for resource in self.bucket_resources]
+
+        assert client_regions == ["us-east-1", "us-east-1", "us-east-1"]
+
+    def test_client_region_regional_service_regional_resource(self):
+        assert self.resource.client_region == "eu-west-2"

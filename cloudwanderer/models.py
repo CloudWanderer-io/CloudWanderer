@@ -47,6 +47,58 @@ class GetAndCleanUp(NamedTuple):
     get_actions: List[GetAction]
     cleanup_actions: List[CleanupAction]
 
+
+class AWSGetAndCleanUp(GetAndCleanUp):
+    """An AWS specific set of GetAndCleanUp actions.
+
+    This differs from a regular GetAndCleanUp action insofar as it
+    will probably contain actions with the region 'ALL_REGIONS'.
+    These actions need to be unpacked into region specific actions that
+    reflect the enabled regions in the AWS account in question
+    before being placed into a non-cloud specific GetAndCleanUp class
+    for CloudWanderer to consume.
+    """
+
+    def inflate_actions(self, regions: List[str]) -> GetAndCleanUp:
+        """Inflate the get and cleanup actions that are ALL_REGIONS.
+
+        Arguments:
+            regions: The list of enabled regions with which to inflate actions specified as ALL_REGIONS.
+        """
+        get_actions = []
+        for get_action in self.get_actions:
+            if get_action.region == "ALL_REGIONS":
+                get_actions.extend(
+                    [
+                        GetAction(
+                            service_name=get_action.service_name, resource_type=get_action.resource_type, region=region
+                        )
+                        for region in regions
+                    ]
+                )
+                continue
+            get_actions.append(get_action)
+
+        cleanup_actions: List[CleanupAction] = []
+        for cleanup_action in self.cleanup_actions:
+            if cleanup_action.region == "ALL_REGIONS":
+                cleanup_actions.extend(
+                    [
+                        CleanupAction(
+                            service_name=cleanup_action.service_name,
+                            resource_type=cleanup_action.resource_type,
+                            region=region,
+                        )
+                        for region in regions
+                    ]
+                )
+                continue
+            cleanup_actions.append(cleanup_action)
+        return GetAndCleanUp(
+            get_actions=get_actions,
+            cleanup_actions=cleanup_actions,
+        )
+
     def __bool__(self) -> bool:
         """Return whether this GetAndCleanup set is empty."""
         return bool(self.get_actions or self.cleanup_actions)

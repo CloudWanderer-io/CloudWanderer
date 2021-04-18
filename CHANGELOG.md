@@ -2,7 +2,7 @@
 
 - Added `requiresLoadForFullMetadata` to service mappings. Allows resources like Regional WebACLs to declare that they get impoverished data from their list operation and need `resource.load()` called to fetch all info.
 - Added support for services which have both regional *and* global resources
-
+- Moved get_and_cleanup_actions from CloudWandererBoto3Resource to resourcemap
 ## New Resources
  - Added ec2 nat gateways
  - Added ec2 egress only internet gateways

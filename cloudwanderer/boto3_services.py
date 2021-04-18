@@ -24,7 +24,7 @@ import botocore  # type: ignore
 import jmespath  # type: ignore
 from boto3.resources.base import ServiceResource
 from boto3.resources.factory import ResourceFactory
-from boto3.resources.model import Action, Collection, ResourceModel
+from boto3.resources.model import Action, Collection
 from boto3.utils import ServiceContext
 
 from .boto3_helpers import _clean_boto3_metadata, get_shape
@@ -39,7 +39,6 @@ from .exceptions import (
     ResourceNotFoundError,
     UnsupportedResourceTypeError,
 )
-from .models import CleanupAction, GetAction, GetAndCleanUp
 from .urn import URN
 
 logger = logging.getLogger(__name__)
@@ -180,7 +179,7 @@ class Boto3Services:
         logger.debug("Getting empty service for %s in %s", service_name, region_name)
         service_method = self._get_service_method(service_name)
         return CloudWandererBoto3Service(
-            boto3_service=service_method(client=self._get_default_client(service_name)),
+            boto3_service=service_method(client=self._get_default_client(service_name, region_name)),
             service_map=self._get_service_map(service_name),
             account_id=self.account_id,
             enabled_regions=self.enabled_regions,
@@ -197,9 +196,15 @@ class Boto3Services:
         )
 
     @memoized_method()
-    def _get_default_client(self, service_name: str) -> botocore.client.BaseClient:
+    def _get_default_client(self, service_name: str, region_name: str = None) -> botocore.client.BaseClient:
+        """Return a reused (i.e. thread unsafe) Boto3 client to speed up action generation.
+
+        Arguments:
+            service_name: The name of the service for which to get a client.
+            region_name: The region to create the client in.
+        """
         logger.debug("Getting default client for %s", service_name)
-        return self._get_client(service_name=service_name, region_name="us-east-1")
+        return self._get_client(service_name=service_name, region_name=region_name or "us-east-1")
 
     def _get_client(self, service_name: str, region_name: str = None, **kwargs) -> botocore.client.BaseClient:
         return self.boto3_session.client(service_name, region_name=region_name, **kwargs)  # type: ignore
@@ -480,13 +485,6 @@ class CloudWandererBoto3Service:
         return client_region
 
     @property
-    def should_query_resources_in_region(self) -> bool:
-        """Return whether this service's resources should be queried from this region."""
-        if not self.service_map.is_global_service:
-            return True
-        return self.service_map.is_global_service and self.service_map.global_service_region == self.region
-
-    @property
     def enabled_regions(self) -> List[str]:
         """Return a list of enabled regions in this account."""
         if not self._enabled_regions:
@@ -595,11 +593,19 @@ class CloudWandererBoto3Resource:
         However for some resources (e.g. S3 buckets) it performs an API call to look it up.
         """
         if not self.service_map.is_global_service:
-            return self._boto3_client.meta.region_name
+            return self.client_region
         if not self.resource_map.regional_resource:
             return self.service_map.global_service_region
 
         return self._get_region()
+
+    @property
+    def client_region(self) -> str:
+        """Return the region of the Boto3 client associated with this resource."""
+        client_region = self._boto3_client.meta.region_name
+        if client_region == "aws-global":
+            return self.cloudwanderer_boto3_service.region
+        return client_region
 
     @property
     def secondary_attribute_names(self) -> List[str]:
@@ -642,7 +648,7 @@ class CloudWandererBoto3Resource:
     def subresource_summary(self) -> List["ResourceSummary"]:
         """Return a summary of subresource types in this resource."""
         subresources = []
-        for subresource_type in self.subresource_types:
+        for subresource_type in self.resource_map.subresource_types:
             resource = self.cloudwanderer_boto3_service._get_empty_resource(subresource_type)
             if not resource:
                 continue
@@ -657,19 +663,9 @@ class CloudWandererBoto3Resource:
             )
         return subresources
 
-    @property
-    def subresource_types(self) -> List[str]:
-        """Return a list of CloudWanderer style subresource types it's possible for this resource type to have."""
-        types = []
-        for subresource_model in self.subresource_models:
-            if not subresource_model.resource:
-                continue
-            types.append(botocore.xform_name(subresource_model.resource.model.name))
-        return types
-
     def get_subresources(self) -> Generator["CloudWandererBoto3Resource", None, None]:
         """Return the CloudWanderer style subresources of this resource."""
-        for subresource_model in self.subresource_models:
+        for subresource_model in self.resource_map.subresource_models:
             collection = getattr(self.boto3_resource, subresource_model.name)
             if not subresource_model.resource:
                 logger.error("Could not find resource in %s model", subresource_model.name)
@@ -689,66 +685,9 @@ class CloudWandererBoto3Resource:
                 )
 
     @property
-    def subresource_models(self) -> Generator[Collection, None, None]:
-        """Yield the Boto3 models for the CloudWanderer style subresources of this resource type."""
-        models = {}
-        for collection_resource_map, collection_model in self._boto3_collection_models:
-            response_resource = collection_model.resource
-            if not response_resource or not self._is_collection_model_a_subresource(
-                collection_resource_map, response_resource.model
-            ):
-                continue
-
-            collection_resource_name = botocore.xform_name(response_resource.model.name)
-            models[collection_resource_name] = collection_model
-        yield from models.values()
-
-    @property
-    def get_and_cleanup_actions(self) -> GetAndCleanUp:
-        """Return the query and cleanup actions to be performed if getting this resource type in this region."""
-        actions = GetAndCleanUp([], [])
-
-        actions.get_actions.append(
-            GetAction(
-                service_name=self.service,
-                region=self.cloudwanderer_boto3_service.region,
-                resource_type=self.resource_type,
-            )
-        )
-        for region in self.get_regions_discovered_from_region:
-            actions.cleanup_actions.append(
-                CleanupAction(
-                    service_name=self.service,
-                    region=region,
-                    resource_type=self.resource_type,
-                )
-            )
-            for subresource_type in self.subresource_types:
-                actions.cleanup_actions.append(
-                    CleanupAction(
-                        service_name=self.service,
-                        region=region,
-                        resource_type=subresource_type,
-                    )
-                )
-        return actions
-
-    @property
     def parent_resource_type(self) -> str:
         """Return the resource type of the parent (if it has one)."""
         return self.resource_map.parent_resource_type
-
-    @property
-    def get_regions_discovered_from_region(self) -> List[str]:
-        """Return a list of regions resources will have been discovered in by querying this resource in this region."""
-        if not self.cloudwanderer_boto3_service.should_query_resources_in_region:
-            return []
-        if (
-            self.resource_map.regional_resource
-            and self.service_map.global_service_region == self.cloudwanderer_boto3_service.region
-        ):
-            return self.cloudwanderer_boto3_service.enabled_regions
-        return [self.cloudwanderer_boto3_service.region]
 
     @property
     def is_subresource(self) -> bool:
@@ -756,46 +695,6 @@ class CloudWandererBoto3Resource:
         if self.resource_map.type == "baseResource":
             return False
         return bool(len(self.boto3_resource.meta.resource_model.identifiers) == 2)
-
-    @property
-    def _boto3_collection_models(self) -> Generator[Tuple[ResourceMap, Collection], None, None]:
-        """Yield the ResourceMaps and Collections for this resource type.
-
-        This is used exclusively for subresources because subresources have a 1:many relationship with
-        their parent resource.
-        """
-        for boto3_collection in self.boto3_resource.meta.resource_model.collections:
-            if boto3_collection.resource is None:
-                continue
-            collection_resource_map = self.service_map.get_resource_map(boto3_collection.resource.model.name)
-            yield collection_resource_map, boto3_collection
-
-    def _is_collection_model_a_subresource(
-        self, collection_resource_map: ResourceMap, resource_model: ResourceModel
-    ) -> bool:
-
-        if collection_resource_map.type in ["secondaryAttribute", "baseResource"] or resource_model is None:
-            return False
-        collection_resource_name = botocore.xform_name(resource_model.name)
-
-        if len(resource_model.identifiers) == 1 and collection_resource_map.type != "subresource":
-            logger.debug(
-                "%s has %s identifiers, meaning it must be a baseResource",
-                collection_resource_name,
-                len(resource_model.identifiers),
-            )
-            return False
-        if resource_model.name in self.resource_map.ignored_subresource_types:
-            logger.debug(
-                "% is defined as an ignored subresource type by the %s servicemap",
-                collection_resource_name,
-                self.service_map.name,
-            )
-            return False
-        if collection_resource_name in self.cloudwanderer_boto3_service.resource_types:
-            logger.debug("%s is an independent resource, not a subresource", collection_resource_name)
-            return False
-        return True
 
     @memoized_method()
     def _get_region(self) -> str:
