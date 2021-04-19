@@ -342,11 +342,6 @@ class ResourceMap(NamedTuple):
         collection_resource_name = botocore.xform_name(resource_model.name)
 
         if len(resource_model.identifiers) == 1 and collection_resource_map.type != "subresource":
-            logger.debug(
-                "%s has %s identifiers, meaning it must be a baseResource",
-                collection_resource_name,
-                len(resource_model.identifiers),
-            )
             return False
         if resource_model.name in self.ignored_subresource_types:
             logger.debug(

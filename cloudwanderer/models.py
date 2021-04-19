@@ -47,6 +47,23 @@ class GetAndCleanUp(NamedTuple):
     get_actions: List[GetAction]
     cleanup_actions: List[CleanupAction]
 
+    def __add__(self, other: Any) -> "GetAndCleanUp":
+        """Combine the actions of two objects.
+
+        Arguments:
+            other: the other GetAndCleanUp objects whose actions we will add to this one.
+
+        Raises:
+            TypeError: If anything other than a GetAndCleanUp action is added.
+        """
+        if not isinstance(other, self.__class__):
+            raise TypeError(
+                f"unsupported operand type(s) for +: {self.__class__.__name__} and {other.__class__.__name__}"
+            )
+        self.get_actions.extend(other.get_actions)
+        self.cleanup_actions.extend(other.cleanup_actions)
+        return self
+
 
 class AWSGetAndCleanUp(GetAndCleanUp):
     """An AWS specific set of GetAndCleanUp actions.
@@ -100,7 +117,7 @@ class AWSGetAndCleanUp(GetAndCleanUp):
         )
 
     def __bool__(self) -> bool:
-        """Return whether this GetAndCleanup set is empty."""
+        """Return whether this GetAndCleanUp set is empty."""
         return bool(self.get_actions or self.cleanup_actions)
 
 

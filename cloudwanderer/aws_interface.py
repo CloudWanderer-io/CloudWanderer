@@ -187,10 +187,7 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
                     for subresource_type in resource_map.subresource_types:
                         subresource_map = service.service_map.get_resource_map(snake_to_pascal(subresource_type))
                         actions = subresource_map.get_and_cleanup_actions(region_name)
-                        if actions:
-                            subresource_actions = actions.inflate_actions(service.enabled_regions)
-                            resource_actions.get_actions.extend(subresource_actions.get_actions)
-                            resource_actions.cleanup_actions.extend(subresource_actions.cleanup_actions)
+                        resource_actions += actions.inflate_actions(service.enabled_regions)
                     get_and_cleanup_actions.append(resource_actions)
         return get_and_cleanup_actions
 
