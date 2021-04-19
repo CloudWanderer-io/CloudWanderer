@@ -262,43 +262,22 @@ class ResourceMap(NamedTuple):
         actions = AWSGetAndCleanUp([], [])
         if not self.should_query_resources_in_region(query_region):
             return actions
-        if self.type == "subresource":
-            if self.service_map.is_global_service and self.regional_resource:
-                actions.cleanup_actions.append(
-                    CleanupAction(
-                        service_name=self.service_map.name, resource_type=self.resource_type, region="ALL_REGIONS"
-                    )
-                )
-            else:
-                actions.cleanup_actions.append(
-                    CleanupAction(
-                        service_name=self.service_map.name, resource_type=self.resource_type, region=query_region
-                    )
-                )
-
-            return actions
-        actions.get_actions.append(
-            GetAction(
-                service_name=self.service_map.name,
-                region=query_region,
-                resource_type=self.resource_type,
-            )
-        )
-        if not self.service_map.is_global_service or (
-            self.service_map.is_global_service and not self.regional_resource
-        ):
-            actions.cleanup_actions.append(
-                CleanupAction(
+        if self.service_map.is_global_service and self.regional_resource:
+            cleanup_region = "ALL_REGIONS"
+        else:
+            cleanup_region = query_region
+        if self.type != "subresource":
+            actions.get_actions.append(
+                GetAction(
                     service_name=self.service_map.name,
                     region=query_region,
                     resource_type=self.resource_type,
                 )
             )
-            return actions
         actions.cleanup_actions.append(
             CleanupAction(
                 service_name=self.service_map.name,
-                region="ALL_REGIONS",
+                region=cleanup_region,
                 resource_type=self.resource_type,
             )
         )

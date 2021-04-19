@@ -153,3 +153,31 @@ class TestResourceMap(unittest.TestCase):
                 CleanupAction(service_name="ec2", region="us-east-1", resource_type="vpc"),
             ],
         )
+
+    def test_get_and_cleanup_actions_global_service_regional_subresource(self):
+        resource_map = ResourceMap.factory(
+            definition={"type": "subresource", "regionalResource": True},
+            boto3_resource_model=self.bucket_resource_model,
+            service_map=named_mock("s3", is_global_service=True, global_service_region="us-east-1"),
+        )
+
+        assert resource_map.get_and_cleanup_actions(query_region="us-east-1") == AWSGetAndCleanUp(
+            get_actions=[],
+            cleanup_actions=[
+                CleanupAction(service_name="s3", region="ALL_REGIONS", resource_type="bucket"),
+            ],
+        )
+
+    def test_get_and_cleanup_actions_regional_service_regional_subresource(self):
+        resource_map = ResourceMap.factory(
+            definition={"type": "subresource", "regionalResource": True},
+            boto3_resource_model=self.vpc_resource_model,
+            service_map=named_mock("ec2", is_global_service=False),
+        )
+
+        assert resource_map.get_and_cleanup_actions(query_region="us-east-1") == AWSGetAndCleanUp(
+            get_actions=[],
+            cleanup_actions=[
+                CleanupAction(service_name="ec2", region="us-east-1", resource_type="vpc"),
+            ],
+        )
