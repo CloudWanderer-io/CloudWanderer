@@ -183,7 +183,6 @@ class ServiceMap(NamedTuple):
         return ResourceMap.factory(
             service_map=self,
             definition=self.resource_definition.get(boto3_resource_name, {}),
-            boto3_definition=self.boto3_definition["resources"].get(boto3_resource_name, {}),
             boto3_resource_model=ResourceModel(
                 name=boto3_resource_name,
                 definition=self.boto3_definition["resources"].get(boto3_resource_name, {}),
@@ -218,7 +217,6 @@ class ResourceMap(NamedTuple):
     resource_type: str
     parent_resource_type: str
     ignored_subresources: list
-    boto3_definition: Dict[str, Any]
     boto3_resource_model: ResourceModel
     default_filters: Dict[str, Any]
     service_map: ServiceMap
@@ -230,7 +228,6 @@ class ResourceMap(NamedTuple):
         cls,
         service_map: ServiceMap,
         definition: Dict[str, Any],
-        boto3_definition: Dict[str, Any],
         boto3_resource_model: ResourceModel,
     ) -> "ResourceMap":
         return cls(
@@ -239,7 +236,6 @@ class ResourceMap(NamedTuple):
             ignored_subresources=definition.get("ignoredSubresources", []),
             resource_type=botocore.xform_name(boto3_resource_model.name),
             parent_resource_type=definition.get("parentResourceType", ""),
-            boto3_definition=boto3_definition,
             requires_load_for_full_metadata=definition.get("requiresLoadForFullMetadata", False),
             regional_resource=definition.get("regionalResource", True),
             default_filters=definition.get("defaultFilters", {}),

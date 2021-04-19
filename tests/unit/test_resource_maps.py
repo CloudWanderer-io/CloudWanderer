@@ -47,7 +47,6 @@ class TestResourceMap(unittest.TestCase):
                 "requiresLoadForFullMetadata": True,
                 "defaultFilters": {"Key": "Value"},
             },
-            boto3_definition={"resources": {}},
             boto3_resource_model=self.bucket_resource_model,
             service_map=MagicMock(),
         )
@@ -62,7 +61,6 @@ class TestResourceMap(unittest.TestCase):
     def test_subresource_map(self):
         resource_map = ResourceMap.factory(
             definition={"type": "resource", "parentResourceType": "role"},
-            boto3_definition={},
             boto3_resource_model=self.bucket_resource_model,
             service_map=MagicMock(),
         )
@@ -73,7 +71,6 @@ class TestResourceMap(unittest.TestCase):
     def test_should_query_resources_in_region_global_service(self):
         resource_map = ResourceMap.factory(
             definition={},
-            boto3_definition={},
             boto3_resource_model=self.bucket_resource_model,
             service_map=MagicMock(is_global_service=True, global_service_region="us-east-1"),
         )
@@ -84,7 +81,6 @@ class TestResourceMap(unittest.TestCase):
     def test_should_query_resources_in_region_regional_service(self):
         resource_map = ResourceMap.factory(
             definition={},
-            boto3_definition={},
             boto3_resource_model=self.bucket_resource_model,
             service_map=MagicMock(is_global_service=False),
         )
@@ -95,7 +91,6 @@ class TestResourceMap(unittest.TestCase):
     def test_subresource_models(self):
         resource_map = ResourceMap.factory(
             definition={"type": "resource"},
-            boto3_definition={},
             boto3_resource_model=self.role_resource_model,
             service_map=MagicMock(),
         )
@@ -105,7 +100,6 @@ class TestResourceMap(unittest.TestCase):
     def test_subresource_types(self):
         resource_map = ResourceMap.factory(
             definition={"type": "resource"},
-            boto3_definition={},
             boto3_resource_model=self.role_resource_model,
             service_map=MagicMock(),
         )
@@ -115,7 +109,6 @@ class TestResourceMap(unittest.TestCase):
     def test_get_and_cleanup_actions_global_service_global_resource(self):
         resource_map = ResourceMap.factory(
             definition={"type": "resource", "regionalResource": False},
-            boto3_definition={},
             boto3_resource_model=self.role_resource_model,
             service_map=named_mock("iam", is_global_service=True, global_service_region="us-east-1"),
         )
@@ -132,7 +125,6 @@ class TestResourceMap(unittest.TestCase):
     def test_get_and_cleanup_actions_global_service_regional_resource(self):
         resource_map = ResourceMap.factory(
             definition={"type": "resource", "regionalResource": True},
-            boto3_definition={},
             boto3_resource_model=self.bucket_resource_model,
             service_map=named_mock("s3", is_global_service=True, global_service_region="us-east-1"),
         )
@@ -149,7 +141,6 @@ class TestResourceMap(unittest.TestCase):
     def test_get_and_cleanup_actions_regional_service_regional_resource(self):
         resource_map = ResourceMap.factory(
             definition={"type": "resource", "regionalResource": True},
-            boto3_definition={},
             boto3_resource_model=self.vpc_resource_model,
             service_map=named_mock("ec2", is_global_service=False),
         )

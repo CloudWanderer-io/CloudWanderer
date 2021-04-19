@@ -16,7 +16,6 @@ class TestCloudWandererBoto3ResourceGetActions(unittest.TestCase):
             resource_type="test_resource",
             parent_resource_type=None,
             ignored_subresources=[],
-            boto3_definition={},
             boto3_resource_model={},
             default_filters={},
         )
@@ -36,7 +35,6 @@ class TestCloudWandererBoto3ResourceGetActions(unittest.TestCase):
             resource_type="test_resource",
             parent_resource_type=None,
             ignored_subresources=[],
-            boto3_definition={},
             boto3_resource_model={},
             default_filters={},
         )
