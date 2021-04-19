@@ -1,13 +1,15 @@
 import unittest
+from unittest.mock import MagicMock, patch
 
 from cloudwanderer import URN, CloudWandererAWSInterface
 from cloudwanderer.exceptions import UnsupportedServiceError
+from cloudwanderer.models import ResourceFilter
 
 from ..helpers import GenericAssertionHelpers, get_default_mocker
 from ..mocks import add_infra
 
 
-class TestCloudWandererGetResources(unittest.TestCase, GenericAssertionHelpers):
+class TestAWSInterfaceGetResources(unittest.TestCase, GenericAssertionHelpers):
     @classmethod
     def setUpClass(cls):
         cls.enabled_regions = ["eu-west-2", "us-east-1", "ap-east-1"]
@@ -62,3 +64,14 @@ class TestCloudWandererGetResources(unittest.TestCase, GenericAssertionHelpers):
         result = list(self.aws_interface.get_resources(service_name="ec2", resource_type="unicorn"))
 
         assert result == []
+
+    @patch("cloudwanderer.boto3_services.CloudWandererBoto3Service")
+    def test_filters(self, mock_service: MagicMock):
+        aws_interface = CloudWandererAWSInterface(
+            resource_filters=[ResourceFilter(service_name="ec2", resource_type="image", filters={"Owners": "all"})]
+        )
+        list(aws_interface.get_resources(service_name="ec2", resource_type="image"))
+
+        mock_service.return_value.get_resources.assert_called_with(
+            resource_type="image", resource_filters={"Owners": "all"}
+        )

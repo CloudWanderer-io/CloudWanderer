@@ -9,6 +9,7 @@ import docutils
 import sphinx
 from docutils import nodes
 from docutils.frontend import OptionParser
+from jinja2 import Template
 from sphinx.domains import Domain
 from sphinx.util.docutils import SphinxDirective
 
@@ -36,22 +37,33 @@ SECONDARY_ATTR_TEMPLATE = """
 
 """
 
-RESOURCE_TEMPLATE = """
-.. py:class:: {class_name}
+RESOURCE_TEMPLATE = Template(
+    """
 
-    {description}
+.. py:class:: {{class_name}}
+
+    {{description}}
+
+    {% if default_filters %}
+    **Default Filters:**
+
+    When this resource is discovered the following filter will be applied.
+
+    ``.filter({{default_filters}})``
+    {% endif %}
 
     **Example:**
 
     .. code-block ::
 
         resources = storage_connector.read_resources(
-            service="{service_name}",
-            resource_type="{resource_name}")
+            service="{{service_name}}",
+            resource_type="{{resource_name}}")
         for resource in resources:
             resource.load()
             print(resource.urn)
 """
+)
 
 ATTRIBUTES_TEMPLATE = """
     .. py:attribute:: {attribute_name}
@@ -397,11 +409,14 @@ class GetCwServices:
         service_model = service.boto3_service.meta.client.meta.service_model
         shape = service_model.shape_for(resource.boto3_resource.meta.resource_model.shape)
         attributes = sorted(resource.boto3_resource.meta.resource_model.get_attributes(shape).items())
-        resource_section = RESOURCE_TEMPLATE.format(
+        resource_section = RESOURCE_TEMPLATE.render(
             class_name=name.format(service_name=service.name, resource_name=resource.resource_type),
             service_name=service.name,
             resource_name=resource.resource_type,
             description=description.format(service_name=service.name, resource_name=resource.resource_type),
+            default_filters=", ".join(
+                f"{key}={repr(value)}" for key, value in resource.resource_map.default_filters.items()
+            ),
         )
 
         attributes_doc = ""

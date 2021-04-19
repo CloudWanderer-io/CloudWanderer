@@ -44,6 +44,8 @@ class TestServiceMap(unittest.TestCase):
 class TestResourceMap(unittest.TestCase):
     def test_global_service_regional_resource_map(self):
         resource_map = ResourceMap.factory(
+            service_name="s3",
+            resource_type="bucket",
             definition={
                 "type": "resource",
                 "regionalResource": False,
@@ -55,6 +57,7 @@ class TestResourceMap(unittest.TestCase):
                 },
                 "ignoredSubresources": [{"type": "ObjectSummary"}],
                 "requiresLoadForFullMetadata": True,
+                "defaultFilters": {"Key": "Value"},
             },
             boto3_definition={"resources": {}},
         )
@@ -64,13 +67,18 @@ class TestResourceMap(unittest.TestCase):
         assert resource_map.ignored_subresource_types == ["ObjectSummary"]
         assert resource_map.requires_load_for_full_metadata
         assert not resource_map.regional_resource
+        assert resource_map.default_filters == {"Key": "Value"}
 
     def test_subresource_map(self):
         resource_map = ResourceMap.factory(
-            definition={"type": "resource", "parentResourceType": "role"}, boto3_definition={}
+            service_name="iam",
+            resource_type="role_policy",
+            definition={"type": "resource", "parentResourceType": "role"},
+            boto3_definition={},
         )
 
         assert resource_map.parent_resource_type == "role"
+        assert resource_map.default_filters == {}
 
 
 class TestResourceRegionRequest(unittest.TestCase):

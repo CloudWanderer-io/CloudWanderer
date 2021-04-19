@@ -4,7 +4,7 @@ Provides simpler methods for :class:`~.cloud_wanderer.CloudWanderer` to call.
 """
 
 import logging
-from typing import Iterator, List, Optional
+from typing import Any, Dict, Iterator, List, Optional
 
 import boto3
 import botocore  # type: ignore
@@ -14,7 +14,7 @@ from .boto3_loaders import ServiceMappingLoader
 from .boto3_services import Boto3Services, CloudWandererBoto3Service, MergedServiceLoader
 from .cloud_wanderer_resource import CloudWandererResource
 from .exceptions import BadRequestError, ResourceNotFoundError
-from .models import GetAndCleanUp
+from .models import GetAndCleanUp, ResourceFilter
 from .urn import URN
 
 logger = logging.getLogger(__name__)
@@ -30,6 +30,7 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
         boto3_session: boto3.session.Session = None,
         service_loader: MergedServiceLoader = None,
         service_mapping_loader: ServiceMappingLoader = None,
+        resource_filters: List[ResourceFilter] = None,
     ) -> None:
         """Simplifies lookup of Boto3 services and resources.
 
@@ -40,11 +41,14 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
                 An optional loader to allow the injection of additional custom services
             service_mapping_loader:
                 An optional loader to allow the injection of additional custom service mappings
+            resource_filters:
+                An optional list of resource filters to apply when getting those resources.
         """
         self.boto3_session = boto3_session or boto3.session.Session()
         self.boto3_services = Boto3Services(
             boto3_session=boto3_session, service_loader=service_loader, service_mapping_loader=service_mapping_loader
         )
+        self.resource_filters = resource_filters or []
 
     def get_resource(self, urn: URN, include_subresources: bool = True) -> Iterator[CloudWandererResource]:
         """Yield the resource picked out by this URN and optionally its subresources.
@@ -80,7 +84,11 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
         )
 
     def get_resources(
-        self, service_name: str, resource_type: str, region: str = None, **kwargs
+        self,
+        service_name: str,
+        resource_type: str,
+        region: str = None,
+        **kwargs,
     ) -> Iterator[CloudWandererResource]:
         """Return all resources of resource_type from Boto3.
 
@@ -95,11 +103,13 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
         """
         logger.info("Getting %s %s resources from %s", service_name, resource_type, region)
         service = self.boto3_services.get_service(service_name=service_name, region_name=region)
+        resource_filters = self._get_resource_filters(service_name, resource_type)
         try:
-            for resource in service.get_resources(resource_type=resource_type):
+            for resource in service.get_resources(resource_type=resource_type, resource_filters=resource_filters):
                 logger.debug("Found %s", resource.urn)
                 subresource_urns = []
                 for subresource in resource.get_subresources():
+                    logger.debug("Found subresource %s", subresource.urn)
                     subresource_urns.append(subresource.urn)
                     yield CloudWandererResource(
                         urn=subresource.urn,
@@ -184,3 +194,12 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
             return list(set(resource_types) & set(service.resource_types))
 
         return service.resource_types
+
+    def _get_resource_filters(self, service_name: str, resource_type: str) -> Dict[str, Any]:
+        if not self.resource_filters:
+            return {}
+
+        for resource_filter in self.resource_filters:
+            if resource_filter.service_name == service_name and resource_filter.resource_type == resource_type:
+                return resource_filter.filters
+        return {}
