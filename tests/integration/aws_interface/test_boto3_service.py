@@ -92,3 +92,8 @@ class TestCloudWandererBoto3Service(unittest.TestCase):
             "ap-east-1",
             "eu-west-2",
         ]
+
+    def test__get_collection_from_boto3_resource_type_bad_resource(self):
+        result = self.service._get_collection_from_boto3_resource_type(boto3_resource_type="Test")
+
+        assert result is None

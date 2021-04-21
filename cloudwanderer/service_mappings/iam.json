@@ -55,7 +55,13 @@
             "regionalResource": false
         },
         "AccessKey": {
-            "type": "resource",
+            "type": "subresource",
+            "parentResourceType": "user",
+            "regionalResource": false
+        },
+        "SigningCertificate": {
+            "type": "subresource",
+            "parentResourceType": "user",
             "regionalResource": false
         },
         "Policy": {
@@ -66,7 +72,8 @@
             }
         },
         "PolicyVersion": {
-            "type": "resource",
+            "type": "subresource",
+            "parentResourceType": "policy",
             "regionalResource": false
         }
     }

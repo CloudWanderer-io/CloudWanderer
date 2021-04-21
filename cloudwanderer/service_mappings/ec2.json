@@ -17,6 +17,14 @@
                     "self"
                 ]
             }
+        },
+        "Snapshot": {
+            "type": "resource",
+            "defaultFilters": {
+                "OwnerIds": [
+                    "self"
+                ]
+            }
         }
     }
 }

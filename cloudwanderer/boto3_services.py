@@ -391,15 +391,21 @@ class CloudWandererBoto3Service:
         Arguments:
             resource_type: The snake_case resource type to get.
             resource_filters: A resource filter object to apply when fetching resources.
+
+        Raises:
+            UnsupportedResourceTypeError: Occurs if there is an error finding the collection for this resource_type.
         """
         collection_class = self._get_collection_from_resource_type(resource_type)
         if not collection_class or not collection_class.resource:
-            return
+            raise UnsupportedResourceTypeError(
+                f"resource type '{resource_type}' has no Collection in service '{self.service_map.name}'. "
+                "This may mean it's a subresource that hasn't been tagged as such in the resource map."
+            )
         collection = getattr(self.boto3_service, collection_class.name)
         resource_map = self.service_map.get_resource_map(collection_class.resource.model.name)
         filters = resource_filters or resource_map.default_filters
         if filters:
-            logger.info("Applying filter %s", filters)
+            logger.info("Applying filter %s to resource %s", filters, resource_type)
             result = collection.filter(**filters)
         else:
             result = collection.all()
@@ -455,9 +461,12 @@ class CloudWandererBoto3Service:
             boto3_resource_type: The PascalCase name for the Boto3 resource type.
         """
         return next(
-            collection
-            for collection in self._collections
-            if collection.resource and collection.resource.type == boto3_resource_type
+            (
+                collection
+                for collection in self._collections
+                if collection.resource and collection.resource.type == boto3_resource_type
+            ),
+            None,
         )
 
     @property
