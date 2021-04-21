@@ -341,15 +341,6 @@ class ResourceMap(NamedTuple):
             collection_resource_map = self.service_map.get_resource_map(boto3_collection.resource.model.name)
             yield collection_resource_map, boto3_collection
 
-    # def get_regions_discovered_from_region(self, region_name: str) -> List[str]:
-    #     """Return a list of regions resources will have been discovered in by querying
-    #       this resource in the supplied region."""
-    #     if not self.should_query_resources_in_region(region_name):
-    #         return []
-    #     if self.regional_resource and self.service_map.global_service_region == region_name:
-    #         return ["ALL_REGIONS"]
-    #     return [region_name]
-
     @property
     def ignored_subresource_types(self) -> List:
         """Return a list of (PascalCase) ignored subresource types."""
