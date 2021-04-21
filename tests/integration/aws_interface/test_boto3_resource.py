@@ -3,7 +3,6 @@ from unittest.mock import ANY
 
 from cloudwanderer.boto3_services import Boto3Services
 from cloudwanderer.cloud_wanderer_resource import SecondaryAttribute
-from cloudwanderer.models import CleanupAction, GetAction, GetAndCleanUp
 from cloudwanderer.urn import URN
 
 from ..helpers import DEFAULT_SESSION, get_default_mocker
@@ -127,34 +126,6 @@ class TestCloudWandererBoto3Resource(unittest.TestCase):
             },
             "RoleName": "test-role",
         }
-
-    def test_get_and_cleanup_actions_regional_resource(self):
-        assert self.resource.resource_map.get_and_cleanup_actions(query_region="eu-west-2") == GetAndCleanUp(
-            get_actions=[GetAction(service_name="ec2", region="eu-west-2", resource_type="vpc")],
-            cleanup_actions=[CleanupAction(service_name="ec2", region="eu-west-2", resource_type="vpc")],
-        )
-
-    def test_get_and_cleanup_actions_global_service_regional_resource(self):
-        assert self.bucket_resources[0].resource_map.get_and_cleanup_actions(query_region="us-east-1").inflate_actions(
-            regions=self.bucket_resources[0].cloudwanderer_boto3_service.enabled_regions
-        ) == GetAndCleanUp(
-            get_actions=[GetAction(service_name="s3", region="us-east-1", resource_type="bucket")],
-            cleanup_actions=[
-                CleanupAction(service_name="s3", region=region, resource_type="bucket")
-                for region in self.service.enabled_regions
-            ],
-        )
-
-    def test_get_and_cleanup_actions_global_service_global_resource(self):
-        assert self.role_resource.resource_map.get_and_cleanup_actions(query_region="us-east-1").inflate_actions(
-            regions=self.role_resource.cloudwanderer_boto3_service.enabled_regions
-        ) == GetAndCleanUp(
-            get_actions=[GetAction(service_name="iam", region="us-east-1", resource_type="role")],
-            cleanup_actions=[
-                CleanupAction(service_name="iam", region="us-east-1", resource_type="role"),
-                # CleanupAction(service_name="iam", region="us-east-1", resource_type="role_policy"),
-            ],
-        )
 
     def test_secondary_attribute_models(self):
         assert [x.name for x in self.role_resource.secondary_attribute_models] == [
