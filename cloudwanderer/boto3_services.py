@@ -179,7 +179,7 @@ class Boto3Services:
         logger.debug("Getting empty service for %s in %s", service_name, region_name)
         service_method = self._get_service_method(service_name)
         return CloudWandererBoto3Service(
-            boto3_service=service_method(client=self._get_default_client(service_name, region_name)),
+            boto3_service=service_method(client=self._get_default_client(service_name)),
             service_map=self._get_service_map(service_name),
             account_id=self.account_id,
             enabled_regions=self.enabled_regions,
@@ -196,15 +196,9 @@ class Boto3Services:
         )
 
     @memoized_method()
-    def _get_default_client(self, service_name: str, region_name: str = None) -> botocore.client.BaseClient:
-        """Return a reused (i.e. thread unsafe) Boto3 client to speed up action generation.
-
-        Arguments:
-            service_name: The name of the service for which to get a client.
-            region_name: The region to create the client in.
-        """
+    def _get_default_client(self, service_name: str) -> botocore.client.BaseClient:
         logger.debug("Getting default client for %s", service_name)
-        return self._get_client(service_name=service_name, region_name=region_name or "us-east-1")
+        return self._get_client(service_name=service_name, region_name="us-east-1")
 
     def _get_client(self, service_name: str, region_name: str = None, **kwargs) -> botocore.client.BaseClient:
         return self.boto3_session.client(service_name, region_name=region_name, **kwargs)  # type: ignore
@@ -593,19 +587,11 @@ class CloudWandererBoto3Resource:
         However for some resources (e.g. S3 buckets) it performs an API call to look it up.
         """
         if not self.service_map.is_global_service:
-            return self.client_region
+            return self._boto3_client.meta.region_name
         if not self.resource_map.regional_resource:
             return self.service_map.global_service_region
 
         return self._get_region()
-
-    @property
-    def client_region(self) -> str:
-        """Return the region of the Boto3 client associated with this resource."""
-        client_region = self._boto3_client.meta.region_name
-        if client_region == "aws-global":
-            return self.cloudwanderer_boto3_service.region
-        return client_region
 
     @property
     def secondary_attribute_names(self) -> List[str]:

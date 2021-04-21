@@ -82,39 +82,43 @@ class AWSGetAndCleanUp(GetAndCleanUp):
         Arguments:
             regions: The list of enabled regions with which to inflate actions specified as ALL_REGIONS.
         """
+        return GetAndCleanUp(
+            get_actions=self._inflated_get_actions(regions), cleanup_actions=self._inflated_cleanup_actions(regions)
+        )
+
+    def _inflated_get_actions(self, regions: List[str]) -> List[GetAction]:
         get_actions = []
         for get_action in self.get_actions:
-            if get_action.region == "ALL_REGIONS":
-                get_actions.extend(
-                    [
-                        GetAction(
-                            service_name=get_action.service_name, resource_type=get_action.resource_type, region=region
-                        )
-                        for region in regions
-                    ]
-                )
+            if get_action.region != "ALL_REGIONS":
+                get_actions.append(get_action)
                 continue
-            get_actions.append(get_action)
+            get_actions.extend(
+                [
+                    GetAction(
+                        service_name=get_action.service_name, resource_type=get_action.resource_type, region=region
+                    )
+                    for region in regions
+                ]
+            )
+        return get_actions
 
+    def _inflated_cleanup_actions(self, regions: List[str]) -> List[CleanupAction]:
         cleanup_actions: List[CleanupAction] = []
         for cleanup_action in self.cleanup_actions:
-            if cleanup_action.region == "ALL_REGIONS":
-                cleanup_actions.extend(
-                    [
-                        CleanupAction(
-                            service_name=cleanup_action.service_name,
-                            resource_type=cleanup_action.resource_type,
-                            region=region,
-                        )
-                        for region in regions
-                    ]
-                )
+            if cleanup_action.region != "ALL_REGIONS":
+                cleanup_actions.append(cleanup_action)
                 continue
-            cleanup_actions.append(cleanup_action)
-        return GetAndCleanUp(
-            get_actions=get_actions,
-            cleanup_actions=cleanup_actions,
-        )
+            cleanup_actions.extend(
+                [
+                    CleanupAction(
+                        service_name=cleanup_action.service_name,
+                        resource_type=cleanup_action.resource_type,
+                        region=region,
+                    )
+                    for region in regions
+                ]
+            )
+        return cleanup_actions
 
     def __bool__(self) -> bool:
         """Return whether this GetAndCleanUp set is empty."""
