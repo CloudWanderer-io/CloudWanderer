@@ -1,0 +1,9 @@
+{
+    "service": {},
+    "resources": {
+        "RegionalWebAcl": {
+            "type": "resource",
+            "requiresLoadForFullMetadata": true
+        }
+    }
+}

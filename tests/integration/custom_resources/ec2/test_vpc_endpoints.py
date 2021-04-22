@@ -26,19 +26,19 @@ class TestVPCEndpoints(NoMotoMock, unittest.TestCase):
         ],
         "DnsEntries": [
             {
-                "DnsName": "*.vpce-11111111111111111-upkow9iu.s3.eu-west-1.vpce.amazonaws.com",
+                "DnsName": "*.vpce-11111111111111111-11111111.s3.eu-west-1.vpce.amazonaws.com",
                 "HostedZoneId": "11111111111111",
             },
             {
-                "DnsName": "*.vpce-11111111111111111-upkow9iu-eu-west-1b.s3.eu-west-1.vpce.amazonaws.com",
+                "DnsName": "*.vpce-11111111111111111-11111111-eu-west-1b.s3.eu-west-1.vpce.amazonaws.com",
                 "HostedZoneId": "11111111111111",
             },
             {
-                "DnsName": "*.vpce-11111111111111111-upkow9iu-eu-west-1c.s3.eu-west-1.vpce.amazonaws.com",
+                "DnsName": "*.vpce-11111111111111111-11111111-eu-west-1c.s3.eu-west-1.vpce.amazonaws.com",
                 "HostedZoneId": "11111111111111",
             },
             {
-                "DnsName": "*.vpce-11111111111111111-upkow9iu-eu-west-1a.s3.eu-west-1.vpce.amazonaws.com",
+                "DnsName": "*.vpce-11111111111111111-11111111-eu-west-1a.s3.eu-west-1.vpce.amazonaws.com",
                 "HostedZoneId": "11111111111111",
             },
         ],
@@ -58,7 +58,7 @@ class TestVPCEndpoints(NoMotoMock, unittest.TestCase):
             urn=URN.from_string("urn:aws:123456789012:eu-west-2:ec2:vpc_endpoint:vpce-11111111111111111"),
             expected_results=[vpc_endpoint_payload],
             expected_call=ExpectedCall(
-                "ec2", "describe_vpc_endpoints", [], {"VpcEndpointId": ["vpce-11111111111111111"]}
+                "ec2", "describe_vpc_endpoints", [], {"VpcEndpointIds": ["vpce-11111111111111111"]}
             ),
         )
     ]

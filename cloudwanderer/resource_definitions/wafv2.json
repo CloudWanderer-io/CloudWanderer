@@ -1,0 +1,72 @@
+{
+    "service": {
+        "hasMany": {
+            "RegionalWebAcls": {
+                "request": {
+                    "operation": "ListWebAcls",
+                    "params": [
+                        {
+                            "target": "Scope",
+                            "source": "string",
+                            "value": "REGIONAL"
+                        }
+                    ]
+                },
+                "resource": {
+                    "type": "RegionalWebAcl",
+                    "identifiers": [
+                        {
+                            "target": "Name",
+                            "source": "response",
+                            "path": "WebACLs[].Name"
+                        },
+                        {
+                            "target": "Id",
+                            "source": "response",
+                            "path": "WebACLs[].Id"
+                        }
+                    ],
+                    "path": "WebACLs[]"
+                }
+            }
+        }
+    },
+    "resources": {
+        "RegionalWebAcl": {
+            "identifiers": [
+                {
+                    "name": "Name",
+                    "memberName": "Name"
+                },
+                {
+                    "name": "Id",
+                    "memberName": "Id"
+                }
+            ],
+            "shape": "WebACL",
+            "load": {
+                "request": {
+                    "operation": "GetWebAcl",
+                    "params": [
+                        {
+                            "target": "Name",
+                            "source": "identifier",
+                            "name": "Name"
+                        },
+                        {
+                            "target": "Id",
+                            "source": "identifier",
+                            "name": "Id"
+                        },
+                        {
+                            "target": "Scope",
+                            "source": "string",
+                            "value": "REGIONAL"
+                        }
+                    ]
+                },
+                "path": "WebACL"
+            }
+        }
+    }
+}

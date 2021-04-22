@@ -27,6 +27,10 @@ class TestCloudWandererBoto3Service(unittest.TestCase):
     def test_get_resources(self):
         assert isinstance(next(self.service.get_resources("vpc")), CloudWandererBoto3Resource)
 
+    def test_get_resources_filtered(self):
+        results = self.service.get_resources("vpc", resource_filters={"MaxResults": 5})
+        assert isinstance(next(results), CloudWandererBoto3Resource)
+
     def test_get_resources_from_urn(self):
         vpc = next(self.service.get_resources("vpc"))
         print(vpc.urn)
@@ -47,38 +51,6 @@ class TestCloudWandererBoto3Service(unittest.TestCase):
     def test_region_global_service_undefined(self):
         iam_service = self.services.get_service("iam")
         assert iam_service.region == "us-east-1"
-
-    def test_should_query_resources_in_region_regional_service(self):
-        assert self.service.should_query_resources_in_region
-
-    def test_should_query_resources_in_region_global_service_regional_resources(self):
-        assert self.s3_service.should_query_resources_in_region
-
-    def test_should_query_resources_in_region_global_service_regional_resources_wrong_query_region(self):
-        s3_service = self.services.get_service("s3", region_name="eu-west-2")
-        assert not s3_service.should_query_resources_in_region
-
-    def test_should_query_resources_in_region_global_service_global_resources(self):
-        assert self.iam_service.should_query_resources_in_region
-
-    def test_get_regions_discovered_from_region_regional_service(self):
-        assert self.service.get_regions_discovered_from_region == ["eu-west-2"]
-
-    def test_get_regions_discovered_from_region_global_service_regional_resources(self):
-        assert sorted(self.s3_service.get_regions_discovered_from_region) == sorted(
-            ["us-east-1", "eu-west-2", "ap-east-1"]
-        )
-
-    def test_get_regions_discovered_from_region_global_service_regional_resources_wrong_region(self):
-        s3_service = self.services.get_service("s3", region_name="eu-west-2")
-
-        assert s3_service.get_regions_discovered_from_region == []
-
-    def test_get_regions_discovered_from_region_global_service_global_resources(self):
-        assert self.iam_service.get_regions_discovered_from_region == ["us-east-1"]
-
-    def test_get_regions_discovered_from_region_global_service_global_resources_wrong_region(self):
-        assert self.iam_service_wrong_region.get_regions_discovered_from_region == []
 
     def test_account_id(self):
         assert self.service.account_id == "123456789012"
@@ -120,3 +92,8 @@ class TestCloudWandererBoto3Service(unittest.TestCase):
             "ap-east-1",
             "eu-west-2",
         ]
+
+    def test__get_collection_from_boto3_resource_type_bad_resource(self):
+        result = self.service._get_collection_from_boto3_resource_type(boto3_resource_type="Test")
+
+        assert result is None

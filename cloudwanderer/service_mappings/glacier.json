@@ -7,6 +7,10 @@
                     "type": "MultipartUpload"
                 }
             ]
+        },
+        "Job": {
+            "type": "subresource",
+            "parentResource": "Vault"
         }
     }
 }

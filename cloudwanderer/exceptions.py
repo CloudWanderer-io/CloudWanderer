@@ -42,3 +42,7 @@ class UnsupportedResourceTypeError(Exception):
 
 class UnsupportedServiceError(Exception):
     """The service in question is not supported for this operation."""
+
+
+class BadServiceMapError(Exception):
+    """There was an insconsistency in the service map for this operation."""

@@ -4,17 +4,19 @@ Provides simpler methods for :class:`~.cloud_wanderer.CloudWanderer` to call.
 """
 
 import logging
-from typing import Iterator, List, Optional
+from typing import Any, Dict, Iterator, List, Optional
 
 import boto3
 import botocore  # type: ignore
+
+from cloudwanderer.utils import snake_to_pascal
 
 from .boto3_helpers import Boto3CommonAttributesMixin
 from .boto3_loaders import ServiceMappingLoader
 from .boto3_services import Boto3Services, CloudWandererBoto3Service, MergedServiceLoader
 from .cloud_wanderer_resource import CloudWandererResource
-from .exceptions import BadRequestError, ResourceNotFoundError
-from .models import GetAndCleanUp
+from .exceptions import BadRequestError, ResourceNotFoundError, UnsupportedResourceTypeError
+from .models import GetAndCleanUp, ResourceFilter
 from .urn import URN
 
 logger = logging.getLogger(__name__)
@@ -30,6 +32,7 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
         boto3_session: boto3.session.Session = None,
         service_loader: MergedServiceLoader = None,
         service_mapping_loader: ServiceMappingLoader = None,
+        resource_filters: List[ResourceFilter] = None,
     ) -> None:
         """Simplifies lookup of Boto3 services and resources.
 
@@ -40,11 +43,14 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
                 An optional loader to allow the injection of additional custom services
             service_mapping_loader:
                 An optional loader to allow the injection of additional custom service mappings
+            resource_filters:
+                An optional list of resource filters to apply when getting those resources.
         """
         self.boto3_session = boto3_session or boto3.session.Session()
         self.boto3_services = Boto3Services(
             boto3_session=boto3_session, service_loader=service_loader, service_mapping_loader=service_mapping_loader
         )
+        self.resource_filters = resource_filters or []
 
     def get_resource(self, urn: URN, include_subresources: bool = True) -> Iterator[CloudWandererResource]:
         """Yield the resource picked out by this URN and optionally its subresources.
@@ -80,7 +86,11 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
         )
 
     def get_resources(
-        self, service_name: str, resource_type: str, region: str = None, **kwargs
+        self,
+        service_name: str,
+        resource_type: str,
+        region: str = None,
+        **kwargs,
     ) -> Iterator[CloudWandererResource]:
         """Return all resources of resource_type from Boto3.
 
@@ -95,11 +105,13 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
         """
         logger.info("Getting %s %s resources from %s", service_name, resource_type, region)
         service = self.boto3_services.get_service(service_name=service_name, region_name=region)
+        resource_filters = self._get_resource_filters(service_name, resource_type)
         try:
-            for resource in service.get_resources(resource_type=resource_type):
+            for resource in service.get_resources(resource_type=resource_type, resource_filters=resource_filters):
                 logger.debug("Found %s", resource.urn)
                 subresource_urns = []
                 for subresource in resource.get_subresources():
+                    logger.debug("Found subresource %s", subresource.urn)
                     subresource_urns.append(subresource.urn)
                     yield CloudWandererResource(
                         urn=subresource.urn,
@@ -142,6 +154,8 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
             exclude_resources (list):
                 A list of service:resources to exclude (e.g. ``['ec2:instance']``)
 
+        Raises:
+            UnsupportedResourceTypeError: When a resource type is requested that does not exist.
         """
         get_and_cleanup_actions = []
         regions = regions or self.boto3_services.enabled_regions
@@ -153,11 +167,6 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
             for service_name in service_names:
                 service = self.boto3_services.get_empty_service(service_name=service_name, region_name=region_name)
                 service_resource_types = self._get_resource_types_for_service(service, resource_types)
-                if not service.should_query_resources_in_region:
-                    logger.debug(
-                        "Skipping %s in %s as it cannot have resources in this region", service_name, region_name
-                    )
-                    continue
                 for resource_type in service_resource_types:
                     service_resource = f"{service_name}:{resource_type}"
                     logger.debug("Getting actions for %s %s in %s", service_resource, resource_type, region_name)
@@ -167,13 +176,19 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
                     if self.limit_resources and service_resource not in self.limit_resources:
                         logger.debug("Skipping %s as it does not exist in limit_resources", service_resource)
                         continue
-                    resource = service._get_empty_resource(resource_type=resource_type)
-                    if not resource:
-                        logger.debug("No %s resource type found", service_resource)
+                    resource_map = service.service_map.get_resource_map(snake_to_pascal(resource_type))
+                    if not resource_map:
+                        raise UnsupportedResourceTypeError("No %s resource type found", service_resource)
                         continue
-                    actions = resource.get_and_cleanup_actions
-                    if actions:
-                        get_and_cleanup_actions.append(actions)
+                    actions = resource_map.get_and_cleanup_actions(region_name)
+                    if not actions:
+                        continue
+                    resource_actions = actions.inflate_actions(service.enabled_regions)
+                    for subresource_type in resource_map.subresource_types:
+                        subresource_map = service.service_map.get_resource_map(snake_to_pascal(subresource_type))
+                        actions = subresource_map.get_and_cleanup_actions(region_name)
+                        resource_actions += actions.inflate_actions(service.enabled_regions)
+                    get_and_cleanup_actions.append(resource_actions)
         return get_and_cleanup_actions
 
     def _get_resource_types_for_service(
@@ -184,3 +199,12 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
             return list(set(resource_types) & set(service.resource_types))
 
         return service.resource_types
+
+    def _get_resource_filters(self, service_name: str, resource_type: str) -> Dict[str, Any]:
+        if not self.resource_filters:
+            return {}
+
+        for resource_filter in self.resource_filters:
+            if resource_filter.service_name == service_name and resource_filter.resource_type == resource_type:
+                return resource_filter.filters
+        return {}

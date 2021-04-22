@@ -1,10 +1,48 @@
 {
     "service": {
         "globalServiceRegion": "us-east-1",
-        "globalService": true,
-        "regionalResources": false
+        "globalService": true
     },
     "resources": {
+        "User": {
+            "type": "resource",
+            "regionalResource": false
+        },
+        "UserPolicy": {
+            "type": "subresource",
+            "parentResourceType": "user",
+            "regionalResource": false
+        },
+        "VirtualMfaDevice": {
+            "type": "resource",
+            "regionalResource": false
+        },
+        "MfaDevice": {
+            "type": "subresource",
+            "parentResourceType": "user",
+            "regionalResource": false
+        },
+        "Group": {
+            "type": "resource",
+            "regionalResource": false
+        },
+        "GroupPolicy": {
+            "type": "subresource",
+            "parentResourceType": "group",
+            "regionalResource": false
+        },
+        "SamlProvider": {
+            "type": "resource",
+            "regionalResource": false
+        },
+        "ServerCertificate": {
+            "type": "resource",
+            "regionalResource": false
+        },
+        "Role": {
+            "type": "resource",
+            "regionalResource": false
+        },
         "RoleInlinePolicyAttachments": {
             "type": "secondaryAttribute"
         },
@@ -13,7 +51,30 @@
         },
         "RolePolicy": {
             "type": "subresource",
-            "parentResourceType": "role"
+            "parentResourceType": "role",
+            "regionalResource": false
+        },
+        "AccessKey": {
+            "type": "subresource",
+            "parentResourceType": "user",
+            "regionalResource": false
+        },
+        "SigningCertificate": {
+            "type": "subresource",
+            "parentResourceType": "user",
+            "regionalResource": false
+        },
+        "Policy": {
+            "type": "resource",
+            "regionalResource": false,
+            "defaultFilters": {
+                "Scope": "Local"
+            }
+        },
+        "PolicyVersion": {
+            "type": "subresource",
+            "parentResourceType": "policy",
+            "regionalResource": false
         }
     }
 }

@@ -10,7 +10,7 @@ from ..helpers import DEFAULT_SESSION, GenericAssertionHelpers, get_default_mock
 from ..mocks import add_infra
 
 
-class TestBoto3InterfaceGetResource(unittest.TestCase, GenericAssertionHelpers):
+class TestAwsInterfaceGetResource(unittest.TestCase, GenericAssertionHelpers):
     @classmethod
     def setUpClass(cls):
         cls.enabled_regions = ["eu-west-2", "us-east-1", "ap-east-1"]

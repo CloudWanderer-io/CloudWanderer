@@ -9,6 +9,22 @@
         },
         "VpcEnableDnsSupport": {
             "type": "secondaryAttribute"
+        },
+        "Image": {
+            "type": "resource",
+            "defaultFilters": {
+                "Owners": [
+                    "self"
+                ]
+            }
+        },
+        "Snapshot": {
+            "type": "resource",
+            "defaultFilters": {
+                "OwnerIds": [
+                    "self"
+                ]
+            }
         }
     }
 }

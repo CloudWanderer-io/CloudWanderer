@@ -292,3 +292,41 @@ e.g.
     ... )
     >>> print(vpc)
     None
+
+Filtering Resources
+-----------------------
+
+CloudWanderer exposes Boto3's ability to filter  which resources are returned using the
+:meth:`~boto3.resources.collection.ResourceCollection.filter` method.
+
+.. tip::
+
+    Some resources (like :class:`iam.policy` and :class:`ec2.image`) have default filtering to prevent a default
+    CloudWanderer run from spending an inordinate amount of time listing, say, public EC2 Images.
+    If you are experiencing unexpected behaviour when listing resources, check the resource definition to
+    see if it has any defaults.
+
+Getting all IAM Policies
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+By default, if you fetch all :class:`iam.policy` resources, you will only get **your** policies, not AWS's.
+This is because there is a default filter applied that filters the returned resources to only those created in the current account.
+To change this behaviour you can change the filter like so:
+
+.. doctest::
+
+    >>> from cloudwanderer import ResourceFilter, CloudWandererAWSInterface
+    >>> wanderer = cloudwanderer.CloudWanderer(
+    ...     storage_connectors=[cloudwanderer.storage_connectors.MemoryStorageConnector()],
+    ...     cloud_interface=CloudWandererAWSInterface(
+    ...         resource_filters=[ResourceFilter(
+    ...             service_name='iam',
+    ...             resource_type='policy',
+    ...             filters={'Scope': 'All'}
+    ...         )]
+    ...      )
+    ... )
+    >>> wanderer.write_resources()
+
+That way **every** time you run :meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resources` your filter
+will be applied automatically.

@@ -10,7 +10,6 @@ class TestServiceMap(unittest.TestCase):
 
         assert service_map.is_default_service
         assert not service_map.is_global_service
-        assert service_map.regional_resources
 
     def test_global_service_map(self):
         service_map = ServiceMap.factory(
@@ -20,7 +19,6 @@ class TestServiceMap(unittest.TestCase):
                     "globalService": True,
                     "globalServiceRegion": "us-east-1",
                     "region": "us-east-1",
-                    "regionalResources": True,
                 },
                 "resources": {
                     "Bucket": {
@@ -38,38 +36,9 @@ class TestServiceMap(unittest.TestCase):
 
         assert not service_map.is_default_service
         assert service_map.is_global_service
-        assert service_map.regional_resources
 
         resource_map = service_map.get_resource_map("Bucket")
         assert isinstance(resource_map, ResourceMap)
-
-
-class TestResourceMap(unittest.TestCase):
-    def test_global_service_regional_resource_map(self):
-        resource_map = ResourceMap.factory(
-            definition={
-                "type": "resource",
-                "regionRequest": {
-                    "operation": "get_bucket_location",
-                    "params": [{"target": "Bucket", "source": "resourceAttribute", "name": "name"}],
-                    "pathToRegion": "LocationConstraint",
-                    "defaultValue": "us-east-1",
-                },
-                "ignoredSubresources": [{"type": "ObjectSummary"}],
-            },
-            boto3_definition={"resources": {}},
-        )
-
-        assert isinstance(resource_map.region_request, ResourceRegionRequest)
-        assert resource_map.ignored_subresources == [{"type": "ObjectSummary"}]
-        assert resource_map.ignored_subresource_types == ["ObjectSummary"]
-
-    def test_subresource_map(self):
-        resource_map = ResourceMap.factory(
-            definition={"type": "resource", "parentResourceType": "role"}, boto3_definition={}
-        )
-
-        assert resource_map.parent_resource_type == "role"
 
 
 class TestResourceRegionRequest(unittest.TestCase):
