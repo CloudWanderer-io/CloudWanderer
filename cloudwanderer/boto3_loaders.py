@@ -207,9 +207,25 @@ class ResourceMap(NamedTuple):
     """Specification for additional CloudWanderer specific metadata about a Boto3 resource type.
 
     Attributes:
+        region_request:
+            An optional definition for how to perform a secondary query to
+            discover the region in which this resource exists.
+        parent_resource_type:
+            The snake_case resource type of the parent (if this is a subresource).
+        ignored_subresources:
+            A list of snake case subresources which exist in the Boto3 definition but should be ignored.
+        boto3_resource_model:
+            The Boto3 model for this resource.
+        default_filters:
+            A dict of arguments to supply to the API Method used when enumerating this resource type.
+            This can be overridden by the user with the ``filters`` argument.
+        service_map:
+            A link back to the parent :class:`ServiceMap` object.
         requires_load_for_full_metadata:
             If set ``resource.load()`` is called when fetching a list of these resources.
             Resources in a big increase in the number of API calls as one must be made for *each* resource.
+        regional_resource:
+            Whether or not this resource exists in every region.
     """
 
     type: Optional[str]
