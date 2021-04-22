@@ -9,7 +9,8 @@
             ]
         },
         "Job": {
-            "type": "subresource"
+            "type": "subresource",
+            "parentResource": "Vault"
         }
     }
 }

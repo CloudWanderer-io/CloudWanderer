@@ -454,7 +454,7 @@ class CloudWandererBoto3Service:
             None,
         )
 
-    def _get_collection_from_boto3_resource_type(self, boto3_resource_type: str) -> Collection:
+    def _get_collection_from_boto3_resource_type(self, boto3_resource_type: str) -> Optional[Collection]:
         """Return the Collection corresponding to a given Boto3 style (PascalCase) resource type.
 
         Arguments:
