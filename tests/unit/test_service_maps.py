@@ -41,46 +41,6 @@ class TestServiceMap(unittest.TestCase):
         assert isinstance(resource_map, ResourceMap)
 
 
-class TestResourceMap(unittest.TestCase):
-    def test_global_service_regional_resource_map(self):
-        resource_map = ResourceMap.factory(
-            service_name="s3",
-            resource_type="bucket",
-            definition={
-                "type": "resource",
-                "regionalResource": False,
-                "regionRequest": {
-                    "operation": "get_bucket_location",
-                    "params": [{"target": "Bucket", "source": "resourceAttribute", "name": "name"}],
-                    "pathToRegion": "LocationConstraint",
-                    "defaultValue": "us-east-1",
-                },
-                "ignoredSubresources": [{"type": "ObjectSummary"}],
-                "requiresLoadForFullMetadata": True,
-                "defaultFilters": {"Key": "Value"},
-            },
-            boto3_definition={"resources": {}},
-        )
-
-        assert isinstance(resource_map.region_request, ResourceRegionRequest)
-        assert resource_map.ignored_subresources == [{"type": "ObjectSummary"}]
-        assert resource_map.ignored_subresource_types == ["ObjectSummary"]
-        assert resource_map.requires_load_for_full_metadata
-        assert not resource_map.regional_resource
-        assert resource_map.default_filters == {"Key": "Value"}
-
-    def test_subresource_map(self):
-        resource_map = ResourceMap.factory(
-            service_name="iam",
-            resource_type="role_policy",
-            definition={"type": "resource", "parentResourceType": "role"},
-            boto3_definition={},
-        )
-
-        assert resource_map.parent_resource_type == "role"
-        assert resource_map.default_filters == {}
-
-
 class TestResourceRegionRequest(unittest.TestCase):
     def test_factory(self):
         request = ResourceRegionRequest.factory(

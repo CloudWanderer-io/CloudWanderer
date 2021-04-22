@@ -9,11 +9,13 @@ from typing import Any, Dict, Iterator, List, Optional
 import boto3
 import botocore  # type: ignore
 
+from cloudwanderer.utils import snake_to_pascal
+
 from .boto3_helpers import Boto3CommonAttributesMixin
 from .boto3_loaders import ServiceMappingLoader
 from .boto3_services import Boto3Services, CloudWandererBoto3Service, MergedServiceLoader
 from .cloud_wanderer_resource import CloudWandererResource
-from .exceptions import BadRequestError, ResourceNotFoundError
+from .exceptions import BadRequestError, ResourceNotFoundError, UnsupportedResourceTypeError
 from .models import GetAndCleanUp, ResourceFilter
 from .urn import URN
 
@@ -152,6 +154,8 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
             exclude_resources (list):
                 A list of service:resources to exclude (e.g. ``['ec2:instance']``)
 
+        Raises:
+            UnsupportedResourceTypeError: When a resource type is requested that does not exist.
         """
         get_and_cleanup_actions = []
         regions = regions or self.boto3_services.enabled_regions
@@ -163,11 +167,6 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
             for service_name in service_names:
                 service = self.boto3_services.get_empty_service(service_name=service_name, region_name=region_name)
                 service_resource_types = self._get_resource_types_for_service(service, resource_types)
-                if not service.should_query_resources_in_region:
-                    logger.debug(
-                        "Skipping %s in %s as it cannot have resources in this region", service_name, region_name
-                    )
-                    continue
                 for resource_type in service_resource_types:
                     service_resource = f"{service_name}:{resource_type}"
                     logger.debug("Getting actions for %s %s in %s", service_resource, resource_type, region_name)
@@ -177,13 +176,19 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
                     if self.limit_resources and service_resource not in self.limit_resources:
                         logger.debug("Skipping %s as it does not exist in limit_resources", service_resource)
                         continue
-                    resource = service._get_empty_resource(resource_type=resource_type)
-                    if not resource:
-                        logger.debug("No %s resource type found", service_resource)
+                    resource_map = service.service_map.get_resource_map(snake_to_pascal(resource_type))
+                    if not resource_map:
+                        raise UnsupportedResourceTypeError("No %s resource type found", service_resource)
                         continue
-                    actions = resource.get_and_cleanup_actions
-                    if actions:
-                        get_and_cleanup_actions.append(actions)
+                    actions = resource_map.get_and_cleanup_actions(region_name)
+                    if not actions:
+                        continue
+                    resource_actions = actions.inflate_actions(service.enabled_regions)
+                    for subresource_type in resource_map.subresource_types:
+                        subresource_map = service.service_map.get_resource_map(snake_to_pascal(subresource_type))
+                        actions = subresource_map.get_and_cleanup_actions(region_name)
+                        resource_actions += actions.inflate_actions(service.enabled_regions)
+                    get_and_cleanup_actions.append(resource_actions)
         return get_and_cleanup_actions
 
     def _get_resource_types_for_service(

@@ -9,16 +9,18 @@ import logging
 import os
 import pathlib
 from functools import lru_cache
-from typing import Any, Dict, List, NamedTuple, Optional
+from typing import Any, Dict, Generator, List, NamedTuple, Optional, Tuple
 
 import boto3
 import botocore  # type: ignore
 import jmespath  # type: ignore
 from boto3.resources.base import ServiceResource
+from boto3.resources.model import Collection, ResourceModel
 from botocore.exceptions import UnknownServiceError  # type: ignore
 
 from .cache_helpers import cached_property, memoized_method
 from .exceptions import UnsupportedServiceError
+from .models import AWSGetAndCleanUp, CleanupAction, GetAction
 from .utils import load_json_definitions
 
 logger = logging.getLogger(__file__)
@@ -179,10 +181,13 @@ class ServiceMap(NamedTuple):
             boto3_resource_name: The (PascalCase) name of the resource map to get.
         """
         return ResourceMap.factory(
-            service_name=self.name,
-            resource_type=botocore.xform_name(boto3_resource_name),
+            service_map=self,
             definition=self.resource_definition.get(boto3_resource_name, {}),
-            boto3_definition=self.boto3_definition["resources"].get(boto3_resource_name, {}),
+            boto3_resource_model=ResourceModel(
+                name=boto3_resource_name,
+                definition=self.boto3_definition["resources"].get(boto3_resource_name, {}),
+                resource_defs=self.boto3_definition["resources"],
+            ),
         )
 
     @classmethod
@@ -209,27 +214,132 @@ class ResourceMap(NamedTuple):
 
     type: Optional[str]
     region_request: Optional["ResourceRegionRequest"]
+    resource_type: str
     parent_resource_type: str
     ignored_subresources: list
-    boto3_definition: Dict[str, Any]
+    boto3_resource_model: ResourceModel
     default_filters: Dict[str, Any]
+    service_map: ServiceMap
     requires_load_for_full_metadata: bool = False
-    regional_resource: bool = False
+    regional_resource: bool = True
 
     @classmethod
     def factory(
-        cls, service_name: str, resource_type: str, definition: Dict[str, Any], boto3_definition: Dict[str, Any]
+        cls,
+        service_map: ServiceMap,
+        definition: Dict[str, Any],
+        boto3_resource_model: ResourceModel,
     ) -> "ResourceMap":
         return cls(
             type=definition.get("type"),
             region_request=ResourceRegionRequest.factory(definition.get("regionRequest")),
             ignored_subresources=definition.get("ignoredSubresources", []),
+            resource_type=botocore.xform_name(boto3_resource_model.name),
             parent_resource_type=definition.get("parentResourceType", ""),
-            boto3_definition=boto3_definition,
             requires_load_for_full_metadata=definition.get("requiresLoadForFullMetadata", False),
             regional_resource=definition.get("regionalResource", True),
             default_filters=definition.get("defaultFilters", {}),
+            service_map=service_map,
+            boto3_resource_model=boto3_resource_model,
         )
+
+    def should_query_resources_in_region(self, region: str) -> bool:
+        """Return whether this resource should be queried from this region.
+
+        Arguments:
+            region: The region in which to query the resource.
+        """
+        if not self.service_map.is_global_service:
+            return True
+        return self.service_map.is_global_service and self.service_map.global_service_region == region
+
+    def get_and_cleanup_actions(self, query_region: str) -> AWSGetAndCleanUp:
+        """Return the query and cleanup actions to be performed if getting this resource type in this region.
+
+        Arguments:
+            query_region: The region in which the query would be performed.
+        """
+        actions = AWSGetAndCleanUp([], [])
+        if not self.should_query_resources_in_region(query_region):
+            return actions
+        if self.service_map.is_global_service and self.regional_resource:
+            cleanup_region = "ALL_REGIONS"
+        else:
+            cleanup_region = query_region
+        if self.type != "subresource":
+            actions.get_actions.append(
+                GetAction(
+                    service_name=self.service_map.name,
+                    region=query_region,
+                    resource_type=self.resource_type,
+                )
+            )
+        actions.cleanup_actions.append(
+            CleanupAction(
+                service_name=self.service_map.name,
+                region=cleanup_region,
+                resource_type=self.resource_type,
+            )
+        )
+        return actions
+
+    @property
+    def subresource_types(self) -> List[str]:
+        """Return a list of CloudWanderer style subresource types it's possible for this resource type to have."""
+        types = []
+        for subresource_model in self.subresource_models:
+            if not subresource_model.resource:
+                continue
+            types.append(botocore.xform_name(subresource_model.resource.model.name))
+        return types
+
+    @property
+    def subresource_models(self) -> Generator[Collection, None, None]:
+        """Yield the Boto3 models for the CloudWanderer style subresources of this resource type."""
+        models = {}
+        for collection_resource_map, collection_model in self._boto3_collection_models:
+            response_resource = collection_model.resource
+            if not response_resource or not self._is_collection_model_a_subresource(
+                collection_resource_map, response_resource.model
+            ):
+                continue
+
+            collection_resource_name = botocore.xform_name(response_resource.model.name)
+            models[collection_resource_name] = collection_model
+        yield from models.values()
+
+    def _is_collection_model_a_subresource(
+        self, collection_resource_map: "ResourceMap", resource_model: ResourceModel
+    ) -> bool:
+
+        if collection_resource_map.type in ["secondaryAttribute", "baseResource"] or resource_model is None:
+            return False
+        collection_resource_name = botocore.xform_name(resource_model.name)
+
+        if len(resource_model.identifiers) == 1 and collection_resource_map.type != "subresource":
+            return False
+        if resource_model.name in self.ignored_subresource_types:
+            logger.debug(
+                "% is defined as an ignored subresource type by the %s servicemap",
+                collection_resource_name,
+                self.service_map.name,
+            )
+            return False
+
+        return True
+
+    @property
+    def _boto3_collection_models(self) -> Generator[Tuple["ResourceMap", Collection], None, None]:
+        """Yield the ResourceMaps and Collections for this resource type.
+
+        This is used exclusively for subresources because subresources have a 1:many relationship with
+        their parent resource.
+        """
+        for boto3_collection in self.boto3_resource_model.collections:
+            if boto3_collection.resource is None:
+                continue
+            collection_resource_map = self.service_map.get_resource_map(boto3_collection.resource.model.name)
+            yield collection_resource_map, boto3_collection
 
     @property
     def ignored_subresource_types(self) -> List:
