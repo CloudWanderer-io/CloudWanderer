@@ -33,6 +33,7 @@ from .cache_helpers import cached_property, memoized_method
 from .cloud_wanderer_resource import SecondaryAttribute
 from .exceptions import (
     BadRequestError,
+    BadServiceMapError,
     BadUrnAccountIdError,
     BadUrnIdentifiersError,
     BadUrnRegionError,
@@ -393,11 +394,11 @@ class CloudWandererBoto3Service:
             resource_filters: A resource filter object to apply when fetching resources.
 
         Raises:
-            UnsupportedResourceTypeError: Occurs if there is an error finding the collection for this resource_type.
+            BadServiceMapError: Occurs if there is an error finding the collection for this resource_type.
         """
         collection_class = self._get_collection_from_resource_type(resource_type)
         if not collection_class or not collection_class.resource:
-            raise UnsupportedResourceTypeError(
+            raise BadServiceMapError(
                 f"resource type '{resource_type}' has no Collection in service '{self.service_map.name}'. "
                 "This may mean it's a subresource that hasn't been tagged as such in the resource map."
             )

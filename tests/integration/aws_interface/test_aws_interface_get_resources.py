@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from cloudwanderer import URN, CloudWandererAWSInterface
-from cloudwanderer.exceptions import UnsupportedResourceTypeError, UnsupportedServiceError
+from cloudwanderer.exceptions import BadServiceMapError, UnsupportedServiceError
 from cloudwanderer.models import ResourceFilter
 
 from ..helpers import GenericAssertionHelpers, get_default_mocker
@@ -62,7 +62,7 @@ class TestAWSInterfaceGetResources(unittest.TestCase, GenericAssertionHelpers):
 
     def test_get_resources_unsupported_resource_type(self):
         with self.assertRaisesRegex(
-            UnsupportedResourceTypeError,
+            BadServiceMapError,
             "resource type 'unicorn' has no Collection in service 'ec2'.",
         ):
             list(self.aws_interface.get_resources(service_name="ec2", resource_type="unicorn"))
