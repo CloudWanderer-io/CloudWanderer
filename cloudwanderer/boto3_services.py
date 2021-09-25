@@ -28,7 +28,7 @@ from boto3.resources.model import Action, Collection
 from boto3.utils import ServiceContext
 
 from .boto3_helpers import _clean_boto3_metadata, get_shape
-from .boto3_loaders import MergedServiceLoader, ResourceMap, ServiceMap, ServiceMappingLoader
+from .aws_interface.boto3_loaders import MergedServiceLoader, ResourceMap, ServiceMap, ServiceMappingLoader
 from .cache_helpers import cached_property, memoized_method
 from .cloud_wanderer_resource import SecondaryAttribute
 from .exceptions import (

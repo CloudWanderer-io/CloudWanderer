@@ -1,6 +1,7 @@
 """Main cloudwanderer module."""
 import concurrent.futures
 import logging
+from datetime import datetime, timezone
 from typing import Callable, Iterator, List, NamedTuple
 
 from .aws_interface import CloudWandererAWSInterface
@@ -44,7 +45,7 @@ class CloudWanderer:
         resources = list(self.cloud_interface.get_resource(urn=urn, **kwargs))
 
         for resource in resources:
-            list(self._write_resource(resource=resource))
+            self._write_resource(resource=resource)
         if not resources:
             for storage_connector in self.storage_connectors:
                 storage_connector.delete_resource(urn)
@@ -74,30 +75,32 @@ class CloudWanderer:
                 All additional keyword arguments will be passed down to the cloud interface client calls.
 
         """
-        urns = []
-        actions = self.cloud_interface.get_actions(
+        action_sets = self.cloud_interface.get_resource_discovery_actions(
             regions=regions,
             service_names=service_names,
             resource_types=resource_types,
             exclude_resources=exclude_resources,
         )
-        for action_set in actions:
-            for get_action in action_set.get_actions:
+        for action_set in action_sets:
+            earliest_resource_discovered = None
+            for get_urn in action_set.get_urns:
                 resources = self.cloud_interface.get_resources(
-                    region=get_action.region,
-                    service_name=get_action.service_name,
-                    resource_type=get_action.resource_type,
+                    region=get_urn.region,
+                    service_name=get_urn.service,
+                    resource_type=get_urn.resource_type,
                 )
                 for resource in resources:
-                    urns.extend(list(self._write_resource(resource)))
-            for cleanup_action in action_set.cleanup_actions:
+                    if not earliest_resource_discovered or resource.discovery_time < earliest_resource_discovered:
+                        earliest_resource_discovered = resource.discovery_time
+                    self._write_resource(resource)
+            for delete_urn in action_set.delete_urns:
                 for storage_connector in self.storage_connectors:
                     storage_connector.delete_resource_of_type_in_account_region(
-                        account_id=self.cloud_interface.account_id,
-                        region=cleanup_action.region,
-                        service=cleanup_action.service_name,
-                        resource_type=cleanup_action.resource_type,
-                        urns_to_keep=urns,
+                        account_id=delete_urn.account_id,
+                        region=delete_urn.region,
+                        service=delete_urn.service,
+                        resource_type=delete_urn.resource_type,
+                        cutoff=earliest_resource_discovered,
                     )
 
     def write_resources_concurrently(
@@ -153,10 +156,10 @@ class CloudWanderer:
                 thread_results.append(CloudWandererConcurrentWriteThreadResult(storage_connectors=result))
         return thread_results
 
-    def _write_resource(self, resource: CloudWandererResource) -> Iterator[URN]:
+    def _write_resource(self, resource: CloudWandererResource) -> URN:
         for storage_connector in self.storage_connectors:
             storage_connector.write_resource(resource)
-        yield resource.urn
+        return resource.urn
 
 
 class CloudWandererConcurrentWriteThreadResult(NamedTuple):

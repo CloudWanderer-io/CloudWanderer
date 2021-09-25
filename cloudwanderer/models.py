@@ -1,7 +1,16 @@
 """Models for CloudWanderer data."""
+from .urn import URN
 from typing import Any, Dict, List, NamedTuple
 
 
+class ActionSet(NamedTuple):
+    """Define a list of partial URNs to discover and delete."""
+
+    get_urns: List[URN]
+    delete_urns: List[URN]
+
+
+# TODO: Delete this class
 class GetAction(NamedTuple):
     """A get action for a specific resource_type in a specific region.
 
@@ -16,6 +25,7 @@ class GetAction(NamedTuple):
     resource_type: str
 
 
+# TODO: Delete this class
 class CleanupAction(NamedTuple):
     """A storage connector clean up action for a specific resource_type in a specific region.
 
@@ -30,6 +40,7 @@ class CleanupAction(NamedTuple):
     resource_type: str
 
 
+# TODO: Delete this class
 class GetAndCleanUp(NamedTuple):
     """A set of get and cleanup actions.
 
@@ -65,6 +76,7 @@ class GetAndCleanUp(NamedTuple):
         return self
 
 
+# TODO: Delete this class
 class AWSGetAndCleanUp(GetAndCleanUp):
     """An AWS specific set of GetAndCleanUp actions.
 

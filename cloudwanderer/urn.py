@@ -18,11 +18,42 @@ resource_type='vpc', resource_id_parts=['vpc-11111111'])
 
 """
 import re
-from typing import Any, List, Optional, Union
+from typing import Any, List, NamedTuple, Optional, Union
 
 
-class URN:
+class PartialUrn:
+    cloud_name: Optional[str]
+    account_id: Optional[str]
+    region: Optional[str]
+    service: Optional[str]
+    resource_type: Optional[str]
+    resource_id: Optional[str]
+
+    def __init__(
+        self,
+        cloud_name: Optional[str] = None,
+        account_id: Optional[str] = None,
+        region: Optional[str] = None,
+        service: Optional[str] = None,
+        resource_type: Optional[str] = None,
+        resource_id: Optional[str] = None,
+    ) -> None:
+        self.cloud_name = cloud_name
+        self.account_id = account_id
+        self.region = region
+        self.service = service
+        self.resource_type = resource_type
+        self.resource_id = resource_id
+
+
+class URN(PartialUrn):
     """A dataclass for building and querying AWS URNs."""
+
+    account_id: str
+    region: str
+    service: str
+    resource_type: str
+    resource_id: str
 
     def __init__(
         self,
@@ -30,7 +61,6 @@ class URN:
         region: str,
         service: str,
         resource_type: str,
-        resource_id: Optional[str] = None,
         resource_id_parts: Optional[list] = None,
         cloud_name: str = None,
     ) -> None:
@@ -57,16 +87,18 @@ class URN:
         Raises:
             ValueError: If incorrect values are supplied.
         """
-        self.cloud_name = cloud_name or "aws"
-        self.account_id = account_id
-        self.region = region
-        self.service = service
-        self.resource_type = resource_type
-        resource_id_parts = [resource_id] if resource_id else resource_id_parts
         if not resource_id_parts or not all(resource_id_parts):
             raise ValueError("resource_id or id_parts must be supplied with non empty values")
         self.resource_id_parts: List[str] = resource_id_parts
-        self.resource_id = "/".join(self.escape_id(id_part) or "" for id_part in self.resource_id_parts)
+        resource_id = "/".join(self.escape_id(id_part) or "" for id_part in self.resource_id_parts)
+        super().__init__(
+            cloud_name=cloud_name or "aws",
+            account_id=account_id,
+            region=region,
+            service=service,
+            resource_type=resource_type,
+            resource_id=resource_id,
+        )
 
     @classmethod
     def from_string(cls, urn_string: str) -> "URN":

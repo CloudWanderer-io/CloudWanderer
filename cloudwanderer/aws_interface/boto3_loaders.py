@@ -18,10 +18,10 @@ from boto3.resources.base import ServiceResource
 from boto3.resources.model import Collection, ResourceModel
 from botocore.exceptions import UnknownServiceError  # type: ignore
 
-from .cache_helpers import cached_property, memoized_method
-from .exceptions import UnsupportedServiceError
-from .models import AWSGetAndCleanUp, CleanupAction, GetAction
-from .utils import load_json_definitions
+from ..cache_helpers import cached_property, memoized_method
+from ..exceptions import UnsupportedServiceError
+from ..models import AWSGetAndCleanUp, CleanupAction, GetAction
+from ..utils import load_json_definitions
 
 logger = logging.getLogger(__file__)
 
@@ -30,7 +30,7 @@ class CustomServiceLoader:
     """A class to load custom services."""
 
     def __init__(self, definition_path: str = "resource_definitions") -> None:
-        self.service_definitions_path = os.path.join(pathlib.Path(__file__).parent.absolute(), definition_path)
+        self.service_definitions_path = os.path.join(pathlib.Path(__file__).parent.parent.absolute(), definition_path)
 
     @cached_property
     def service_definitions(self) -> dict:
@@ -128,6 +128,7 @@ class MergedServiceLoader:
             return {}
 
 
+# TODO: Normalising servicemapping as servicemap
 class ServiceMappingLoader:
     """A class to load and retrieve service mappings.
 
@@ -138,15 +139,15 @@ class ServiceMappingLoader:
     @lru_cache()  # type: ignore
     def __init__(self) -> None:
         """Load and retrieve service mappings."""
-        self.service_mappings_path = os.path.join(pathlib.Path(__file__).parent.absolute(), "service_mappings")
+        self.service_mappings_path = os.path.join(pathlib.Path(__file__).parent.parent.absolute(), "service_mappings")
 
-    def get_service_mapping(self, service_name: str) -> dict:
+    def get_service_mapping(self, service_name: str) -> "ServiceMap":
         """Return the mapping for service_name.
 
         Arguments:
             service_name (str): The name of the service (e.g. ``'ec2'``)
         """
-        return self.service_maps.get(service_name, {})
+        return ServiceMap.factory(name=service_name, definition=self.service_maps.get(service_name, {}))
 
     @cached_property
     def service_maps(self) -> Dict[str, Any]:
