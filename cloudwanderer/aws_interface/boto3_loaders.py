@@ -5,6 +5,7 @@ provided ones. This allows cloudwanderer to extend Boto3 to support AWS resource
 We can do this quite easily because CloudWanderer only needs a fraction of the functionality that native
 Boto3 resources provide (i.e. the description of the resources).
 """
+from ..urn import PartialUrn
 import logging
 import os
 import pathlib
@@ -20,7 +21,7 @@ from botocore.exceptions import UnknownServiceError  # type: ignore
 
 from ..cache_helpers import cached_property, memoized_method
 from ..exceptions import UnsupportedServiceError
-from ..models import AWSGetAndCleanUp, CleanupAction, GetAction
+from .models import TemplateActionSet
 from ..utils import load_json_definitions
 
 logger = logging.getLogger(__file__)
@@ -30,7 +31,7 @@ class CustomServiceLoader:
     """A class to load custom services."""
 
     def __init__(self, definition_path: str = "resource_definitions") -> None:
-        self.service_definitions_path = os.path.join(pathlib.Path(__file__).parent.parent.absolute(), definition_path)
+        self.service_definitions_path = os.path.join(pathlib.Path(__file__).parent.absolute(), definition_path)
 
     @cached_property
     def service_definitions(self) -> dict:
@@ -139,7 +140,7 @@ class ServiceMappingLoader:
     @lru_cache()  # type: ignore
     def __init__(self) -> None:
         """Load and retrieve service mappings."""
-        self.service_mappings_path = os.path.join(pathlib.Path(__file__).parent.parent.absolute(), "service_mappings")
+        self.service_mappings_path = os.path.join(pathlib.Path(__file__).parent.absolute(), "service_mappings")
 
     def get_service_mapping(self, service_name: str) -> "ServiceMap":
         """Return the mapping for service_name.
@@ -270,35 +271,38 @@ class ResourceMap(NamedTuple):
             return True
         return self.service_map.is_global_service and self.service_map.global_service_region == region
 
-    def get_and_cleanup_actions(self, query_region: str) -> AWSGetAndCleanUp:
-        """Return the query and cleanup actions to be performed if getting this resource type in this region.
+    def get_discovery_action_templates(self, discovery_regions: str) -> List[TemplateActionSet]:
+        """Return the discovery actions to be performed if getting this resource type in this region.
 
         Arguments:
             query_region: The region in which the query would be performed.
         """
-        actions = AWSGetAndCleanUp([], [])
-        if not self.should_query_resources_in_region(query_region):
-            return actions
-        if self.service_map.is_global_service and self.regional_resource:
-            cleanup_region = "ALL_REGIONS"
-        else:
-            cleanup_region = query_region
-        if self.type != "subresource":
-            actions.get_actions.append(
-                GetAction(
-                    service_name=self.service_map.name,
-                    region=query_region,
+        template_actions = []
+        for discovery_region in discovery_regions:
+            actions = TemplateActionSet([], [])
+            if not self.should_query_resources_in_region(discovery_region):
+                continue
+            if self.service_map.is_global_service and self.regional_resource:
+                cleanup_region = "ALL_REGIONS"
+            else:
+                cleanup_region = discovery_region
+            if self.type != "subresource":
+                actions.get_urns.append(
+                    PartialUrn(
+                        service=self.service_map.name,
+                        region=discovery_region,
+                        resource_type=self.resource_type,
+                    )
+                )
+            actions.delete_urns.append(
+                PartialUrn(
+                    service=self.service_map.name,
+                    region=cleanup_region,
                     resource_type=self.resource_type,
                 )
             )
-        actions.cleanup_actions.append(
-            CleanupAction(
-                service_name=self.service_map.name,
-                region=cleanup_region,
-                resource_type=self.resource_type,
-            )
-        )
-        return actions
+            template_actions.append(actions)
+        return template_actions
 
     @property
     def subresource_types(self) -> List[str]:

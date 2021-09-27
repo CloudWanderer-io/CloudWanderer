@@ -3,7 +3,6 @@ from . import cloud_wanderer_resource, storage_connectors
 from .aws_interface import CloudWandererAWSInterface
 from .cloud_wanderer import CloudWanderer
 from .cloud_wanderer_resource import CloudWandererResource
-from .models import ResourceFilter
 from .urn import URN
 
 __all__ = [
@@ -13,5 +12,4 @@ __all__ = [
     "CloudWanderer",
     "URN",
     "CloudWandererAWSInterface",
-    "ResourceFilter",
 ]

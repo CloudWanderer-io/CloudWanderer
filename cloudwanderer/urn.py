@@ -45,6 +45,35 @@ class PartialUrn:
         self.resource_type = resource_type
         self.resource_id = resource_id
 
+    def __str__(self) -> str:
+        """Return a string representation of the URN."""
+        base = ":".join(
+            [
+                str(part)
+                for part in ["urn", self.cloud_name, self.account_id, self.region, self.service, self.resource_type]
+            ]
+        )
+        return f"{base}:{self.resource_id}"
+
+    def __repr__(self) -> str:
+        """Return a class representation of the URN."""
+        return str(
+            f"{self.__class__.__name__}("
+            f"account_id='{self.account_id}', "
+            f"region='{self.region}', "
+            f"service='{self.service}', "
+            f"resource_type='{self.resource_type}', "
+            f"resource_id={self.resource_id})"
+        )
+
+    def __eq__(self, other: Any) -> bool:
+        """Allow comparison of one URN to another.
+
+        Arguments:
+            other (Any): The other object to compare this one with.
+        """
+        return str(self) == str(other)
+
 
 class URN(PartialUrn):
     """A dataclass for building and querying AWS URNs."""
@@ -153,14 +182,6 @@ class URN(PartialUrn):
             return None
         return re.sub(r"(?<!\\)/", r"\/", unescaped_id)
 
-    def __eq__(self, other: Any) -> bool:
-        """Allow comparison of one URN to another.
-
-        Arguments:
-            other (Any): The other object to compare this one with.
-        """
-        return str(self) == str(other)
-
     def __repr__(self) -> str:
         """Return a class representation of the URN."""
         return str(
@@ -171,8 +192,3 @@ class URN(PartialUrn):
             f"resource_type='{self.resource_type}', "
             f"resource_id_parts={self.resource_id_parts})"
         )
-
-    def __str__(self) -> str:
-        """Return a string representation of the URN."""
-        base = ":".join(["urn", self.cloud_name, self.account_id, self.region, self.service, self.resource_type])
-        return f"{base}:{self.resource_id}"

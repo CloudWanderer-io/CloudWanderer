@@ -1,3 +1,4 @@
+from cloudwanderer.urn import PartialUrn
 from unittest.mock import MagicMock
 
 from pytest import fixture
@@ -6,18 +7,36 @@ from cloudwanderer.aws_interface import CloudWandererBoto3Session
 
 
 @fixture
-def service_resource():
+def service_resource_ec2_vpc():
     session = CloudWandererBoto3Session()
-    return session.resource("ec2")
+    service = session.resource("ec2")
+    return service.get_subresource("vpc", empty_resource=True)
 
 
-def test_get_resource_discovery_actions_specify_resource_type(service_resource):
-    action_sets = service_resource.get_resource_discovery_actions(resource_types=["vpc"], regions=["eu-west-1"])
+@fixture
+def service_resource_s3_bucket():
+    session = CloudWandererBoto3Session()
+    service = session.resource("s3")
+    return service.get_subresource("bucket", empty_resource=True)
 
-    assert len(action_sets) == 1
+
+def test_get_discovery_action_templates_regional_resource_regional_service(service_resource_ec2_vpc):
+    action_template = service_resource_ec2_vpc.get_discovery_action_templates(discovery_regions=["eu-west-1"])
+
+    assert action_template[0].get_urns == [
+        PartialUrn(account_id=None, region="eu-west-1", service="ec2", resource_type="vpc", resource_id=None)
+    ]
+    assert action_template[0].delete_urns == [
+        PartialUrn(account_id=None, region="eu-west-1", service="ec2", resource_type="vpc", resource_id=None)
+    ]
 
 
-def test_get_resource_discovery_actions(service_resource):
-    action_sets = service_resource.get_resource_discovery_actions(resource_types=[], regions=["eu-west-1"])
+def test_get_discovery_action_templates_regional_resource_global_service(service_resource_s3_bucket):
+    action_template = service_resource_s3_bucket.get_discovery_action_templates(discovery_regions=["us-east-1"])
 
-    assert len(action_sets) >= 17
+    assert action_template[0].get_urns == [
+        PartialUrn(account_id=None, region="us-east-1", service="s3", resource_type="bucket", resource_id=None)
+    ]
+    assert action_template[0].delete_urns == [
+        PartialUrn(account_id=None, region="ALL_REGIONS", service="s3", resource_type="bucket", resource_id=None)
+    ]

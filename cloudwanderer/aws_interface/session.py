@@ -32,17 +32,3 @@ class CloudWandererBoto3Session(boto3.session.Session):
         self.resource_factory = resource_factory or CloudWandererResourceFactory(
             self._session.get_component("event_emitter"), service_mapping_loader=self.service_mapping_loader
         )
-
-    def get_resource_discovery_actions(
-        self, services_resource_tuples: List[Tuple[str]], regions: List[str]
-    ) -> List[ActionSet]:
-        service_names = [service for service, _ in services_resource_tuples]
-        action_sets = []
-        service_names = service_names or self.available_services
-        for service_name in service_names:
-            logger.debug("Getting resource_types for %s", service_name)
-            service = self.resource(service_name=service_name)
-            resource_types = [resource_type for _, resource_type in services_resource_tuples]
-            action_sets.extend(service.get_resource_discovery_actions(resource_types=resource_types, regions=regions))
-
-        return action_sets

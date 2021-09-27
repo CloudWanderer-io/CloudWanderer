@@ -4,7 +4,7 @@ Provides simpler methods for :class:`~.cloud_wanderer.CloudWanderer` to call.
 """
 
 import logging
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 import boto3
 import botocore  # type: ignore
@@ -17,9 +17,11 @@ from .boto3_loaders import ServiceMappingLoader
 # from ..boto3_services import Boto3Services, CloudWandererBoto3Service, MergedServiceLoader
 from ..cloud_wanderer_resource import CloudWandererResource
 from ..exceptions import BadRequestError, ResourceNotFoundError, UnsupportedResourceTypeError
-from ..models import GetAndCleanUp, ResourceFilter
+from ..models import ActionSet, GetAndCleanUp
+from .models import ResourceFilter
 from ..urn import URN, PartialUrn
 from .session import CloudWandererBoto3Session
+from boto3.resources.base import ServiceResource
 
 logger = logging.getLogger(__name__)
 
@@ -154,7 +156,7 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
         """
         services_resource_tuples = []
 
-        regions = regions or self.cloudwanderer_boto3_session.enabled_regions
+        discovery_regions = regions or self.cloudwanderer_boto3_session.enabled_regions
         exclude_resources = exclude_resources or []
         if service_resources:
             services_resource_tuples = set(
@@ -162,9 +164,50 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
                 for service_resource in service_resources
                 for service, resource_type in service_resource.split(":")
             )
-        return self.cloudwanderer_boto3_session.get_resource_discovery_actions(
-            services_resource_tuples=services_resource_tuples, regions=regions
-        )
+        service_names = [service for service, _ in services_resource_tuples]
+        action_sets = []
+        service_names = service_names or self.cloudwanderer_boto3_session.available_services
+        logger.debug("Getting actions for: %s", service_names)
+        for service_name in service_names:
+            resource_types = [resource_type for _, resource_type in services_resource_tuples]
+
+            action_sets.extend(
+                self._get_discovery_actions_for_service(
+                    service_name=service_name, resource_types=resource_types, discovery_regions=discovery_regions
+                )
+            )
+
+        return action_sets
+
+    def _get_discovery_actions_for_service(
+        self, service_name: str, resource_types: list[str], discovery_regions: List[str]
+    ):
+        logger.debug("Getting resource_types for %s", service_name)
+        service = self.cloudwanderer_boto3_session.resource(service_name=service_name)
+
+        if resource_types:
+            service_resource_types = list(set(resource_types) & set(service.resource_types))
+        else:
+            service_resource_types = service.resource_types
+        logger.debug("Getting actions for resource types: %s", resource_types)
+        for resource_type in service_resource_types:
+            resource = service.resource(resource_type)
+            self._get_discovery_actions_for_resource(resource=resource, discovery_regions=discovery_regions)
+
+    def _get_discovery_actions_for_resource(self, resource: ServiceResource, discovery_regions: List[str]):
+        action_templates = []
+
+        service_resource = f"{resource.service_name}:{resource.resource_type}"
+        logger.debug("Getting actions for %s in %s", resource.resource_type, discovery_regions)
+
+        resource_action_templates = resource.get_discovery_action_templates(discovery_regions=["eu-west-1"])
+        if not action_templates:
+            return []
+        for subresource_type in resource.subresource_types:
+            subresource_map = self.service_map.get_resource_map(subresource_type)
+            resource_action_templates = subresource_map.get_and_cleanup_actions(discovery_regions)
+        action_templates.append(resource_action_templates)
+        return action_templates
 
     def _get_resource_filters(self, service_name: str, resource_type: str) -> Dict[str, Any]:
         if not self.resource_filters:
