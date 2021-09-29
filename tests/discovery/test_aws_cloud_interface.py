@@ -47,22 +47,29 @@ def test_get_resource_discovery_actions(aws_interface: CloudWandererAWSInterface
     aws_interface.get_resource_discovery_actions()
 
     aws_interface._get_discovery_actions_for_service.assert_called_with(
-        service_name="ec2", resource_types=[], discovery_regions=["eu-west-1"]
+        service=ANY, resource_types=[], discovery_regions=["eu-west-1"]
     )
 
 
 def test_get__get_discovery_actions_for_service(aws_interface: CloudWandererAWSInterface):
     aws_interface._get_discovery_actions_for_resource = MagicMock()
+    service = MagicMock(resource_types=["role"])
 
     aws_interface._get_discovery_actions_for_service(
-        service_name="ec2", resource_types=[], discovery_regions=["eu-west-1"]
+        service=service, resource_types=[], discovery_regions=["eu-west-1"]
     )
 
+    service.resource.assert_called_with("role")
     aws_interface._get_discovery_actions_for_resource.assert_called_with(resource=ANY, discovery_regions=["eu-west-1"])
 
 
-def test__get_discovery_actions_for_resource(aws_interface: CloudWandererAWSInterface):
-    resource = MagicMock()
+def test__get_discovery_actions_for_resource(aws_interface: CloudWandererAWSInterface, mock_action_set):
+    resource = MagicMock(
+        **{
+            "dependent_resource_types": ["role_policy"],
+            "get_discovery_action_templates.return_value": [mock_action_set],
+        }
+    )
 
     aws_interface._get_discovery_actions_for_resource(resource=resource, discovery_regions=["eu-west-1"])
 

@@ -271,96 +271,63 @@ class ResourceMap(NamedTuple):
             return True
         return self.service_map.is_global_service and self.service_map.global_service_region == region
 
-    def get_discovery_action_templates(self, discovery_regions: str) -> List[TemplateActionSet]:
-        """Return the discovery actions to be performed if getting this resource type in this region.
+    # @property
+    # def subresource_types(self) -> List[str]:
+    #     """Return a list of CloudWanderer style subresource types it's possible for this resource type to have."""
+    #     types = []
+    #     for subresource_model in self.subresource_models:
+    #         if not subresource_model.resource:
+    #             continue
+    #         types.append(botocore.xform_name(subresource_model.resource.model.name))
+    #     return types
 
-        Arguments:
-            query_region: The region in which the query would be performed.
-        """
-        template_actions = []
-        for discovery_region in discovery_regions:
-            actions = TemplateActionSet([], [])
-            if not self.should_query_resources_in_region(discovery_region):
-                continue
-            if self.service_map.is_global_service and self.regional_resource:
-                cleanup_region = "ALL_REGIONS"
-            else:
-                cleanup_region = discovery_region
-            if self.type != "subresource":
-                actions.get_urns.append(
-                    PartialUrn(
-                        service=self.service_map.name,
-                        region=discovery_region,
-                        resource_type=self.resource_type,
-                    )
-                )
-            actions.delete_urns.append(
-                PartialUrn(
-                    service=self.service_map.name,
-                    region=cleanup_region,
-                    resource_type=self.resource_type,
-                )
-            )
-            template_actions.append(actions)
-        return template_actions
+    # @property
+    # def subresource_models(self) -> Generator[Collection, None, None]:
+    #     """Yield the Boto3 models for the CloudWanderer style subresources of this resource type."""
+    #     models = {}
+    #     for collection_resource_map, collection_model in self._boto3_collection_models:
+    #         response_resource = collection_model.resource
+    #         if not response_resource or not self._is_collection_model_a_subresource(
+    #             collection_resource_map, response_resource.model
+    #         ):
+    #             continue
 
-    @property
-    def subresource_types(self) -> List[str]:
-        """Return a list of CloudWanderer style subresource types it's possible for this resource type to have."""
-        types = []
-        for subresource_model in self.subresource_models:
-            if not subresource_model.resource:
-                continue
-            types.append(botocore.xform_name(subresource_model.resource.model.name))
-        return types
+    #         collection_resource_name = botocore.xform_name(response_resource.model.name)
+    #         models[collection_resource_name] = collection_model
+    #     yield from models.values()
 
-    @property
-    def subresource_models(self) -> Generator[Collection, None, None]:
-        """Yield the Boto3 models for the CloudWanderer style subresources of this resource type."""
-        models = {}
-        for collection_resource_map, collection_model in self._boto3_collection_models:
-            response_resource = collection_model.resource
-            if not response_resource or not self._is_collection_model_a_subresource(
-                collection_resource_map, response_resource.model
-            ):
-                continue
+    # def _is_collection_model_a_subresource(
+    #     self, collection_resource_map: "ResourceMap", resource_model: ResourceModel
+    # ) -> bool:
 
-            collection_resource_name = botocore.xform_name(response_resource.model.name)
-            models[collection_resource_name] = collection_model
-        yield from models.values()
+    #     if collection_resource_map.type in ["secondaryAttribute", "baseResource"] or resource_model is None:
+    #         return False
+    #     collection_resource_name = botocore.xform_name(resource_model.name)
 
-    def _is_collection_model_a_subresource(
-        self, collection_resource_map: "ResourceMap", resource_model: ResourceModel
-    ) -> bool:
+    #     if len(resource_model.identifiers) == 1 and collection_resource_map.type != "subresource":
+    #         return False
+    #     if resource_model.name in self.ignored_subresource_types:
+    #         logger.debug(
+    #             "% is defined as an ignored subresource type by the %s servicemap",
+    #             collection_resource_name,
+    #             self.service_map.name,
+    #         )
+    #         return False
 
-        if collection_resource_map.type in ["secondaryAttribute", "baseResource"] or resource_model is None:
-            return False
-        collection_resource_name = botocore.xform_name(resource_model.name)
+    #     return True
 
-        if len(resource_model.identifiers) == 1 and collection_resource_map.type != "subresource":
-            return False
-        if resource_model.name in self.ignored_subresource_types:
-            logger.debug(
-                "% is defined as an ignored subresource type by the %s servicemap",
-                collection_resource_name,
-                self.service_map.name,
-            )
-            return False
+    # @property
+    # def _boto3_collection_models(self) -> Generator[Tuple["ResourceMap", Collection], None, None]:
+    #     """Yield the ResourceMaps and Collections for this resource type.
 
-        return True
-
-    @property
-    def _boto3_collection_models(self) -> Generator[Tuple["ResourceMap", Collection], None, None]:
-        """Yield the ResourceMaps and Collections for this resource type.
-
-        This is used exclusively for subresources because subresources have a 1:many relationship with
-        their parent resource.
-        """
-        for boto3_collection in self.boto3_resource_model.collections:
-            if boto3_collection.resource is None:
-                continue
-            collection_resource_map = self.service_map.get_resource_map(boto3_collection.resource.model.name)
-            yield collection_resource_map, boto3_collection
+    #     This is used exclusively for subresources because subresources have a 1:many relationship with
+    #     their parent resource.
+    #     """
+    #     for boto3_collection in self.boto3_resource_model.collections:
+    #         if boto3_collection.resource is None:
+    #             continue
+    #         collection_resource_map = self.service_map.get_resource_map(boto3_collection.resource.model.name)
+    #         yield collection_resource_map, boto3_collection
 
     @property
     def ignored_subresource_types(self) -> List:

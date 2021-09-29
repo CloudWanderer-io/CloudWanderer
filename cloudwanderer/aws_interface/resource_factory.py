@@ -1,3 +1,5 @@
+from ..urn import PartialUrn
+from .models import TemplateActionSet
 from typing import List, Optional
 
 from boto3 import resource
@@ -47,13 +49,45 @@ class CloudWandererResourceFactory(ResourceFactory):
         if service_context.service_name != xform_name(resource_name):
             # This should only exist only exist on Resources, not on Services
             attrs["get_discovery_action_templates"] = self._create_get_discovery_action_templates()
+            attrs["get_dependent_resource"] = self._create_get_dependent_resource()
+        else:
+            attrs["get_subresource"] = self._create_get_subresource()
         attrs["get_collection_manager"] = self._create_get_collection_manager()
         attrs["get_collection_model"] = self._create_get_collection_model()
-        attrs["get_subresource"] = self._create_get_subresource()
 
     def _create_get_discovery_action_templates(self):
-        def get_discovery_action_templates(self, discovery_regions: List[str]):
-            return self.resource_map.get_discovery_action_templates(discovery_regions=discovery_regions)
+        def get_discovery_action_templates(self, discovery_regions: str) -> List[TemplateActionSet]:
+            """Return the discovery actions to be performed if getting this resource type in this region.
+
+            Arguments:
+                query_regions: The regions in which the query would be performed.
+            """
+            template_actions = []
+            for discovery_region in discovery_regions:
+                actions = TemplateActionSet([], [])
+                if not self.resource_map.should_query_resources_in_region(discovery_region):
+                    continue
+                if self.service_map.is_global_service and self.resource_map.regional_resource:
+                    cleanup_region = "ALL_REGIONS"
+                else:
+                    cleanup_region = discovery_region
+                if self.resource_map.type != "subresource":
+                    actions.get_urns.append(
+                        PartialUrn(
+                            service=self.service_map.name,
+                            region=discovery_region,
+                            resource_type=self.resource_type,
+                        )
+                    )
+                actions.delete_urns.append(
+                    PartialUrn(
+                        service=self.service_map.name,
+                        region=cleanup_region,
+                        resource_type=self.resource_type,
+                    )
+                )
+                template_actions.append(actions)
+            return template_actions
 
         return get_discovery_action_templates
 
@@ -105,6 +139,25 @@ class CloudWandererResourceFactory(ResourceFactory):
             raise UnsupportedResourceTypeError(f"Could not find Boto3 subresource for {resource_type}")
 
         return get_subresource
+
+    def _create_get_dependent_resource(self):
+        def get_dependent_resource(
+            self, resource_type: str, args: List[str] = None, empty_resource=False
+        ) -> ServiceResource:
+            for resource in self.meta.resource_model.subresources:
+                # Convert the subresource's type into a dependent resource name (e.g. policy to role_policy)
+                resource_name = "_".join([self.resource_type, xform_name(resource.name)])
+                if resource_name == resource_type:
+                    if empty_resource:
+                        top_level_resource_identifiers = self.meta.resource_model.identifiers
+                        dependent_resource_identifiers = resource.resource.model.identifiers
+                        args = [
+                            "" for _ in range(len(dependent_resource_identifiers) - len(top_level_resource_identifiers))
+                        ]
+                    return getattr(self, resource.name)(*args)
+            raise UnsupportedResourceTypeError(f"Could not find Boto3 subresource for {resource_type}")
+
+        return get_dependent_resource
 
     def _load_cloudwanderer_properties(
         self, attrs, resource_name, resource_model, service_context: ServiceContext

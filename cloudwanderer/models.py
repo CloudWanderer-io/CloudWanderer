@@ -1,13 +1,13 @@
 """Models for CloudWanderer data."""
-from .urn import URN
+from .urn import URN, PartialUrn
 from typing import Any, Dict, List, NamedTuple
 
 
 class ActionSet(NamedTuple):
     """Define a list of partial URNs to discover and delete."""
 
-    get_urns: List[URN]
-    delete_urns: List[URN]
+    get_urns: List[PartialUrn]
+    delete_urns: List[PartialUrn]
 
 
 # TODO: Delete this class

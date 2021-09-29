@@ -170,29 +170,33 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
         logger.debug("Getting actions for: %s", service_names)
         for service_name in service_names:
             resource_types = [resource_type for _, resource_type in services_resource_tuples]
-
+            service = self.cloudwanderer_boto3_session.resource(service_name=service_name)
             action_sets.extend(
                 self._get_discovery_actions_for_service(
-                    service_name=service_name, resource_types=resource_types, discovery_regions=discovery_regions
+                    service=service, resource_types=resource_types, discovery_regions=discovery_regions
                 )
             )
 
         return action_sets
 
     def _get_discovery_actions_for_service(
-        self, service_name: str, resource_types: list[str], discovery_regions: List[str]
+        self, service: ServiceResource, resource_types: list[str], discovery_regions: List[str]
     ):
-        logger.debug("Getting resource_types for %s", service_name)
-        service = self.cloudwanderer_boto3_session.resource(service_name=service_name)
+        logger.debug("Getting resource_types for %s", service.name)
 
         if resource_types:
             service_resource_types = list(set(resource_types) & set(service.resource_types))
         else:
             service_resource_types = service.resource_types
-        logger.debug("Getting actions for resource types: %s", resource_types)
+        action_templates = []
         for resource_type in service_resource_types:
             resource = service.resource(resource_type)
-            self._get_discovery_actions_for_resource(resource=resource, discovery_regions=discovery_regions)
+            action_templates.extend(
+                self._get_discovery_actions_for_resource(resource=resource, discovery_regions=discovery_regions)
+            )
+
+        for action_template in action_templates:
+            self._expand_action_templ
 
     def _get_discovery_actions_for_resource(self, resource: ServiceResource, discovery_regions: List[str]):
         action_templates = []
@@ -201,12 +205,13 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
         logger.debug("Getting actions for %s in %s", resource.resource_type, discovery_regions)
 
         resource_action_templates = resource.get_discovery_action_templates(discovery_regions=["eu-west-1"])
-        if not action_templates:
+        if not resource_action_templates:
             return []
-        for subresource_type in resource.subresource_types:
-            subresource_map = self.service_map.get_resource_map(subresource_type)
-            resource_action_templates = subresource_map.get_and_cleanup_actions(discovery_regions)
-        action_templates.append(resource_action_templates)
+        logger.debug("getting actions for: %s", resource.dependent_resource_types)
+        for dependent_resource_type in resource.dependent_resource_types:
+            dependent_resource = resource.resource(dependent_resource_type)
+            action_templates.append(dependent_resource.get_discovery_action_templates(discovery_regions))
+
         return action_templates
 
     def _get_resource_filters(self, service_name: str, resource_type: str) -> Dict[str, Any]:
