@@ -17,7 +17,7 @@ from .boto3_loaders import ServiceMappingLoader
 # from ..boto3_services import Boto3Services, CloudWandererBoto3Service, MergedServiceLoader
 from ..cloud_wanderer_resource import CloudWandererResource
 from ..exceptions import BadRequestError, ResourceNotFoundError, UnsupportedResourceTypeError
-from ..models import ActionSet, GetAndCleanUp
+from ..models import TemplateActionSet, GetAndCleanUp
 from .models import ResourceFilter
 from ..urn import URN, PartialUrn
 from .session import CloudWandererBoto3Session
@@ -134,30 +134,13 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
             raise
 
     def get_resource_discovery_actions(
-        self,
-        regions: List[str] = None,
-        service_resources: List[str] = None,
-        exclude_resources: List[str] = None,
+        self, regions: List[str] = None, service_resources: List[str] = None
     ) -> List[GetAndCleanUp]:
-        """Return the query and cleanup actions to be performed based on the parameters provided.
-
-        All arguments are optional.
-
-        Arguments:
-            regions(list):
-                The name of the region to get resources from (defaults to session default if not specified)
-            service_resources:
-                A list of service:resources to discover (e.g. ``['ec2:instance']``)
-            exclude_resources (list):
-                A list of service:resources to exclude (e.g. ``['ec2:instance']``)
-
-        Raises:
-            UnsupportedResourceTypeError: When a resource type is requested that does not exist.
-        """
+        """ """
         services_resource_tuples = []
 
         discovery_regions = regions or self.cloudwanderer_boto3_session.enabled_regions
-        exclude_resources = exclude_resources or []
+
         if service_resources:
             services_resource_tuples = set(
                 (service, resource_type)
@@ -172,14 +155,26 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
             resource_types = [resource_type for _, resource_type in services_resource_tuples]
             service = self.cloudwanderer_boto3_session.resource(service_name=service_name)
             action_sets.extend(
-                self._get_discovery_actions_for_service(
+                self._get_discovery_action_templates_for_service(
                     service=service, resource_types=resource_types, discovery_regions=discovery_regions
                 )
             )
 
-        return action_sets
+        return self._inflate_action_set_regions(action_sets)
 
-    def _get_discovery_actions_for_service(
+    def _inflate_action_set_regions(self, action_set_templates: List[TemplateActionSet]):
+        enabled_regions = self.cloudwanderer_boto3_session.enabled_regions
+        result = []
+        for action_set_template in action_set_templates:
+            result.append(
+                action_set_template.inflate(
+                    regions=enabled_regions, account_id=self.cloudwanderer_boto3_session.account_id
+                )
+            )
+
+        return result
+
+    def _get_discovery_action_templates_for_service(
         self, service: ServiceResource, resource_types: list[str], discovery_regions: List[str]
     ):
         logger.debug("Getting resource_types for %s", service.name)
@@ -192,25 +187,26 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
         for resource_type in service_resource_types:
             resource = service.resource(resource_type)
             action_templates.extend(
-                self._get_discovery_actions_for_resource(resource=resource, discovery_regions=discovery_regions)
+                self._get_discovery_action_templates_for_resource(
+                    resource=resource, discovery_regions=discovery_regions
+                )
             )
+        return action_templates
 
-        for action_template in action_templates:
-            self._expand_action_templ
-
-    def _get_discovery_actions_for_resource(self, resource: ServiceResource, discovery_regions: List[str]):
+    def _get_discovery_action_templates_for_resource(self, resource: ServiceResource, discovery_regions: List[str]):
         action_templates = []
 
-        service_resource = f"{resource.service_name}:{resource.resource_type}"
         logger.debug("Getting actions for %s in %s", resource.resource_type, discovery_regions)
 
-        resource_action_templates = resource.get_discovery_action_templates(discovery_regions=["eu-west-1"])
-        if not resource_action_templates:
+        action_templates = resource.get_discovery_action_templates(discovery_regions=["eu-west-1"])
+        if not action_templates:
             return []
         logger.debug("getting actions for: %s", resource.dependent_resource_types)
         for dependent_resource_type in resource.dependent_resource_types:
-            dependent_resource = resource.resource(dependent_resource_type)
-            action_templates.append(dependent_resource.get_discovery_action_templates(discovery_regions))
+            dependent_resource = resource.get_dependent_resource(dependent_resource_type)
+            action_templates.extend(
+                dependent_resource.get_discovery_action_templates(discovery_regions=discovery_regions)
+            )
 
         return action_templates
 

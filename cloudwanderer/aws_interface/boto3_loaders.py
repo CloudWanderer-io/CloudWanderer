@@ -21,10 +21,9 @@ from botocore.exceptions import UnknownServiceError  # type: ignore
 
 from ..cache_helpers import cached_property, memoized_method
 from ..exceptions import UnsupportedServiceError
-from .models import TemplateActionSet
 from ..utils import load_json_definitions
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 
 class CustomServiceLoader:

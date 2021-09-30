@@ -3,18 +3,6 @@ from typing import List, NamedTuple, Dict, Any
 from ..models import ActionSet, GetAndCleanUp, GetAction, CleanupAction
 
 
-class TemplateActionSet(ActionSet):
-    """An AWS specific set of actions.
-
-    This differs from a regular ActionSet action insofar as it
-    will probably contain actions with the region 'ALL_REGIONS'.
-    These actions need to be unpacked into region specific actions that
-    reflect the enabled regions in the AWS account in question
-    before being placed into a non-cloud specific ActionSet class
-    for CloudWanderer to consume.
-    """
-
-
 # TODO: delete this class
 class AWSGetAndCleanUp(GetAndCleanUp):
     """An AWS specific set of GetAndCleanUp actions.

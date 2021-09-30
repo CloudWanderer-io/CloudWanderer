@@ -1,5 +1,5 @@
 from ..urn import PartialUrn
-from .models import TemplateActionSet
+from ..models import TemplateActionSet
 from typing import List, Optional
 
 from boto3 import resource

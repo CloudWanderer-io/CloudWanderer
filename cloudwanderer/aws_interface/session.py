@@ -1,9 +1,8 @@
 from .boto3_loaders import ServiceMappingLoader
 from .resource_factory import CloudWandererResourceFactory
-from ..models import ActionSet
-from typing import List, Optional, Tuple
 import boto3
 import logging
+from ..cache_helpers import cached_property
 
 logger = logging.getLogger(__name__)
 
@@ -32,3 +31,9 @@ class CloudWandererBoto3Session(boto3.session.Session):
         self.resource_factory = resource_factory or CloudWandererResourceFactory(
             self._session.get_component("event_emitter"), service_mapping_loader=self.service_mapping_loader
         )
+
+    @cached_property
+    def account_id(self) -> str:
+        """Return the AWS Account ID our Boto3 session is authenticated against."""
+        sts = self.client("sts")
+        return sts.get_caller_identity()["Account"]

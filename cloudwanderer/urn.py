@@ -45,6 +45,24 @@ class PartialUrn:
         self.resource_type = resource_type
         self.resource_id = resource_id
 
+    def copy(
+        self,
+        cloud_name: Optional[str] = None,
+        account_id: Optional[str] = None,
+        region: Optional[str] = None,
+        service: Optional[str] = None,
+        resource_type: Optional[str] = None,
+        resource_id: Optional[str] = None,
+    ):
+        return PartialUrn(
+            cloud_name=cloud_name or self.cloud_name,
+            account_id=account_id or self.account_id,
+            region=region or self.region,
+            service=service or self.service,
+            resource_type=resource_type or self.resource_type,
+            resource_id=resource_id or self.resource_id,
+        )
+
     def __str__(self) -> str:
         """Return a string representation of the URN."""
         base = ":".join(
