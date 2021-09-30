@@ -10,28 +10,28 @@ from cloudwanderer.aws_interface import CloudWandererBoto3Session
 def service_resource_ec2_vpc():
     session = CloudWandererBoto3Session()
     service = session.resource("ec2")
-    return service.get_subresource("vpc", empty_resource=True)
+    return service.resource("vpc", empty_resource=True)
 
 
 @fixture
 def service_resource_s3_bucket():
     session = CloudWandererBoto3Session()
     service = session.resource("s3")
-    return service.get_subresource("bucket", empty_resource=True)
+    return service.resource("bucket", empty_resource=True)
 
 
 @fixture
 def service_resource_iam_role():
     session = CloudWandererBoto3Session()
     service = session.resource("iam")
-    return service.get_subresource("role", empty_resource=True)
+    return service.resource("role", empty_resource=True)
 
 
 @fixture
 def service_resource_iam_role_policy():
     session = CloudWandererBoto3Session()
     service = session.resource("iam")
-    resource = service.get_subresource("role", empty_resource=True)
+    resource = service.resource("role", empty_resource=True)
     return resource.get_dependent_resource("role_policy", empty_resource=True)
 
 

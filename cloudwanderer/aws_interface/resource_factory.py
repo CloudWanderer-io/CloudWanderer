@@ -51,7 +51,7 @@ class CloudWandererResourceFactory(ResourceFactory):
             attrs["get_discovery_action_templates"] = self._create_get_discovery_action_templates()
             attrs["get_dependent_resource"] = self._create_get_dependent_resource()
         else:
-            attrs["get_subresource"] = self._create_get_subresource()
+            attrs["resource"] = self._create_resource()
         attrs["get_collection_manager"] = self._create_get_collection_manager()
         attrs["get_collection_model"] = self._create_get_collection_model()
 
@@ -128,17 +128,26 @@ class CloudWandererResourceFactory(ResourceFactory):
 
         return get_collection_model
 
-    def _create_get_subresource(self):
-        def get_subresource(self, resource_type: str, args: List[str] = None, empty_resource=False) -> ServiceResource:
+    def _create_resource(self):
+        def resource(self, resource_type: str, args: List[str] = None, empty_resource=False) -> ServiceResource:
+            """Get a Boto3 ServiceResource object for a resource that exists in this service.
+
+            Specifying empty_resource=True will return a ServiceResource object which does not
+            correspond to a specific resource in AWS but allows access to resource type metadata.
+            """
             for resource in self.meta.resource_model.subresources:
                 resource_name = xform_name(resource.name)
                 if resource_name == resource_type:
                     if empty_resource:
                         args = ["" for _ in resource.resource.model.identifiers]
                     return getattr(self, resource.name)(*args)
-            raise UnsupportedResourceTypeError(f"Could not find Boto3 subresource for {resource_type}")
+            raise UnsupportedResourceTypeError(f"Could not find Boto3 resource for {resource_type}")
 
-        return get_subresource
+        return resource
+    
+    def _create_collection(self):
+        def collection(self, resource_type: str) -> Collection:
+            pass
 
     def _create_get_dependent_resource(self):
         def get_dependent_resource(

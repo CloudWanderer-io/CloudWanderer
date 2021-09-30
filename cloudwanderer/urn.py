@@ -81,7 +81,7 @@ class PartialUrn:
             f"region='{self.region}', "
             f"service='{self.service}', "
             f"resource_type='{self.resource_type}', "
-            f"resource_id={self.resource_id})"
+            f"resource_id='{self.resource_id}')"
         )
 
     def __eq__(self, other: Any) -> bool:

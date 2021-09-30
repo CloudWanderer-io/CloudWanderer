@@ -185,7 +185,7 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
             service_resource_types = service.resource_types
         action_templates = []
         for resource_type in service_resource_types:
-            resource = service.resource(resource_type)
+            resource = service.resource(resource_type, empty_resource=True)
             action_templates.extend(
                 self._get_discovery_action_templates_for_resource(
                     resource=resource, discovery_regions=discovery_regions
