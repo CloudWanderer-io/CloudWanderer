@@ -8,7 +8,7 @@
             "type": "baseResource"
         },
         "LayerVersion": {
-            "type": "subresource",
+            "type": "dependent_resource",
             "parentResourceType": "Layer"
         }
     }

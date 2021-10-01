@@ -21,7 +21,7 @@ from botocore.exceptions import UnknownServiceError  # type: ignore
 
 from ..cache_helpers import cached_property, memoized_method
 from ..exceptions import UnsupportedServiceError
-from ..utils import load_json_definitions
+from ..utils import load_json_definitions, snake_to_pascal
 
 logger = logging.getLogger(__name__)
 
@@ -175,12 +175,13 @@ class ServiceMap(NamedTuple):
         """Return True if this service has no definition and should return default values."""
         return self.service_definition == {}
 
-    def get_resource_map(self, boto3_resource_name: str) -> "ResourceMap":
-        """Return the resource map given a PascalCase resource name.
+    def get_resource_map(self, resource_type: str) -> "ResourceMap":
+        """Return the resource map given a snake_case resource name.
 
         Arguments:
-            boto3_resource_name: The (PascalCase) name of the resource map to get.
+            boto3_resource_name: The (snake_case) name of the resource map to get.
         """
+        boto3_resource_name = snake_to_pascal(resource_type)
         return ResourceMap.factory(
             service_map=self,
             definition=self.resource_definition.get(boto3_resource_name, {}),
@@ -270,15 +271,15 @@ class ResourceMap(NamedTuple):
             return True
         return self.service_map.is_global_service and self.service_map.global_service_region == region
 
-    # @property
-    # def subresource_types(self) -> List[str]:
-    #     """Return a list of CloudWanderer style subresource types it's possible for this resource type to have."""
-    #     types = []
-    #     for subresource_model in self.subresource_models:
-    #         if not subresource_model.resource:
-    #             continue
-    #         types.append(botocore.xform_name(subresource_model.resource.model.name))
-    #     return types
+    @property
+    def dependent_resource_types(self) -> List[str]:
+        """Return a list of CloudWanderer style dependent resource types it's possible for this resource type to have."""
+        types = []
+        for dependent_resource_model in self._dependent_resource_models:
+            if not dependent_resource_model.resource:
+                continue
+            types.append(botocore.xform_name(dependent_resource_model.resource.model.name))
+        return types
 
     # @property
     # def subresource_models(self) -> Generator[Collection, None, None]:

@@ -34,7 +34,7 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
     def __init__(
         self,
         cloudwanderer_boto3_session: CloudWandererBoto3Session,
-        resource_filters: List[ResourceFilter] = None,
+        # resource_filters: List[ResourceFilter] = None,
     ) -> None:
         """Simplifies lookup of Boto3 services and resources.
 
@@ -50,7 +50,7 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
         """
         self.cloudwanderer_boto3_session = cloudwanderer_boto3_session or CloudWandererBoto3Session()
 
-        self.resource_filters = resource_filters or []
+        # self.resource_filters = resource_filters or []
 
     def get_resource(self, urn: URN, include_subresources: bool = True) -> Iterator[CloudWandererResource]:
         """Yield the resource picked out by this URN and optionally its subresources.
@@ -104,34 +104,39 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
             botocore.exceptions.ClientError: Occurs if the Boto3 Client Errors.
         """
         logger.info("Getting %s %s resources from %s", service_name, resource_type, region)
-        service = self.boto3_services.get_service(service_name=service_name, region_name=region)
-        resource_filters = self._get_resource_filters(service_name, resource_type)
-        try:
-            for resource in service.get_resources(resource_type=resource_type, resource_filters=resource_filters):
-                logger.debug("Found %s", resource.urn)
-                subresource_urns = []
-                for subresource in resource.get_subresources():
-                    logger.debug("Found subresource %s", subresource.urn)
-                    subresource_urns.append(subresource.urn)
-                    yield CloudWandererResource(
-                        urn=subresource.urn,
-                        resource_data=subresource.normalised_raw_data,
-                        secondary_attributes=list(subresource.get_secondary_attributes()),
-                    )
-                yield CloudWandererResource(
-                    urn=resource.urn,
-                    subresource_urns=subresource_urns,
-                    resource_data=resource.normalised_raw_data,
-                    secondary_attributes=list(resource.get_secondary_attributes()),
-                )
-        except botocore.exceptions.EndpointConnectionError:
-            logger.info("%s %s not supported in %s", service_name, resource_type, region)
-            return
-        except botocore.exceptions.ClientError as ex:
-            if ex.response["Error"]["Code"] == "InvalidAction":
-                logger.info("%s %s not supported in %s", service_name, resource_type, region)
-                return
-            raise
+        # service = self.boto3_services.get_service(service_name=service_name, region_name=region)
+        service = self.cloudwanderer_boto3_session.resource(service_name=service_name)
+        for resource in service.collection(resource_type=resource_type):
+            for dependent_resource in resource.dependent_resource_collection():
+                pass
+
+        # # resource_filters = self._get_resource_filters(service_name, resource_type)
+        # try:
+        #     for resource in service.get_resources(resource_type=resource_type):
+        #         logger.debug("Found %s", resource.urn)
+        #         subresource_urns = []
+        #         for subresource in resource.get_subresources():
+        #             logger.debug("Found subresource %s", subresource.urn)
+        #             subresource_urns.append(subresource.urn)
+        #             yield CloudWandererResource(
+        #                 urn=subresource.urn,
+        #                 resource_data=subresource.normalised_raw_data,
+        #                 secondary_attributes=list(subresource.get_secondary_attributes()),
+        #             )
+        #         yield CloudWandererResource(
+        #             urn=resource.urn,
+        #             subresource_urns=subresource_urns,
+        #             resource_data=resource.normalised_raw_data,
+        #             secondary_attributes=list(resource.get_secondary_attributes()),
+        #         )
+        # except botocore.exceptions.EndpointConnectionError:
+        #     logger.info("%s %s not supported in %s", service_name, resource_type, region)
+        #     return
+        # except botocore.exceptions.ClientError as ex:
+        #     if ex.response["Error"]["Code"] == "InvalidAction":
+        #         logger.info("%s %s not supported in %s", service_name, resource_type, region)
+        #         return
+        #     raise
 
     def get_resource_discovery_actions(
         self, regions: List[str] = None, service_resources: List[str] = None
@@ -210,11 +215,11 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
 
         return action_templates
 
-    def _get_resource_filters(self, service_name: str, resource_type: str) -> Dict[str, Any]:
-        if not self.resource_filters:
-            return {}
+    # def _get_resource_filters(self, service_name: str, resource_type: str) -> Dict[str, Any]:
+    #     if not self.resource_filters:
+    #         return {}
 
-        for resource_filter in self.resource_filters:
-            if resource_filter.service_name == service_name and resource_filter.resource_type == resource_type:
-                return resource_filter.filters
-        return {}
+    #     for resource_filter in self.resource_filters:
+    #         if resource_filter.service_name == service_name and resource_filter.resource_type == resource_type:
+    #             return resource_filter.filters
+    #     return {}

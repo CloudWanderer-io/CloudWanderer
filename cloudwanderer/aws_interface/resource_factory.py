@@ -54,6 +54,7 @@ class CloudWandererResourceFactory(ResourceFactory):
             attrs["resource"] = self._create_resource()
         attrs["get_collection_manager"] = self._create_get_collection_manager()
         attrs["get_collection_model"] = self._create_get_collection_model()
+        attrs["collection"] = self._create_collection_getter()
 
     def _create_get_discovery_action_templates(self):
         def get_discovery_action_templates(self, discovery_regions: str) -> List[TemplateActionSet]:
@@ -71,7 +72,7 @@ class CloudWandererResourceFactory(ResourceFactory):
                     cleanup_region = "ALL_REGIONS"
                 else:
                     cleanup_region = discovery_region
-                if self.resource_map.type != "subresource":
+                if self.resource_map.type != "dependent_resource":
                     actions.get_urns.append(
                         PartialUrn(
                             service=self.service_map.name,
@@ -144,10 +145,15 @@ class CloudWandererResourceFactory(ResourceFactory):
             raise UnsupportedResourceTypeError(f"Could not find Boto3 resource for {resource_type}")
 
         return resource
-    
-    def _create_collection(self):
-        def collection(self, resource_type: str) -> Collection:
-            pass
+
+    def _create_collection_getter(self):
+        def collection(self, resource_type: str) -> Collection:
+            collection_model = self.get_collection_model(resource_type)
+            collection_model.name  # 'Roles'
+            collection_manager = getattr(self, collection_model.name)
+            return collection_manager.all()
+
+        return collection
 
     def _create_get_dependent_resource(self):
         def get_dependent_resource(
@@ -168,6 +174,32 @@ class CloudWandererResourceFactory(ResourceFactory):
 
         return get_dependent_resource
 
+    def _create_resource_types(self):
+        @property
+        def resource_types(self):
+            resource_types = [
+                xform_name(collection.resource.type) for collection in self.meta.resource_model.collections
+            ]
+
+            return resource_types
+
+        return resource_types
+
+    def _create_dependent_resource_types(self):
+        @property
+        def dependent_resource_types(self):
+
+            dependent_resource_types = []
+            for collection in self.meta.resource_model.collections:
+                resource_type = xform_name(collection.resource.type)
+                resource_map = self.service_map.get_resource_map(resource_type=resource_type)
+                if resource_map.type == "dependent_resource":
+                    dependent_resource_types.append(resource_type)
+
+            return dependent_resource_types
+
+        return dependent_resource_types
+
     def _load_cloudwanderer_properties(
         self, attrs, resource_name, resource_model, service_context: ServiceContext
     ) -> None:
@@ -177,16 +209,10 @@ class CloudWandererResourceFactory(ResourceFactory):
         )
 
         if resource_name == service_context.service_name:
-
-            @property
-            def resource_types(self):
-                resource_types = [
-                    xform_name(collection.resource.type) for collection in self.meta.resource_model.collections
-                ]
-
-                return resource_types
-
-            attrs["resource_types"] = resource_types
+            # If it is a service:
+            attrs["resource_types"] = self._create_resource_types()
         else:
+            # If it is a resource:
             attrs["resource_type"] = xform_name(resource_name)
-            attrs["resource_map"] = attrs["service_map"].get_resource_map(boto3_resource_name=resource_name)
+            attrs["resource_map"] = attrs["service_map"].get_resource_map(resource_type=xform_name(resource_name))
+            attrs["dependent_resource_types"] = self._create_dependent_resource_types()

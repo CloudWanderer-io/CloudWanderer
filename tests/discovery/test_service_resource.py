@@ -1,3 +1,4 @@
+from boto3.resources.collection import ResourceCollection
 from cloudwanderer.urn import PartialUrn
 from unittest.mock import MagicMock
 
@@ -35,6 +36,12 @@ def service_resource_iam_role_policy():
     return resource.get_dependent_resource("role_policy", empty_resource=True)
 
 
+@fixture
+def service_resource_iam():
+    session = CloudWandererBoto3Session()
+    return session.resource("iam")
+
+
 def test_get_discovery_action_templates_regional_resource_regional_service(service_resource_ec2_vpc):
     action_template = service_resource_ec2_vpc.get_discovery_action_templates(discovery_regions=["eu-west-1"])
 
@@ -64,3 +71,13 @@ def test_dependent_resources(service_resource_iam_role_policy):
     assert action_template[0].delete_urns == [
         PartialUrn(account_id=None, region="us-east-1", service="iam", resource_type="role_policy", resource_id=None)
     ]
+
+
+def test_collection(service_resource_iam):
+    collection = service_resource_iam.collection(resource_type="role")
+    assert issubclass(collection.__class__, ResourceCollection)
+
+
+def test_dependent_resource_types(service_resource_iam_role):
+    result = service_resource_iam_role.dependent_resource_types
+    assert result == ["role_policy"]

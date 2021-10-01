@@ -19,21 +19,7 @@
                 ],
                 "pathToRegion": "LocationConstraint",
                 "defaultValue": "us-east-1"
-            },
-            "ignoredSubresources": [
-                {
-                    "type": "ObjectSummary"
-                },
-                {
-                    "type": "MultipartUpload"
-                },
-                {
-                    "type": "MultipartUploadPart"
-                },
-                {
-                    "type": "ObjectVersion"
-                }
-            ]
+            }
         }
     }
 }

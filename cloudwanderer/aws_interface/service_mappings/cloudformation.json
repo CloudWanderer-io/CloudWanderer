@@ -2,12 +2,7 @@
     "service": {},
     "resources": {
         "Stack": {
-            "type": "resource",
-            "ignoredSubresources": [
-                {
-                    "type": "StackResourceSummary"
-                }
-            ]
+            "type": "resource"
         }
     }
 }
