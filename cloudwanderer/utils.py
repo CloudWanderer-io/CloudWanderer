@@ -6,6 +6,7 @@ from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
+from collections import OrderedDict
 
 logger = logging.getLogger(__name__)
 
@@ -61,24 +62,6 @@ def standardise_data_types(resource: dict) -> Dict[str, Any]:
     """
     result = json.loads(json.dumps(resource, default=json_default), object_hook=json_object_hook, parse_float=Decimal)
     return result
-
-
-def load_json_definitions(path: str) -> Dict[str, Any]:
-    """Return the parsed contents of all JSON files in a given path.
-
-    Arguments:
-        path: The path to load JSON files from.
-    """
-    definition_files = [
-        (os.path.abspath(os.path.join(path, file_name)), Path(file_name).stem)
-        for file_name in os.listdir(path)
-        if os.path.isfile(os.path.join(path, file_name))
-    ]
-    definitions = {}
-    for file_path, service_name in definition_files:
-        with open(file_path) as definition_path:
-            definitions[service_name] = json.load(definition_path)
-    return definitions
 
 
 def snake_to_pascal(snake_case: str) -> str:

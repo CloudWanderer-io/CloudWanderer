@@ -107,8 +107,14 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
         # service = self.boto3_services.get_service(service_name=service_name, region_name=region)
         service = self.cloudwanderer_boto3_session.resource(service_name=service_name)
         for resource in service.collection(resource_type=resource_type):
-            for dependent_resource in resource.dependent_resource_collection():
-                pass
+            for dependent_resource_type in resource.dependent_resource_types:
+                for dependent_resource in resource.collection(resource_type=dependent_resource_type):
+                    yield CloudWandererResource(
+                        urn=dependent_resource.get_urn(),
+                        resource_data=dependent_resource.meta.data,
+                        secondary_attributes=[],
+                    )
+            yield CloudWandererResource(urn=resource.get_urn())
 
         # # resource_filters = self._get_resource_filters(service_name, resource_type)
         # try:
@@ -173,7 +179,7 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
         for action_set_template in action_set_templates:
             result.append(
                 action_set_template.inflate(
-                    regions=enabled_regions, account_id=self.cloudwanderer_boto3_session.account_id
+                    regions=enabled_regions, account_id=self.cloudwanderer_boto3_session.get_account_id()
                 )
             )
 

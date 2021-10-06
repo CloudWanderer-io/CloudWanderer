@@ -10,7 +10,7 @@ def aws_interface() -> CloudWandererAWSInterface:
         **{
             "available_services": ["ec2"],
             "enabled_regions": ["us-east-1", "eu-west-1"],
-            "resource.return_value": MagicMock(resource_types=["vpc"]),
+            "resource.return_value": MagicMock(**{"resource_types": ["vpc"], "collection.return_value": [MagicMock()]}),
             "account_id": "111111111111",
         }
     )

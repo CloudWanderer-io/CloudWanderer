@@ -114,7 +114,7 @@ def aws_interface() -> CloudWandererAWSInterface:
             "available_services": ["ec2"],
             "enabled_regions": ["us-east-1", "eu-west-1"],
             "resource.return_value": MagicMock(resource_types=["vpc"]),
-            "account_id": "111111111111",
+            "get_account_id.return_value": "111111111111",
         }
     )
     return CloudWandererAWSInterface(cloudwanderer_boto3_session=mock_cloudwanderer_boto3_session)

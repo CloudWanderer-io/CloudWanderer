@@ -5,23 +5,26 @@ provided ones. This allows cloudwanderer to extend Boto3 to support AWS resource
 We can do this quite easily because CloudWanderer only needs a fraction of the functionality that native
 Boto3 resources provide (i.e. the description of the resources).
 """
+from genericpath import isfile
 from ..urn import PartialUrn
 import logging
 import os
 import pathlib
 from functools import lru_cache
-from typing import Any, Dict, Generator, List, NamedTuple, Optional, Tuple
+from typing import Any, Dict, Generator, List, NamedTuple, Optional, OrderedDict, Tuple
 
 import boto3
 import botocore  # type: ignore
 import jmespath  # type: ignore
 from boto3.resources.base import ServiceResource
 from boto3.resources.model import Collection, ResourceModel
-from botocore.exceptions import UnknownServiceError  # type: ignore
+from botocore.exceptions import UnknownServiceError, DataNotFoundError  # type: ignore
 
 from ..cache_helpers import cached_property, memoized_method
 from ..exceptions import UnsupportedServiceError
-from ..utils import load_json_definitions, snake_to_pascal
+from ..utils import snake_to_pascal
+from pathlib import Path
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -32,21 +35,39 @@ class CustomServiceLoader:
     def __init__(self, definition_path: str = "resource_definitions") -> None:
         self.service_definitions_path = os.path.join(pathlib.Path(__file__).parent.absolute(), definition_path)
 
-    @cached_property
-    def service_definitions(self) -> dict:
-        """Return our custom resource definitions."""
-        return load_json_definitions(self.service_definitions_path)
-
-    def get_service_definition(self, service_name: str) -> dict:
+    @memoized_method()
+    def get_service_definition(self, service_name: str, type_name: str, api_version: str) -> dict:
+        path = Path(service_name) / Path(api_version) / Path(f"{type_name}.json")
+        full_path = self.service_definitions_path / path
+        logger.debug("CustomServiceLoader get_service_definition loaded path %s", full_path)
         try:
-            return self.service_definitions[service_name]
-        except KeyError:
+            with open(full_path, "r") as file:
+                return json.load(file)
+        except FileNotFoundError:
             raise UnsupportedServiceError(f"{service_name} does not exist as a custom CloudWanderer service.")
+
+    def list_api_versions(self, service_name: str, type_name: str) -> List[str]:
+        path = self.service_definitions_path / Path(service_name)
+        try:
+            api_versions = [
+                d
+                for d in os.listdir(path)
+                if os.path.isdir(os.path.join(path, d)) and os.path.isfile(os.path.join(path, d, f"{type_name}.json"))
+            ]
+        except FileNotFoundError:
+            raise UnsupportedServiceError(f"{service_name} does not exist as a custom CloudWanderer service.")
+
+        return sorted(api_versions)
 
     @property
     def available_services(self) -> List[str]:
         """Return a list of available snake_case service names."""
-        return list(self.service_definitions.keys())
+        possible_services = [
+            d
+            for d in os.listdir(self.service_definitions_path)
+            if os.path.isdir(os.path.join(self.service_definitions_path, d))
+        ]
+        return sorted(possible_services)
 
 
 class MergedServiceLoader:
@@ -62,10 +83,12 @@ class MergedServiceLoader:
         # This does not need to honour the user's session because it is *only* used to list resources
         self.non_specific_boto3_session = boto3.session.Session()
 
-    @property
-    def available_services(self) -> List[str]:
+    def list_available_services(self) -> List[str]:
         """Return a list of service names that can be loaded."""
         return list(set(self.cloudwanderer_available_services + self.boto3_available_services))
+
+    def determine_latest_version(self, service_name: str, type_name: str) -> str:
+        return max(self.list_api_versions(service_name, type_name))
 
     @property
     def cloudwanderer_available_services(self) -> List[str]:
@@ -77,54 +100,79 @@ class MergedServiceLoader:
         """Return a list of services defined by Boto3."""
         return self.non_specific_boto3_session.get_available_resources()
 
+    def list_api_versions(self, service_name: str, type_name: str) -> List[str]:
+        try:
+            boto3_api_versions = self.boto3_loader.list_api_versions(service_name=service_name, type_name=type_name)
+        except DataNotFoundError:
+            boto3_api_versions = []
+        try:
+            custom_api_versions = self.custom_service_loader.list_api_versions(
+                service_name=service_name, type_name=type_name
+            )
+
+        except UnsupportedServiceError:
+            custom_api_versions = []
+
+        if not boto3_api_versions and not custom_api_versions:
+            raise UnsupportedServiceError(
+                f"{service_name} is not supported by either Boto3 or CloudWanderer's custom services"
+            )
+
+        if custom_api_versions:
+            return custom_api_versions
+
+        return boto3_api_versions
+
     @memoized_method()
-    def get_service_definition(self, service_name: str) -> dict:
-        """Return a combined dictionary service definition of both CloudWanderer and Boto3 services.
+    def load_service_model(self, service_name: str, type_name: str, api_version: str) -> OrderedDict:
+        try:
+            boto3_definition = self.boto3_loader.load_service_model(
+                service_name, type_name=type_name, api_version=api_version
+            )
+        except UnknownServiceError:
+            boto3_definition = OrderedDict()
 
-        Arguments:
-            service_name: The PascalCase name of the service to return the definition for.
-
-        Raises:
-            UnsupportedServiceError: Occurs if a service is requested that CloudWanderer does not support.
-        """
-        boto3_definition = self._get_boto3_definition(service_name)
-        custom_service_definition = self._get_custom_service_definition(service_name)
+        custom_service_definition = self._get_custom_service_definition(
+            service_name, type_name=type_name, api_version=api_version
+        )
 
         if not boto3_definition and not custom_service_definition:
             raise UnsupportedServiceError(
                 f"{service_name} is not supported by either Boto3 or CloudWanderer's custom services"
             )
 
-        return {
-            "service": {
-                "hasMany": {
-                    **(jmespath.search("service.hasMany", boto3_definition) or {}),
-                    **(jmespath.search("service.hasMany", custom_service_definition) or {}),
-                }
-            },
-            "resources": {**boto3_definition.get("resources", {}), **custom_service_definition.get("resources", {})},
-        }
+        return OrderedDict(
+            {
+                "service": OrderedDict(
+                    {
+                        "hasMany": OrderedDict(
+                            {
+                                **(jmespath.search("service.hasMany", boto3_definition) or OrderedDict({})),
+                                **(jmespath.search("service.hasMany", custom_service_definition) or OrderedDict({})),
+                            }
+                        )
+                    }
+                ),
+                "resources": OrderedDict(
+                    {
+                        **boto3_definition.get("resources", OrderedDict({})),
+                        **custom_service_definition.get("resources", OrderedDict({})),
+                    }
+                ),
+            }
+        )
 
-    def _get_custom_service_definition(self, service_name: str) -> dict:
+    def _get_custom_service_definition(self, service_name: str, type_name: str, api_version: str) -> dict:
         """Get the custom CloudWanderer definition for service_name so we can merge it with Boto3's.
 
         Arguments:
             service_name: The PascalCase name of the service to get the definition of.
         """
         try:
-            return self.custom_service_loader.get_service_definition(service_name=service_name)
+            return self.custom_service_loader.get_service_definition(
+                service_name=service_name, type_name=type_name, api_version=api_version
+            )
         except UnsupportedServiceError:
-            return {}
-
-    def _get_boto3_definition(self, service_name: str) -> dict:
-        """Get the Boto3 definition for service_name so we can merge it with CloudWanderer's.
-
-        Arguments:
-            service_name (str): The name of the service (e.g. ``'ec2'``)
-        """
-        try:
-            return self.boto3_loader.load_service_model(service_name, "resources-1", None)
-        except UnknownServiceError:
             return {}
 
 

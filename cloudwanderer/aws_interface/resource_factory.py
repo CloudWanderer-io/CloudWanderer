@@ -1,6 +1,10 @@
-from ..urn import PartialUrn
+from ..urn import PartialUrn, URN
 from ..models import TemplateActionSet
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .session import CloudWandererBoto3Session
+
 
 from boto3 import resource
 from boto3.resources.collection import CollectionManager
@@ -13,6 +17,7 @@ from ..exceptions import UnsupportedResourceTypeError
 from boto3.resources.model import Collection, ResourceModel
 from boto3.utils import ServiceContext
 from botocore import xform_name
+import jmespath
 
 logger = logging.getLogger(__name__)
 
@@ -20,9 +25,15 @@ logger = logging.getLogger(__name__)
 class CloudWandererResourceFactory(ResourceFactory):
     """Enriches functionality of boto3 resource objects with CloudWanderer specific methods."""
 
-    def __init__(self, emitter, service_mapping_loader: ServiceMappingLoader):
+    def __init__(
+        self,
+        emitter,
+        service_mapping_loader: ServiceMappingLoader,
+        cloudwanderer_boto3_session: "CloudWandererBoto3Session",
+    ):
         super().__init__(emitter=emitter)
         self.service_mapping_loader = service_mapping_loader
+        self.cloudwanderer_boto3_session = cloudwanderer_boto3_session
 
     def load_from_definition(self, resource_name, single_resource_json_definition, service_context):
 
@@ -38,8 +49,12 @@ class CloudWandererResourceFactory(ResourceFactory):
 
         # CloudWanderer resource properties
         self._load_cloudwanderer_properties(
-            attrs=attrs, resource_name=resource_name, resource_model=resource_model, service_context=service_context
+            attrs=attrs,
+            resource_name=resource_name,
+            resource_model=resource_model,
+            service_context=service_context,
         )
+
         class_definition = super().load_from_definition(resource_name, single_resource_json_definition, service_context)
         for attribute_name, attribute_value in attrs.items():
             setattr(class_definition, attribute_name, attribute_value)
@@ -55,6 +70,10 @@ class CloudWandererResourceFactory(ResourceFactory):
         attrs["get_collection_manager"] = self._create_get_collection_manager()
         attrs["get_collection_model"] = self._create_get_collection_model()
         attrs["collection"] = self._create_collection_getter()
+        attrs["get_account_id"] = self._create_get_account_id()
+        attrs["get_urn"] = self._create_get_urn()
+        attrs["get_region"] = self._create_get_region()
+        attrs["get_secondary_attributes"] = self._create_get_secondary_attributes()
 
     def _create_get_discovery_action_templates(self):
         def get_discovery_action_templates(self, discovery_regions: str) -> List[TemplateActionSet]:
@@ -130,7 +149,7 @@ class CloudWandererResourceFactory(ResourceFactory):
         return get_collection_model
 
     def _create_resource(self):
-        def resource(self, resource_type: str, args: List[str] = None, empty_resource=False) -> ServiceResource:
+        def resource(self, resource_type: str, identifiers: List[str] = None, empty_resource=False) -> ServiceResource:
             """Get a Boto3 ServiceResource object for a resource that exists in this service.
 
             Specifying empty_resource=True will return a ServiceResource object which does not
@@ -140,8 +159,8 @@ class CloudWandererResourceFactory(ResourceFactory):
                 resource_name = xform_name(resource.name)
                 if resource_name == resource_type:
                     if empty_resource:
-                        args = ["" for _ in resource.resource.model.identifiers]
-                    return getattr(self, resource.name)(*args)
+                        identifiers = ["" for _ in resource.resource.model.identifiers]
+                    return getattr(self, resource.name)(*identifiers)
             raise UnsupportedResourceTypeError(f"Could not find Boto3 resource for {resource_type}")
 
         return resource
@@ -173,6 +192,47 @@ class CloudWandererResourceFactory(ResourceFactory):
             raise UnsupportedResourceTypeError(f"Could not find Boto3 subresource for {resource_type}")
 
         return get_dependent_resource
+
+    def _create_get_urn(self):
+        def get_urn(self):
+            id_parts = [getattr(self, identifier) for identifier in self.meta.identifiers]
+            return URN(
+                account_id=self.get_account_id(),
+                region=self.get_region(),
+                service=self.service_name,
+                resource_type=self.resource_type,
+                resource_id_parts=id_parts,
+            )
+
+        return get_urn
+
+    def _create_get_secondary_attributes(self):
+        def get_secondary_attributes(self):
+            print(self.meta.resource_model.name)
+            for subresource in self.meta.resource_model.subresources:
+                raise Exception("SUBRESOURCE" + subresource.name)
+
+        return get_secondary_attributes
+
+    def _create_get_account_id(self):
+        def get_account_id(self):
+            return self.cloudwanderer_boto3_session.get_account_id()
+
+        return get_account_id
+
+    def _create_get_region(self):
+        def get_region(self):
+            if self.resource_map.region_request:
+                method = getattr(self.meta.client, self.resource_map.region_request.operation)
+                result = method(**self.resource_map.region_request.build_params(self))
+                return (
+                    jmespath.search(self.resource_map.region_request.path_to_region, result)
+                    or self.resource_map.region_request.default_value
+                )
+
+            return self.meta.client.meta.region_name
+
+        return get_region
 
     def _create_resource_types(self):
         @property
@@ -207,6 +267,7 @@ class CloudWandererResourceFactory(ResourceFactory):
         attrs["service_map"] = self.service_mapping_loader.get_service_mapping(
             service_name=service_context.service_name
         )
+        attrs["cloudwanderer_boto3_session"] = self.cloudwanderer_boto3_session
 
         if resource_name == service_context.service_name:
             # If it is a service:

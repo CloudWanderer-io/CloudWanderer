@@ -19,7 +19,7 @@ class TestUtils(unittest.TestCase):
         )
 
     def test_load_json_definitions(self):
-        result = load_json_definitions(Path(cloudwanderer.__file__).parent.joinpath("service_mappings"))
+        result = load_json_definitions(Path(cloudwanderer.__file__).parent.joinpath("aws_interface/service_mappings"))
         assert {"iam", "cloudformation", "ec2", "s3", "lambda"}.issubset(set(result.keys()))
 
     def test_snake_to_pascal(self):
