@@ -58,6 +58,7 @@ class CloudWandererResource:
         secondary_attributes: List["SecondaryAttribute"] = None,
         loader: Optional[Callable] = None,
         subresource_urns: List[URN] = None,
+        parent_urn: URN = None,
         discovery_time: datetime = None,
     ) -> None:
         """Initialise the resource.
@@ -71,9 +72,11 @@ class CloudWandererResource:
         """
         self.urn = urn
         self.subresource_urns = subresource_urns or []
+        self.parent_urn = parent_urn
         self.cloudwanderer_metadata = ResourceMetadata(
             resource_data=resource_data or {}, secondary_attributes=secondary_attributes or []
         )
+        self.discovery_time = discovery_time or datetime.now()
         # service_mapping_loader = ServiceMappingLoader()
         # self.cloudwanderer_service_metadata = ServiceMap.factory(
         #     name=urn.service,
@@ -85,7 +88,6 @@ class CloudWandererResource:
 
         self._loader = loader
         self._set_resource_data_attrs()
-        self.discovery_time = discovery_time
 
     def load(self) -> None:
         """Inflate this resource with all data from the original storage connector it was spawned from.

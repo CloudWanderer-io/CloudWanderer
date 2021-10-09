@@ -1,3 +1,4 @@
+from cloudwanderer.cloud_wanderer_resource import CloudWandererResource
 from ..urn import PartialUrn, URN
 from ..models import TemplateActionSet
 from typing import List, Optional, TYPE_CHECKING
@@ -8,16 +9,18 @@ if TYPE_CHECKING:
 
 from boto3 import resource
 from boto3.resources.collection import CollectionManager
-from .boto3_loaders import ServiceMappingLoader
+from .boto3_loaders import MergedServiceLoader, ServiceMap
 from boto3.resources.base import ResourceMeta, ServiceResource
 from boto3.resources.factory import ResourceFactory
 import logging
 from ..exceptions import UnsupportedResourceTypeError
+from ..cloud_wanderer_resource import SecondaryAttribute
 
 from boto3.resources.model import Collection, ResourceModel
 from boto3.utils import ServiceContext
 from botocore import xform_name
 import jmespath
+from ..boto3_helpers import _clean_boto3_metadata
 
 logger = logging.getLogger(__name__)
 
@@ -28,11 +31,11 @@ class CloudWandererResourceFactory(ResourceFactory):
     def __init__(
         self,
         emitter,
-        service_mapping_loader: ServiceMappingLoader,
         cloudwanderer_boto3_session: "CloudWandererBoto3Session",
+        service_mapping_loader: Optional[MergedServiceLoader] = None,
     ):
         super().__init__(emitter=emitter)
-        self.service_mapping_loader = service_mapping_loader
+        self.service_mapping_loader = service_mapping_loader or MergedServiceLoader()
         self.cloudwanderer_boto3_session = cloudwanderer_boto3_session
 
     def load_from_definition(self, resource_name, single_resource_json_definition, service_context):
@@ -180,7 +183,8 @@ class CloudWandererResourceFactory(ResourceFactory):
         ) -> ServiceResource:
             for resource in self.meta.resource_model.subresources:
                 # Convert the subresource's type into a dependent resource name (e.g. policy to role_policy)
-                resource_name = "_".join([self.resource_type, xform_name(resource.name)])
+                resource_name = xform_name(resource.name)
+                logger.debug("ServiceResource, get_dependent_resource resource_name: %s", resource_name)
                 if resource_name == resource_type:
                     if empty_resource:
                         top_level_resource_identifiers = self.meta.resource_model.identifiers
@@ -189,9 +193,32 @@ class CloudWandererResourceFactory(ResourceFactory):
                             "" for _ in range(len(dependent_resource_identifiers) - len(top_level_resource_identifiers))
                         ]
                     return getattr(self, resource.name)(*args)
+
             raise UnsupportedResourceTypeError(f"Could not find Boto3 subresource for {resource_type}")
 
         return get_dependent_resource
+
+        # def _create_get_dependent_resource(self):
+        # def get_dependent_resource(
+        #     self, resource_type: str, args: List[str] = None, empty_resource=False
+        # ) -> ServiceResource:
+        #     for collection in self.meta.resource_model.collections:
+        #         # Convert the subresource's type into a dependent resource name (e.g. policy to role_policy)
+        #         resource_name = xform_name(collection.resource.model.name)
+        #         logger.debug(
+        #             "ServiceResource, get_dependent_resource resource_name: %s", collection.resource.model.name
+        #         )
+        #         if resource_name == resource_type:
+        #             if empty_resource:
+        #                 top_level_resource_identifiers = self.meta.resource_model.identifiers
+        #                 dependent_resource_identifiers = collection.resource.model.identifiers
+        #                 args = [
+        #                     "" for _ in range(len(dependent_resource_identifiers) - len(top_level_resource_identifiers))
+        #                 ]
+        #             return getattr(self, collection.name)(*args)
+        #     raise UnsupportedResourceTypeError(f"Could not find Boto3 subresource for {resource_type}")
+
+        # return get_dependent_resource
 
     def _create_get_urn(self):
         def get_urn(self):
@@ -208,9 +235,16 @@ class CloudWandererResourceFactory(ResourceFactory):
 
     def _create_get_secondary_attributes(self):
         def get_secondary_attributes(self):
-            print(self.meta.resource_model.name)
+            logger.debug("RUNNING")
             for subresource in self.meta.resource_model.subresources:
-                raise Exception("SUBRESOURCE" + subresource.name)
+                resource_map = self.service_map.get_resource_map(xform_name(subresource.name))
+                logger.debug("ServiceResource get_secondary_attributes, subresource_name: %s", subresource.name)
+                if not resource_map or resource_map.type != "secondaryAttribute":
+                    continue
+                getter = getattr(self, subresource.name)
+                secondary_attribute_resource = getter()
+                secondary_attribute_resource.load()
+                yield SecondaryAttribute(subresource.name, **secondary_attribute_resource.meta.data)
 
         return get_secondary_attributes
 
@@ -233,6 +267,18 @@ class CloudWandererResourceFactory(ResourceFactory):
             return self.meta.client.meta.region_name
 
         return get_region
+
+    def _create_normalized_raw_data(self):
+        @property
+        def normalized_raw_data(self):
+            """Return the raw data ditionary for this resource, ensuring that all keys for this resource are present."""
+            service_model = self.meta.client.meta.service_model
+            shape = service_model.shape_for(self.meta.resource_model.shape)
+            result = {attribute: None for attribute in shape.members.keys()}
+            result.update(self.meta.data or {})
+            return _clean_boto3_metadata(result)
+
+        return normalized_raw_data
 
     def _create_resource_types(self):
         @property
@@ -264,8 +310,11 @@ class CloudWandererResourceFactory(ResourceFactory):
         self, attrs, resource_name, resource_model, service_context: ServiceContext
     ) -> None:
         attrs["service_name"] = service_context.service_name
-        attrs["service_map"] = self.service_mapping_loader.get_service_mapping(
-            service_name=service_context.service_name
+        attrs["service_map"] = ServiceMap.factory(
+            name=service_context.service_name,
+            definition=self.service_mapping_loader.load_service_model(
+                service_name=service_context.service_name, type_name="resources-cw-1", api_version=None
+            ),
         )
         attrs["cloudwanderer_boto3_session"] = self.cloudwanderer_boto3_session
 
@@ -274,6 +323,7 @@ class CloudWandererResourceFactory(ResourceFactory):
             attrs["resource_types"] = self._create_resource_types()
         else:
             # If it is a resource:
+            attrs["normalized_raw_data"] = self._create_normalized_raw_data()
             attrs["resource_type"] = xform_name(resource_name)
             attrs["resource_map"] = attrs["service_map"].get_resource_map(resource_type=xform_name(resource_name))
             attrs["dependent_resource_types"] = self._create_dependent_resource_types()

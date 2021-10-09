@@ -1,6 +1,7 @@
 """Allows CloudWanderer to store resources in memory."""
 import logging
 from typing import Any, Callable, Dict, Iterator, List, Optional
+from datetime import datetime
 
 from ..cloud_wanderer_resource import CloudWandererResource
 from ..urn import URN
@@ -117,9 +118,8 @@ class MemoryStorageConnector(BaseStorageConnector):
             del self._data[subresource_urn]
 
     def delete_resource_of_type_in_account_region(
-        self, service: str, resource_type: str, account_id: str, region: str, urns_to_keep: List[URN] = None
+        self, service: str, resource_type: str, account_id: str, region: str, cutoff: datetime
     ) -> None:
-        urns_to_keep = urns_to_keep or []
         urns_to_delete = []
         for urn_str, items in self._data.items():
             urn = URN.from_string(urn_str)
@@ -131,7 +131,8 @@ class MemoryStorageConnector(BaseStorageConnector):
                 continue
             if urn.region != region:
                 continue
-            if urn in urns_to_keep:
+            resource = memory_item_to_resource(urn, items)
+            if resource.discovery_time >= cutoff:
                 continue
             urns_to_delete.append(urn)
         for urn in urns_to_delete:

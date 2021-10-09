@@ -83,7 +83,8 @@ class MergedServiceLoader:
         # This does not need to honour the user's session because it is *only* used to list resources
         self.non_specific_boto3_session = boto3.session.Session()
 
-    def list_available_services(self) -> List[str]:
+    def list_available_services(self, type_name: str = "resources-1") -> List[str]:
+        _ = type_name
         """Return a list of service names that can be loaded."""
         return list(set(self.cloudwanderer_available_services + self.boto3_available_services))
 
@@ -101,6 +102,7 @@ class MergedServiceLoader:
         return self.non_specific_boto3_session.get_available_resources()
 
     def list_api_versions(self, service_name: str, type_name: str) -> List[str]:
+        logger.debug("list_api_version, service_name: %s, type_name: %s", service_name, type_name)
         try:
             boto3_api_versions = self.boto3_loader.list_api_versions(service_name=service_name, type_name=type_name)
         except DataNotFoundError:
@@ -124,7 +126,15 @@ class MergedServiceLoader:
         return boto3_api_versions
 
     @memoized_method()
-    def load_service_model(self, service_name: str, type_name: str, api_version: str) -> OrderedDict:
+    def load_service_model(self, service_name: str, type_name: str, api_version: Optional[str]) -> OrderedDict:
+        logger.debug(
+            "boto3_loaders load_service_model service_name %s, type_name %s, api_version %s",
+            service_name,
+            type_name,
+            api_version,
+        )
+        if not api_version:
+            api_version = self.determine_latest_version(service_name=service_name, type_name=type_name)
         try:
             boto3_definition = self.boto3_loader.load_service_model(
                 service_name, type_name=type_name, api_version=api_version
@@ -141,16 +151,22 @@ class MergedServiceLoader:
                 f"{service_name} is not supported by either Boto3 or CloudWanderer's custom services"
             )
 
+        # TODO: use deep merge
         return OrderedDict(
             {
                 "service": OrderedDict(
                     {
-                        "hasMany": OrderedDict(
-                            {
-                                **(jmespath.search("service.hasMany", boto3_definition) or OrderedDict({})),
-                                **(jmespath.search("service.hasMany", custom_service_definition) or OrderedDict({})),
-                            }
-                        )
+                        **custom_service_definition.get("service", {}),
+                        **{
+                            "hasMany": OrderedDict(
+                                {
+                                    **(jmespath.search("service.hasMany", boto3_definition) or OrderedDict({})),
+                                    **(
+                                        jmespath.search("service.hasMany", custom_service_definition) or OrderedDict({})
+                                    ),
+                                }
+                            )
+                        },
                     }
                 ),
                 "resources": OrderedDict(
@@ -176,31 +192,30 @@ class MergedServiceLoader:
             return {}
 
 
-# TODO: Normalising servicemapping as servicemap
-class ServiceMappingLoader:
-    """A class to load and retrieve service mappings.
+# # TODO: Normalising servicemapping as servicemap
+# class ServiceMappingLoader:
+#     """A class to load and retrieve service mappings.
 
-    Service Mappings provide additional metadata about an AWS service.
-    This includes things like, whether it is a global service, whether it has regional resources, etc.
-    """
+#     Service Mappings provide additional metadata about an AWS service.
+#     This includes things like, whether it is a global service, whether it has regional resources, etc.
+#     """
 
-    @lru_cache()  # type: ignore
-    def __init__(self) -> None:
-        """Load and retrieve service mappings."""
-        self.service_mappings_path = os.path.join(pathlib.Path(__file__).parent.absolute(), "service_mappings")
+#     @lru_cache()  # type: ignore
+#     def __init__(self) -> None:
 
-    def get_service_mapping(self, service_name: str) -> "ServiceMap":
-        """Return the mapping for service_name.
 
-        Arguments:
-            service_name (str): The name of the service (e.g. ``'ec2'``)
-        """
-        return ServiceMap.factory(name=service_name, definition=self.service_maps.get(service_name, {}))
+#     def get_service_mapping(self, service_name: str) -> "ServiceMap":
+#         """Return the mapping for service_name.
 
-    @cached_property
-    def service_maps(self) -> Dict[str, Any]:
-        """Return our custom resource definitions."""
-        return load_json_definitions(self.service_mappings_path)
+#         Arguments:
+#             service_name (str): The name of the service (e.g. ``'ec2'``)
+#         """
+#         return ServiceMap.factory(name=service_name, definition=self.service_maps.get(service_name, {}))
+
+#     @cached_property
+#     def service_maps(self) -> Dict[str, Any]:
+#         """Return our custom resource definitions."""
+#         return load_json_definitions(self.service_mappings_path)
 
 
 class ServiceMap(NamedTuple):
@@ -249,7 +264,9 @@ class ServiceMap(NamedTuple):
             global_service_region=service_definition.get("globalServiceRegion"),
             service_definition=service_definition,
             resource_definition=definition.get("resources", {}),
-            boto3_definition=MergedServiceLoader().get_service_definition(service_name=name),
+            boto3_definition=MergedServiceLoader().load_service_model(
+                service_name=name, type_name="resources-1", api_version=None
+            ),
         )
 
 

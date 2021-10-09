@@ -4,13 +4,15 @@ from cloudwanderer.cloud_wanderer_resource import CloudWandererResource
 from pytest import fixture
 from unittest.mock import MagicMock
 from cloudwanderer import CloudWanderer
-from cloudwanderer.models import ActionSet
+from cloudwanderer.models import ActionSet, ServiceResourceType
+from cloudwanderer.aws_interface.interface import CloudWandererAWSInterface
 
 
 @fixture
 def cloud_wanderer() -> CloudWanderer:
     mock_storage_connector = MagicMock(**{})
     mock_cloud_interface = MagicMock(
+        spec_set=CloudWandererAWSInterface,
         **{
             "get_resource_discovery_actions.return_value": [
                 ActionSet(
@@ -54,6 +56,36 @@ def cloud_wanderer() -> CloudWanderer:
 
 def test_get_resources(cloud_wanderer: CloudWanderer):
     cloud_wanderer.write_resources()
+
+    cloud_wanderer.cloud_interface.get_resource_discovery_actions.assert_called()
+    cloud_wanderer.cloud_interface.get_resources.assert_called_with(
+        region="eu-west-1", service_name="ec2", resource_type="vpc"
+    )
+    cloud_wanderer.storage_connectors[0].write_resource.assert_called_with(
+        CloudWandererResource(
+            urn=URN(
+                account_id="111111111111",
+                region="eu-west-1",
+                service="ec2",
+                resource_type="vpc",
+                resource_id_parts=["vpc-11111111"],
+            ),
+            subresource_urns=[],
+            resource_data={},
+            secondary_attributes=[],
+        )
+    )
+    cloud_wanderer.storage_connectors[0].delete_resource_of_type_in_account_region.assert_called_with(
+        account_id="111111111111",
+        region="eu-west-1",
+        service="ec2",
+        resource_type="vpc",
+        cutoff=datetime.datetime(1986, 1, 1, 0, 0, tzinfo=datetime.timezone.utc),
+    )
+
+
+def test_get_resources_specific_resource(cloud_wanderer: CloudWanderer):
+    cloud_wanderer.write_resources(service_resource_types=[ServiceResourceType(service_name="ec2", name="vpc")])
 
     cloud_wanderer.cloud_interface.get_resource_discovery_actions.assert_called()
     cloud_wanderer.cloud_interface.get_resources.assert_called_with(

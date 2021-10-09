@@ -7,6 +7,7 @@ import os
 import pathlib
 import sys
 from functools import reduce
+from datetime import datetime
 from random import randrange
 from typing import TYPE_CHECKING, Any, Callable, Dict, Generator, Iterable, Iterator, List, Optional, Union
 
@@ -29,6 +30,8 @@ from ..utils import standardise_data_types
 from .base_connector import BaseStorageConnector
 
 logger = logging.getLogger(__name__)
+
+ISO_DATE_FORMAT = "YYYY-MM-DD[*HH[:MM[:SS[.fff[fff]]]][+HH:MM[:SS[.ffffff]]]]"
 
 
 class DynamoDBQueryArgs(TypedDict, total=False):
@@ -129,6 +132,7 @@ def _dynamodb_items_to_resources(items: Iterable[dict], loader: Callable) -> Ite
             subresource_urns=subresource_urns,
             resource_data=_strip_dynamodb_attrs(base_resource),
             secondary_attributes=attributes,
+            discovery_time=datetime.strptime(base_resource["_discovery_time"], ISO_DATE_FORMAT),
             loader=loader,
         )
 
@@ -210,7 +214,10 @@ class DynamoDbConnector(BaseStorageConnector):
         item = {
             **self._generate_urn_index_values(resource.urn),
             **standardise_data_types(resource.cloudwanderer_metadata.resource_data or {}),
-            **{"_subresource_urns": [str(urn) for urn in resource.subresource_urns]},
+            **{
+                "_subresource_urns": [str(urn) for urn in resource.subresource_urns],
+                "_discovery_time": resource.discovery_time.isoformat(),
+            },
         }
         if resource.is_subresource:
             item["_parent_urn"] = str(resource.parent_urn)
@@ -316,7 +323,7 @@ class DynamoDbConnector(BaseStorageConnector):
                 batch.delete_item(Key={"_id": record["_id"], "_attr": record["_attr"]})
 
     def delete_resource_of_type_in_account_region(
-        self, service: str, resource_type: str, account_id: str, region: str, urns_to_keep: List[URN] = None
+        self, service: str, resource_type: str, account_id: str, region: str, cutoff: datetime
     ) -> None:
         urns_to_keep = urns_to_keep or []
         logger.debug("Deleting any %s not in %s", resource_type, str([x.resource_id for x in urns_to_keep]))
@@ -325,8 +332,8 @@ class DynamoDbConnector(BaseStorageConnector):
             service=service, resource_type=resource_type, account_id=account_id, region=region
         )
         for resource in resource_records:
-            if resource.urn in urns_to_keep:
-                logger.debug("Skipping deletion of %s as we were told to keep it.", resource.urn)
+            if resource.discovery_time > cutoff:
+                logger.debug("Skipping deletion of %s as it was discovered after our cutoff.", resource.urn)
                 continue
             self.delete_resource(urn=resource.urn)
 

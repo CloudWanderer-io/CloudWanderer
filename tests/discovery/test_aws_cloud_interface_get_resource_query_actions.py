@@ -1,5 +1,5 @@
 from cloudwanderer.urn import PartialUrn
-from cloudwanderer.models import TemplateActionSet, ActionSet
+from cloudwanderer.models import TemplateActionSet, ActionSet, ServiceResourceType
 from pytest import fixture
 from unittest.mock import ANY, MagicMock
 from cloudwanderer.aws_interface import CloudWandererAWSInterface
@@ -138,6 +138,31 @@ def test_get_resource_discovery_actions(aws_interface: CloudWandererAWSInterface
 
     aws_interface._get_discovery_action_templates_for_service.assert_called_with(
         service=ANY, resource_types=[], discovery_regions=["us-east-1", "eu-west-1"]
+    )
+
+
+def test_get_resource_discovery_actions_specific_resource_type(
+    aws_interface: CloudWandererAWSInterface, mock_action_set_vpc
+):
+    aws_interface._get_discovery_action_templates_for_service = MagicMock(return_value=[mock_action_set_vpc])
+
+    result = aws_interface.get_resource_discovery_actions(
+        service_resource_types=[ServiceResourceType(service_name="ec2", name="vpc")]
+    )
+
+    assert len(result) == 1
+    assert isinstance(result[0], ActionSet)
+    assert result[0].delete_urns == [
+        PartialUrn(account_id="111111111111", region=region, service="ec2", resource_type="vpc", resource_id="ALL")
+        for region in ["eu-west-1", "us-east-1"]
+    ]
+    assert result[0].get_urns == [
+        PartialUrn(account_id="111111111111", region=region, service="ec2", resource_type="vpc", resource_id="ALL")
+        for region in ["eu-west-1", "us-east-1"]
+    ]
+
+    aws_interface._get_discovery_action_templates_for_service.assert_called_with(
+        service=ANY, resource_types=["vpc"], discovery_regions=["us-east-1", "eu-west-1"]
     )
 
 

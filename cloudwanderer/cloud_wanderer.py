@@ -4,6 +4,8 @@ import logging
 from datetime import datetime, timezone
 from typing import Callable, Iterator, List, NamedTuple
 
+from cloudwanderer.models import ServiceResourceType
+
 from .aws_interface import CloudWandererAWSInterface
 from .cloud_wanderer_resource import CloudWandererResource
 from .storage_connectors import BaseStorageConnector
@@ -53,9 +55,7 @@ class CloudWanderer:
     def write_resources(
         self,
         regions: List[str] = None,
-        service_names: List[str] = None,
-        resource_types: List[str] = None,
-        exclude_resources: List[str] = None,
+        service_resource_types: List[ServiceResourceType] = None,
         **kwargs,
     ) -> None:
         """Write all AWS resources in this account from all regions and all services to storage.
@@ -75,11 +75,9 @@ class CloudWanderer:
                 All additional keyword arguments will be passed down to the cloud interface client calls.
 
         """
+
         action_sets = self.cloud_interface.get_resource_discovery_actions(
-            regions=regions,
-            service_names=service_names,
-            resource_types=resource_types,
-            exclude_resources=exclude_resources,
+            regions=regions, service_resource_types=service_resource_types
         )
         for action_set in action_sets:
             earliest_resource_discovered = None

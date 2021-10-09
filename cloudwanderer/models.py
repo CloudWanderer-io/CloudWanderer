@@ -57,6 +57,18 @@ class GetAction(NamedTuple):
     resource_type: str
 
 
+class ServiceResourceType(NamedTuple):
+    """A resource type including a service that it is member of
+
+    Attributes:
+        service_name: The name of the service
+        resource_type: The type of resource
+    """
+
+    service_name: str
+    name: str
+
+
 # TODO: Delete this class
 class CleanupAction(NamedTuple):
     """A storage connector clean up action for a specific resource_type in a specific region.

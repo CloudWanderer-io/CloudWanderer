@@ -25,6 +25,13 @@ def test_load_service_model(merged_service_loader):
     assert isinstance(result, OrderedDict)
 
 
+def test_load_service_model_no_api_version(merged_service_loader):
+    result = merged_service_loader.load_service_model(service_name="lambda", type_name="resources-1", api_version=None)
+    assert result["resources"]
+    assert "Function" in result["resources"]
+    assert isinstance(result, OrderedDict)
+
+
 def test_list_api_versions(merged_service_loader):
     result = merged_service_loader.list_api_versions(service_name="lambda", type_name="resources-1")
     assert result == ["2015-03-31"]

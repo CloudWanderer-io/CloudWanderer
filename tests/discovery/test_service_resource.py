@@ -12,7 +12,13 @@ from cloudwanderer.aws_interface import CloudWandererBoto3Session
 def botocore_session():
     botocore_session = botocore.session.Session()
     botocore_session.create_client = MagicMock(
-        **{"return_value.get_bucket_location.return_value": {"LocationConstraint": "eu-west-1"}}
+        **{
+            "return_value.get_bucket_location.return_value": {"LocationConstraint": "eu-west-1"},
+            "return_value.describe_vpc_attribute.return_value": {
+                "VpcId": "vpc-11111",
+                "EnableDnsSupport": {"Value": True},
+            },
+        }
     )
     return botocore_session
 
@@ -58,4 +64,34 @@ def test_get_region(service_resource_s3_bucket):
 
 
 def test_get_secondary_attributes(service_resource_ec2_vpc):
-    assert service_resource_ec2_vpc.get_secondary_attributes() == ""
+    assert list(service_resource_ec2_vpc.get_secondary_attributes()) == [
+        {"EnableDnsSupport": {"Value": True}, "VpcId": "vpc-11111"}
+    ]
+
+
+def test_normalized_raw_data(service_resource_ec2_vpc):
+    service_resource_ec2_vpc.meta.data = {"CidrBlock": "10.16.0.0/16", "VpcId": "vpc-11111"}
+    service_resource_ec2_vpc.meta.client.meta.service_model.shape_for.return_value.members = {
+        "CidrBlock": {},
+        "DhcpOptionsId": {},
+        "State": {},
+        "VpcId": {},
+        "OwnerId": {},
+        "InstanceTenancy": {},
+        "Ipv6CidrBlockAssociationSet": {},
+        "CidrBlockAssociationSet": {},
+        "IsDefault": {},
+        "Tags": {},
+    }
+    assert service_resource_ec2_vpc.normalized_raw_data == {
+        "CidrBlock": "10.16.0.0/16",
+        "CidrBlockAssociationSet": None,
+        "DhcpOptionsId": None,
+        "InstanceTenancy": None,
+        "Ipv6CidrBlockAssociationSet": None,
+        "IsDefault": None,
+        "OwnerId": None,
+        "State": None,
+        "Tags": None,
+        "VpcId": "vpc-11111",
+    }

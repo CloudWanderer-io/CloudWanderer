@@ -12,12 +12,11 @@ import botocore  # type: ignore
 from cloudwanderer.utils import snake_to_pascal
 
 from ..boto3_helpers import Boto3CommonAttributesMixin
-from .boto3_loaders import ServiceMappingLoader
 
 # from ..boto3_services import Boto3Services, CloudWandererBoto3Service, MergedServiceLoader
 from ..cloud_wanderer_resource import CloudWandererResource
 from ..exceptions import BadRequestError, ResourceNotFoundError, UnsupportedResourceTypeError
-from ..models import TemplateActionSet, GetAndCleanUp
+from ..models import TemplateActionSet, GetAndCleanUp, ServiceResourceType
 from .models import ResourceFilter
 from ..urn import URN, PartialUrn
 from .session import CloudWandererBoto3Session
@@ -33,7 +32,7 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
 
     def __init__(
         self,
-        cloudwanderer_boto3_session: CloudWandererBoto3Session,
+        cloudwanderer_boto3_session: Optional[CloudWandererBoto3Session] = None,
         # resource_filters: List[ResourceFilter] = None,
     ) -> None:
         """Simplifies lookup of Boto3 services and resources.
@@ -75,13 +74,13 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
                 subresource_urns.append(subresource.urn)
                 yield CloudWandererResource(
                     urn=subresource.urn,
-                    resource_data=subresource.normalised_raw_data,
+                    resource_data=subresource.normalized_raw_data,
                     secondary_attributes=list(subresource.get_secondary_attributes()),
                 )
         yield CloudWandererResource(
             urn=urn,
             subresource_urns=subresource_urns,
-            resource_data=resource.normalised_raw_data,
+            resource_data=resource.normalized_raw_data,
             secondary_attributes=list(resource.get_secondary_attributes()),
         )
 
@@ -112,9 +111,14 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
                     yield CloudWandererResource(
                         urn=dependent_resource.get_urn(),
                         resource_data=dependent_resource.meta.data,
-                        secondary_attributes=[],
+                        parent_urn=resource.get_urn(),
+                        secondary_attributes=list(dependent_resource.get_secondary_attributes()),
                     )
-            yield CloudWandererResource(urn=resource.get_urn())
+            yield CloudWandererResource(
+                urn=resource.get_urn(),
+                resource_data=resource.normalized_raw_data,
+                secondary_attributes=list(resource.get_secondary_attributes()),
+            )
 
         # # resource_filters = self._get_resource_filters(service_name, resource_type)
         # try:
@@ -126,13 +130,13 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
         #             subresource_urns.append(subresource.urn)
         #             yield CloudWandererResource(
         #                 urn=subresource.urn,
-        #                 resource_data=subresource.normalised_raw_data,
+        #                 resource_data=subresource.normalized_raw_data,
         #                 secondary_attributes=list(subresource.get_secondary_attributes()),
         #             )
         #         yield CloudWandererResource(
         #             urn=resource.urn,
         #             subresource_urns=subresource_urns,
-        #             resource_data=resource.normalised_raw_data,
+        #             resource_data=resource.normalized_raw_data,
         #             secondary_attributes=list(resource.get_secondary_attributes()),
         #         )
         # except botocore.exceptions.EndpointConnectionError:
@@ -145,36 +149,38 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
         #     raise
 
     def get_resource_discovery_actions(
-        self, regions: List[str] = None, service_resources: List[str] = None
+        self, regions: List[str] = None, service_resource_types: List[ServiceResourceType] = None
     ) -> List[GetAndCleanUp]:
-        """ """
-        services_resource_tuples = []
+        service_resource_types = service_resource_types or []
+        discovery_regions = regions or self.cloudwanderer_boto3_session.get_enabled_regions()
 
-        discovery_regions = regions or self.cloudwanderer_boto3_session.enabled_regions
-
-        if service_resources:
-            services_resource_tuples = set(
-                (service, resource_type)
-                for service_resource in service_resources
-                for service, resource_type in service_resource.split(":")
-            )
-        service_names = [service for service, _ in services_resource_tuples]
+        # if service_resources:
+        #     services_resource_tuples = set(
+        #         (service, resource_type)
+        #         for service_resource in service_resources
+        #         for service, resource_type in service_resource.split(":")
+        #     )
+        service_names = [resource_type.service_name for resource_type in service_resource_types]
         action_sets = []
-        service_names = service_names or self.cloudwanderer_boto3_session.available_services
+        service_names = service_names or self.cloudwanderer_boto3_session.get_available_resources()
         logger.debug("Getting actions for: %s", service_names)
         for service_name in service_names:
-            resource_types = [resource_type for _, resource_type in services_resource_tuples]
+            service_specific_resource_types = [
+                resource_type.name
+                for resource_type in service_resource_types
+                if resource_type.service_name == service_name
+            ]
             service = self.cloudwanderer_boto3_session.resource(service_name=service_name)
             action_sets.extend(
                 self._get_discovery_action_templates_for_service(
-                    service=service, resource_types=resource_types, discovery_regions=discovery_regions
+                    service=service, resource_types=service_specific_resource_types, discovery_regions=discovery_regions
                 )
             )
 
         return self._inflate_action_set_regions(action_sets)
 
     def _inflate_action_set_regions(self, action_set_templates: List[TemplateActionSet]):
-        enabled_regions = self.cloudwanderer_boto3_session.enabled_regions
+        enabled_regions = self.cloudwanderer_boto3_session.get_enabled_regions()
         result = []
         for action_set_template in action_set_templates:
             result.append(
@@ -188,7 +194,7 @@ class CloudWandererAWSInterface(Boto3CommonAttributesMixin):
     def _get_discovery_action_templates_for_service(
         self, service: ServiceResource, resource_types: list[str], discovery_regions: List[str]
     ):
-        logger.debug("Getting resource_types for %s", service.name)
+        logger.debug("Getting resource_types for %s", service.service_name)
 
         if resource_types:
             service_resource_types = list(set(resource_types) & set(service.resource_types))
