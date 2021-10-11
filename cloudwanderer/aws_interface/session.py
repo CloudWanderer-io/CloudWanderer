@@ -1,15 +1,20 @@
+"""Subclass of Boto3 Session class to provide additional helper methods."""
+import logging
+from typing import List
+
+import boto3
+from botocore.loaders import Loader
+
+from ..cache_helpers import memoized_method
 from .boto3_loaders import MergedServiceLoader
 from .resource_factory import CloudWandererResourceFactory
-import boto3
-import logging
-from ..cache_helpers import memoized_method
-from typing import List
-from botocore.loaders import Loader
 
 logger = logging.getLogger(__name__)
 
 
 class CloudWandererBoto3Session(boto3.session.Session):
+    """Subclass of Boto3 Session class to provide additional helper methods."""
+
     def __init__(
         self,
         aws_access_key_id=None,
@@ -44,9 +49,7 @@ class CloudWandererBoto3Session(boto3.session.Session):
         return sts.get_caller_identity()["Account"]
 
     def _setup_loader(self) -> None:
-        """
-        Setup loader paths so that we can load resources.
-        """
+        """Create loader paths so that we can load resources."""
         self._loader = self.service_mapping_loader or MergedServiceLoader()
 
     @memoized_method()  # type: ignore

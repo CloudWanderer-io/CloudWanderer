@@ -4,20 +4,23 @@ Provides simpler methods for :class:`~.cloud_wanderer.CloudWanderer` to call.
 """
 
 import logging
-from typing import TYPE_CHECKING, Iterator, List, Optional
+from typing import TYPE_CHECKING, Iterator, List, Optional, cast
 
-import botocore  # type: ignore
+import botocore
 
-
-# from ..boto3_services import Boto3Services, CloudWandererBoto3Service, MergedServiceLoader
 from ..cloud_wanderer_resource import CloudWandererResource
-from ..exceptions import BadRequestError, ResourceNotFoundError
-from ..models import ActionSet, TemplateActionSet, ServiceResourceType
-from ..urn import URN
+
+# from ..exceptions import BadRequestError, ResourceNotFoundError
+from ..models import ActionSet, ServiceResourceType, TemplateActionSet
+
+# from ..urn import URN
+from .aws_services import AWS_SERVICES
 from .session import CloudWandererBoto3Session
 
 if TYPE_CHECKING:
+
     from .stubs.resource import CloudWandererServiceResource
+
 from .boto3_loaders import ResourceMap
 
 logger = logging.getLogger(__name__)
@@ -34,8 +37,8 @@ class CloudWandererAWSInterface:
     ) -> None:
         """Simplifies lookup of Boto3 services and resources.
 
-        cloudwanderer_boto3_session:
-            boto3_session (boto3.session.Session):
+        Arguments:
+            cloudwanderer_boto3_session:
                 A CloudWandererBoto3Session session, if not provided the default will be used.
         """
         self.cloudwanderer_boto3_session = cloudwanderer_boto3_session or CloudWandererBoto3Session()
@@ -77,7 +80,7 @@ class CloudWandererAWSInterface:
         self,
         service_name: str,
         resource_type: str,
-        region: str = None,
+        region: str,
         **kwargs,
     ) -> Iterator[CloudWandererResource]:
         """Return all resources of resource_type from Boto3.
@@ -91,6 +94,7 @@ class CloudWandererAWSInterface:
         Raises:
             botocore.exceptions.ClientError: Occurs if the Boto3 Client Errors.
         """
+        service_name = cast(AWS_SERVICES, service_name)
         logger.info("Getting %s %s resources from %s", service_name, resource_type, region)
         service = self.cloudwanderer_boto3_session.resource(service_name=service_name, region_name=region)
         resource_map: ResourceMap = service.service_map.get_resource_map(resource_type)
@@ -134,7 +138,7 @@ class CloudWandererAWSInterface:
                 for resource_type in service_resource_types
                 if resource_type.service_name == service_name
             ]
-            service = self.cloudwanderer_boto3_session.resource(service_name=service_name)
+            service = self.cloudwanderer_boto3_session.resource(service_name=cast(AWS_SERVICES, service_name))
             action_sets.extend(
                 self._get_discovery_action_templates_for_service(
                     service=service, resource_types=service_specific_resource_types, discovery_regions=discovery_regions

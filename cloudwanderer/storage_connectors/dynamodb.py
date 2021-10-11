@@ -6,8 +6,8 @@ import operator
 import os
 import pathlib
 import sys
-from functools import reduce
 from datetime import datetime
+from functools import reduce
 from random import randrange
 from typing import TYPE_CHECKING, Any, Callable, Dict, Generator, Iterable, Iterator, Optional, Union
 
@@ -38,11 +38,7 @@ class DynamoDBQueryArgs(TypedDict, total=False):
     """Valid DynamoDB Query args to facilitate type hinting."""
 
     Select: Union[
-        Literal["ALL_ATTRIBUTES"],
-        Literal["ALL_PROJECTED_ATTRIBUTES"],
-        Literal["SPECIFIC_ATTRIBUTES"],
-        Literal["COUNT"],
-        None,
+        Literal["ALL_ATTRIBUTES"], Literal["ALL_PROJECTED_ATTRIBUTES"], Literal["COUNT"], Literal["SPECIFIC_ATTRIBUTES"]
     ]
     KeyConditionExpression: Optional[Union[str, ConditionBase]]
     FilterExpression: Optional[Union[str, ConditionBase]]
@@ -297,7 +293,7 @@ class DynamoDbConnector(BaseStorageConnector):
 
     def _paginated_query(self, query_args: DynamoDBQueryArgs) -> Generator[Dict[str, Any], None, None]:
         paginator = self.dynamodb.meta.client.get_paginator("query")
-        pages = paginator.paginate(TableName=self.dynamodb_table.name, **query_args)
+        pages = paginator.paginate(TableName=self.dynamodb_table.name, **query_args)  # type: ignore
         yield from (item for result in pages for item in result["Items"])
 
     def read_all(self) -> Iterator[dict]:

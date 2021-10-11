@@ -1,6 +1,6 @@
 from typing import List
 
-from ..models import TemplateActionSet
+from ...models import TemplateActionSet
 
 class CloudWandererServiceResource:
     service_name: str

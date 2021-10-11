@@ -1,4 +1,5 @@
-from typing import NamedTuple, Dict, Any
+"""Models specific to the CloudWanderer aws interface."""
+from typing import Any, Dict, NamedTuple
 
 
 class ResourceFilter(NamedTuple):

@@ -32,24 +32,24 @@ class CloudWanderer:
         self.storage_connectors = storage_connectors
         self.cloud_interface = cloud_interface or CloudWandererAWSInterface()
 
-    def write_resource(self, urn: URN, **kwargs) -> None:
-        """Fetch data for and persist to storage a single resource and its subresources.
+    # def write_resource(self, urn: URN, **kwargs) -> None:
+    #     """Fetch data for and persist to storage a single resource and its subresources.
 
-        If the resource does not exist it will be deleted from the storage connectors.
+    #     If the resource does not exist it will be deleted from the storage connectors.
 
-        Arguments:
-            urn (URN):
-                The URN of the resource to write
-            **kwargs:
-                All additional keyword arguments will be passed down to the cloud interface client calls.
-        """
-        resources = list(self.cloud_interface.get_resource(urn=urn, **kwargs))
+    #     Arguments:
+    #         urn (URN):
+    #             The URN of the resource to write
+    #         **kwargs:
+    #             All additional keyword arguments will be passed down to the cloud interface client calls.
+    #     """
+    #     resources = list(self.cloud_interface.get_resource(urn=urn, **kwargs))
 
-        for resource in resources:
-            self._write_resource(resource=resource)
-        if not resources:
-            for storage_connector in self.storage_connectors:
-                storage_connector.delete_resource(urn)
+    #     for resource in resources:
+    #         self._write_resource(resource=resource)
+    #     if not resources:
+    #         for storage_connector in self.storage_connectors:
+    #             storage_connector.delete_resource(urn)
 
     def write_resources(
         self,
@@ -62,19 +62,16 @@ class CloudWanderer:
         All arguments are optional.
 
         Arguments:
-            regions(list):
+            regions:
                 The name of the region to get resources from (defaults to session default if not specified)
-            service_names (str):
-                The names of the services to write resources for (e.g. ``['ec2']``)
-            resource_types (list):
-                A list of resource types to include (e.g. ``['instance']``)
-            exclude_resources (list):
-                A list of service:resources to exclude (e.g. ``['ec2:instance']``)
+            service_resource_types:
+                The resource types to discover.
             kwargs:
                 All additional keyword arguments will be passed down to the cloud interface client calls.
 
+        Raises:
+            ValueError: If invalid get/delete urns are produced by the cloud interface's get_resource_discovery_actions
         """
-
         action_sets = self.cloud_interface.get_resource_discovery_actions(
             regions=regions, service_resource_types=service_resource_types
         )

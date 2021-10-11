@@ -6,24 +6,24 @@ We can do this quite easily because CloudWanderer only needs a fraction of the f
 Boto3 resources provide (i.e. the description of the resources).
 """
 
+import json
 import logging
 import os
 import pathlib
+from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Optional, OrderedDict
 
 import boto3
 import botocore
-from botocore.loaders import Loader  # type: ignore
 import jmespath  # type: ignore
 from boto3.resources.base import ServiceResource
 from boto3.resources.model import ResourceModel
-from botocore.exceptions import UnknownServiceError, DataNotFoundError  # type: ignore
+from botocore.exceptions import DataNotFoundError, UnknownServiceError  # type: ignore
+from botocore.loaders import Loader  # type: ignore
 
 from ..cache_helpers import memoized_method
 from ..exceptions import MalformedFileError, UnsupportedServiceError
 from ..utils import snake_to_pascal
-from pathlib import Path
-import json
 
 logger = logging.getLogger(__name__)
 
@@ -181,6 +181,8 @@ class MergedServiceLoader(Loader):
 
         Arguments:
             service_name: The PascalCase name of the service to get the definition of.
+            api_version: The version of the api to get the definition of.
+            type_name: The type of definition to get.
         """
         try:
             return self.custom_service_loader.get_service_definition(
@@ -217,7 +219,7 @@ class ServiceMap(NamedTuple):
         """Return the resource map given a snake_case resource name.
 
         Arguments:
-            boto3_resource_name: The (snake_case) name of the resource map to get.
+            resource_type: The snake_case name of the resource map to get.
         """
         boto3_resource_name = snake_to_pascal(resource_type)
         return ResourceMap.factory(
@@ -310,21 +312,6 @@ class ResourceMap(NamedTuple):
         if not self.service_map.is_global_service:
             return True
         return self.service_map.is_global_service and self.service_map.global_service_region == region
-
-    @property
-    def dependent_resource_types(self) -> List[str]:
-        "Return a list of CloudWanderer style dependent resource types it's possible for this resource type to have."
-        types = []
-        for dependent_resource_model in self._dependent_resource_models:
-            if not dependent_resource_model.resource:
-                continue
-            types.append(botocore.xform_name(dependent_resource_model.resource.model.name))
-        return types
-
-    @property
-    def ignored_subresource_types(self) -> List:
-        """Return a list of (PascalCase) ignored subresource types."""
-        return [ignored_subresource["type"] for ignored_subresource in self.ignored_subresources]
 
 
 class ResourceRegionRequest(NamedTuple):
