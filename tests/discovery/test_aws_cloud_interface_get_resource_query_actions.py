@@ -111,8 +111,8 @@ def mock_action_set_role_policy():
 def aws_interface() -> CloudWandererAWSInterface:
     mock_cloudwanderer_boto3_session = MagicMock(
         **{
-            "available_services": ["ec2"],
-            "enabled_regions": ["us-east-1", "eu-west-1"],
+            "get_available_resources.return_value": ["ec2"],
+            "get_enabled_regions.return_value": ["us-east-1", "eu-west-1"],
             "resource.return_value": MagicMock(resource_types=["vpc"]),
             "get_account_id.return_value": "111111111111",
         }

@@ -4,6 +4,7 @@ import boto3
 import logging
 from ..cache_helpers import memoized_method
 from typing import List
+from botocore.loaders import Loader
 
 logger = logging.getLogger(__name__)
 
@@ -18,8 +19,9 @@ class CloudWandererBoto3Session(boto3.session.Session):
         botocore_session=None,
         profile_name=None,
         resource_factory=None,
-        service_mapping_loader=None,
+        service_mapping_loader: Loader = None,
     ) -> None:
+        self.service_mapping_loader = service_mapping_loader
         super().__init__(
             aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key,
@@ -28,10 +30,10 @@ class CloudWandererBoto3Session(boto3.session.Session):
             botocore_session=botocore_session,
             profile_name=profile_name,
         )
-        self.service_mapping_loader = service_mapping_loader
+
         self.resource_factory = resource_factory or CloudWandererResourceFactory(
             self._session.get_component("event_emitter"),
-            service_mapping_loader=self.service_mapping_loader,
+            service_mapping_loader=self._loader,
             cloudwanderer_boto3_session=self,
         )
 
@@ -41,13 +43,11 @@ class CloudWandererBoto3Session(boto3.session.Session):
         sts = self.client("sts")
         return sts.get_caller_identity()["Account"]
 
-    def _setup_loader(self):
+    def _setup_loader(self) -> None:
         """
         Setup loader paths so that we can load resources.
         """
-        self._loader = MergedServiceLoader()
-        # self._loader = self._session.get_component("data_loader")
-        # self._loader.search_paths.append(os.path.join(os.path.dirname(__file__), "data"))
+        self._loader = self.service_mapping_loader or MergedServiceLoader()
 
     @memoized_method()  # type: ignore
     def get_enabled_regions(self) -> List[str]:

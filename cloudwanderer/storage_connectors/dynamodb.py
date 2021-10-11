@@ -9,7 +9,7 @@ import sys
 from functools import reduce
 from datetime import datetime
 from random import randrange
-from typing import TYPE_CHECKING, Any, Callable, Dict, Generator, Iterable, Iterator, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, Generator, Iterable, Iterator, Optional, Union
 
 if sys.version_info >= (3, 8):
     from typing import Literal, TypedDict
@@ -31,7 +31,7 @@ from .base_connector import BaseStorageConnector
 
 logger = logging.getLogger(__name__)
 
-ISO_DATE_FORMAT = "YYYY-MM-DD[*HH[:MM[:SS[.fff[fff]]]][+HH:MM[:SS[.ffffff]]]]"
+ISO_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 
 
 class DynamoDBQueryArgs(TypedDict, total=False):
@@ -323,16 +323,14 @@ class DynamoDbConnector(BaseStorageConnector):
                 batch.delete_item(Key={"_id": record["_id"], "_attr": record["_attr"]})
 
     def delete_resource_of_type_in_account_region(
-        self, service: str, resource_type: str, account_id: str, region: str, cutoff: datetime
+        self, service: str, resource_type: str, account_id: str, region: str, cutoff: Optional[datetime]
     ) -> None:
-        urns_to_keep = urns_to_keep or []
-        logger.debug("Deleting any %s not in %s", resource_type, str([x.resource_id for x in urns_to_keep]))
-        urns_to_keep = urns_to_keep or []
+        logger.info("Deleting any %s discovered before %s", resource_type, cutoff)
         resource_records = self.read_resources(
             service=service, resource_type=resource_type, account_id=account_id, region=region
         )
         for resource in resource_records:
-            if resource.discovery_time > cutoff:
+            if cutoff and resource.discovery_time > cutoff:
                 logger.debug("Skipping deletion of %s as it was discovered after our cutoff.", resource.urn)
                 continue
             self.delete_resource(urn=resource.urn)

@@ -6,8 +6,10 @@ import botocore
 
 from cloudwanderer import URN, CloudWanderer
 from cloudwanderer.aws_interface import CloudWandererAWSInterface
+from cloudwanderer.aws_interface.session import CloudWandererBoto3Session
 from cloudwanderer.cloud_wanderer import CloudWandererConcurrentWriteThreadResult
 from cloudwanderer.exceptions import BadUrnRegionError, BadUrnSubResourceError, UnsupportedResourceTypeError
+from cloudwanderer.models import ServiceResourceType
 from cloudwanderer.storage_connectors import DynamoDbConnector
 
 
@@ -39,8 +41,10 @@ class TestFunctional(unittest.TestCase):
     def test_a_write_resources(self):
         thread_results = self.wanderer.write_resources_concurrently(
             exclude_resources=["ec2:image", "ec2:snapshot", "iam:policy"],
-            concurrency=128,
-            cloud_interface_generator=lambda: CloudWandererAWSInterface(boto3_session=boto3.session.Session()),
+            concurrency=12,
+            cloud_interface_generator=lambda: CloudWandererAWSInterface(
+                cloudwanderer_boto3_session=CloudWandererBoto3Session()
+            ),
             storage_connector_generator=lambda: [
                 DynamoDbConnector(
                     endpoint_url="http://localhost:8000",
@@ -55,13 +59,19 @@ class TestFunctional(unittest.TestCase):
         for result in thread_results:
             assert isinstance(result, CloudWandererConcurrentWriteThreadResult)
 
+    # def test_a_write_resources(self):
+    #     """It is sufficient for this not to throw an exception."""
+    #     self.wanderer.write_resources()
+
     def test_write_resources_in_region(self):
         """It is sufficient for this not to throw an exception."""
         self.wanderer.write_resources(regions=["us-east-1"], exclude_resources=[])
 
     def test_write_resource_type(self):
         """It is sufficient for this not to throw an exception."""
-        self.wanderer.write_resources(regions=["us-east-1"], service_names=["iam"], resource_types=["policy"])
+        self.wanderer.write_resources(
+            regions=["eu-west-1"], service_resource_types=[ServiceResourceType("iam", "roles")]
+        )
 
     def test_write_custom_resource_definition(self):
         """It is sufficient for this not to throw an exception."""

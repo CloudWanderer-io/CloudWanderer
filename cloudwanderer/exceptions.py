@@ -46,3 +46,7 @@ class UnsupportedServiceError(Exception):
 
 class BadServiceMapError(Exception):
     """There was an insconsistency in the service map for this operation."""
+
+
+class MalformedFileError(Exception):
+    """There was a malformed file found"""

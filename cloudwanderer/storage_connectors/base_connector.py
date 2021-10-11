@@ -1,6 +1,6 @@
 """Module containing abstract classes for CloudWanderer storage connectors."""
 from abc import ABC, abstractmethod
-from typing import Iterator, List, Optional
+from typing import Iterator, Optional
 from datetime import datetime
 
 from ..cloud_wanderer_resource import CloudWandererResource
@@ -65,7 +65,7 @@ class BaseStorageConnector(ABC):
 
     @abstractmethod
     def delete_resource_of_type_in_account_region(
-        self, service: str, resource_type: str, account_id: str, region: str, cutoff: datetime
+        self, service: str, resource_type: str, account_id: str, region: str, cutoff: Optional[datetime]
     ) -> None:
         """Delete resources of type in account and region unless in list of URNs.
 

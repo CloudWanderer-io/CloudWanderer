@@ -5,23 +5,22 @@ provided ones. This allows cloudwanderer to extend Boto3 to support AWS resource
 We can do this quite easily because CloudWanderer only needs a fraction of the functionality that native
 Boto3 resources provide (i.e. the description of the resources).
 """
-from genericpath import isfile
-from ..urn import PartialUrn
+
 import logging
 import os
 import pathlib
-from functools import lru_cache
-from typing import Any, Dict, Generator, List, NamedTuple, Optional, OrderedDict, Tuple
+from typing import Any, Dict, List, NamedTuple, Optional, OrderedDict
 
 import boto3
-import botocore  # type: ignore
+import botocore
+from botocore.loaders import Loader  # type: ignore
 import jmespath  # type: ignore
 from boto3.resources.base import ServiceResource
-from boto3.resources.model import Collection, ResourceModel
+from boto3.resources.model import ResourceModel
 from botocore.exceptions import UnknownServiceError, DataNotFoundError  # type: ignore
 
-from ..cache_helpers import cached_property, memoized_method
-from ..exceptions import UnsupportedServiceError
+from ..cache_helpers import memoized_method
+from ..exceptions import MalformedFileError, UnsupportedServiceError
 from ..utils import snake_to_pascal
 from pathlib import Path
 import json
@@ -45,6 +44,8 @@ class CustomServiceLoader:
                 return json.load(file)
         except FileNotFoundError:
             raise UnsupportedServiceError(f"{service_name} does not exist as a custom CloudWanderer service.")
+        except json.decoder.JSONDecodeError as ex:
+            raise MalformedFileError(f"{service_name} has an invalid file at {full_path}.") from ex
 
     def list_api_versions(self, service_name: str, type_name: str) -> List[str]:
         path = self.service_definitions_path / Path(service_name)
@@ -70,18 +71,15 @@ class CustomServiceLoader:
         return sorted(possible_services)
 
 
-class MergedServiceLoader:
+class MergedServiceLoader(Loader):
     """A class to merge the services from a custom service loader with those of Boto3."""
 
-    @lru_cache()  # type: ignore
     def __init__(self) -> None:
         self.custom_service_loader = CustomServiceLoader()
         botocore_session = botocore.session.get_session()
-        self.boto3_loader = botocore_session.get_component("data_loader")
-        self.boto3_loader.search_paths.append(os.path.join(os.path.dirname(boto3.__file__), "data"))
-
-        # This does not need to honour the user's session because it is *only* used to list resources
-        self.non_specific_boto3_session = boto3.session.Session()
+        self.botocore_loader = botocore_session.get_component("data_loader")
+        boto3_data_path = os.path.join(os.path.dirname(boto3.__file__), "data")
+        self.botocore_loader.search_paths.append(boto3_data_path)
 
     def list_available_services(self, type_name: str = "resources-1") -> List[str]:
         _ = type_name
@@ -99,25 +97,25 @@ class MergedServiceLoader:
     @property
     def boto3_available_services(self) -> List[str]:
         """Return a list of services defined by Boto3."""
-        return self.non_specific_boto3_session.get_available_resources()
+        return self.botocore_loader.list_available_services(type_name="resources-1")
 
     def list_api_versions(self, service_name: str, type_name: str) -> List[str]:
         logger.debug("list_api_version, service_name: %s, type_name: %s", service_name, type_name)
         try:
-            boto3_api_versions = self.boto3_loader.list_api_versions(service_name=service_name, type_name=type_name)
+            boto3_api_versions = self.botocore_loader.list_api_versions(service_name=service_name, type_name=type_name)
         except DataNotFoundError:
             boto3_api_versions = []
         try:
             custom_api_versions = self.custom_service_loader.list_api_versions(
                 service_name=service_name, type_name=type_name
             )
-
         except UnsupportedServiceError:
             custom_api_versions = []
 
         if not boto3_api_versions and not custom_api_versions:
             raise UnsupportedServiceError(
-                f"{service_name} is not supported by either Boto3 or CloudWanderer's custom services"
+                f"{service_name} is not supported by either Boto3 or CloudWanderer's "
+                f"custom services for {type_name}.json"
             )
 
         if custom_api_versions:
@@ -128,7 +126,7 @@ class MergedServiceLoader:
     @memoized_method()
     def load_service_model(self, service_name: str, type_name: str, api_version: Optional[str]) -> OrderedDict:
         logger.debug(
-            "boto3_loaders load_service_model service_name %s, type_name %s, api_version %s",
+            "botocore_loaders load_service_model service_name %s, type_name %s, api_version %s",
             service_name,
             type_name,
             api_version,
@@ -136,7 +134,7 @@ class MergedServiceLoader:
         if not api_version:
             api_version = self.determine_latest_version(service_name=service_name, type_name=type_name)
         try:
-            boto3_definition = self.boto3_loader.load_service_model(
+            boto3_definition = self.botocore_loader.load_service_model(
                 service_name, type_name=type_name, api_version=api_version
             )
         except UnknownServiceError:
@@ -148,10 +146,10 @@ class MergedServiceLoader:
 
         if not boto3_definition and not custom_service_definition:
             raise UnsupportedServiceError(
-                f"{service_name} is not supported by either Boto3 or CloudWanderer's custom services"
+                f"{service_name} is not supported by either Boto3 or CloudWanderer's custom "
+                f"services for api_version {api_version}, type {type_name}"
             )
 
-        # TODO: use deep merge
         return OrderedDict(
             {
                 "service": OrderedDict(
@@ -193,29 +191,6 @@ class MergedServiceLoader:
 
 
 # # TODO: Normalising servicemapping as servicemap
-# class ServiceMappingLoader:
-#     """A class to load and retrieve service mappings.
-
-#     Service Mappings provide additional metadata about an AWS service.
-#     This includes things like, whether it is a global service, whether it has regional resources, etc.
-#     """
-
-#     @lru_cache()  # type: ignore
-#     def __init__(self) -> None:
-
-
-#     def get_service_mapping(self, service_name: str) -> "ServiceMap":
-#         """Return the mapping for service_name.
-
-#         Arguments:
-#             service_name (str): The name of the service (e.g. ``'ec2'``)
-#         """
-#         return ServiceMap.factory(name=service_name, definition=self.service_maps.get(service_name, {}))
-
-#     @cached_property
-#     def service_maps(self) -> Dict[str, Any]:
-#         """Return our custom resource definitions."""
-#         return load_json_definitions(self.service_mappings_path)
 
 
 class ServiceMap(NamedTuple):
@@ -338,61 +313,13 @@ class ResourceMap(NamedTuple):
 
     @property
     def dependent_resource_types(self) -> List[str]:
-        """Return a list of CloudWanderer style dependent resource types it's possible for this resource type to have."""
+        "Return a list of CloudWanderer style dependent resource types it's possible for this resource type to have."
         types = []
         for dependent_resource_model in self._dependent_resource_models:
             if not dependent_resource_model.resource:
                 continue
             types.append(botocore.xform_name(dependent_resource_model.resource.model.name))
         return types
-
-    # @property
-    # def subresource_models(self) -> Generator[Collection, None, None]:
-    #     """Yield the Boto3 models for the CloudWanderer style subresources of this resource type."""
-    #     models = {}
-    #     for collection_resource_map, collection_model in self._boto3_collection_models:
-    #         response_resource = collection_model.resource
-    #         if not response_resource or not self._is_collection_model_a_subresource(
-    #             collection_resource_map, response_resource.model
-    #         ):
-    #             continue
-
-    #         collection_resource_name = botocore.xform_name(response_resource.model.name)
-    #         models[collection_resource_name] = collection_model
-    #     yield from models.values()
-
-    # def _is_collection_model_a_subresource(
-    #     self, collection_resource_map: "ResourceMap", resource_model: ResourceModel
-    # ) -> bool:
-
-    #     if collection_resource_map.type in ["secondaryAttribute", "baseResource"] or resource_model is None:
-    #         return False
-    #     collection_resource_name = botocore.xform_name(resource_model.name)
-
-    #     if len(resource_model.identifiers) == 1 and collection_resource_map.type != "subresource":
-    #         return False
-    #     if resource_model.name in self.ignored_subresource_types:
-    #         logger.debug(
-    #             "% is defined as an ignored subresource type by the %s servicemap",
-    #             collection_resource_name,
-    #             self.service_map.name,
-    #         )
-    #         return False
-
-    #     return True
-
-    # @property
-    # def _boto3_collection_models(self) -> Generator[Tuple["ResourceMap", Collection], None, None]:
-    #     """Yield the ResourceMaps and Collections for this resource type.
-
-    #     This is used exclusively for subresources because subresources have a 1:many relationship with
-    #     their parent resource.
-    #     """
-    #     for boto3_collection in self.boto3_resource_model.collections:
-    #         if boto3_collection.resource is None:
-    #             continue
-    #         collection_resource_map = self.service_map.get_resource_map(boto3_collection.resource.model.name)
-    #         yield collection_resource_map, boto3_collection
 
     @property
     def ignored_subresource_types(self) -> List:

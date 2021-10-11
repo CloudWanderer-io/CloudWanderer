@@ -1,6 +1,6 @@
 """Models for CloudWanderer data."""
-from .urn import URN, PartialUrn
-from typing import Any, Dict, List, NamedTuple
+from .urn import PartialUrn
+from typing import Any, List, NamedTuple
 
 
 class ActionSet(NamedTuple):

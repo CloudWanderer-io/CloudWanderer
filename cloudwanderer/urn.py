@@ -18,7 +18,7 @@ resource_type='vpc', resource_id_parts=['vpc-11111111'])
 
 """
 import re
-from typing import Any, List, NamedTuple, Optional, Union
+from typing import Any, List, Optional, Union
 
 
 class PartialUrn:
@@ -53,7 +53,7 @@ class PartialUrn:
         service: Optional[str] = None,
         resource_type: Optional[str] = None,
         resource_id: Optional[str] = None,
-    ):
+    ) -> "PartialUrn":
         return PartialUrn(
             cloud_name=cloud_name or self.cloud_name,
             account_id=account_id or self.account_id,
@@ -198,6 +198,8 @@ class URN(PartialUrn):
         """
         if unescaped_id is None:
             return None
+        if not isinstance(unescaped_id, str):
+            unescaped_id = str(unescaped_id)
         return re.sub(r"(?<!\\)/", r"\/", unescaped_id)
 
     def __repr__(self) -> str:

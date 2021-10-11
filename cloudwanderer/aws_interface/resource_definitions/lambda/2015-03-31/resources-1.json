@@ -66,6 +66,26 @@
                 }
             ],
             "shape": "LayersListItem",
+            "has": {
+                "LayerVersion": {
+                    "resource": {
+                        "type": "LayerVersion",
+                        "identifiers": [
+                            {
+                                "target": "LayerName",
+                                "source": "identifier",
+                                "name": "LayerName"
+                            },
+                            {
+                                "target": "Version",
+                                "source": "input",
+                                "path": "LayerVersions[].Version"
+                            }
+                        ],
+                        "path": "LayerVersions[]"
+                    }
+                }
+            },
             "hasMany": {
                 "LayerVersions": {
                     "request": {

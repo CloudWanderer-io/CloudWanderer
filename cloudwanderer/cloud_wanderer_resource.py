@@ -112,8 +112,7 @@ class CloudWandererResource:
 
     @property
     def is_subresource(self) -> bool:
-        """Return whether this resource is a subresource or not."""
-        return self.cloudwanderer_resource_metadata.type == "subresource"
+        return bool(self.parent_urn)
 
     # @property
     # def parent_urn(self) -> Optional[URN]:
@@ -170,7 +169,7 @@ class CloudWandererResource:
         """Return the string representation of this Resource."""
         return repr(self)
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return repr(self) == repr(other)
 
 

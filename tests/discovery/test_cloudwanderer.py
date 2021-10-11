@@ -54,7 +54,7 @@ def cloud_wanderer() -> CloudWanderer:
     return CloudWanderer(storage_connectors=[mock_storage_connector], cloud_interface=mock_cloud_interface)
 
 
-def test_get_resources(cloud_wanderer: CloudWanderer):
+def test_write_resources(cloud_wanderer: CloudWanderer):
     cloud_wanderer.write_resources()
 
     cloud_wanderer.cloud_interface.get_resource_discovery_actions.assert_called()

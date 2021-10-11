@@ -1,8 +1,7 @@
 """Main cloudwanderer module."""
 import concurrent.futures
 import logging
-from datetime import datetime, timezone
-from typing import Callable, Iterator, List, NamedTuple
+from typing import Callable, List, NamedTuple
 
 from cloudwanderer.models import ServiceResourceType
 
@@ -82,6 +81,8 @@ class CloudWanderer:
         for action_set in action_sets:
             earliest_resource_discovered = None
             for get_urn in action_set.get_urns:
+                if not get_urn.region or not get_urn.service or not get_urn.resource_type:
+                    raise ValueError(f"Invalid get_urn {get_urn}")
                 resources = self.cloud_interface.get_resources(
                     region=get_urn.region,
                     service_name=get_urn.service,
@@ -92,6 +93,13 @@ class CloudWanderer:
                         earliest_resource_discovered = resource.discovery_time
                     self._write_resource(resource)
             for delete_urn in action_set.delete_urns:
+                if (
+                    not delete_urn.account_id
+                    or not delete_urn.region
+                    or not delete_urn.service
+                    or not delete_urn.resource_type
+                ):
+                    raise ValueError(f"Invalid delete_urn {delete_urn}")
                 for storage_connector in self.storage_connectors:
                     storage_connector.delete_resource_of_type_in_account_region(
                         account_id=delete_urn.account_id,
@@ -134,6 +142,7 @@ class CloudWanderer:
         with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency) as executor:
             threads = []
             for region_name in self.cloud_interface.enabled_regions:
+                logger.info(region_name)
                 cw = CloudWanderer(
                     storage_connectors=storage_connector_generator(), cloud_interface=cloud_interface_generator()
                 )

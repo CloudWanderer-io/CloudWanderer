@@ -16,12 +16,21 @@ def test_list_available_services(merged_service_loader):
     assert "sns" in merged_service_loader.list_available_services()
 
 
-def test_load_service_model(merged_service_loader):
+def test_load_service_model_cw(merged_service_loader):
     result = merged_service_loader.load_service_model(
         service_name="lambda", type_name="resources-1", api_version="2015-03-31"
     )
     assert result["resources"]
     assert "Function" in result["resources"]
+    assert isinstance(result, OrderedDict)
+
+
+def test_load_service_model_boto3(merged_service_loader):
+    result = merged_service_loader.load_service_model(
+        service_name="sns", type_name="resources-1", api_version="2010-03-31"
+    )
+    assert result["resources"]
+    assert "Topic" in result["resources"]
     assert isinstance(result, OrderedDict)
 
 
