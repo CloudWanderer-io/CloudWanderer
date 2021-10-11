@@ -1,11 +1,11 @@
-from boto3.resources.collection import ResourceCollection
-import botocore
-from cloudwanderer.urn import PartialUrn, URN
 from unittest.mock import MagicMock
 
+import botocore
+from boto3.resources.collection import ResourceCollection
 from pytest import fixture
 
 from cloudwanderer.aws_interface import CloudWandererBoto3Session
+from cloudwanderer.urn import URN, PartialUrn
 
 
 @fixture
@@ -67,6 +67,14 @@ def test_get_secondary_attributes(service_resource_ec2_vpc):
     assert list(service_resource_ec2_vpc.get_secondary_attributes()) == [
         {"EnableDnsSupport": {"Value": True}, "VpcId": "vpc-11111"}
     ]
+
+
+def test_secondary_attribute_names(service_resource_ec2_vpc):
+    assert list(service_resource_ec2_vpc.secondary_attribute_names) == ["vpc_enable_dns_support"]
+
+
+def test_shape(service_resource_ec2_vpc):
+    service_resource_ec2_vpc.meta.client.meta.service_model.shape_for.assert_called_with("Vpc")
 
 
 def test_normalized_raw_data(service_resource_ec2_vpc):

@@ -184,6 +184,8 @@ class MergedServiceLoader(Loader):
             api_version: The version of the api to get the definition of.
             type_name: The type of definition to get.
         """
+        if not api_version:
+            api_version = self.determine_latest_version(service_name=service_name, type_name=type_name)
         try:
             return self.custom_service_loader.get_service_definition(
                 service_name=service_name, type_name=type_name, api_version=api_version

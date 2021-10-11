@@ -2,6 +2,7 @@ import os
 import pathlib
 from collections import defaultdict
 from functools import lru_cache
+from typing import TYPE_CHECKING
 
 import boto3
 import botocore
@@ -14,10 +15,12 @@ from sphinx.domains import Domain
 from sphinx.util.docutils import SphinxDirective
 
 import cloudwanderer
-from cloudwanderer.boto3_loaders import MergedServiceLoader
-from cloudwanderer.boto3_services import CloudWandererBoto3Resource, CloudWandererBoto3Service
+from cloudwanderer.aws_interface.boto3_loaders import MergedServiceLoader
+from cloudwanderer.aws_interface.session import CloudWandererBoto3Session
+from cloudwanderer.utils import snake_to_pascal
 
-cloudwanderer.boto3_services.Boto3Services.enabled_regions = ["us-east-1", "eu-west-2"]
+if TYPE_CHECKING:
+    from cloudwanderer.aws_interface.stubs.resource import CloudWandererServiceResource
 
 SECONDARY_ATTR_TEMPLATE = """
 .. py:class:: {service_name}.{parent_resource_name}.{resource_name}
@@ -80,9 +83,8 @@ def _generate_mock_session(region: str = "eu-west-2") -> boto3.session.Session:
 class SummarisedResources:
     def __init__(self) -> None:
         self.merged_loader = MergedServiceLoader()
-        self.services = cloudwanderer.boto3_services.Boto3Services(
-            boto3_session=_generate_mock_session(), account_id="111111111111"
-        )
+        self.botocore_loader = self.merged_loader.botocore_loader
+        self.session = CloudWandererBoto3Session()
 
     @property
     @lru_cache()
@@ -90,26 +92,27 @@ class SummarisedResources:
         service_summary = defaultdict(list)
 
         for service_name in sorted(self.merged_loader.cloudwanderer_available_services):
-            service = self.services.get_service(service_name)
-            service_model = service.boto3_service.meta.client.meta.service_model
+            service = self.session.resource(service_name)
+            service_model = service.meta.client.meta.service_model
             service_id = service_model.metadata["serviceId"]
-            service_definition = self.merged_loader._get_custom_service_definition(service_name)
+            service_definition = self.merged_loader._get_custom_service_definition(
+                service_name, type_name="resources-1", api_version=None
+            )
             resource_list = []
-            for collection_name, collection in service_definition["service"].get("hasMany", {}).items():
+            for collection_name, collection in service_definition.get("service", {}).get("hasMany", {}).items():
                 resource_name = collection["resource"]["type"]
                 if collection_name in self.boto3_resources.get(service_name, []):
                     continue
                 try:
-                    resource = service._get_empty_resource(botocore.xform_name(resource_name))
+                    resource = service.resource(botocore.xform_name(resource_name), empty_resource=True)
                 except StopIteration:
                     continue
                 subresource_summary = []
-                for subresource_collection_model in resource.resource_map.subresource_models:
-                    subresource_collection_name = (
-                        subresource_collection_model.name.replace("_", " ").title().replace(" ", "")
-                    )
-                    subresource_name = subresource_collection_model.resource.type
-                    subresource_summary.append((subresource_collection_name, subresource_name))
+                for dependent_resource_type in resource.dependent_resource_types:
+                    dependent_resource = service.resource(dependent_resource_type, empty_resource=True)
+                    friendly_name = dependent_resource_type.replace("_", " ").title().replace(" ", "")
+                    # subresource_name = dependent_resource.meta.resource_model.type
+                    subresource_summary.append((collection_name, friendly_name))
                 resource_list.append((service_name, collection_name, resource_name, subresource_summary))
 
             if resource_list:
@@ -121,25 +124,24 @@ class SummarisedResources:
     def boto3_resources(self) -> list:
         services_summary = defaultdict(list)
         for service_name in self.merged_loader.boto3_available_services:
-            service = self.services.get_service(service_name)
-            service_model = service.boto3_service.meta.client.meta.service_model
+            service = self.session.resource(service_name)
+            service_model = service.meta.client.meta.service_model
             service_id = service_model.metadata["serviceId"]
-            service_definition = self.merged_loader._get_boto3_definition(service_name)
+            service_definition = self.botocore_loader.load_service_model(service_name, type_name="resources-1")
             for collection_name, collection in service_definition["service"].get("hasMany", {}).items():
 
                 resource_name = collection["resource"]["type"]
                 try:
-                    resource = service._get_empty_resource(botocore.xform_name(resource_name))
+                    resource = service.resource(botocore.xform_name(resource_name), empty_resource=True)
                 except StopIteration:
                     print(f"Could not find resource: {resource_name}")
                     continue
                 subresource_summary = []
-                for subresource_collection_model in resource.resource_map.subresource_models:
-                    subresource_collection_name = (
-                        subresource_collection_model.name.replace("_", " ").title().replace(" ", "")
-                    )
-                    subresource_name = subresource_collection_model.resource.type
-                    subresource_summary.append((subresource_collection_name, subresource_name))
+                for dependent_resource_type in resource.dependent_resource_types:
+                    dependent_resource = service.resource(dependent_resource_type, empty_resource=True)
+                    friendly_name = dependent_resource_type.replace("_", " ").title().replace(" ", "")
+                    # subresource_name = dependent_resource.meta.resource_model.type
+                    subresource_summary.append((collection_name, friendly_name))
                 services_summary[service_id].append((service_name, collection_name, resource_name, subresource_summary))
 
         return services_summary
@@ -245,9 +247,7 @@ class CloudWandererSecondaryAttributesDirective(SphinxDirective):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.services = cloudwanderer.boto3_services.Boto3Services(
-            boto3_session=_generate_mock_session(), account_id="111111111111"
-        )
+        self.session = CloudWandererBoto3Session()
 
     def run(self) -> list:
         targetid = "cloudwanderer-%d" % self.env.new_serialno("cloudwanderer")
@@ -261,22 +261,21 @@ class CloudWandererSecondaryAttributesDirective(SphinxDirective):
     def get_cloudwanderer_secondary_attributes(self) -> list:
         service_list = ""
 
-        for service_name in sorted(self.services.available_services):
+        for service_name in sorted(self.session.get_available_resources()):
             service_friendly_name = service_name
-            service = self.services.get_service(service_name)
-            resources = sorted(service.resource_summary)
+            service = self.session.resource(service_name)
+
             resource_list = ""
-            for resource_summary in resources:
+            for resource_type in service.resource_types:
+                resource = service.resource(resource_type, empty_resource=True)
                 secondary_attributes_list = ""
-                service_friendly_name = resource_summary.service_friendly_name
-                for secondary_attribute in resource_summary.secondary_attribute_names:
-                    qualified_name = f"{service_name}.{resource_summary.resource_type}.{secondary_attribute}"
+                service_friendly_name = resource.meta.resource_model.name
+                resource_type_pascal = snake_to_pascal(resource_type)
+                for secondary_attribute in resource.secondary_attribute_names:
+                    qualified_name = f"{service_name}.{resource_type}.{secondary_attribute}"
                     secondary_attributes_list += f"         * :class:`~{qualified_name}`\n"
                 if secondary_attributes_list:
-                    resource_link = (
-                        f":class:`{resource_summary.resource_type_pascal}"
-                        f"<{service_name}.{resource_summary.resource_type}>`"
-                    )
+                    resource_link = f":class:`{resource_type_pascal}" f"<{service_name}.{resource_type}>`"
                     resource_list += f"    * {resource_link}\n{secondary_attributes_list}"
             if resource_list:
                 service_list += (
@@ -334,19 +333,17 @@ class GetCwServices:
     def __init__(self) -> None:
         self.relative_path = "resource_properties"
         self.base_path = os.path.join(pathlib.Path(__file__).parent.absolute(), "..")
-        self.services = cloudwanderer.boto3_services.Boto3Services(
-            boto3_session=_generate_mock_session(), account_id="111111111111"
-        )
+        self.session = CloudWandererBoto3Session()
 
-        self.loader = cloudwanderer.boto3_loaders.MergedServiceLoader()
+        self.loader = MergedServiceLoader()
 
     def get_cloudwanderer_services(self) -> list:
-        yield from self.services.available_services
+        yield from self.session.get_available_resources()
 
     def write_cloudwanderer_services(self) -> list:
-        for service_name in self.services.available_services:
-            service = self.services.get_service(service_name)
-            service_model = service.boto3_service.meta.client.meta.service_model
+        for service_name in self.session.get_available_resources():
+            service = self.session.resource(service_name)
+            service_model = service.meta.client.meta.service_model
             service_id = service_model.metadata["serviceId"]
             service_section = f"{service_id}\n{'-'*len(service_id)}\n\n"
             service_section += "\n\n".join(self.get_collections(service))
@@ -361,59 +358,63 @@ class GetCwServices:
         html_parser.include_doc_string(html)
         return html_parser.getvalue().decode().replace("\n", "\n")
 
-    def get_collections(self, service: cloudwanderer.boto3_services.CloudWandererBoto3Resource) -> list:
+    def get_collections(self, service: "CloudWandererServiceResource") -> list:
 
         result = []
 
         for resource_type in sorted(service.resource_types):
-            resource = service._get_empty_resource(resource_type)
+            resource = service.resource(resource_type, empty_resource=True)
             result.append(self.generate_resource_section(service, resource, "{service_name}.{resource_name}"))
             result.append(self.get_subresources(service, resource))
             result.append(self.get_secondary_attributes(service, resource))
         return result
 
-    def get_subresources(self, service: CloudWandererBoto3Service, resource: CloudWandererBoto3Resource) -> str:
+    def get_subresources(
+        self, service: "CloudWandererServiceResource", resource: "CloudWandererServiceResource"
+    ) -> str:
         result = ""
         parent_resource_name = resource.resource_type
 
-        for subresource_model in resource.resource_map.subresource_models:
-            subresource_type = botocore.xform_name(subresource_model.resource.model.name)
-            subresource = service._get_empty_resource(subresource_type)
+        for dependent_resource_type in resource.dependent_resource_types:
+
+            dependent_resource = service.resource(dependent_resource_type, empty_resource=True)
             result += self.generate_resource_section(
                 service,
-                subresource,
+                dependent_resource,
                 f"{{service_name}}.{parent_resource_name}.{{resource_name}}",
                 f"A subresource of :class:`{{service_name}}.{parent_resource_name}`.\n\n",
             )
         return result
 
-    def get_secondary_attributes(self, service: CloudWandererBoto3Service, resource: CloudWandererBoto3Resource) -> str:
+    def get_secondary_attributes(
+        self, service: "CloudWandererServiceResource", resource: "CloudWandererServiceResource"
+    ) -> str:
         result = ""
-        service_name = service.name
+        service_name = service.service_name
         parent_resource_name = resource.resource_type
-        for collection in resource.secondary_attribute_models:
+        for secondary_attribute_name in resource.secondary_attribute_names:
             result += SECONDARY_ATTR_TEMPLATE.format(
                 service_name=service_name,
                 parent_resource_name=parent_resource_name,
-                resource_name=botocore.xform_name(collection.name),
+                resource_name=secondary_attribute_name,
             )
         return result
 
     def generate_resource_section(
         self,
-        service: CloudWandererBoto3Service,
-        resource: CloudWandererBoto3Resource,
+        service: "CloudWandererServiceResource",
+        resource: "CloudWandererServiceResource",
         name: str,
         description: str = "",
     ) -> str:
-        service_model = service.boto3_service.meta.client.meta.service_model
-        shape = service_model.shape_for(resource.boto3_resource.meta.resource_model.shape)
-        attributes = sorted(resource.boto3_resource.meta.resource_model.get_attributes(shape).items())
+        service_model = service.meta.client.meta.service_model
+        shape = service_model.shape_for(resource.meta.resource_model.shape)
+        attributes = sorted(resource.meta.resource_model.get_attributes(shape).items())
         resource_section = RESOURCE_TEMPLATE.render(
-            class_name=name.format(service_name=service.name, resource_name=resource.resource_type),
-            service_name=service.name,
+            class_name=name.format(service_name=service.service_name, resource_name=resource.resource_type),
+            service_name=service.service_name,
             resource_name=resource.resource_type,
-            description=description.format(service_name=service.name, resource_name=resource.resource_type),
+            description=description.format(service_name=service.service_name, resource_name=resource.resource_type),
             default_filters=", ".join(
                 f"{key}={repr(value)}" for key, value in resource.resource_map.default_filters.items()
             ),

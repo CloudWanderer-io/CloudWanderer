@@ -1,26 +1,29 @@
+"""Create the CloudWandererServiceResource objects that do the magic."""
+import logging
+from typing import TYPE_CHECKING, Any, Callable, Dict, Generator, List, Optional
+
+import jmespath
+from boto3.resources.collection import CollectionManager
+from boto3.resources.factory import ResourceFactory
+from boto3.resources.model import Collection
+from botocore import xform_name
 from botocore.loaders import Loader
-from ..urn import PartialUrn, URN
+from botocore.model import Shape
+
+from cloudwanderer.utils import snake_to_pascal
+
+from ..cloud_wanderer_resource import SecondaryAttribute
+from ..exceptions import UnsupportedResourceTypeError
 from ..models import TemplateActionSet
-from typing import Any, Callable, Dict, Generator, List, Optional, TYPE_CHECKING
+from ..urn import URN, PartialUrn
+from .boto3_helpers import _clean_boto3_metadata
+from .boto3_loaders import MergedServiceLoader, ServiceMap
 
 if TYPE_CHECKING:
     from .session import CloudWandererBoto3Session
-    from .stubs.service_context import ServiceContext
     from .stubs.resource import CloudWandererServiceResource
+    from .stubs.service_context import ServiceContext
 
-
-from boto3.resources.collection import CollectionManager
-from .boto3_loaders import MergedServiceLoader, ServiceMap
-from boto3.resources.factory import ResourceFactory
-import logging
-from ..exceptions import UnsupportedResourceTypeError
-from ..cloud_wanderer_resource import SecondaryAttribute
-
-from boto3.resources.model import Collection
-
-from botocore import xform_name
-import jmespath
-from .boto3_helpers import _clean_boto3_metadata
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +80,7 @@ class CloudWandererResourceFactory(ResourceFactory):
             """Return the discovery actions to be performed if getting this resource type in this region.
 
             Arguments:
-                query_regions: The regions in which the query would be performed.
+                discovery_regions: The regions in which the query would be performed.
             """
             template_actions = []
             for discovery_region in discovery_regions:
@@ -118,6 +121,7 @@ class CloudWandererResourceFactory(ResourceFactory):
     def _create_get_collection_model(self) -> Callable:
         def get_collection_model(self, resource_type) -> Optional[str]:
             """Resource names *almost* always match their resource type, but not always.
+
             I'm looking at you EC2 KeyPair!
 
             A resource _name_ is the PascalCase key it has in the ``resources`` dict in the service definition json.
@@ -219,19 +223,29 @@ class CloudWandererResourceFactory(ResourceFactory):
 
     def _create_get_secondary_attributes(self) -> Callable:
         def get_secondary_attributes(self) -> Generator[SecondaryAttribute, None, None]:
+            for secondary_attribute_name in self.secondary_attribute_names:
+                getter = getattr(self, snake_to_pascal(secondary_attribute_name))
+                secondary_attribute_resource = getter()
+                secondary_attribute_resource.load()
+                yield SecondaryAttribute(
+                    secondary_attribute_name, **_clean_boto3_metadata(secondary_attribute_resource.meta.data)
+                )
+
+        return get_secondary_attributes
+
+    def _create_secondary_attribute_names(self) -> Callable:
+        @property  # type: ignore
+        def secondary_attribute_names(self) -> List[SecondaryAttribute]:
+            secondary_attribute_names = []
             for subresource in self.meta.resource_model.subresources:
                 resource_map = self.service_map.get_resource_map(xform_name(subresource.name))
                 logger.debug("ServiceResource get_secondary_attributes, subresource_name: %s", subresource.name)
                 if not resource_map or resource_map.type != "secondaryAttribute":
                     continue
-                getter = getattr(self, subresource.name)
-                secondary_attribute_resource = getter()
-                secondary_attribute_resource.load()
-                yield SecondaryAttribute(
-                    subresource.name, **_clean_boto3_metadata(secondary_attribute_resource.meta.data)
-                )
+                secondary_attribute_names.append(xform_name(subresource.name))
+            return secondary_attribute_names
 
-        return get_secondary_attributes
+        return secondary_attribute_names
 
     def _create_get_account_id(self) -> Callable:
         def get_account_id(self) -> str:
@@ -257,9 +271,7 @@ class CloudWandererResourceFactory(ResourceFactory):
         @property  # type: ignore
         def normalized_raw_data(self) -> Dict[str, Any]:
             """Return the raw data ditionary for this resource, ensuring that all keys for this resource are present."""
-            service_model = self.meta.client.meta.service_model
-            shape = service_model.shape_for(self.meta.resource_model.shape)
-            result = {attribute: None for attribute in shape.members.keys()}
+            result = {attribute: None for attribute in self.shape.members.keys()}
             result.update(self.meta.data or {})
             return _clean_boto3_metadata(result)
 
@@ -290,6 +302,14 @@ class CloudWandererResourceFactory(ResourceFactory):
 
         return dependent_resource_types
 
+    def _create_shape(self) -> Callable[..., Shape]:
+        @property  # type: ignore
+        def shape(self) -> Shape:
+            service_model = self.meta.client.meta.service_model
+            return service_model.shape_for(self.meta.resource_model.shape)
+
+        return shape
+
     def _load_cloudwanderer_properties(
         self, attrs: Dict[str, Any], resource_name: str, service_context: "ServiceContext"
     ) -> None:
@@ -311,3 +331,5 @@ class CloudWandererResourceFactory(ResourceFactory):
             attrs["resource_type"] = xform_name(resource_name)
             attrs["resource_map"] = attrs["service_map"].get_resource_map(resource_type=xform_name(resource_name))
             attrs["dependent_resource_types"] = self._create_dependent_resource_types()
+            attrs["secondary_attribute_names"] = self._create_secondary_attribute_names()
+            attrs["shape"] = self._create_shape()
