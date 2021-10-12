@@ -10,10 +10,10 @@ import botocore
 
 from ..cloud_wanderer_resource import CloudWandererResource
 
-# from ..exceptions import BadRequestError, ResourceNotFoundError
+from ..exceptions import BadRequestError, ResourceNotFoundError
 from ..models import ActionSet, ServiceResourceType, TemplateActionSet
 
-# from ..urn import URN
+from ..urn import URN
 from .aws_services import AWS_SERVICES
 from .session import CloudWandererBoto3Session
 
@@ -43,38 +43,45 @@ class CloudWandererAWSInterface:
         """
         self.cloudwanderer_boto3_session = cloudwanderer_boto3_session or CloudWandererBoto3Session()
 
-    # def get_resource(self, urn: URN, include_subresources: bool = True) -> Iterator[CloudWandererResource]:
-    #     """Yield the resource picked out by this URN and optionally its subresources.
+    def get_resource(self, urn: URN, include_dependent_resources: bool = True) -> Iterator[CloudWandererResource]:
+        """Yield the resource picked out by this URN and optionally its subresources.
 
-    #     Arguments:
-    #         urn (URN): The urn of the resource to get.
-    #         include_subresources: Whether or not to additionally yield the subresources of the resource.
-    #     """
-    #     try:
-    #         resource = self.boto3_services.get_resource_from_urn(urn=urn)
-    #     except ResourceNotFoundError:
-    #         return None
-    #     except BadRequestError:
-    #         logger.debug(
-    #             f"Got BadRequestError while getting {urn}, as AWS services commonly return 4xx errors other than 404 "
-    #             "for resource non-existence we are interpreting this as the resource does not exist."
-    #         )
-    #         return None
-    #     subresource_urns = []
-    #     if include_subresources:
-    #         for subresource in resource.get_subresources():
-    #             subresource_urns.append(subresource.urn)
-    #             yield CloudWandererResource(
-    #                 urn=subresource.urn,
-    #                 resource_data=subresource.normalized_raw_data,
-    #                 secondary_attributes=list(subresource.get_secondary_attributes()),
-    #             )
-    #     yield CloudWandererResource(
-    #         urn=urn,
-    #         subresource_urns=subresource_urns,
-    #         resource_data=resource.normalized_raw_data,
-    #         secondary_attributes=list(resource.get_secondary_attributes()),
-    #     )
+        #     Arguments:
+        #         urn (URN): The urn of the resource to get.
+        #         include_subresources: Whether or not to additionally yield the subresources of the resource.
+        """
+
+        try:
+            # resource = self.boto3_services.get_resource_from_urn(urn=urn)
+            service = self.cloudwanderer_boto3_session.resource(service_name=urn.service, region_name=urn.region)
+            resource = service.resource(resource_type=urn.resource_type, identifiers=urn.resource_id_parts)
+        except ResourceNotFoundError:
+            return None
+        except BadRequestError:
+            logger.debug(
+                f"Got BadRequestError while getting {urn}, as AWS services commonly return 4xx errors other than 404 "
+                "for resource non-existence we are interpreting this as the resource does not exist."
+            )
+
+            return None
+        dependent_resource_urns = []
+        if include_dependent_resources:
+            for dependent_resource_type in resource.dependent_resource_types:
+                for dependent_resource in resource.collection(resource_type=dependent_resource_type):
+                    urn = dependent_resource.get_urn()
+                    dependent_resource_urns.append(urn)
+                    yield CloudWandererResource(
+                        urn=urn,
+                        resource_data=dependent_resource.normalized_raw_data,
+                        parent_urn=resource.get_urn(),
+                        secondary_attributes=list(dependent_resource.get_secondary_attributes()),
+                    )
+        yield CloudWandererResource(
+            urn=resource.get_urn(),
+            resource_data=resource.normalized_raw_data,
+            dependent_resource_urns=dependent_resource_urns,
+            secondary_attributes=list(resource.get_secondary_attributes()),
+        )
 
     def get_resources(
         self,
@@ -98,12 +105,16 @@ class CloudWandererAWSInterface:
         logger.info("Getting %s %s resources from %s", service_name, resource_type, region)
         service = self.cloudwanderer_boto3_session.resource(service_name=service_name, region_name=region)
         resource_map: ResourceMap = service.service_map.get_resource_map(resource_type)
+
         try:
             for resource in service.collection(resource_type=resource_type, filters=resource_map.default_filters):
+                dependent_resource_urns = []
                 for dependent_resource_type in resource.dependent_resource_types:
                     for dependent_resource in resource.collection(resource_type=dependent_resource_type):
+                        urn = dependent_resource.get_urn()
+                        dependent_resource_urns.append(urn)
                         yield CloudWandererResource(
-                            urn=dependent_resource.get_urn(),
+                            urn=urn,
                             resource_data=dependent_resource.normalized_raw_data,
                             parent_urn=resource.get_urn(),
                             secondary_attributes=list(dependent_resource.get_secondary_attributes()),
@@ -111,6 +122,7 @@ class CloudWandererAWSInterface:
                 yield CloudWandererResource(
                     urn=resource.get_urn(),
                     resource_data=resource.normalized_raw_data,
+                    dependent_resource_urns=dependent_resource_urns,
                     secondary_attributes=list(resource.get_secondary_attributes()),
                 )
         except botocore.exceptions.EndpointConnectionError:

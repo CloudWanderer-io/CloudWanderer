@@ -40,14 +40,14 @@ class ResourceMetadata:
 class CloudWandererResource:
     """A simple representation of a resource that prevents any storage metadata polluting the resource dictionary.
 
-    This can be a resource, or a subresource.
-    A subresource in CloudWanderer is a resource which does not have a unique identifier of its own and depends
+    This can be a resource, or a dependent resource.
+    A dependent resource in CloudWanderer is a resource which does not have a unique identifier of its own and depends
     upon its parent for its identity.
 
     Attributes:
         urn: The URN of the resource.
-        subresource_urns: The URNs of this resource's subresources (e.g. role_policies for a role).
-        parent_urn: The URN of this resource's parent (only exists if this is a subresource).
+        dependent resource_urns: The URNs of this resource's dependent resources (e.g. role_policies for a role).
+        parent_urn: The URN of this resource's parent (only exists if this is a dependent resource).
         cloudwanderer_metadata (ResourceMetadata): The metadata of this resource (including attributes).
     """
 
@@ -57,7 +57,7 @@ class CloudWandererResource:
         resource_data: dict,
         secondary_attributes: List["SecondaryAttribute"] = None,
         loader: Optional[Callable] = None,
-        subresource_urns: List[URN] = None,
+        dependent_resource_urns: List[URN] = None,
         parent_urn: URN = None,
         discovery_time: datetime = None,
     ) -> None:
@@ -65,13 +65,13 @@ class CloudWandererResource:
 
         Arguments:
             urn: The URN of the resource.
-            subresource_urns: The URNs of the subresources of this resource.
+            dependent_resource_urns: The URNs of the dependent resources of this resource.
             resource_data: The dictionary containing the raw data about this resource.
             secondary_attributes: A list of secondary attribute raw dictionaries.
             loader: The method which can be used to fulfil the :meth:`CloudWandererResource.load`.
         """
         self.urn = urn
-        self.subresource_urns = subresource_urns or []
+        self.dependent_resource_urns = dependent_resource_urns or []
         self.parent_urn = parent_urn
         self.cloudwanderer_metadata = ResourceMetadata(
             resource_data=resource_data or {}, secondary_attributes=secondary_attributes or []
@@ -111,28 +111,8 @@ class CloudWandererResource:
         return bool([key for key in self.cloudwanderer_metadata.resource_data if not key.startswith("_")])
 
     @property
-    def is_subresource(self) -> bool:
+    def is_dependent_resource(self) -> bool:
         return bool(self.parent_urn)
-
-    # @property
-    # def parent_urn(self) -> Optional[URN]:
-    #     if not self.is_subresource:
-    #         return None
-    #     parent_resource_type = self.cloudwanderer_resource_metadata.parent_resource_type
-    #     if not parent_resource_type:
-    #         raise ValueError(f"{self.urn.resource_type} missing parent resource type in service map.")
-    #     parent_resource_metadata = jmespath.search(
-    #         f"resources.{snake_to_pascal(parent_resource_type)}", self.cloudwanderer_service_metadata.boto3_definition
-    #     )
-    #     parent_identifiers = parent_resource_metadata.get("identifiers")
-    #     parent_slice = len(parent_identifiers)
-    #     return URN(
-    #         account_id=self.urn.account_id,
-    #         region=self.urn.region,
-    #         service=self.urn.service,
-    #         resource_type=self.cloudwanderer_resource_metadata.parent_resource_type,
-    #         resource_id_parts=self.urn.resource_id_parts[:parent_slice],
-    #     )
 
     def get_secondary_attribute(self, name: str = None, jmes_path: str = None) -> List["SecondaryAttribute"]:
         """Get an attribute not returned in the resource's standard ``describe`` method.
@@ -160,7 +140,7 @@ class CloudWandererResource:
         return str(
             f"{self.__class__.__name__}("
             f"urn={repr(self.urn)}, "
-            f"subresource_urns={repr(self.subresource_urns)}, "
+            f"dependent_resource_urns={repr(self.dependent_resource_urns)}, "
             f"resource_data={self.cloudwanderer_metadata.resource_data}, "
             f"secondary_attributes={self.cloudwanderer_metadata.secondary_attributes})"
         )
