@@ -1,7 +1,5 @@
 """Helper classes and methods for interacting with boto3."""
 
-from typing import List
-
 
 def _clean_boto3_metadata(boto3_metadata: dict) -> dict:
     """Remove unwanted keys from boto3 metadata dictionaries.

@@ -134,6 +134,9 @@ class CloudWandererResourceFactory(ResourceFactory):
                     cloudwanderer resource type
                 2. Lookup the collection that references that resource type.
                 3. Return that collection name
+
+            Arguments;
+                resource_type: The snake case resource type to get a model for (e.g. ``'bucket'``)
             """
             boto3_resource_type = None
             for resource in self.meta.resource_model.subresources:
