@@ -1,15 +1,15 @@
+import logging
 from datetime import datetime
 from typing import Any, Dict, Iterator, List, Optional
 
-from gremlin_python.process.traversal import Cardinality, Traversal
-from ..urn import URN
-from ..cloud_wanderer_resource import CloudWandererResource
-from .base_connector import BaseStorageConnector
-from gremlin_python.process.graph_traversal import __
-from gremlin_python.process.traversal import T
-from gremlin_python.process.anonymous_traversal import traversal
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
-import logging
+from gremlin_python.process.anonymous_traversal import traversal
+from gremlin_python.process.graph_traversal import __
+from gremlin_python.process.traversal import Cardinality, T, Traversal
+
+from ..cloud_wanderer_resource import CloudWandererResource
+from ..urn import URN
+from .base_connector import BaseStorageConnector
 
 logger = logging.getLogger(__name__)
 
