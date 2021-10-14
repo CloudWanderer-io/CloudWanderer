@@ -10,14 +10,12 @@ from boto3.resources.model import Collection
 from botocore import xform_name
 from botocore.loaders import Loader
 from botocore.model import Shape
-from ..models import Relationship, RelationshipAccountIdSource, RelationshipRegionSource
-
-from ..utils import snake_to_pascal
 
 from ..cloud_wanderer_resource import SecondaryAttribute
 from ..exceptions import UnsupportedResourceTypeError
-from ..models import TemplateActionSet
+from ..models import Relationship, RelationshipAccountIdSource, RelationshipRegionSource, TemplateActionSet
 from ..urn import URN, PartialUrn
+from ..utils import snake_to_pascal
 from .boto3_helpers import _clean_boto3_metadata
 from .boto3_loaders import MergedServiceLoader, ServiceMap
 
@@ -267,6 +265,8 @@ class CloudWandererResourceFactory(ResourceFactory):
                     jmespath.search(self.resource_map.region_request.path_to_region, result)
                     or self.resource_map.region_request.default_value
                 )
+            if self.service_map.global_service:
+                return self.service_map.global_service_region
 
             return self.meta.client.meta.region_name
 
@@ -285,6 +285,7 @@ class CloudWandererResourceFactory(ResourceFactory):
     def _create_resource_types(self) -> Callable[..., List[str]]:
         @property  # type: ignore
         def resource_types(self) -> List[str]:
+            """Lists resources which are directly enumerable from the service"""
             resource_types = [
                 xform_name(collection.resource.type) for collection in self.meta.resource_model.collections
             ]
@@ -344,7 +345,6 @@ class CloudWandererResourceFactory(ResourceFactory):
 
                     for id_part in relationship_specification.id_parts:
                         id_raw = jmespath.search(id_part.path, base_path)
-
                         if not id_part.regex_pattern:
                             urn_args["resource_id_parts"].append(id_raw)
                             continue

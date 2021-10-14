@@ -75,6 +75,26 @@
             "type": "dependentResource",
             "parentResourceType": "policy",
             "regionalResource": false
+        },
+        "InstanceProfile": {
+            "type": "resource",
+            "regionalResource": false,
+            "relationships": [
+                {
+                    "basePath": "Roles[]",
+                    "idParts": [
+                        {
+                            "path": "Arn",
+                            "regexPattern": "[^:]+:[^:]+:[^:]+::(?P<account_id>[^:]+):role/(?P<id_part_0>[^:]+)"
+                        }
+                    ],
+                    "service": "iam",
+                    "resourceType": "role",
+                    "regionSource": "sameAsResource",
+                    "accountIdSource": "unknown",
+                    "direction": "outbound"
+                }
+            ]
         }
     }
 }
