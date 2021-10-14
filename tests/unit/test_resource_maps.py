@@ -4,8 +4,14 @@ from unittest.mock import MagicMock
 import boto3
 from boto3.resources.model import ResourceModel
 
-from cloudwanderer.boto3_loaders import ResourceMap, ResourceRegionRequest
-from cloudwanderer.models import AWSGetAndCleanUp, CleanupAction, GetAction
+from cloudwanderer.aws_interface.boto3_loaders import (
+    IdPartSpecification,
+    RelationshipSpecification,
+    ResourceMap,
+    ResourceRegionRequest,
+)
+from cloudwanderer.models import RelationshipAccountIdSource, RelationshipRegionSource, RelationshipDirection
+
 
 from .helpers import named_mock
 
@@ -43,7 +49,6 @@ class TestResourceMap(unittest.TestCase):
                     "pathToRegion": "LocationConstraint",
                     "defaultValue": "us-east-1",
                 },
-                "ignoredSubresources": [{"type": "ObjectSummary"}],
                 "requiresLoadForFullMetadata": True,
                 "defaultFilters": {"Key": "Value"},
             },
@@ -52,13 +57,12 @@ class TestResourceMap(unittest.TestCase):
         )
 
         assert isinstance(resource_map.region_request, ResourceRegionRequest)
-        assert resource_map.ignored_subresources == [{"type": "ObjectSummary"}]
-        assert resource_map.ignored_subresource_types == ["ObjectSummary"]
+
         assert resource_map.requires_load_for_full_metadata
         assert not resource_map.regional_resource
         assert resource_map.default_filters == {"Key": "Value"}
 
-    def test_subresource_map(self):
+    def test_dependent_resource_map(self):
         resource_map = ResourceMap.factory(
             definition={"type": "resource", "parentResourceType": "role"},
             boto3_resource_model=self.bucket_resource_model,
@@ -88,108 +92,32 @@ class TestResourceMap(unittest.TestCase):
         assert resource_map.should_query_resources_in_region("us-east-1")
         assert resource_map.should_query_resources_in_region("eu-west-1")
 
-    def test_subresource_models(self):
+    def test_relationships(self):
         resource_map = ResourceMap.factory(
-            definition={"type": "resource"},
-            boto3_resource_model=self.role_resource_model,
-            service_map=MagicMock(),
-        )
-
-        assert [subresource.name for subresource in resource_map.subresource_models] == ["policies"]
-
-    def test_subresource_types(self):
-        resource_map = ResourceMap.factory(
-            definition={"type": "resource"},
-            boto3_resource_model=self.role_resource_model,
-            service_map=MagicMock(),
-        )
-
-        assert resource_map.subresource_types == ["role_policy"]
-
-    def test_get_and_cleanup_actions_global_service_global_resource(self):
-        resource_map = ResourceMap.factory(
-            definition={"type": "resource", "regionalResource": False},
-            boto3_resource_model=self.role_resource_model,
-            service_map=named_mock("iam", is_global_service=True, global_service_region="us-east-1"),
-        )
-
-        assert resource_map.get_and_cleanup_actions(query_region="us-east-1") == AWSGetAndCleanUp(
-            get_actions=[
-                GetAction(service_name="iam", region="us-east-1", resource_type="role"),
-            ],
-            cleanup_actions=[
-                CleanupAction(service_name="iam", region="us-east-1", resource_type="role"),
-            ],
-        )
-
-    def test_get_and_cleanup_actions_global_service_regional_resource(self):
-        resource_map = ResourceMap.factory(
-            definition={"type": "resource", "regionalResource": True},
+            definition={
+                "relationships": [
+                    {
+                        "basePath": "@",
+                        "idParts": [{"path": "VpcId"}],
+                        "service": "ec2",
+                        "resourceType": "vpc",
+                        "regionSource": "sameAsResource",
+                        "accountIdSource": "unknown",
+                    }
+                ],
+            },
             boto3_resource_model=self.bucket_resource_model,
-            service_map=named_mock("s3", is_global_service=True, global_service_region="us-east-1"),
+            service_map=MagicMock(is_global_service=False),
         )
 
-        assert resource_map.get_and_cleanup_actions(query_region="us-east-1") == AWSGetAndCleanUp(
-            get_actions=[
-                GetAction(service_name="s3", region="us-east-1", resource_type="bucket"),
-            ],
-            cleanup_actions=[
-                CleanupAction(service_name="s3", region="ALL_REGIONS", resource_type="bucket"),
-            ],
-        )
-
-    def test_get_and_cleanup_actions_global_service_regional_resource_wrong_region(self):
-        resource_map = ResourceMap.factory(
-            definition={"type": "resource", "regionalResource": True},
-            boto3_resource_model=self.bucket_resource_model,
-            service_map=named_mock("s3", is_global_service=True, global_service_region="us-east-1"),
-        )
-
-        assert resource_map.get_and_cleanup_actions(query_region="ap-east-1") == AWSGetAndCleanUp(
-            get_actions=[],
-            cleanup_actions=[],
-        )
-
-    def test_get_and_cleanup_actions_regional_service_regional_resource(self):
-        resource_map = ResourceMap.factory(
-            definition={"type": "resource", "regionalResource": True},
-            boto3_resource_model=self.vpc_resource_model,
-            service_map=named_mock("ec2", is_global_service=False),
-        )
-
-        assert resource_map.get_and_cleanup_actions(query_region="us-east-1") == AWSGetAndCleanUp(
-            get_actions=[
-                GetAction(service_name="ec2", region="us-east-1", resource_type="vpc"),
-            ],
-            cleanup_actions=[
-                CleanupAction(service_name="ec2", region="us-east-1", resource_type="vpc"),
-            ],
-        )
-
-    def test_get_and_cleanup_actions_global_service_regional_subresource(self):
-        resource_map = ResourceMap.factory(
-            definition={"type": "subresource", "regionalResource": True},
-            boto3_resource_model=self.bucket_resource_model,
-            service_map=named_mock("s3", is_global_service=True, global_service_region="us-east-1"),
-        )
-
-        assert resource_map.get_and_cleanup_actions(query_region="us-east-1") == AWSGetAndCleanUp(
-            get_actions=[],
-            cleanup_actions=[
-                CleanupAction(service_name="s3", region="ALL_REGIONS", resource_type="bucket"),
-            ],
-        )
-
-    def test_get_and_cleanup_actions_regional_service_regional_subresource(self):
-        resource_map = ResourceMap.factory(
-            definition={"type": "subresource", "regionalResource": True},
-            boto3_resource_model=self.vpc_resource_model,
-            service_map=named_mock("ec2", is_global_service=False),
-        )
-
-        assert resource_map.get_and_cleanup_actions(query_region="us-east-1") == AWSGetAndCleanUp(
-            get_actions=[],
-            cleanup_actions=[
-                CleanupAction(service_name="ec2", region="us-east-1", resource_type="vpc"),
-            ],
-        )
+        assert resource_map.relationships == [
+            RelationshipSpecification(
+                base_path="@",
+                direction=RelationshipDirection.INBOUND,
+                id_parts=[IdPartSpecification(path="VpcId", regex_pattern="")],
+                service="ec2",
+                resource_type="vpc",
+                region_source=RelationshipRegionSource.SAME_AS_RESOURCE,
+                account_id_source=RelationshipAccountIdSource.UNKNOWN,
+            )
+        ]

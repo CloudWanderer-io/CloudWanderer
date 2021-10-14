@@ -5,6 +5,8 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any, Callable, Dict, Optional
 
+from botocore import xform_name
+
 logger = logging.getLogger(__name__)
 
 
@@ -69,3 +71,8 @@ def snake_to_pascal(snake_case: str) -> str:
     """
     snake_case = snake_case.lower()
     return snake_case.replace("_", " ").title().replace(" ", "")
+
+def camel_to_snake(camel, upper=True):
+    if upper:
+        return xform_name(camel).upper()
+    return xform_name(camel)

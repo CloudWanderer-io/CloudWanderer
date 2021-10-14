@@ -6,7 +6,7 @@ from typing import Callable, List, Optional
 import jmespath  # type: ignore
 from botocore import xform_name  # type: ignore
 
-from .urn import URN
+from .urn import URN, PartialUrn
 
 
 logger = logging.getLogger(__name__)
@@ -47,6 +47,7 @@ class CloudWandererResource:
     Attributes:
         urn: The URN of the resource.
         dependent resource_urns: The URNs of this resource's dependent resources (e.g. role_policies for a role).
+        relationships: The PartialURNs of resources that are related to this one.
         parent_urn: The URN of this resource's parent (only exists if this is a dependent resource).
         cloudwanderer_metadata (ResourceMetadata): The metadata of this resource (including attributes).
     """
@@ -56,6 +57,7 @@ class CloudWandererResource:
         urn: URN,
         resource_data: dict,
         secondary_attributes: List["SecondaryAttribute"] = None,
+        relationships: List[PartialUrn] = None,
         loader: Optional[Callable] = None,
         dependent_resource_urns: List[URN] = None,
         parent_urn: URN = None,
@@ -71,6 +73,7 @@ class CloudWandererResource:
             loader: The method which can be used to fulfil the :meth:`CloudWandererResource.load`.
         """
         self.urn = urn
+        self.relationships = relationships or []
         self.dependent_resource_urns = dependent_resource_urns or []
         self.parent_urn = parent_urn
         self.cloudwanderer_metadata = ResourceMetadata(

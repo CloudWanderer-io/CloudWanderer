@@ -27,7 +27,7 @@ class PartialUrn:
     region: Optional[str]
     service: Optional[str]
     resource_type: Optional[str]
-    resource_id: Optional[str]
+    resource_id_parts: Optional[str]
 
     def __init__(
         self,
@@ -36,14 +36,15 @@ class PartialUrn:
         region: Optional[str] = None,
         service: Optional[str] = None,
         resource_type: Optional[str] = None,
-        resource_id: Optional[str] = None,
+        resource_id_parts: Optional[List[str]] = None,
     ) -> None:
         self.cloud_name = cloud_name
         self.account_id = account_id
         self.region = region
         self.service = service
         self.resource_type = resource_type
-        self.resource_id = resource_id
+        self.resource_id_parts: List[str] = resource_id_parts or []
+        self.resource_id = "/".join(self.escape_id(id_part) or "" for id_part in self.resource_id_parts)
 
     def copy(
         self,
@@ -52,7 +53,7 @@ class PartialUrn:
         region: Optional[str] = None,
         service: Optional[str] = None,
         resource_type: Optional[str] = None,
-        resource_id: Optional[str] = None,
+        resource_id_parts: Optional[List[str]] = None,
     ) -> "PartialUrn":
         return PartialUrn(
             cloud_name=cloud_name or self.cloud_name,
@@ -60,8 +61,37 @@ class PartialUrn:
             region=region or self.region,
             service=service or self.service,
             resource_type=resource_type or self.resource_type,
-            resource_id=resource_id or self.resource_id,
+            resource_id_parts=resource_id_parts or self.resource_id_parts,
         )
+
+    # @property
+    # def resource_id_parts_parsed(self) -> List[Union[str, int]]:
+    #     """Return the URNs ID parts parsed to their original types where possible."""
+    #     return [int(part) if part.isnumeric() else part for part in self.resource_id_parts]
+
+    @staticmethod
+    def unescape_id(escaped_id: Optional[str]) -> Optional[str]:
+        """Return an unescaped ID with the forward slashes unescaped.
+
+        Arguments:
+            escaped_id: The id to unescape.
+        """
+        if escaped_id is None:
+            return None
+        return escaped_id.replace(r"\/", r"/")
+
+    @staticmethod
+    def escape_id(unescaped_id: Optional[str]) -> Optional[str]:
+        """Return an escaped ID with the forward slashes escaped.
+
+        Arguments:
+            unescaped_id: The id to escape.
+        """
+        if unescaped_id is None:
+            return None
+        if not isinstance(unescaped_id, str):
+            unescaped_id = str(unescaped_id)
+        return re.sub(r"(?<!\\)/", r"\/", unescaped_id)
 
     def __str__(self) -> str:
         """Return a string representation of the URN."""
@@ -77,11 +107,12 @@ class PartialUrn:
         """Return a class representation of the URN."""
         return str(
             f"{self.__class__.__name__}("
+            f"cloud_name='{ self.cloud_name}', "
             f"account_id='{self.account_id}', "
             f"region='{self.region}', "
             f"service='{self.service}', "
             f"resource_type='{self.resource_type}', "
-            f"resource_id='{self.resource_id}')"
+            f"resource_id_parts={self.resource_id_parts})"
         )
 
     def __eq__(self, other: Any) -> bool:
@@ -118,7 +149,6 @@ class URN(PartialUrn):
             region: AWS region (e.g. `us-east-1``).
             service: AWS Service (e.g. ``iam``).
             resource_type: AWS Resource Type (e.g. ``role_policy``)
-            resource_id: AWS Resource Id (e.g. ``test-role-policy``)
             resource_id_parts: AWS Resource Id (e.g. ``test-role-policy``)
             cloud_name: The name of the cloud this resource exists in (defaults to ``'aws'``)
 
@@ -136,15 +166,14 @@ class URN(PartialUrn):
         """
         if not resource_id_parts or not all(resource_id_parts):
             raise ValueError("resource_id or id_parts must be supplied with non empty values")
-        self.resource_id_parts: List[str] = resource_id_parts
-        resource_id = "/".join(self.escape_id(id_part) or "" for id_part in self.resource_id_parts)
+
         super().__init__(
             cloud_name=cloud_name or "aws",
             account_id=account_id,
             region=region,
             service=service,
             resource_type=resource_type,
-            resource_id=resource_id,
+            resource_id_parts=resource_id_parts,
         )
 
     @classmethod
@@ -171,44 +200,4 @@ class URN(PartialUrn):
             service=parts[4],
             resource_type=parts[5],
             resource_id_parts=[cls.unescape_id(id_part) for id_part in resource_id_parts],
-        )
-
-    @property
-    def resource_id_parts_parsed(self) -> List[Union[str, int]]:
-        """Return the URNs ID parts parsed to their original types where possible."""
-        return [int(part) if part.isnumeric() else part for part in self.resource_id_parts]
-
-    @staticmethod
-    def unescape_id(escaped_id: Optional[str]) -> Optional[str]:
-        """Return an unescaped ID with the forward slashes unescaped.
-
-        Arguments:
-            escaped_id: The id to unescape.
-        """
-        if escaped_id is None:
-            return None
-        return escaped_id.replace(r"\/", r"/")
-
-    @staticmethod
-    def escape_id(unescaped_id: Optional[str]) -> Optional[str]:
-        """Return an escaped ID with the forward slashes escaped.
-
-        Arguments:
-            unescaped_id: The id to escape.
-        """
-        if unescaped_id is None:
-            return None
-        if not isinstance(unescaped_id, str):
-            unescaped_id = str(unescaped_id)
-        return re.sub(r"(?<!\\)/", r"\/", unescaped_id)
-
-    def __repr__(self) -> str:
-        """Return a class representation of the URN."""
-        return str(
-            f"{self.__class__.__name__}("
-            f"account_id='{self.account_id}', "
-            f"region='{self.region}', "
-            f"service='{self.service}', "
-            f"resource_type='{self.resource_type}', "
-            f"resource_id_parts={self.resource_id_parts})"
         )

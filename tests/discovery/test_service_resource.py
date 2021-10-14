@@ -5,6 +5,7 @@ from boto3.resources.collection import ResourceCollection
 from pytest import fixture
 
 from cloudwanderer.aws_interface import CloudWandererBoto3Session
+from cloudwanderer.models import Relationship, RelationshipDirection
 from cloudwanderer.urn import URN, PartialUrn
 
 
@@ -14,10 +15,22 @@ def botocore_session():
     botocore_session.create_client = MagicMock(
         **{
             "return_value.get_bucket_location.return_value": {"LocationConstraint": "eu-west-1"},
+            "return_value.describe_vpcs.return_value": {
+                "Vpcs": [
+                    {
+                        "VpcId": "vpc-11111",
+                        "DhcpOptionsId": "dopt-mock",
+                    }
+                ]
+            },
             "return_value.describe_vpc_attribute.return_value": {
                 "VpcId": "vpc-11111",
                 "EnableDnsSupport": {"Value": True},
             },
+            "return_value.get_function.return_value": {
+                "Configuration": {"Layers": [{"Arn": "arn:aws:lambda:eu-west-1:111111111111:layer:test-layer:2"}]}
+            },
+            "return_value.meta.region_name": "eu-west-1",
         }
     )
     return botocore_session
@@ -33,7 +46,17 @@ def cloudwanderer_boto3_session(botocore_session):
 @fixture
 def service_resource_ec2_vpc(cloudwanderer_boto3_session):
     service = cloudwanderer_boto3_session.resource("ec2")
-    return service.resource(resource_type="vpc", identifiers=["vpc-11111"])
+    resource = service.resource(resource_type="vpc", identifiers=["vpc-11111"])
+    resource.load()
+    return resource
+
+
+@fixture
+def service_resource_lambda_function(cloudwanderer_boto3_session):
+    service = cloudwanderer_boto3_session.resource("lambda")
+    resource = service.resource(resource_type="function", identifiers=["test-function"])
+    resource.load()
+    return resource
 
 
 @fixture
@@ -103,3 +126,35 @@ def test_normalized_raw_data(service_resource_ec2_vpc):
         "Tags": None,
         "VpcId": "vpc-11111",
     }
+
+
+def test_relationships(service_resource_ec2_vpc):
+    assert service_resource_ec2_vpc.relationships == [
+        Relationship(
+            partial_urn=PartialUrn(
+                cloud_name="aws",
+                account_id="unknown",
+                region="eu-west-1",
+                service="ec2",
+                resource_type="dhcp_options",
+                resource_id_parts=["dopt-mock"],
+            ),
+            direction=RelationshipDirection.INBOUND,
+        )
+    ]
+
+
+def test_relationships_arn(service_resource_lambda_function):
+    assert service_resource_lambda_function.relationships == [
+        Relationship(
+            partial_urn=PartialUrn(
+                cloud_name="aws",
+                account_id="111111111111",
+                region="eu-west-1",
+                service="lambda",
+                resource_type="layer_version",
+                resource_id_parts=["test-layer", "2"],
+            ),
+            direction=RelationshipDirection.INBOUND,
+        )
+    ]

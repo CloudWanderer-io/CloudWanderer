@@ -9,7 +9,7 @@
             "regionalResource": false
         },
         "UserPolicy": {
-            "type": "dependent_resource",
+            "type": "dependentResource",
             "parentResourceType": "user",
             "regionalResource": false
         },
@@ -18,7 +18,7 @@
             "regionalResource": false
         },
         "MfaDevice": {
-            "type": "dependent_resource",
+            "type": "dependentResource",
             "parentResourceType": "user",
             "regionalResource": false
         },
@@ -27,7 +27,7 @@
             "regionalResource": false
         },
         "GroupPolicy": {
-            "type": "dependent_resource",
+            "type": "dependentResource",
             "parentResourceType": "group",
             "regionalResource": false
         },
@@ -50,17 +50,17 @@
             "type": "secondaryAttribute"
         },
         "RolePolicy": {
-            "type": "dependent_resource",
+            "type": "dependentResource",
             "parentResourceType": "role",
             "regionalResource": false
         },
         "AccessKey": {
-            "type": "dependent_resource",
+            "type": "dependentResource",
             "parentResourceType": "user",
             "regionalResource": false
         },
         "SigningCertificate": {
-            "type": "dependent_resource",
+            "type": "dependentResource",
             "parentResourceType": "user",
             "regionalResource": false
         },
@@ -72,7 +72,7 @@
             }
         },
         "PolicyVersion": {
-            "type": "dependent_resource",
+            "type": "dependentResource",
             "parentResourceType": "policy",
             "regionalResource": false
         }

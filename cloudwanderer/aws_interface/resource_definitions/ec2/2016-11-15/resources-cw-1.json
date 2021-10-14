@@ -5,7 +5,40 @@
     },
     "resources": {
         "Vpc": {
-            "type": "resource"
+            "type": "resource",
+            "relationships": [
+                {
+                    "basePath": "@",
+                    "idParts": [
+                        {
+                            "path": "DhcpOptionsId"
+                        }
+                    ],
+                    "service": "ec2",
+                    "resourceType": "dhcp_options",
+                    "regionSource": "sameAsResource",
+                    "accountIdSource": "unknown",
+                    "direction": "outbound"
+                }
+            ]
+        },
+        "Subnet": {
+            "type": "resource",
+            "relationships": [
+                {
+                    "basePath": "@",
+                    "idParts": [
+                        {
+                            "path": "VpcId"
+                        }
+                    ],
+                    "service": "ec2",
+                    "resourceType": "vpc",
+                    "regionSource": "sameAsResource",
+                    "accountIdSource": "unknown",
+                    "direction": "inbound"
+                }
+            ]
         },
         "VpcEnableDnsSupport": {
             "type": "secondaryAttribute"

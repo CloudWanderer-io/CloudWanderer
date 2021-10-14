@@ -5,7 +5,7 @@
             "type": "resource"
         },
         "Job": {
-            "type": "dependent_resource",
+            "type": "dependentResource",
             "parentResource": "Vault"
         }
     }

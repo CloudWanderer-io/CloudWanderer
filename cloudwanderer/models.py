@@ -1,5 +1,8 @@
 """Models for CloudWanderer data."""
+from enum import Enum, auto, unique
+
 from typing import List, NamedTuple
+
 
 from .urn import PartialUrn
 
@@ -53,3 +56,25 @@ class ServiceResourceType(NamedTuple):
 
     service_name: str
     name: str
+
+
+class Relationship(NamedTuple):
+    partial_urn: PartialUrn
+    direction: "RelationshipDirection"
+
+@unique
+class RelationshipAccountIdSource(Enum):
+    UNKNOWN = auto()
+    SAME_AS_RESOURCE = auto()
+
+
+@unique
+class RelationshipRegionSource(Enum):
+    UNKNOWN = auto()
+    SAME_AS_RESOURCE = auto()
+
+
+@unique
+class RelationshipDirection(Enum):
+    OUTBOUND = auto()
+    INBOUND = auto()

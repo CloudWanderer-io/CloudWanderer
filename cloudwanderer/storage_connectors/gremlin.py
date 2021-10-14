@@ -7,11 +7,23 @@ from gremlin_python.process.anonymous_traversal import traversal
 from gremlin_python.process.graph_traversal import __
 from gremlin_python.process.traversal import Cardinality, T, Traversal
 
+from cloudwanderer.models import RelationshipDirection
+
+from ..exceptions import ResourceNotFoundError
+
 from ..cloud_wanderer_resource import CloudWandererResource
-from ..urn import URN
+from ..urn import URN, PartialUrn
 from .base_connector import BaseStorageConnector
 
 logger = logging.getLogger(__name__)
+
+
+def generate_primary_label(urn: PartialUrn) -> str:
+    return "_".join([urn.cloud_name, urn.service, urn.resource_type])
+
+
+def generate_edge_id(source_urn, destination_urn):
+    return f"{source_urn}#{destination_urn}"
 
 
 class GremlinStorageConnector(BaseStorageConnector):
@@ -33,16 +45,31 @@ class GremlinStorageConnector(BaseStorageConnector):
         Arguments:
             resource (CloudWandererResource): The CloudWandererResource to write.
         """
-        primary_label = "_".join([resource.urn.cloud_name, resource.urn.service, resource.urn.resource_type])
+        self._write_resource(resource)
+        self._write_dependent_resources(resource)
+
+    def _write_resource(self, resource: CloudWandererResource) -> None:
+        primary_label = generate_primary_label(resource.urn)
 
         traversal = self._write_vertex(vertex_id=str(resource.urn), vertex_labels=[primary_label])
+        traversal = (
+            traversal.property(Cardinality.single, "_cloud_name", resource.urn.cloud_name)
+            .property(Cardinality.single, "_account_id", resource.urn.account_id)
+            .property(Cardinality.single, "_region", resource.urn.region)
+            .property(Cardinality.single, "_service", resource.urn.service)
+            .property(Cardinality.single, "_resource_type", resource.urn.resource_type)
+            .property(Cardinality.set_, "_resource_id_parts", resource.urn.resource_id_parts)
+        )
         traversal = self._write_properties(
             traversal=traversal, properties=resource.cloudwanderer_metadata.resource_data
         )
         traversal.next()
 
-        for dependent_urn in resource.subresource_urns:
-            edge_id = f"{resource.urn}#{dependent_urn}"
+        self._write_relationships(resource)
+
+    def _write_dependent_resources(self, resource: CloudWandererResource) -> None:
+        for dependent_urn in resource.dependent_resource_urns:
+            edge_id = generate_edge_id(resource.urn, dependent_urn)
             self._write_edge(
                 edge_id=edge_id,
                 edge_label="has",
@@ -50,7 +77,80 @@ class GremlinStorageConnector(BaseStorageConnector):
                 destination_vertex_id=str(dependent_urn),
             ).next()
 
+    def _write_relationships(self, resource: CloudWandererResource) -> None:
+        for relationship in resource.relationships:
+            unknown_resource_id = str(relationship.partial_urn)
+            try:
+                known_resource_id = self._lookup_resource(relationship.partial_urn).next().id
+            except StopIteration:
+                known_resource_id = None
+
+            if known_resource_id:
+                self._write_relationship_edge(
+                    resource_id=str(resource.urn),
+                    relationship_resource_id=known_resource_id,
+                    direction=relationship.direction,
+                )
+                self._delete_relationship_edge(
+                    resource_id=str(resource.urn),
+                    relationship_resource_id=unknown_resource_id,
+                    direction=relationship.direction,
+                )
+                continue
+            logger.info("Writing unknown resource %s", unknown_resource_id)
+            self._write_vertex(
+                unknown_resource_id, vertex_labels=[generate_primary_label(relationship.partial_urn)]
+            ).next()
+            self._write_relationship_edge(
+                resource_id=str(resource.urn),
+                relationship_resource_id=unknown_resource_id,
+                direction=relationship.direction,
+            )
+
+    def _delete_relationship_edge(
+        self, resource_id: str, relationship_resource_id: str, direction: RelationshipDirection
+    ) -> None:
+        if direction == RelationshipDirection.INBOUND:
+            self._delete_edge(generate_edge_id(relationship_resource_id, resource_id))
+        else:
+            self._delete_edge(generate_edge_id(resource_id, relationship_resource_id))
+
+    def _write_relationship_edge(
+        self, resource_id: str, relationship_resource_id: str, direction: RelationshipDirection
+    ) -> None:
+        if direction == RelationshipDirection.INBOUND:
+            self._write_edge(
+                edge_id=generate_edge_id(relationship_resource_id, resource_id),
+                edge_label="has",
+                source_vertex_id=relationship_resource_id,
+                destination_vertex_id=resource_id,
+            ).next()
+        else:
+            self._write_edge(
+                edge_id=generate_edge_id(resource_id, relationship_resource_id),
+                edge_label="has",
+                source_vertex_id=resource_id,
+                destination_vertex_id=relationship_resource_id,
+            ).next()
+
+    def _lookup_resource(self, partial_urn: PartialUrn) -> Traversal:
+        vertex_label = generate_primary_label(partial_urn)
+        traversal = (
+            self.g.V()
+            .hasLabel(vertex_label)
+            .has("_cloud_name", partial_urn.cloud_name)
+            .has("_service", partial_urn.service)
+            .has("_resource_type", partial_urn.resource_type)
+            .has("_resource_id_parts", partial_urn.resource_id_parts)
+        )
+        if partial_urn.account_id != "unknown":
+            traversal.has("_account_id", partial_urn.account_id)
+        if partial_urn.region != "unknown":
+            traversal.has("_region", partial_urn.region)
+        return traversal
+
     def _write_vertex(self, vertex_id: str, vertex_labels: List[str]) -> Traversal:
+        logger.debug("Writing vertex %s", vertex_id)
         if self.supports_multiple_labels:
             vertex_label = "::".join(vertex_labels)
         else:
@@ -58,6 +158,7 @@ class GremlinStorageConnector(BaseStorageConnector):
         return self.g.V(vertex_id).fold().coalesce(__.unfold(), __.addV(vertex_label).property(T.id, vertex_id))
 
     def _write_properties(self, traversal: Traversal, properties: Dict[str, Any]) -> Traversal:
+        logger.debug("Writing properties: %s", properties)
         for property_name, property_value in properties.items():
             traversal = traversal.property(Cardinality.single, str(property_name), str(property_value))
         return traversal
@@ -65,7 +166,7 @@ class GremlinStorageConnector(BaseStorageConnector):
     def _write_edge(
         self, edge_id: str, edge_label: str, source_vertex_id: str, destination_vertex_id: str
     ) -> Traversal:
-
+        logger.debug("Writing edge between %s and %s", source_vertex_id, destination_vertex_id)
         return (
             self.g.V(source_vertex_id)
             .as_("source")
@@ -75,6 +176,14 @@ class GremlinStorageConnector(BaseStorageConnector):
                 __.addE(edge_label).from_("source").property(T.id, edge_id),
             )
         )
+
+    def _delete_edge(self, edge_id: str) -> Traversal:
+        logger.info("Deleting edge %s", edge_id)
+        try:
+            self.g.E(edge_id).drop().next()
+        except StopIteration:
+            logger.info("Edge does not exist to delete %s", edge_id)
+            pass
 
     def read_all(self) -> Iterator[dict]:
         """Return all records from storage."""

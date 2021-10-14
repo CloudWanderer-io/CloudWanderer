@@ -1,5 +1,6 @@
 """Create the CloudWandererServiceResource objects that do the magic."""
 import logging
+import re
 from typing import TYPE_CHECKING, Any, Callable, Dict, Generator, List, Optional
 
 import jmespath
@@ -9,8 +10,9 @@ from boto3.resources.model import Collection
 from botocore import xform_name
 from botocore.loaders import Loader
 from botocore.model import Shape
+from ..models import Relationship, RelationshipAccountIdSource, RelationshipRegionSource
 
-from cloudwanderer.utils import snake_to_pascal
+from ..utils import snake_to_pascal
 
 from ..cloud_wanderer_resource import SecondaryAttribute
 from ..exceptions import UnsupportedResourceTypeError
@@ -91,7 +93,7 @@ class CloudWandererResourceFactory(ResourceFactory):
                     cleanup_region = "ALL_REGIONS"
                 else:
                     cleanup_region = discovery_region
-                if self.resource_map.type != "dependent_resource":
+                if self.resource_map.type != "dependentResource":
                     actions.get_urns.append(
                         PartialUrn(
                             service=self.service_map.name,
@@ -273,7 +275,7 @@ class CloudWandererResourceFactory(ResourceFactory):
     def _create_normalized_raw_data(self) -> Callable[..., Dict[str, Any]]:
         @property  # type: ignore
         def normalized_raw_data(self) -> Dict[str, Any]:
-            """Return the raw data ditionary for this resource, ensuring that all keys for this resource are present."""
+            """Return the raw data dictionary for this resource, ensuring that all keys for this resource are present."""
             result = {attribute: None for attribute in self.shape.members.keys()}
             result.update(self.meta.data or {})
             return _clean_boto3_metadata(result)
@@ -298,7 +300,7 @@ class CloudWandererResourceFactory(ResourceFactory):
             for collection in self.meta.resource_model.collections:
                 resource_type = xform_name(collection.resource.type)
                 resource_map = self.service_map.get_resource_map(resource_type=resource_type)
-                if resource_map.type == "dependent_resource":
+                if resource_map.type == "dependentResource":
                     dependent_resource_types.append(resource_type)
 
             return dependent_resource_types
@@ -312,6 +314,53 @@ class CloudWandererResourceFactory(ResourceFactory):
             return service_model.shape_for(self.meta.resource_model.shape)
 
         return shape
+
+    def _create_relationships(self) -> Callable[..., Dict[str, Any]]:
+        @property  # type: ignore
+        def relationships(self) -> Dict[str, Any]:
+            """Return PartialURNs for the relationships this resource has with other resources."""
+            relationships = []
+            for relationship_specification in self.resource_map.relationships:
+                base_paths_raw = jmespath.search(relationship_specification.base_path, self.normalized_raw_data)
+                base_paths = [base_paths_raw] if not isinstance(base_paths_raw, list) else base_paths_raw
+                for base_path in base_paths:
+                    if not base_path:
+                        logger.debug("Skipping building a relationship for %s as the basePath is empty", self.get_urn())
+                        continue
+                    urn_args = {
+                        "cloud_name": "aws",
+                        "account_id": "unknown",
+                        "service": relationship_specification.service,
+                        "resource_type": relationship_specification.resource_type,
+                        "resource_id_parts": [],
+                    }
+
+                    if relationship_specification.account_id_source == RelationshipAccountIdSource.SAME_AS_RESOURCE:
+                        urn_args["account_id"] = self.get_account_id()
+
+                    if relationship_specification.region_source == RelationshipRegionSource.SAME_AS_RESOURCE:
+                        urn_args["region"] = self.get_region()
+
+                    for id_part in relationship_specification.id_parts:
+                        id_raw = jmespath.search(id_part.path, base_path)
+
+                        if not id_part.regex_pattern:
+                            urn_args["resource_id_parts"].append(id_raw)
+                            continue
+                        result = re.match(id_part.regex_pattern, id_raw)
+                        for arg_name, arg_value in result.groupdict().items():
+                            if arg_name in ["cloud_name", "account_id", "region", "service", "resource_type"]:
+                                urn_args[arg_name] = arg_value
+                                continue
+                            if arg_name.startswith("id_part_"):
+                                urn_args["resource_id_parts"].append(arg_value)
+
+                    relationships.append(
+                        Relationship(partial_urn=PartialUrn(**urn_args), direction=relationship_specification.direction)
+                    )
+            return relationships
+
+        return relationships
 
     def _load_cloudwanderer_properties(
         self, attrs: Dict[str, Any], resource_name: str, service_context: "ServiceContext"
@@ -336,3 +385,4 @@ class CloudWandererResourceFactory(ResourceFactory):
             attrs["dependent_resource_types"] = self._create_dependent_resource_types()
             attrs["secondary_attribute_names"] = self._create_secondary_attribute_names()
             attrs["shape"] = self._create_shape()
+            attrs["relationships"] = self._create_relationships()

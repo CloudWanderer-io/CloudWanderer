@@ -22,7 +22,7 @@ def cloud_wanderer() -> CloudWanderer:
                             region="eu-west-1",
                             service="ec2",
                             resource_type="vpc",
-                            resource_id="ALL",
+                            resource_id_parts=["ALL"],
                         )
                     ],
                     delete_urns=[
@@ -31,7 +31,7 @@ def cloud_wanderer() -> CloudWanderer:
                             region="eu-west-1",
                             service="ec2",
                             resource_type="vpc",
-                            resource_id="ALL",
+                            resource_id_parts=["ALL"],
                         )
                     ],
                 )
@@ -70,7 +70,7 @@ def test_write_resources(cloud_wanderer: CloudWanderer):
                 resource_type="vpc",
                 resource_id_parts=["vpc-11111111"],
             ),
-            subresource_urns=[],
+            dependent_resource_urns=[],
             resource_data={},
             secondary_attributes=[],
         )
@@ -100,7 +100,7 @@ def test_get_resources_specific_resource(cloud_wanderer: CloudWanderer):
                 resource_type="vpc",
                 resource_id_parts=["vpc-11111111"],
             ),
-            subresource_urns=[],
+            dependent_resource_urns=[],
             resource_data={},
             secondary_attributes=[],
         )

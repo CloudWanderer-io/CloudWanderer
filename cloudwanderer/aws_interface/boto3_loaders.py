@@ -19,11 +19,14 @@ import jmespath  # type: ignore
 from boto3.resources.base import ServiceResource
 from boto3.resources.model import ResourceModel
 from botocore.exceptions import DataNotFoundError, UnknownServiceError  # type: ignore
-from botocore.loaders import Loader  # type: ignore
+from botocore.loaders import Loader
+
+from ..models import RelationshipAccountIdSource, RelationshipDirection, RelationshipRegionSource
+
 
 from ..cache_helpers import memoized_method
 from ..exceptions import MalformedFileError, UnsupportedServiceError
-from ..utils import snake_to_pascal
+from ..utils import camel_to_snake, snake_to_pascal
 
 logger = logging.getLogger(__name__)
 
@@ -282,6 +285,7 @@ class ResourceMap(NamedTuple):
     boto3_resource_model: ResourceModel
     default_filters: Dict[str, Any]
     service_map: ServiceMap
+    relationships: List["RelationshipSpecification"]
     requires_load_for_full_metadata: bool = False
     regional_resource: bool = True
 
@@ -290,6 +294,7 @@ class ResourceMap(NamedTuple):
         cls,
         service_map: ServiceMap,
         definition: Dict[str, Any],
+        # TODO: remove boto3 resource model
         boto3_resource_model: ResourceModel,
     ) -> "ResourceMap":
         return cls(
@@ -303,6 +308,10 @@ class ResourceMap(NamedTuple):
             default_filters=definition.get("defaultFilters", {}),
             service_map=service_map,
             boto3_resource_model=boto3_resource_model,
+            relationships=[
+                RelationshipSpecification.factory(relationship_specification)
+                for relationship_specification in definition.get("relationships", [])
+            ],
         )
 
     def should_query_resources_in_region(self, region: str) -> bool:
@@ -362,3 +371,38 @@ class ResourceRegionRequestParam(NamedTuple):
     @classmethod
     def factory(cls, definition: dict) -> "ResourceRegionRequestParam":
         return cls(target=definition["target"], source=definition["source"], name=definition["name"])
+
+
+class RelationshipSpecification(NamedTuple):
+    """Specification for a relationship between two resources"""
+
+    base_path: str
+    id_parts: str
+    service: str
+    resource_type: str
+    region_source: str
+    account_id_source: str
+    direction: RelationshipDirection
+
+    @classmethod
+    def factory(cls, definition) -> "RelationshipSpecification":
+        return cls(
+            base_path=definition["basePath"],
+            direction=RelationshipDirection[camel_to_snake(definition["direction"])],
+            id_parts=[IdPartSpecification.factory(id_part) for id_part in definition["idParts"]],
+            service=definition["service"],
+            resource_type=definition["resourceType"],
+            region_source=RelationshipRegionSource[camel_to_snake(definition["regionSource"])],
+            account_id_source=RelationshipAccountIdSource[camel_to_snake(definition["accountIdSource"])],
+        )
+
+
+class IdPartSpecification(NamedTuple):
+    """Specification for getting the ID parts of a resource's relationship with another resource."""
+
+    path: str
+    regex_pattern: str
+
+    @classmethod
+    def factory(cls, definition) -> "IdPartSpecification":
+        return cls(path=definition["path"], regex_pattern=definition.get("regexPattern", ""))

@@ -68,18 +68,21 @@ class CloudWandererAWSInterface:
         if include_dependent_resources:
             for dependent_resource_type in resource.dependent_resource_types:
                 for dependent_resource in resource.collection(resource_type=dependent_resource_type):
+                    dependent_resource.load()
                     urn = dependent_resource.get_urn()
                     dependent_resource_urns.append(urn)
                     yield CloudWandererResource(
                         urn=urn,
                         resource_data=dependent_resource.normalized_raw_data,
                         parent_urn=resource.get_urn(),
+                        relationships=dependent_resource.relationships,
                         secondary_attributes=list(dependent_resource.get_secondary_attributes()),
                     )
         yield CloudWandererResource(
             urn=resource.get_urn(),
             resource_data=resource.normalized_raw_data,
             dependent_resource_urns=dependent_resource_urns,
+            relationships=resource.relationships,
             secondary_attributes=list(resource.get_secondary_attributes()),
         )
 
@@ -117,12 +120,14 @@ class CloudWandererAWSInterface:
                             urn=urn,
                             resource_data=dependent_resource.normalized_raw_data,
                             parent_urn=resource.get_urn(),
+                            relationships=dependent_resource.relationships,
                             secondary_attributes=list(dependent_resource.get_secondary_attributes()),
                         )
                 yield CloudWandererResource(
                     urn=resource.get_urn(),
                     resource_data=resource.normalized_raw_data,
                     dependent_resource_urns=dependent_resource_urns,
+                    relationships=resource.relationships,
                     secondary_attributes=list(resource.get_secondary_attributes()),
                 )
         except botocore.exceptions.EndpointConnectionError:
