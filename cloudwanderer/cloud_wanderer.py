@@ -32,24 +32,27 @@ class CloudWanderer:
         self.storage_connectors = storage_connectors
         self.cloud_interface = cloud_interface or CloudWandererAWSInterface()
 
-    # def write_resource(self, urn: URN, **kwargs) -> None:
-    #     """Fetch data for and persist to storage a single resource and its subresources.
+    def write_resource(self, urn: URN, **kwargs) -> None:
+        """Fetch data for and persist to storage a single resource and its subresources.
 
-    #     If the resource does not exist it will be deleted from the storage connectors.
+        If the resource does not exist it will be deleted from the storage connectors.
 
-    #     Arguments:
-    #         urn (URN):
-    #             The URN of the resource to write
-    #         **kwargs:
-    #             All additional keyword arguments will be passed down to the cloud interface client calls.
-    #     """
-    #     resources = list(self.cloud_interface.get_resource(urn=urn, **kwargs))
+        Arguments:
+            urn (URN):
+                The URN of the resource to write
+            **kwargs:
+                All additional keyword arguments will be passed down to the cloud interface client calls.
+        """
+        resources = list(self.cloud_interface.get_resource(urn=urn, **kwargs))
 
-    #     for resource in resources:
-    #         self._write_resource(resource=resource)
-    #     if not resources:
-    #         for storage_connector in self.storage_connectors:
-    #             storage_connector.delete_resource(urn)
+        for resource in resources:
+            self._write_resource(resource=resource)
+        if not resources:
+            for storage_connector in self.storage_connectors:
+                storage_connector.delete_resource(urn)
+
+        for storage_connector in self.storage_connectors:
+            storage_connector.close()
 
     def write_resources(
         self,
@@ -75,6 +78,7 @@ class CloudWanderer:
         action_sets = self.cloud_interface.get_resource_discovery_actions(
             regions=regions, service_resource_types=service_resource_types
         )
+
         for action_set in action_sets:
             earliest_resource_discovered = None
             for get_urn in action_set.get_urns:
@@ -105,6 +109,8 @@ class CloudWanderer:
                         resource_type=delete_urn.resource_type,
                         cutoff=earliest_resource_discovered,
                     )
+        for storage_connector in self.storage_connectors:
+            storage_connector.close()
 
     def write_resources_concurrently(
         self,

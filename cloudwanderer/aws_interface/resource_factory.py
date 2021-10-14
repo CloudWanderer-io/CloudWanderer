@@ -330,6 +330,7 @@ class CloudWandererResourceFactory(ResourceFactory):
                     urn_args = {
                         "cloud_name": "aws",
                         "account_id": "unknown",
+                        "region": "unknown",
                         "service": relationship_specification.service,
                         "resource_type": relationship_specification.resource_type,
                         "resource_id_parts": [],

@@ -17,6 +17,9 @@ from .base_connector import BaseStorageConnector
 
 logger = logging.getLogger(__name__)
 
+# TODO: figure out how to get previously unknown resources to migrate edges to known resource once discovered.
+# eg: get vpc to associate its subnet with itself once discovered (if they were previously associated with unknown vpc vertex.)
+
 
 def generate_primary_label(urn: PartialUrn) -> str:
     return "_".join([urn.cloud_name, urn.service, urn.resource_type])
@@ -27,17 +30,21 @@ def generate_edge_id(source_urn, destination_urn):
 
 
 class GremlinStorageConnector(BaseStorageConnector):
-    def __init__(self, endpoint_url: str, supports_multiple_labels=False):
+    def __init__(self, endpoint_url: str, supports_multiple_labels=False, **kwargs):
         """
         Arguments:
-            supports_multiple_labels: Some GraphDBs (Neptune/Neo4J) support mutiple labels on a single vertex.
+            supports_multiple_labels: Some GraphDBs (Neptune/Neo4J) support multiple labels on a single vertex.
         """
         self.endpoint_url = endpoint_url
         self.supports_multiple_labels = supports_multiple_labels
-        self.g = traversal().withRemote(DriverRemoteConnection(f"{self.endpoint_url}/gremlin", "g"))
+        self.connection = DriverRemoteConnection(f"{self.endpoint_url}/gremlin", "g", **kwargs)
+        self.g = traversal().withRemote(self.connection)
 
     def init(self):
         ...
+
+    def close(self):
+        self.connection.close()
 
     def write_resource(self, resource: CloudWandererResource) -> None:
         """Persist a single resource to storage.
@@ -47,6 +54,7 @@ class GremlinStorageConnector(BaseStorageConnector):
         """
         self._write_resource(resource)
         self._write_dependent_resources(resource)
+
 
     def _write_resource(self, resource: CloudWandererResource) -> None:
         primary_label = generate_primary_label(resource.urn)
@@ -79,31 +87,32 @@ class GremlinStorageConnector(BaseStorageConnector):
 
     def _write_relationships(self, resource: CloudWandererResource) -> None:
         for relationship in resource.relationships:
-            unknown_resource_id = str(relationship.partial_urn)
+            inferred_partner_urn = str(relationship.partial_urn)
             try:
-                known_resource_id = self._lookup_resource(relationship.partial_urn).next().id
+                pre_existing_resource_id = self._lookup_resource(relationship.partial_urn).next().id
             except StopIteration:
-                known_resource_id = None
+                pre_existing_resource_id = None
 
-            if known_resource_id:
+            if pre_existing_resource_id:
                 self._write_relationship_edge(
                     resource_id=str(resource.urn),
-                    relationship_resource_id=known_resource_id,
+                    relationship_resource_id=pre_existing_resource_id,
                     direction=relationship.direction,
                 )
-                self._delete_relationship_edge(
-                    resource_id=str(resource.urn),
-                    relationship_resource_id=unknown_resource_id,
-                    direction=relationship.direction,
-                )
+                if pre_existing_resource_id != inferred_partner_urn:
+                    self._delete_relationship_edge(
+                        resource_id=str(resource.urn),
+                        relationship_resource_id=inferred_partner_urn,
+                        direction=relationship.direction,
+                    )
                 continue
-            logger.info("Writing unknown resource %s", unknown_resource_id)
+            logger.info("Writing inferred resource %s", inferred_partner_urn)
             self._write_vertex(
-                unknown_resource_id, vertex_labels=[generate_primary_label(relationship.partial_urn)]
+                inferred_partner_urn, vertex_labels=[generate_primary_label(relationship.partial_urn)]
             ).next()
             self._write_relationship_edge(
                 resource_id=str(resource.urn),
-                relationship_resource_id=unknown_resource_id,
+                relationship_resource_id=inferred_partner_urn,
                 direction=relationship.direction,
             )
 
@@ -134,6 +143,7 @@ class GremlinStorageConnector(BaseStorageConnector):
             ).next()
 
     def _lookup_resource(self, partial_urn: PartialUrn) -> Traversal:
+        logger.info("_lookup_resource, partial_urn: %s", partial_urn)
         vertex_label = generate_primary_label(partial_urn)
         traversal = (
             self.g.V()

@@ -14,3 +14,4 @@ typing_extensions; python_version < "3.8.0"
 jinja2
 boto3-stubs
 mypy-boto3-dynamodb
+gremlinpython

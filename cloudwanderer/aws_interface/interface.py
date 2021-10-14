@@ -7,10 +7,10 @@ import logging
 from typing import TYPE_CHECKING, Iterator, List, Optional, cast
 
 import botocore
-
+from botocore.exceptions import ClientError
 from ..cloud_wanderer_resource import CloudWandererResource
 
-from ..exceptions import BadRequestError, ResourceNotFoundError
+from ..exceptions import BadRequestError, ResourceNotFoundError, UnsupportedResourceTypeError
 from ..models import ActionSet, ServiceResourceType, TemplateActionSet
 
 from ..urn import URN
@@ -48,22 +48,28 @@ class CloudWandererAWSInterface:
 
         #     Arguments:
         #         urn (URN): The urn of the resource to get.
-        #         include_subresources: Whether or not to additionally yield the subresources of the resource.
+        #         include_dependent_resources: Whether or not to additionally yield the dependent_resources of the resource.
         """
 
         try:
-            # resource = self.boto3_services.get_resource_from_urn(urn=urn)
+
             service = self.cloudwanderer_boto3_session.resource(service_name=urn.service, region_name=urn.region)
             resource = service.resource(resource_type=urn.resource_type, identifiers=urn.resource_id_parts)
-        except ResourceNotFoundError:
-            return None
-        except BadRequestError:
-            logger.debug(
-                f"Got BadRequestError while getting {urn}, as AWS services commonly return 4xx errors other than 404 "
-                "for resource non-existence we are interpreting this as the resource does not exist."
-            )
+            if not hasattr(resource, 'load' ):
+                raise UnsupportedResourceTypeError(f"Resource type {urn.resource_type} doesn't support get_resource()")
 
+            resource.load()
+            
+        except ClientError as ex:
+            error_code = ex.response.get("ResponseMetadata", {}).get("HTTPStatusCode")
+            if error_code == 404:
+                return None
+            if error_code >= 400 and error_code < 500:
+                return None
+            raise ex
+        if not resource.meta.data:
             return None
+            
         dependent_resource_urns = []
         if include_dependent_resources:
             for dependent_resource_type in resource.dependent_resource_types:
