@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 class CloudWandererResourceFactory(ResourceFactory):
     """Enriches functionality of boto3 resource objects with CloudWanderer specific methods."""
-    
+
     def __init__(
         self,
         emitter,
@@ -46,7 +46,12 @@ class CloudWandererResourceFactory(ResourceFactory):
         class_definition = super().load_from_definition(resource_name, single_resource_json_definition, service_context)
         attrs: Dict[str, Any] = {}
         # CloudWanderer resource methods
-        self._load_cloudwanderer_methods(attrs=attrs, resource_name=resource_name, service_context=service_context, original_class_definition=class_definition)
+        self._load_cloudwanderer_methods(
+            attrs=attrs,
+            resource_name=resource_name,
+            service_context=service_context,
+            original_class_definition=class_definition,
+        )
 
         # CloudWanderer resource properties
         self._load_cloudwanderer_properties(
@@ -55,20 +60,23 @@ class CloudWandererResourceFactory(ResourceFactory):
             service_context=service_context,
         )
 
-        
         for attribute_name, attribute_value in attrs.items():
             setattr(class_definition, attribute_name, attribute_value)
         return class_definition
 
     def _load_cloudwanderer_methods(
-        self, attrs: Dict[str, Any], resource_name: str, service_context: "ServiceContext", original_class_definition: type
+        self,
+        attrs: Dict[str, Any],
+        resource_name: str,
+        service_context: "ServiceContext",
+        original_class_definition: type,
     ) -> None:
         if service_context.service_name != xform_name(resource_name):
             # This should only exist only exist on Resources, not on Services
             attrs["get_discovery_action_templates"] = self._create_get_discovery_action_templates()
             attrs["get_dependent_resource"] = self._create_get_dependent_resource(service_context)
-            if hasattr(original_class_definition, 'load'):
-                attrs['load'] = self._create_load(original_class_definition=original_class_definition)
+            if hasattr(original_class_definition, "load"):
+                attrs["load"] = self._create_load(original_class_definition=original_class_definition)
         else:
             attrs["resource"] = self._create_resource()
         attrs["get_collection_manager"] = self._create_get_collection_manager()
@@ -78,21 +86,25 @@ class CloudWandererResourceFactory(ResourceFactory):
         attrs["get_urn"] = self._create_get_urn()
         attrs["get_region"] = self._create_get_region()
         attrs["get_secondary_attributes"] = self._create_get_secondary_attributes()
-        
+
     def _create_load(self, original_class_definition: type) -> Callable:
         parent_load = original_class_definition.load
+
         def load(self, *args) -> None:
-            
-            
+
             identifiers = create_request_parameters(self, self.meta.resource_model.load.request)
             has_non_empty_values = any(list([y for x in identifiers.values() for y in x]))
             if not has_non_empty_values:
-                logger.debug("Load is a noop on this %s %s because we are an empty_resource=True resource", self.service_name, self.resource_type)
-                return 
-            
+                logger.debug(
+                    "Load is a noop on this %s %s because we are an empty_resource=True resource",
+                    self.service_name,
+                    self.resource_type,
+                )
+                return
+
             parent_load(self)
+
         return load
-            
 
     def _create_get_discovery_action_templates(self) -> Callable:
         def get_discovery_action_templates(self, discovery_regions: List[str]) -> List[TemplateActionSet]:
@@ -202,7 +214,7 @@ class CloudWandererResourceFactory(ResourceFactory):
                 for resource in self.meta.resource_model.references:
                     if resource.name == resource_type:
                         return getattr(self, resource.name)
-                raise 
+                raise
             collection_model.name
             collection_manager = getattr(self, collection_model.name)
             return collection_manager.filter(**filters)
@@ -213,27 +225,27 @@ class CloudWandererResourceFactory(ResourceFactory):
         def get_dependent_resource(
             self, resource_type: str, args: List[str] = None, empty_resource=False
         ) -> "CloudWandererServiceResource":
-            # We need to check for dependent resources in subresources and references to cover cases where the dependent 
-            # resource is only enumerable from the content of the parent resource (rather than a separate API call) 
+            # We need to check for dependent resources in subresources and references to cover cases where the dependent
+            # resource is only enumerable from the content of the parent resource (rather than a separate API call)
             # e.g. route_table > routes
             subresources_and_references = self.meta.resource_model.subresources + self.meta.resource_model.references
             for resource in subresources_and_references:
                 resource_name = xform_name(resource.name)
                 # references have snake_case names so let's make sure it's pascalcase
-                pascal_resource_name=snake_to_pascal(resource_name) 
+                pascal_resource_name = snake_to_pascal(resource_name)
                 if resource_name == resource_type:
                     if empty_resource:
-                       
-                        args = [
-                            "" for _ in range(len(resource.resource.model.identifiers))
-                        ]
+
+                        args = ["" for _ in range(len(resource.resource.model.identifiers))]
                         logger.debug("args: %s", args)
                         return factory_self.load_from_definition(
-                            resource_name=pascal_resource_name, 
-                            single_resource_json_definition=service_context.resource_json_definitions.get(pascal_resource_name), 
-                            service_context=service_context
+                            resource_name=pascal_resource_name,
+                            single_resource_json_definition=service_context.resource_json_definitions.get(
+                                pascal_resource_name
+                            ),
+                            service_context=service_context,
                         )(*args)
-                        
+
                     return getattr(self, resource.name)(*args)
 
             raise UnsupportedResourceTypeError(
@@ -377,8 +389,6 @@ class CloudWandererResourceFactory(ResourceFactory):
                     for id_part in relationship_specification.id_parts:
                         id_raw = jmespath.search(id_part.path, base_path)
                         if not id_raw:
-                            logger.warning("No value found at  %s for %s %s", 
-                                id_part.path, relationship_specification.service, relationship_specification.resource_type)
                             continue
                         if not id_part.regex_pattern:
                             urn_args["resource_id_parts"].append(id_raw)
@@ -390,7 +400,7 @@ class CloudWandererResourceFactory(ResourceFactory):
                                 continue
                             if arg_name.startswith("id_part_"):
                                 urn_args["resource_id_parts"].append(arg_value)
-                    if not urn_args['resource_id_parts']:
+                    if not urn_args["resource_id_parts"]:
                         continue
                     relationships.append(
                         Relationship(partial_urn=PartialUrn(**urn_args), direction=relationship_specification.direction)

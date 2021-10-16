@@ -81,7 +81,7 @@ class CloudWanderer:
 
         for action_set in action_sets:
             earliest_resource_discovered = None
-            for get_urn in action_set.get_urns:
+            for get_urn in sorted(action_set.get_urns):
                 if not get_urn.region or not get_urn.service or not get_urn.resource_type:
                     raise ValueError(f"Invalid get_urn {get_urn}")
                 resources = self.cloud_interface.get_resources(

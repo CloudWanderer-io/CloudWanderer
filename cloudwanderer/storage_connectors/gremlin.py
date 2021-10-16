@@ -57,7 +57,6 @@ class GremlinStorageConnector(BaseStorageConnector):
         self._write_resource(resource)
         self._write_dependent_resources(resource)
 
-
     def _write_resource(self, resource: CloudWandererResource) -> None:
         primary_label = generate_primary_label(resource.urn)
 
@@ -77,6 +76,8 @@ class GremlinStorageConnector(BaseStorageConnector):
         traversal.next()
 
         self._write_relationships(resource)
+        if not resource.urn.is_partial:
+            self._repoint_vertex_edges(vertex_label=primary_label, new_resource_urn=resource.urn)
 
     def _write_dependent_resources(self, resource: CloudWandererResource) -> None:
         for dependent_urn in resource.dependent_resource_urns:
@@ -103,6 +104,7 @@ class GremlinStorageConnector(BaseStorageConnector):
                     direction=relationship.direction,
                 )
                 if pre_existing_resource_id != inferred_partner_urn:
+
                     self._delete_relationship_edge(
                         resource_id=str(resource.urn),
                         relationship_resource_id=inferred_partner_urn,
@@ -110,14 +112,70 @@ class GremlinStorageConnector(BaseStorageConnector):
                     )
                 continue
             logger.info("Writing inferred resource %s", inferred_partner_urn)
-            self._write_vertex(
-                inferred_partner_urn, vertex_labels=[generate_primary_label(relationship.partial_urn)]
-            ).next()
+            self._write_resource(CloudWandererResource(urn=relationship.partial_urn, resource_data={}))
             self._write_relationship_edge(
                 resource_id=str(resource.urn),
                 relationship_resource_id=inferred_partner_urn,
                 direction=relationship.direction,
             )
+
+    def _repoint_vertex_edges(self, vertex_label: str, new_resource_urn: URN) -> None:
+        # https://tinkerpop.apache.org/docs/current/recipes/#edge-move
+
+        resources_of_the_same_type = self.g.V().as_("old_vertex").hasLabel(vertex_label)
+        for id_part in new_resource_urn.resource_id_parts:
+            resources_of_the_same_type.has("_resource_id_parts", id_part)
+        resources_with_same_id_but_unknown = (
+            resources_of_the_same_type.properties()
+            .hasValue("unknown")
+            .or_(__.hasKey("_account_id"), __.hasKey("_region"))
+            .select("old_vertex")
+        )
+        # Outbound
+        old_vertices_outbound_edges = resources_with_same_id_but_unknown.outE().as_("e1")
+        old_outbound_edges_partner_vertex = old_vertices_outbound_edges.inV().as_("b")
+
+        new_vertex = old_outbound_edges_partner_vertex.V(str(new_resource_urn)).as_("new_vertex")
+        add_old_outbound_edges_to_new_vertex = (
+            new_vertex.addE("has")
+            .to("b")
+            .as_("e2")
+            .sideEffect(
+                __.select("e1")
+                .properties()
+                .unfold()
+                .as_("p")
+                .select("e2")
+                .property(__.select("p").key(), __.select("p").value())
+            )
+        )
+        drop_old_edges = add_old_outbound_edges_to_new_vertex.select("e1").drop()
+
+        # Inbound
+        old_vertices_inbound_edges = drop_old_edges.select("old_vertex").inE().as_("e3")
+        old_inbound_edges_partner_vertex = old_vertices_inbound_edges.inV().as_("c")
+
+        new_vertex = old_inbound_edges_partner_vertex.select("new_vertex")
+        add_old_inbound_edges_to_new_vertex = (
+            new_vertex.addE("has")
+            .from_("c")
+            .as_("e4")
+            .sideEffect(
+                __.select("e3")
+                .properties()
+                .unfold()
+                .as_("p")
+                .select("e4")
+                .property(__.select("p").key(), __.select("p").value())
+            )
+        )
+        drop_old_edges = add_old_inbound_edges_to_new_vertex.select("e3").drop()
+
+        # Delete old vertex
+        delete_old_vertex = drop_old_edges.select("old_vertex").drop()
+
+        # Execute
+        delete_old_vertex.iterate()
 
     def _delete_relationship_edge(
         self, resource_id: str, relationship_resource_id: str, direction: RelationshipDirection

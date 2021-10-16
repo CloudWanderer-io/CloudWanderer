@@ -64,6 +64,13 @@ class PartialUrn:
             resource_id_parts=resource_id_parts or self.resource_id_parts,
         )
 
+    @property
+    def is_partial(self) -> bool:
+        for value in self.__dict__.values():
+            if value == "unknown":
+                return True
+        return False
+
     # @property
     # def resource_id_parts_parsed(self) -> List[Union[str, int]]:
     #     """Return the URNs ID parts parsed to their original types where possible."""
