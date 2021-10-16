@@ -1,5 +1,7 @@
 import logging
 from datetime import datetime
+
+
 from typing import Any, Dict, Iterator, List, Optional
 
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
@@ -66,8 +68,9 @@ class GremlinStorageConnector(BaseStorageConnector):
             .property(Cardinality.single, "_region", resource.urn.region)
             .property(Cardinality.single, "_service", resource.urn.service)
             .property(Cardinality.single, "_resource_type", resource.urn.resource_type)
-            .property(Cardinality.set_, "_resource_id_parts", resource.urn.resource_id_parts)
         )
+        for id_part in resource.urn.resource_id_parts:
+            traversal.property(Cardinality.set_, "_resource_id_parts", id_part)
         traversal = self._write_properties(
             traversal=traversal, properties=resource.cloudwanderer_metadata.resource_data
         )

@@ -152,8 +152,7 @@ class MergedServiceLoader(Loader):
                 f"{service_name} is not supported by either Boto3 or CloudWanderer's custom "
                 f"services for api_version {api_version}, type {type_name}"
             )
-
-        return OrderedDict(
+        merged_dict = OrderedDict(
             {
                 "service": OrderedDict(
                     {
@@ -178,6 +177,8 @@ class MergedServiceLoader(Loader):
                 ),
             }
         )
+        # logger.warning(merged_dict['resources'].get('RouteTable'))
+        return merged_dict
 
     def _get_custom_service_definition(self, service_name: str, type_name: str, api_version: str) -> dict:
         """Get the custom CloudWanderer definition for service_name so we can merge it with Boto3's.

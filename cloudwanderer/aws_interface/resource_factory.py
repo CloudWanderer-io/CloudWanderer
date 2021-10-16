@@ -2,11 +2,12 @@
 import logging
 import re
 from typing import TYPE_CHECKING, Any, Callable, Dict, Generator, List, Optional
-
+from unittest.mock import MagicMock
 import jmespath
 from boto3.resources.collection import CollectionManager
 from boto3.resources.factory import ResourceFactory
 from boto3.resources.model import Collection
+from boto3.resources.params import create_request_parameters
 from botocore import xform_name
 from botocore.loaders import Loader
 from botocore.model import Shape
@@ -30,6 +31,37 @@ logger = logging.getLogger(__name__)
 
 class CloudWandererResourceFactory(ResourceFactory):
     """Enriches functionality of boto3 resource objects with CloudWanderer specific methods."""
+    
+    # TODO: DELETE THIS METHOD
+    def _load_has_relations(self, attrs, resource_name, resource_model, service_context):
+        """
+        Load related resources, which are defined via a ``has``
+        relationship but conceptually come in two forms:
+        1. A reference, which is a related resource instance and can be
+           ``None``, such as an EC2 instance's ``vpc``.
+        2. A subresource, which is a resource constructor that will always
+           return a resource instance which shares identifiers/data with
+           this resource, such as ``s3.Bucket('name').Object('key')``.
+        """
+        for reference in resource_model.references:
+            logger.info("Loading reference %s", reference.name)
+            # This is a dangling reference, i.e. we have all
+            # the data we need to create the resource, so
+            # this instance becomes an attribute on the class.
+            attrs[reference.name] = self._create_reference(
+                reference_model=reference, resource_name=resource_name, service_context=service_context
+            )
+        for subresource in resource_model.subresources:
+            # This is a sub-resource class you can create
+            # by passing in an identifier, e.g. s3.Bucket(name).
+            attrs[subresource.name] = self._create_class_partial(
+                subresource_model=subresource,
+                resource_name=resource_name,
+                service_context=service_context
+            )
+
+        self._create_available_subresources_command(
+            attrs, resource_model.subresources)
 
     def __init__(
         self,
@@ -42,9 +74,10 @@ class CloudWandererResourceFactory(ResourceFactory):
         self.cloudwanderer_boto3_session = cloudwanderer_boto3_session
 
     def load_from_definition(self, resource_name, single_resource_json_definition, service_context) -> type:
+        class_definition = super().load_from_definition(resource_name, single_resource_json_definition, service_context)
         attrs: Dict[str, Any] = {}
         # CloudWanderer resource methods
-        self._load_cloudwanderer_methods(attrs=attrs, resource_name=resource_name, service_context=service_context)
+        self._load_cloudwanderer_methods(attrs=attrs, resource_name=resource_name, service_context=service_context, original_class_definition=class_definition)
 
         # CloudWanderer resource properties
         self._load_cloudwanderer_properties(
@@ -53,18 +86,20 @@ class CloudWandererResourceFactory(ResourceFactory):
             service_context=service_context,
         )
 
-        class_definition = super().load_from_definition(resource_name, single_resource_json_definition, service_context)
+        
         for attribute_name, attribute_value in attrs.items():
             setattr(class_definition, attribute_name, attribute_value)
         return class_definition
 
     def _load_cloudwanderer_methods(
-        self, attrs: Dict[str, Any], resource_name: str, service_context: "ServiceContext"
+        self, attrs: Dict[str, Any], resource_name: str, service_context: "ServiceContext", original_class_definition: type
     ) -> None:
         if service_context.service_name != xform_name(resource_name):
             # This should only exist only exist on Resources, not on Services
             attrs["get_discovery_action_templates"] = self._create_get_discovery_action_templates()
-            attrs["get_dependent_resource"] = self._create_get_dependent_resource()
+            attrs["get_dependent_resource"] = self._create_get_dependent_resource(service_context)
+            if hasattr(original_class_definition, 'load'):
+                attrs['load'] = self._create_load(original_class_definition=original_class_definition)
         else:
             attrs["resource"] = self._create_resource()
         attrs["get_collection_manager"] = self._create_get_collection_manager()
@@ -74,6 +109,21 @@ class CloudWandererResourceFactory(ResourceFactory):
         attrs["get_urn"] = self._create_get_urn()
         attrs["get_region"] = self._create_get_region()
         attrs["get_secondary_attributes"] = self._create_get_secondary_attributes()
+        
+    def _create_load(self, original_class_definition: type) -> Callable:
+        parent_load = original_class_definition.load
+        def load(self, *args) -> None:
+            
+            
+            identifiers = create_request_parameters(self, self.meta.resource_model.load.request)
+            has_non_empty_values = any(list([y for x in identifiers.values() for y in x]))
+            if not has_non_empty_values:
+                logger.info("Load is a noop on this %s %s because we are an empty_resource=True resource", self.service_name, self.resource_type)
+                return 
+            
+            parent_load(self)
+        return load
+            
 
     def _create_get_discovery_action_templates(self) -> Callable:
         def get_discovery_action_templates(self, discovery_regions: List[str]) -> List[TemplateActionSet]:
@@ -176,33 +226,48 @@ class CloudWandererResourceFactory(ResourceFactory):
     def _create_collection_getter(self) -> Callable:
         def collection(self, resource_type: str, filters: Optional[Dict[str, str]] = None) -> Collection:
             filters = filters or {}
-            collection_model = self.get_collection_model(resource_type)
+            try:
+                collection_model = self.get_collection_model(resource_type)
+            except UnsupportedResourceTypeError:
+                # If it's not a collection it might be a 'reference'
+                for resource in self.meta.resource_model.references:
+                    if resource.name == resource_type:
+                        return getattr(self, resource.name)
+                raise 
             collection_model.name
             collection_manager = getattr(self, collection_model.name)
             return collection_manager.filter(**filters)
 
         return collection
 
-    def _create_get_dependent_resource(self) -> Callable:
+    def _create_get_dependent_resource(factory_self, service_context: "ServiceContext") -> Callable:
         def get_dependent_resource(
             self, resource_type: str, args: List[str] = None, empty_resource=False
         ) -> "CloudWandererServiceResource":
-            for resource in self.meta.resource_model.subresources:
+            # We need to check for dependent resources in subresources and references to cover cases where the dependent 
+            # resource is only enumerable from the content of the parent resource (rather than a separate API call) 
+            # e.g. route_table > routes
+            subresources_and_references = self.meta.resource_model.subresources + self.meta.resource_model.references
+            for resource in subresources_and_references:
                 resource_name = xform_name(resource.name)
-                logger.debug("ServiceResource, get_dependent_resource resource_name: %s", resource_name)
+                # references have snake_case names so let's make sure it's pascalcase
+                pascal_resource_name=snake_to_pascal(resource_name) 
+                logger.info("ServiceResource, get_dependent_resource resource_name: %s", pascal_resource_name)
                 if resource_name == resource_type:
                     if empty_resource:
-                        top_level_resource_identifiers = self.meta.resource_model.identifiers
-                        dependent_resource_identifiers = resource.resource.model.identifiers
-                        logger.debug(
-                            "top_level_resource_identifiers, %s dependent_resource_identifiers, %s",
-                            top_level_resource_identifiers,
-                            dependent_resource_identifiers,
-                        )
+                        logger.info("%s %s",pascal_resource_name, service_context.resource_json_definitions.keys())
+                       
                         args = [
-                            "" for _ in range(len(dependent_resource_identifiers) - len(top_level_resource_identifiers))
+                            "" for _ in range(len(resource.resource.model.identifiers))
                         ]
                         logger.debug("args: %s", args)
+                        return factory_self.load_from_definition(
+                            resource_name=pascal_resource_name, 
+                            single_resource_json_definition=service_context.resource_json_definitions.get(pascal_resource_name), 
+                            service_context=service_context
+                        )(*args)
+                        
+                    logger.info("%s %s", resource.name, getattr(self, resource.name))
                     return getattr(self, resource.name)(*args)
 
             raise UnsupportedResourceTypeError(

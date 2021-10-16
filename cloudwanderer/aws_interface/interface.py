@@ -119,6 +119,7 @@ class CloudWandererAWSInterface:
             for resource in service.collection(resource_type=resource_type, filters=resource_map.default_filters):
                 dependent_resource_urns = []
                 for dependent_resource_type in resource.dependent_resource_types:
+                    logger.info("Getting %s %s dependent resources from %s for %s", service_name, dependent_resource_type, region, resource.get_urn().resource_id)
                     for dependent_resource in resource.collection(resource_type=dependent_resource_type):
                         urn = dependent_resource.get_urn()
                         dependent_resource_urns.append(urn)
