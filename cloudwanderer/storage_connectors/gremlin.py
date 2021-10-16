@@ -154,8 +154,9 @@ class GremlinStorageConnector(BaseStorageConnector):
             .has("_cloud_name", partial_urn.cloud_name)
             .has("_service", partial_urn.service)
             .has("_resource_type", partial_urn.resource_type)
-            .has("_resource_id_parts", partial_urn.resource_id_parts)
         )
+        for id_part in partial_urn.resource_id_parts:
+            traversal.has("_resource_id_parts", id_part)
         if partial_urn.account_id != "unknown":
             traversal.has("_account_id", partial_urn.account_id)
         if partial_urn.region != "unknown":

@@ -32,37 +32,6 @@ logger = logging.getLogger(__name__)
 class CloudWandererResourceFactory(ResourceFactory):
     """Enriches functionality of boto3 resource objects with CloudWanderer specific methods."""
     
-    # TODO: DELETE THIS METHOD
-    def _load_has_relations(self, attrs, resource_name, resource_model, service_context):
-        """
-        Load related resources, which are defined via a ``has``
-        relationship but conceptually come in two forms:
-        1. A reference, which is a related resource instance and can be
-           ``None``, such as an EC2 instance's ``vpc``.
-        2. A subresource, which is a resource constructor that will always
-           return a resource instance which shares identifiers/data with
-           this resource, such as ``s3.Bucket('name').Object('key')``.
-        """
-        for reference in resource_model.references:
-            logger.info("Loading reference %s", reference.name)
-            # This is a dangling reference, i.e. we have all
-            # the data we need to create the resource, so
-            # this instance becomes an attribute on the class.
-            attrs[reference.name] = self._create_reference(
-                reference_model=reference, resource_name=resource_name, service_context=service_context
-            )
-        for subresource in resource_model.subresources:
-            # This is a sub-resource class you can create
-            # by passing in an identifier, e.g. s3.Bucket(name).
-            attrs[subresource.name] = self._create_class_partial(
-                subresource_model=subresource,
-                resource_name=resource_name,
-                service_context=service_context
-            )
-
-        self._create_available_subresources_command(
-            attrs, resource_model.subresources)
-
     def __init__(
         self,
         emitter,
@@ -118,7 +87,7 @@ class CloudWandererResourceFactory(ResourceFactory):
             identifiers = create_request_parameters(self, self.meta.resource_model.load.request)
             has_non_empty_values = any(list([y for x in identifiers.values() for y in x]))
             if not has_non_empty_values:
-                logger.info("Load is a noop on this %s %s because we are an empty_resource=True resource", self.service_name, self.resource_type)
+                logger.debug("Load is a noop on this %s %s because we are an empty_resource=True resource", self.service_name, self.resource_type)
                 return 
             
             parent_load(self)
@@ -252,10 +221,8 @@ class CloudWandererResourceFactory(ResourceFactory):
                 resource_name = xform_name(resource.name)
                 # references have snake_case names so let's make sure it's pascalcase
                 pascal_resource_name=snake_to_pascal(resource_name) 
-                logger.info("ServiceResource, get_dependent_resource resource_name: %s", pascal_resource_name)
                 if resource_name == resource_type:
                     if empty_resource:
-                        logger.info("%s %s",pascal_resource_name, service_context.resource_json_definitions.keys())
                        
                         args = [
                             "" for _ in range(len(resource.resource.model.identifiers))
@@ -267,7 +234,6 @@ class CloudWandererResourceFactory(ResourceFactory):
                             service_context=service_context
                         )(*args)
                         
-                    logger.info("%s %s", resource.name, getattr(self, resource.name))
                     return getattr(self, resource.name)(*args)
 
             raise UnsupportedResourceTypeError(
