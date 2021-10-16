@@ -1,4 +1,5 @@
 import pytest
+
 from cloudwanderer.urn import PartialUrn
 
 

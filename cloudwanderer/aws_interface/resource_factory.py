@@ -3,6 +3,7 @@ import logging
 import re
 from typing import TYPE_CHECKING, Any, Callable, Dict, Generator, List, Optional
 from unittest.mock import MagicMock
+
 import jmespath
 from boto3.resources.collection import CollectionManager
 from boto3.resources.factory import ResourceFactory

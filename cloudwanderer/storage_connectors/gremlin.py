@@ -1,7 +1,5 @@
 import logging
 from datetime import datetime
-
-
 from typing import Any, Dict, Iterator, List, Optional
 
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
@@ -11,9 +9,8 @@ from gremlin_python.process.traversal import Cardinality, T, Traversal
 
 from cloudwanderer.models import RelationshipDirection
 
-from ..exceptions import ResourceNotFoundError
-
 from ..cloud_wanderer_resource import CloudWandererResource
+from ..exceptions import ResourceNotFoundError
 from ..urn import URN, PartialUrn
 from .base_connector import BaseStorageConnector
 
