@@ -4,6 +4,151 @@
     "regionalResources": true
   },
   "resources": {
+    "Route": {
+      "type": "dependentResource"
+    },
+    "RouteTable": {
+      "type": "resource",
+      "relationships": [
+        {
+          "basePath": "Associations[]",
+          "idParts": [
+            {
+              "path": "SubnetId"
+            }
+          ],
+          "service": "ec2",
+          "resourceType": "subnet",
+          "regionSource": "sameAsResource",
+          "accountIdSource": "unknown",
+          "direction": "inbound"
+        },
+        {
+          "basePath": "@",
+          "idParts": [
+            {
+              "path": "VpcId"
+            }
+          ],
+          "service": "ec2",
+          "resourceType": "vpc",
+          "regionSource": "sameAsResource",
+          "accountIdSource": "unknown",
+          "direction": "inbound"
+        }
+      ]
+    },
+    "NetworkInterface": {
+      "type": "resource",
+      "relationships": [
+        {
+          "basePath": "Attachment",
+          "idParts": [
+            {
+              "path": "InstanceId"
+            }
+          ],
+          "service": "ec2",
+          "resourceType": "instance",
+          "regionSource": "sameAsResource",
+          "accountIdSource": "unknown",
+          "direction": "inbound"
+        },
+        {
+          "basePath": "Groups[]",
+          "idParts": [
+            {
+              "path": "GroupId"
+            }
+          ],
+          "service": "ec2",
+          "resourceType": "security_group",
+          "regionSource": "sameAsResource",
+          "accountIdSource": "unknown",
+          "direction": "outbound"
+        },
+        {
+          "basePath": "@",
+          "idParts": [
+            {
+              "path": "SubnetId"
+            }
+          ],
+          "service": "ec2",
+          "resourceType": "subnet",
+          "regionSource": "sameAsResource",
+          "accountIdSource": "unknown",
+          "direction": "inbound"
+        }
+      ]
+    },
+    "NetworkAcl": {
+      "type": "resource",
+      "relationships": [
+        {
+          "basePath": "Associations[]",
+          "idParts": [
+            {
+              "path": "SubnetId"
+            }
+          ],
+          "service": "ec2",
+          "resourceType": "subnet",
+          "regionSource": "sameAsResource",
+          "accountIdSource": "unknown",
+          "direction": "inbound"
+        }
+      ]
+    },
+    "InternetGateway": {
+      "type": "resource",
+      "relationships": [
+        {
+          "basePath": "Attachments[]",
+          "idParts": [
+            {
+              "path": "VpcId"
+            }
+          ],
+          "service": "ec2",
+          "resourceType": "vpc",
+          "regionSource": "sameAsResource",
+          "accountIdSource": "unknown",
+          "direction": "inbound"
+        }
+      ]
+    },
+    "Volume": {
+      "type": "resource",
+      "relationships": [
+        {
+          "basePath": "Attachments[]",
+          "idParts": [
+            {
+              "path": "InstanceId"
+            }
+          ],
+          "service": "ec2",
+          "resourceType": "instance",
+          "regionSource": "sameAsResource",
+          "accountIdSource": "unknown",
+          "direction": "inbound"
+        },
+        {
+          "basePath": "@",
+          "idParts": [
+            {
+              "path": "SnapshotId"
+            }
+          ],
+          "service": "ec2",
+          "resourceType": "snapshot",
+          "regionSource": "sameAsResource",
+          "accountIdSource": "unknown",
+          "direction": "outbound"
+        }
+      ]
+    },
     "Vpc": {
       "type": "resource",
       "relationships": [

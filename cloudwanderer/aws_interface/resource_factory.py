@@ -345,6 +345,10 @@ class CloudWandererResourceFactory(ResourceFactory):
 
                     for id_part in relationship_specification.id_parts:
                         id_raw = jmespath.search(id_part.path, base_path)
+                        if not id_raw:
+                            logger.warning("No value found at  %s for %s %s", 
+                                id_part.path, relationship_specification.service, relationship_specification.resource_type)
+                            continue
                         if not id_part.regex_pattern:
                             urn_args["resource_id_parts"].append(id_raw)
                             continue
@@ -355,7 +359,8 @@ class CloudWandererResourceFactory(ResourceFactory):
                                 continue
                             if arg_name.startswith("id_part_"):
                                 urn_args["resource_id_parts"].append(arg_value)
-
+                    if not urn_args['resource_id_parts']:
+                        continue
                     relationships.append(
                         Relationship(partial_urn=PartialUrn(**urn_args), direction=relationship_specification.direction)
                     )

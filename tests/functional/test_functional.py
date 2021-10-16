@@ -70,7 +70,7 @@ class TestFunctional(unittest.TestCase):
     def test_write_resource_type(self):
         """It is sufficient for this not to throw an exception."""
         self.wanderer.write_resources(
-            regions=["eu-west-1"], service_resource_types=[ServiceResourceType("iam", "roles")]
+            regions=["eu-west-1"], service_resource_types=[ServiceResourceType("iam", "role")]
         )
 
     def test_write_custom_resource_definition(self):
