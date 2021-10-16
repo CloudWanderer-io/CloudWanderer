@@ -139,7 +139,7 @@ def test_relationships(service_resource_ec2_vpc):
                 resource_type="dhcp_options",
                 resource_id_parts=["dopt-mock"],
             ),
-            direction=RelationshipDirection.INBOUND,
+            direction=RelationshipDirection.OUTBOUND,
         )
     ]
 
@@ -155,6 +155,6 @@ def test_relationships_arn(service_resource_lambda_function):
                 resource_type="layer_version",
                 resource_id_parts=["test-layer", "2"],
             ),
-            direction=RelationshipDirection.INBOUND,
+            direction=RelationshipDirection.OUTBOUND,
         )
     ]

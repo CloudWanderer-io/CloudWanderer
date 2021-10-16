@@ -34,6 +34,13 @@ def service_resource_iam_role_policy():
     service = session.resource("iam")
     resource = service.resource("role", empty_resource=True)
     return resource.get_dependent_resource("role_policy", empty_resource=True)
+    
+@fixture
+def service_resource_ec2_route():
+    session = CloudWandererBoto3Session()
+    service = session.resource("ec2")
+    resource = service.resource("route_table", empty_resource=True)
+    return resource.get_dependent_resource("route", empty_resource=True)
 
 
 @fixture
@@ -66,13 +73,23 @@ def test_get_discovery_action_templates_regional_resource_global_service(service
     ]
 
 
-def test_dependent_resources(service_resource_iam_role_policy):
+def test_dependent_resources_subresource(service_resource_iam_role_policy):
     action_template = service_resource_iam_role_policy.get_discovery_action_templates(discovery_regions=["us-east-1"])
 
     assert action_template[0].get_urns == []
     assert action_template[0].delete_urns == [
         PartialUrn(
             account_id=None, region="us-east-1", service="iam", resource_type="role_policy", resource_id_parts=[None]
+        )
+    ]
+
+def test_dependent_resources_reference(service_resource_ec2_route):
+    action_template = service_resource_ec2_route.get_discovery_action_templates(discovery_regions=["us-east-1"])
+
+    assert action_template[0].get_urns == []
+    assert action_template[0].delete_urns == [
+        PartialUrn(
+            account_id=None, region="us-east-1", service="ec2", resource_type="route", resource_id_parts=[]
         )
     ]
 
