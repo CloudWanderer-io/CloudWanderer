@@ -102,7 +102,7 @@ class PartialUrn:
         """
         if escaped_id is None:
             return None
-        return escaped_id.replace(r"\/", r"/")
+        return re.sub(r"\\(/|:)", r"\1", escaped_id)
 
     @staticmethod
     def escape_id(unescaped_id: Optional[str]) -> Optional[str]:
@@ -115,7 +115,7 @@ class PartialUrn:
             return None
         if not isinstance(unescaped_id, str):
             unescaped_id = str(unescaped_id)
-        return re.sub(r"(?<!\\)/", r"\/", unescaped_id)
+        return re.sub(r"(?<!\\)(/|:)", r"\\\1", unescaped_id)
 
     def __str__(self) -> str:
         """Return a string representation of the URN."""
@@ -213,7 +213,7 @@ class URN(PartialUrn):
         Raises:
             ValueError: When no valid resource id found
         """
-        parts = urn_string.split(":")
+        parts = re.split(r"(?<!\\):", urn_string)
         try:
             resource_id_parts = re.split(r"(?<!\\)/", parts[6])
         except IndexError:

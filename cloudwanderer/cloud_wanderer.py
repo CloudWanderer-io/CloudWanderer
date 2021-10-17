@@ -47,7 +47,6 @@ class CloudWanderer:
         for storage_connector in self.storage_connectors:
             storage_connector.open()
         resources = list(self.cloud_interface.get_resource(urn=urn, **kwargs))
-        logger.info("Got resources %s", resources)
 
         for resource in resources:
             self._write_resource(resource=resource)
@@ -152,7 +151,6 @@ class CloudWanderer:
         with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency) as executor:
             threads = []
             for region_name in self.cloud_interface.enabled_regions:
-                logger.info(region_name)
                 cw = CloudWanderer(
                     storage_connectors=storage_connector_generator(), cloud_interface=cloud_interface_generator()
                 )

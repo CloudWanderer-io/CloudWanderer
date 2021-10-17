@@ -27,11 +27,9 @@ else:
 from ..cloud_wanderer_resource import CloudWandererResource, SecondaryAttribute
 from ..urn import URN
 from ..utils import standardise_data_types
-from .base_connector import BaseStorageConnector
+from .base_connector import BaseStorageConnector, ISO_DATE_FORMAT
 
 logger = logging.getLogger(__name__)
-
-ISO_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 
 
 class DynamoDBQueryArgs(TypedDict, total=False):

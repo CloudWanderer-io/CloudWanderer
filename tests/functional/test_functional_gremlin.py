@@ -38,19 +38,19 @@ class TestFunctional(unittest.TestCase):
         self.wanderer = CloudWanderer(storage_connectors=[self.storage_connector])
 
     # The _a_ in this test name ensures this test runs first so that subsequent read tests have values to read.
-    # def test_a_write_resources_without_concurrency(self):
-    #     """It is sufficient for this not to throw an exception."""
-    #     self.wanderer.write_resources()
+    def test_a_write_resources_without_concurrency(self):
+        """It is sufficient for this not to throw an exception."""
+        self.wanderer.write_resources()
 
-    # def test_write_resources_in_region(self):
-    #     """It is sufficient for this not to throw an exception."""
-    #     self.wanderer.write_resources(regions=["us-east-1"], exclude_resources=[])
+    def test_write_resources_in_region(self):
+        """It is sufficient for this not to throw an exception."""
+        self.wanderer.write_resources(regions=["us-east-1"], exclude_resources=[])
 
-    # def test_write_resource_type(self):
-    #     """It is sufficient for this not to throw an exception."""
-    #     self.wanderer.write_resources(
-    #         regions=["us-east-1"], service_resource_types=[ServiceResourceType("ec2", "route_table")]
-    #     )
+    def test_write_resource_type(self):
+        """It is sufficient for this not to throw an exception."""
+        self.wanderer.write_resources(
+            regions=["us-east-1"], service_resource_types=[ServiceResourceType("iam", "policy")]
+        )
 
     def test_write_custom_resource_definition(self):
         """It is sufficient for this not to throw an exception."""
@@ -58,7 +58,7 @@ class TestFunctional(unittest.TestCase):
 
     def test_write_single_non_existent_resource_of_every_type(self):
 
-        for resource in self.wanderer.cloud_interface.get_all_resource_type_objects():
+        for resource in self.wanderer.cloud_interface.get_all_empty_resources():
             logging.info("Testing %s %s", resource.service_name, resource.resource_type)
             identifiers = resource.meta.resource_model.identifiers
             args = [
@@ -102,11 +102,13 @@ class TestFunctional(unittest.TestCase):
 
     def test_write_single_resource_of_every_found_type(self):
         for empty_resource in self.wanderer.cloud_interface.get_all_empty_resources():
-
+            logging.info(f"service={empty_resource.service_name}, resource_type={empty_resource.resource_type}")
             try:
                 resource = next(
                     self.storage_connector.read_resources(
-                        service=empty_resource.service_name, resource_type=empty_resource.resource_type
+                        cloud_name="aws",
+                        service=empty_resource.service_name,
+                        resource_type=empty_resource.resource_type,
                     )
                 )
             except StopIteration:
@@ -126,6 +128,7 @@ class TestFunctional(unittest.TestCase):
                 ):
                     continue
                 raise ex
+        self.storage_connector.close()
 
     # def test_read_all(self):
     #     results = list(self.storage_connector.read_all())
@@ -133,12 +136,17 @@ class TestFunctional(unittest.TestCase):
     #     for result in results:
     #         assert isinstance(result, dict)
 
-    # def test_read_resource_of_type(self):
-    #     vpcs = list(self.storage_connector.read_resources(service="ec2", resource_type="vpc"))
-    #     vpcs[0].load()
-    #     assert len(vpcs) > 0
-    #     assert isinstance(vpcs[0].get_secondary_attribute(name="vpc_enable_dns_support")[0], dict)
-    #     assert isinstance(vpcs[0].is_default, bool)
+    def test_read_resource_of_type(self):
+        vpcs = [
+            resource
+            for resource in self.storage_connector.read_resources(cloud_name="aws", service="ec2", resource_type="vpc")
+            if not resource.urn.is_partial
+        ]
+        assert len(vpcs) > 0
+        assert all(isinstance(x, str) for x in vpcs[0].cloudwanderer_metadata.resource_data.values())
+        # TODO: Add secondary attributes
+        # assert isinstance(vpcs[0].get_secondary_attribute(name="vpc_enable_dns_support")[0], dict)
+        assert isinstance(vpcs[0].is_default, bool)
 
     # def test_read_all_resources_in_account(self):
     #     resources = list(self.storage_connector.read_resources(account_id=self.wanderer.cloud_interface.account_id))

@@ -12,7 +12,7 @@ from cloudwanderer.models import RelationshipDirection
 from ..cloud_wanderer_resource import CloudWandererResource
 from ..exceptions import ResourceNotFoundError
 from ..urn import URN, PartialUrn
-from .base_connector import BaseStorageConnector
+from .base_connector import BaseStorageConnector, ISO_DATE_FORMAT
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +29,9 @@ def generate_edge_id(source_urn, destination_urn):
 
 
 class GremlinStorageConnector(BaseStorageConnector):
+    _g: Optional[Traversal] = None
+    connection: Optional[DriverRemoteConnection] = None
+
     def __init__(self, endpoint_url: str, supports_multiple_labels=False, **kwargs):
         """
         Arguments:
@@ -41,12 +44,24 @@ class GremlinStorageConnector(BaseStorageConnector):
     def init(self):
         ...
 
+    @property
+    def g(self):
+        if not self.connection:
+            self.open()
+        if not self._g:
+            self._g = traversal().withRemote(self.connection)
+        return self._g
+
     def open(self):
-        self.connection = DriverRemoteConnection(f"{self.endpoint_url}/gremlin", "g", **self.connection_args)
-        self.g = traversal().withRemote(self.connection)
+        if not self.connection:
+            logger.debug("Opening connection to %s", self.endpoint_url)
+            self.connection = DriverRemoteConnection(f"{self.endpoint_url}/gremlin", "g", **self.connection_args)
 
     def close(self):
+        logger.debug("Closing gremlin connection")
         self.connection.close()
+        self.connection = None
+        self._g = None
 
     def write_resource(self, resource: CloudWandererResource) -> None:
         """Persist a single resource to storage.
@@ -68,6 +83,7 @@ class GremlinStorageConnector(BaseStorageConnector):
             .property(Cardinality.single, "_service", resource.urn.service)
             .property(Cardinality.single, "_resource_type", resource.urn.resource_type)
             .property(Cardinality.single, "_discovery_time", resource.discovery_time.isoformat())
+            .property(Cardinality.single, "_urn", str(resource.urn))
         )
         for id_part in resource.urn.resource_id_parts:
             traversal.property(Cardinality.set_, "_resource_id_parts", id_part)
@@ -208,6 +224,7 @@ class GremlinStorageConnector(BaseStorageConnector):
 
     def _lookup_resource(self, partial_urn: PartialUrn) -> Traversal:
         vertex_label = generate_primary_label(partial_urn)
+        logger.debug("looking up resource with label %s", vertex_label)
         traversal = (
             self.g.V()
             .hasLabel(vertex_label)
@@ -269,6 +286,7 @@ class GremlinStorageConnector(BaseStorageConnector):
 
     def read_resources(
         self,
+        cloud_name: str,
         account_id: str = None,
         region: str = None,
         service: str = None,
@@ -280,12 +298,27 @@ class GremlinStorageConnector(BaseStorageConnector):
         All arguments are optional.
 
         Arguments:
+            cloud_name: The name of the cloud in question (e.g. ``aws``)
             urn: The AWS URN of the resource to return
-            account_id: AWS Account ID
+            account_id: Cloud Account ID (e.g. ``111111111111``)
             region: AWS region (e.g. ``'eu-west-2'``)
             service: Service name (e.g. ``'ec2'``)
             resource_type: Resource Type (e.g. ``'instance'``)
         """
+        if not urn:
+            urn = PartialUrn(
+                cloud_name=cloud_name or "unknown",
+                service=service or "unknown",
+                account_id=account_id or "unknown",
+                region=region or "unknown",
+                resource_type=resource_type or "unknown",
+            )
+        for vertex in self._lookup_resource(partial_urn=urn).propertyMap().toList():
+            yield CloudWandererResource(
+                urn=URN.from_string(vertex["_urn"][0].value),
+                resource_data=_normalise_gremlin_attrs(vertex),
+                discovery_time=datetime.strptime(vertex["_discovery_time"][0].value, ISO_DATE_FORMAT),
+            )
 
     def delete_resource(self, urn: URN) -> None:
         """Delete this resource and all its resource attributes.
@@ -293,7 +326,7 @@ class GremlinStorageConnector(BaseStorageConnector):
         Arguments:
             urn (URN): The URN of the resource to delete
         """
-        logger.info("Deleting resource %s", urn)
+        logger.debug("Deleting resource %s", urn)
         deleted_resources = self.g.V(str(urn)).sideEffect(__.drop()).toList()
         if deleted_resources:
             logger.debug("Deleted %s", deleted_resources)
@@ -312,8 +345,8 @@ class GremlinStorageConnector(BaseStorageConnector):
         This is used primarily to clean up old resources.
 
         Arguments:
-            cloud_name: The name of the cloud in question
-            account_id: Cloud Account ID
+            cloud_name: The name of the cloud in question (e.g. ``aws``)
+            account_id: Cloud Account ID (e.g. ``111111111111``)
             region: Cloud region (e.g. ``'eu-west-2'``)
             service: Service name (e.g. ``'ec2'``)
             resource_type: Resource Type (e.g. ``'instance'``)
@@ -333,3 +366,14 @@ class GremlinStorageConnector(BaseStorageConnector):
         deleted_vertices = traversal.sideEffect(__.drop()).toList()
         if deleted_vertices:
             logger.debug("Deleted %s", deleted_vertices)
+
+
+def _normalise_gremlin_attrs(raw_dict: Dict[str, Any]) -> Dict[str, Any]:
+    """Remove any underscore prefixed keys as these are attributes we use to identify the DynamoDB record.
+
+    Arguments:
+        raw_dict: The raw dictionary of the DynamoDB record that needs cleaning.
+    """
+    # TODO: add list support in gremlin
+    normalised_dict = {k: v[0].value for k, v in raw_dict.items() if not k.startswith("_")}
+    return normalised_dict

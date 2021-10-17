@@ -6,6 +6,8 @@ from datetime import datetime
 from ..cloud_wanderer_resource import CloudWandererResource
 from ..urn import URN
 
+ISO_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
+
 
 class BaseStorageConnector(ABC):
     """Abstract class for specification of the CloudWanderer storage connector interface."""
