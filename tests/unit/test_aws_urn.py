@@ -5,7 +5,7 @@ from cloudwanderer import URN
 
 class TestURN(unittest.TestCase):
     def setUp(self):
-        self.test_urn_subresource = URN(
+        self.test_urn_dependent_resource = URN(
             account_id="111111111111",
             region="us-east-1",
             service="iam",
@@ -17,13 +17,13 @@ class TestURN(unittest.TestCase):
             region="us-east-1",
             service="iam",
             resource_type="role",
-            resource_id="test-role",
+            resource_id_parts=["test-role"],
         )
 
     def test_from_string(self):
         assert (
             URN.from_string("urn:aws:111111111111:us-east-1:iam:role_policy:test-role/test-policy")
-            == self.test_urn_subresource
+            == self.test_urn_dependent_resource
         )
 
     def test_from_string_with_multiple_ids(self):
@@ -38,11 +38,15 @@ class TestURN(unittest.TestCase):
         )
 
     def test_str(self):
-        assert str(self.test_urn_subresource) == "urn:aws:111111111111:us-east-1:iam:role_policy:test-role/test-policy"
+        assert (
+            str(self.test_urn_dependent_resource)
+            == "urn:aws:111111111111:us-east-1:iam:role_policy:test-role/test-policy"
+        )
 
     def test_repr(self):
-        assert repr(self.test_urn_subresource) == str(
+        assert repr(self.test_urn_dependent_resource) == str(
             "URN("
+            "cloud_name='aws', "
             "account_id='111111111111', "
             "region='us-east-1', "
             "service='iam', "
@@ -56,13 +60,13 @@ class TestURN(unittest.TestCase):
             region="us-east-1",
             service="iam",
             resource_type="role_policy",
-            resource_id="test-role/test-role-policy",
+            resource_id_parts=["test-role", "test-role-policy"],
         ) == URN(
             account_id="123456789012",
             region="us-east-1",
             service="iam",
             resource_type="role_policy",
-            resource_id="test-role/test-role-policy",
+            resource_id_parts=["test-role", "test-role-policy"],
         )
 
     def test_resource_id_with_slashes(self):
@@ -71,7 +75,7 @@ class TestURN(unittest.TestCase):
             region="eu-west-1",
             service="cloudwatch",
             resource_type="metric",
-            resource_id="AWS/Logs/IncomingBytes",
+            resource_id_parts=["AWS/Logs/IncomingBytes"],
         )
 
         assert str(urn) == r"urn:aws:080863329876:eu-west-1:cloudwatch:metric:AWS\/Logs\/IncomingBytes"
@@ -98,7 +102,7 @@ class TestURN(unittest.TestCase):
             region="eu-west-1",
             service="cloudwatch",
             resource_type="metric",
-            resource_id="AWS/Logs/IncomingBytes",
+            resource_id_parts=["AWS/Logs/IncomingBytes"],
         )
         assert urn.resource_id_parts == ["AWS/Logs/IncomingBytes"]
 
@@ -119,4 +123,12 @@ class TestURN(unittest.TestCase):
             resource_id_parts=["test_layer", "1"],
         )
         assert urn.resource_id_parts == ["test_layer", "1"]
-        assert urn.resource_id_parts_parsed == ["test_layer", 1]
+
+    def test_is_dependent_resource_false(self):
+        assert not self.test_urn_resource.is_dependent_resource
+
+    def test_is_dependent_resource_true(self):
+        assert self.test_urn_dependent_resource.is_dependent_resource
+
+    def test_cloud_service_resource_label(self):
+        assert self.test_urn_resource.cloud_service_resource_label == "aws_iam_role"

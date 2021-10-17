@@ -71,6 +71,23 @@ class PartialUrn:
                 return True
         return False
 
+    @property
+    def is_dependent_resource(self) -> bool:
+        if not self.resource_id_parts:
+            raise ValueError(
+                "Cannot determine whether this PartialURN is dependent because it has no resource id parts"
+            )
+        return len(self.resource_id_parts) > 1
+
+    @property
+    def cloud_service_resource_label(self) -> str:
+        """Return the cloud service resource label (e.g. ``aws_iam_role``)."""
+        if not all([self.cloud_name, self.service, self.resource_type]):
+            raise ValueError(
+                "Cannot determine this PartialURN's cloud_service_resource as it is missing one of the required attributes"
+            )
+        return "_".join([self.cloud_name, self.service, self.resource_type]).lower()
+
     # @property
     # def resource_id_parts_parsed(self) -> List[Union[str, int]]:
     #     """Return the URNs ID parts parsed to their original types where possible."""

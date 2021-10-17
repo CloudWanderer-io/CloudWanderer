@@ -5,7 +5,7 @@ from typing import Any, Dict, Iterator, List, Optional
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
 from gremlin_python.process.anonymous_traversal import traversal
 from gremlin_python.process.graph_traversal import __
-from gremlin_python.process.traversal import Cardinality, T, Traversal
+from gremlin_python.process.traversal import Cardinality, T, P, Traversal
 
 from cloudwanderer.models import RelationshipDirection
 
@@ -36,11 +36,14 @@ class GremlinStorageConnector(BaseStorageConnector):
         """
         self.endpoint_url = endpoint_url
         self.supports_multiple_labels = supports_multiple_labels
-        self.connection = DriverRemoteConnection(f"{self.endpoint_url}/gremlin", "g", **kwargs)
-        self.g = traversal().withRemote(self.connection)
+        self.connection_args = kwargs
 
     def init(self):
         ...
+
+    def open(self):
+        self.connection = DriverRemoteConnection(f"{self.endpoint_url}/gremlin", "g", **self.connection_args)
+        self.g = traversal().withRemote(self.connection)
 
     def close(self):
         self.connection.close()
@@ -52,7 +55,7 @@ class GremlinStorageConnector(BaseStorageConnector):
             resource (CloudWandererResource): The CloudWandererResource to write.
         """
         self._write_resource(resource)
-        self._write_dependent_resources(resource)
+        self._write_dependent_resource_edges(resource)
 
     def _write_resource(self, resource: CloudWandererResource) -> None:
         primary_label = generate_primary_label(resource.urn)
@@ -64,6 +67,7 @@ class GremlinStorageConnector(BaseStorageConnector):
             .property(Cardinality.single, "_region", resource.urn.region)
             .property(Cardinality.single, "_service", resource.urn.service)
             .property(Cardinality.single, "_resource_type", resource.urn.resource_type)
+            .property(Cardinality.single, "_discovery_time", resource.discovery_time.isoformat())
         )
         for id_part in resource.urn.resource_id_parts:
             traversal.property(Cardinality.set_, "_resource_id_parts", id_part)
@@ -76,9 +80,10 @@ class GremlinStorageConnector(BaseStorageConnector):
         if not resource.urn.is_partial:
             self._repoint_vertex_edges(vertex_label=primary_label, new_resource_urn=resource.urn)
 
-    def _write_dependent_resources(self, resource: CloudWandererResource) -> None:
+    def _write_dependent_resource_edges(self, resource: CloudWandererResource) -> None:
         for dependent_urn in resource.dependent_resource_urns:
             edge_id = generate_edge_id(resource.urn, dependent_urn)
+            logger.debug("writing edge id %s", edge_id)
             self._write_edge(
                 edge_id=edge_id,
                 edge_label="has",
@@ -87,6 +92,7 @@ class GremlinStorageConnector(BaseStorageConnector):
             ).next()
 
     def _write_relationships(self, resource: CloudWandererResource) -> None:
+
         for relationship in resource.relationships:
             inferred_partner_urn = str(relationship.partial_urn)
             try:
@@ -108,7 +114,7 @@ class GremlinStorageConnector(BaseStorageConnector):
                         direction=relationship.direction,
                     )
                 continue
-            logger.info("Writing inferred resource %s", inferred_partner_urn)
+            logger.debug("Writing inferred resource %s", inferred_partner_urn)
             self._write_resource(CloudWandererResource(urn=relationship.partial_urn, resource_data={}))
             self._write_relationship_edge(
                 resource_id=str(resource.urn),
@@ -201,7 +207,6 @@ class GremlinStorageConnector(BaseStorageConnector):
             ).next()
 
     def _lookup_resource(self, partial_urn: PartialUrn) -> Traversal:
-        logger.info("_lookup_resource, partial_urn: %s", partial_urn)
         vertex_label = generate_primary_label(partial_urn)
         traversal = (
             self.g.V()
@@ -247,12 +252,10 @@ class GremlinStorageConnector(BaseStorageConnector):
         )
 
     def _delete_edge(self, edge_id: str) -> Traversal:
-        logger.info("Deleting edge %s", edge_id)
-        try:
-            self.g.E(edge_id).drop().next()
-        except StopIteration:
-            logger.info("Edge does not exist to delete %s", edge_id)
-            pass
+        logger.debug("Deleting edge %s", edge_id)
+        deleted_edges = self.g.E(edge_id).drop().toList()
+        if deleted_edges:
+            logger.debug("Deleted edges %s", deleted_edges)
 
     def read_all(self) -> Iterator[dict]:
         """Return all records from storage."""
@@ -290,18 +293,43 @@ class GremlinStorageConnector(BaseStorageConnector):
         Arguments:
             urn (URN): The URN of the resource to delete
         """
+        logger.info("Deleting resource %s", urn)
+        deleted_resources = self.g.V(str(urn)).sideEffect(__.drop()).toList()
+        if deleted_resources:
+            logger.debug("Deleted %s", deleted_resources)
 
     def delete_resource_of_type_in_account_region(
-        self, service: str, resource_type: str, account_id: str, region: str, cutoff: Optional[datetime]
+        self,
+        cloud_name: str,
+        service: str,
+        resource_type: str,
+        account_id: str,
+        region: str,
+        cutoff: Optional[datetime],
     ) -> None:
         """Delete resources of type in account and region unless in list of URNs.
 
         This is used primarily to clean up old resources.
 
         Arguments:
-            account_id (str): AWS Account ID
-            region (str): AWS region (e.g. ``'eu-west-2'``)
-            service (str): Service name (e.g. ``'ec2'``)
-            resource_type (str): Resource Type (e.g. ``'instance'``)
-            urns_to_keep (List[cloudwanderer.urn.URN]): A list of resources not to delete
+            cloud_name: The name of the cloud in question
+            account_id: Cloud Account ID
+            region: Cloud region (e.g. ``'eu-west-2'``)
+            service: Service name (e.g. ``'ec2'``)
+            resource_type: Resource Type (e.g. ``'instance'``)
+            cutoff: Delete any resource discovered before this time
         """
+        partial_urn = PartialUrn(
+            cloud_name=cloud_name,
+            service=service,
+            account_id=account_id,
+            region=region,
+            resource_type=resource_type,
+        )
+        logger.debug("Deleting resources that match %s that were discovered before %s", partial_urn, cutoff)
+        traversal = self._lookup_resource(partial_urn=partial_urn)
+        if cutoff:
+            traversal.where(__.values("_discovery_time").is_(P.lt(cutoff.isoformat())))
+        deleted_vertices = traversal.sideEffect(__.drop()).toList()
+        if deleted_vertices:
+            logger.debug("Deleted %s", deleted_vertices)

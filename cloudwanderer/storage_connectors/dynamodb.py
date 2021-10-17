@@ -331,6 +331,12 @@ class DynamoDbConnector(BaseStorageConnector):
                 continue
             self.delete_resource(urn=resource.urn)
 
+    def open(self) -> None:
+        ...
+
+    def close(self) -> None:
+        ...
+
     def _gen_shard(self, key: str, shard_id: int = None) -> str:
         """Append a shard designation to the end of a supplied key.
 

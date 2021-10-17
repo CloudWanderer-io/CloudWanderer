@@ -1,7 +1,8 @@
 """Main cloudwanderer module."""
 import concurrent.futures
+from datetime import datetime
 import logging
-from typing import Callable, List, NamedTuple
+from typing import Callable, DefaultDict, List, NamedTuple
 
 from cloudwanderer.models import ServiceResourceType
 
@@ -43,7 +44,10 @@ class CloudWanderer:
             **kwargs:
                 All additional keyword arguments will be passed down to the cloud interface client calls.
         """
+        for storage_connector in self.storage_connectors:
+            storage_connector.open()
         resources = list(self.cloud_interface.get_resource(urn=urn, **kwargs))
+        logger.info("Got resources %s", resources)
 
         for resource in resources:
             self._write_resource(resource=resource)
@@ -75,12 +79,13 @@ class CloudWanderer:
         Raises:
             ValueError: If invalid get/delete urns are produced by the cloud interface's get_resource_discovery_actions
         """
+        for storage_connector in self.storage_connectors:
+            storage_connector.open()
         action_sets = self.cloud_interface.get_resource_discovery_actions(
             regions=regions, service_resource_types=service_resource_types
         )
-
+        discovery_start_times = {}
         for action_set in action_sets:
-            earliest_resource_discovered = None
             for get_urn in sorted(action_set.get_urns):
                 if not get_urn.region or not get_urn.service or not get_urn.resource_type:
                     raise ValueError(f"Invalid get_urn {get_urn}")
@@ -90,8 +95,9 @@ class CloudWanderer:
                     resource_type=get_urn.resource_type,
                 )
                 for resource in resources:
+                    earliest_resource_discovered = discovery_start_times.get(resource.urn.cloud_service_resource_label)
                     if not earliest_resource_discovered or resource.discovery_time < earliest_resource_discovered:
-                        earliest_resource_discovered = resource.discovery_time
+                        discovery_start_times[resource.urn.cloud_service_resource_label] = resource.discovery_time
                     self._write_resource(resource)
             for delete_urn in action_set.delete_urns:
                 if (
@@ -103,11 +109,12 @@ class CloudWanderer:
                     raise ValueError(f"Invalid delete_urn {delete_urn}")
                 for storage_connector in self.storage_connectors:
                     storage_connector.delete_resource_of_type_in_account_region(
+                        cloud_name=delete_urn.cloud_name,
                         account_id=delete_urn.account_id,
                         region=delete_urn.region,
                         service=delete_urn.service,
                         resource_type=delete_urn.resource_type,
-                        cutoff=earliest_resource_discovered,
+                        cutoff=discovery_start_times.get(delete_urn.cloud_service_resource_label),
                     )
         for storage_connector in self.storage_connectors:
             storage_connector.close()

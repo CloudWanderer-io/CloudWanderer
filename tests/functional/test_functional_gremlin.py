@@ -15,11 +15,18 @@ from cloudwanderer.storage_connectors import GremlinStorageConnector
 
 class TestFunctional(unittest.TestCase):
     identifier_mapping = {
-        "layer_version:version": "1",
+        "layer_version:version": 1,
         "policy:arn": "arn:aws:iam::1234567890:policy/APIGatewayLambdaExecPolicy",
         "policy_version:arn": "arn:aws:iam::1234567890:policy/APIGatewayLambdaExecPolicy",
     }
-    resources_not_supporting_load = ["lambda:layer", "iam:virtual_mfa_device", "iam:signing_certificate"]
+    resources_not_supporting_load = [
+        "lambda:layer",
+        "iam:virtual_mfa_device",
+        "iam:mfa_device",
+        "iam:signing_certificate",
+        "ec2:route",
+        "iam:access_key",
+    ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -31,59 +38,52 @@ class TestFunctional(unittest.TestCase):
         self.wanderer = CloudWanderer(storage_connectors=[self.storage_connector])
 
     # The _a_ in this test name ensures this test runs first so that subsequent read tests have values to read.
+    # def test_a_write_resources_without_concurrency(self):
+    #     """It is sufficient for this not to throw an exception."""
+    #     self.wanderer.write_resources()
 
-    def test_a_write_resources_without_concurrency(self):
-        """It is sufficient for this not to throw an exception."""
-        self.wanderer.write_resources()
+    # def test_write_resources_in_region(self):
+    #     """It is sufficient for this not to throw an exception."""
+    #     self.wanderer.write_resources(regions=["us-east-1"], exclude_resources=[])
 
-    def test_write_resources_in_region(self):
-        """It is sufficient for this not to throw an exception."""
-        self.wanderer.write_resources(regions=["eu-west-1", "us-east-1"], exclude_resources=[])
-
-    def test_write_resource_type(self):
-        """It is sufficient for this not to throw an exception."""
-        self.wanderer.write_resources(
-            regions=["us-east-1"], service_resource_types=[ServiceResourceType("ec2", "route_table")]
-        )
+    # def test_write_resource_type(self):
+    #     """It is sufficient for this not to throw an exception."""
+    #     self.wanderer.write_resources(
+    #         regions=["us-east-1"], service_resource_types=[ServiceResourceType("ec2", "route_table")]
+    #     )
 
     def test_write_custom_resource_definition(self):
         """It is sufficient for this not to throw an exception."""
         self.wanderer.write_resources(service_resource_types=[ServiceResourceType("iam", "role")])
 
     def test_write_single_non_existent_resource_of_every_type(self):
-        for service_name in self.wanderer.cloud_interface.cloudwanderer_boto3_session.get_available_resources():
-            service = self.wanderer.cloud_interface.cloudwanderer_boto3_session.resource(service_name)
-            for resource_type in service.resource_types:
-                logging.info("Testing %s %s", service_name, resource_type)
-                resource = service.resource(resource_type, empty_resource=True)
-                identifiers = resource.meta.resource_model.identifiers
-                args = [
-                    self.identifier_mapping.get(
-                        f"{resource_type}{identifier.name}test1111111", f"{resource_type}{identifier.name}test1111111"
-                    )
-                    for identifier in identifiers
-                ]
 
-                self._write_resource_with_fake_id(service_name, resource_type, args)
+        for resource in self.wanderer.cloud_interface.get_all_resource_type_objects():
+            logging.info("Testing %s %s", resource.service_name, resource.resource_type)
+            identifiers = resource.meta.resource_model.identifiers
+            args = [
+                self.identifier_mapping.get(
+                    f"{resource.resource_type}{identifier.name}test1111111",
+                    f"{resource.resource_type}{identifier.name}test1111111",
+                )
+                for identifier in identifiers
+            ]
 
-    def test_write_single_non_existent_subresource_of_every_type(self):
+            self._write_resource_with_fake_id(resource.service_name, resource.resource_type, args)
 
-        for service_name in self.wanderer.cloud_interface.boto3_services.available_services:
-            service = self.wanderer.cloud_interface.boto3_services.get_service(service_name)
-            for resource_summary in service.resource_summary:
-                for subresource in resource_summary.subresources:
+    def test_write_single_non_existent_dependent_resource_of_every_type(self):
 
-                    resource_type = subresource.resource_type
-                    resource = service._get_empty_resource(resource_type)
-                    identifiers = resource.boto3_resource.meta.resource_model.identifiers
-                    args = [
-                        self.identifier_mapping.get(
-                            f"{resource_type}:{identifier.name}", f"{resource_type}:{identifier.name}"
-                        )
-                        for identifier in identifiers
-                    ]
-                    logging.info("Testing %s %s", service_name, resource_type)
-                    self._write_resource_with_fake_id(service_name, resource_type, args)
+        for empty_resource in self.wanderer.cloud_interface.get_all_empty_resources(include_dependent_resource=True):
+            if not empty_resource.is_dependent_resource:
+                continue
+            resource_type = empty_resource.resource_type
+            identifiers = empty_resource.meta.resource_model.identifiers
+            args = [
+                self.identifier_mapping.get(f"{resource_type}:{identifier.name}", f"{resource_type}:{identifier.name}")
+                for identifier in identifiers
+            ]
+            logging.info("Testing %s %s", empty_resource.service_name, resource_type)
+            self._write_resource_with_fake_id(empty_resource.service_name, resource_type, args)
 
     def _write_resource_with_fake_id(self, service_name, resource_type, args) -> None:
         urn = URN(
@@ -101,27 +101,31 @@ class TestFunctional(unittest.TestCase):
             raise
 
     def test_write_single_resource_of_every_found_type(self):
-        for service_name in self.wanderer.cloud_interface.boto3_services.available_services:
-            service = self.wanderer.cloud_interface.boto3_services.get_service(service_name)
-            for resource_type in service.resource_types:
-                try:
-                    resource = next(
-                        self.storage_connector.read_resources(service=service_name, resource_type=resource_type)
+        for empty_resource in self.wanderer.cloud_interface.get_all_empty_resources():
+
+            try:
+                resource = next(
+                    self.storage_connector.read_resources(
+                        service=empty_resource.service_name, resource_type=empty_resource.resource_type
                     )
-                except StopIteration:
-                    logging.info(
-                        "No %s %s resources were found, skipping testing write_resource for this type",
-                        service_name,
-                        resource_type,
-                    )
+                )
+            except StopIteration:
+                logging.info(
+                    "No %s %s resources were found, skipping testing write_resource for this type",
+                    empty_resource.service_name,
+                    empty_resource.resource_type,
+                )
+                continue
+            logging.info("Found %s, testing write_resource", resource.urn)
+            try:
+                self.wanderer.write_resource(urn=resource.urn)
+            except UnsupportedResourceTypeError as ex:
+                if (
+                    f"{empty_resource.service_name}:{empty_resource.resource_type}"
+                    in self.resources_not_supporting_load
+                ):
                     continue
-                logging.info("Found %s, testing write_resource", resource.urn)
-                try:
-                    self.wanderer.write_resource(urn=resource.urn)
-                except UnsupportedResourceTypeError as ex:
-                    if f"{service_name}:{resource_type}" in self.resources_not_supporting_load:
-                        continue
-                    raise ex
+                raise ex
 
     # def test_read_all(self):
     #     results = list(self.storage_connector.read_all())

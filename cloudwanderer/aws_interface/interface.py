@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Iterator, List, Optional, cast
 
 import botocore
 from botocore.exceptions import ClientError
+from mypy_boto3_dynamodb import ServiceResource
 from ..cloud_wanderer_resource import CloudWandererResource
 
 from ..exceptions import BadRequestError, ResourceNotFoundError, UnsupportedResourceTypeError
@@ -55,11 +56,11 @@ class CloudWandererAWSInterface:
 
             service = self.cloudwanderer_boto3_session.resource(service_name=urn.service, region_name=urn.region)
             resource = service.resource(resource_type=urn.resource_type, identifiers=urn.resource_id_parts)
-            if not hasattr(resource, 'load' ):
+            if not hasattr(resource, "load"):
                 raise UnsupportedResourceTypeError(f"Resource type {urn.resource_type} doesn't support get_resource()")
 
             resource.load()
-            
+
         except ClientError as ex:
             error_code = ex.response.get("ResponseMetadata", {}).get("HTTPStatusCode")
             if error_code == 404:
@@ -69,7 +70,7 @@ class CloudWandererAWSInterface:
             raise ex
         if not resource.meta.data:
             return None
-            
+
         dependent_resource_urns = []
         if include_dependent_resources:
             for dependent_resource_type in resource.dependent_resource_types:
@@ -119,7 +120,13 @@ class CloudWandererAWSInterface:
             for resource in service.collection(resource_type=resource_type, filters=resource_map.default_filters):
                 dependent_resource_urns = []
                 for dependent_resource_type in resource.dependent_resource_types:
-                    logger.info("Getting %s %s dependent resources from %s for %s", service_name, dependent_resource_type, region, resource.get_urn().resource_id)
+                    logger.info(
+                        "Getting %s %s dependent resources from %s for %s",
+                        service_name,
+                        dependent_resource_type,
+                        region,
+                        resource.get_urn().resource_id,
+                    )
                     for dependent_resource in resource.collection(resource_type=dependent_resource_type):
                         urn = dependent_resource.get_urn()
                         dependent_resource_urns.append(urn)
@@ -170,6 +177,18 @@ class CloudWandererAWSInterface:
             )
 
         return self._inflate_action_set_regions(action_sets)
+
+    def get_all_empty_resources(self, include_dependent_resource=False) -> Iterator[ServiceResource]:
+        """Return an ``empty_resource=True`` ServiceResource object for each resource type."""
+        for service_name in self.cloudwanderer_boto3_session.get_available_resources():
+            service = self.cloudwanderer_boto3_session.resource(service_name)
+            for resource_type in service.resource_types:
+                resource = service.resource(resource_type, empty_resource=True)
+                yield resource
+                if not include_dependent_resource:
+                    continue
+                for dependent_resource_type in resource.dependent_resource_types:
+                    yield resource.get_dependent_resource(dependent_resource_type, empty_resource=True)
 
     def _inflate_action_set_regions(self, action_set_templates: List[TemplateActionSet]) -> List[ActionSet]:
         enabled_regions = self.cloudwanderer_boto3_session.get_enabled_regions()

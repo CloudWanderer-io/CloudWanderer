@@ -15,8 +15,12 @@ class BaseStorageConnector(ABC):
         """Initialise the storage backend whatever it is."""
 
     @abstractmethod
+    def open(self) -> None:
+        """Open the connection to the backend storage"""
+
+    @abstractmethod
     def close(self) -> None:
-        """Closing the connection to the backend storage"""
+        """Close the connection to the backend storage"""
 
     @abstractmethod
     def write_resource(self, resource: CloudWandererResource) -> None:

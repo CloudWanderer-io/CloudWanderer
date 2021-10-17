@@ -89,12 +89,13 @@ class CloudWandererResourceFactory(ResourceFactory):
         attrs["get_secondary_attributes"] = self._create_get_secondary_attributes()
 
     def _create_load(self, original_class_definition: type) -> Callable:
-        parent_load = original_class_definition.load
+        original_class_load = original_class_definition.load
 
         def load(self, *args) -> None:
-
+            if not self.meta.resource_model.load:
+                return
             identifiers = create_request_parameters(self, self.meta.resource_model.load.request)
-            has_non_empty_values = any(list([y for x in identifiers.values() for y in x]))
+            has_non_empty_values = any(list([x for x in identifiers.values()]))
             if not has_non_empty_values:
                 logger.debug(
                     "Load is a noop on this %s %s because we are an empty_resource=True resource",
@@ -103,7 +104,7 @@ class CloudWandererResourceFactory(ResourceFactory):
                 )
                 return
 
-            parent_load(self)
+            original_class_load(self)
 
         return load
 
@@ -126,6 +127,7 @@ class CloudWandererResourceFactory(ResourceFactory):
                 if self.resource_map.type != "dependentResource":
                     actions.get_urns.append(
                         PartialUrn(
+                            cloud_name="aws",
                             service=self.service_map.name,
                             region=discovery_region,
                             resource_type=self.resource_type,
@@ -133,6 +135,7 @@ class CloudWandererResourceFactory(ResourceFactory):
                     )
                 actions.delete_urns.append(
                     PartialUrn(
+                        cloud_name="aws",
                         service=self.service_map.name,
                         region=cleanup_region,
                         resource_type=self.resource_type,
@@ -360,6 +363,12 @@ class CloudWandererResourceFactory(ResourceFactory):
 
         return shape
 
+    def _create_is_dependent_resource(self) -> Callable[..., bool]:
+        def is_dependent_resource(self) -> bool:
+            return self.resource_map.type == "dependentResource"
+
+        return property(is_dependent_resource)
+
     def _create_relationships(self) -> Callable[..., Dict[str, Any]]:
         @property  # type: ignore
         def relationships(self) -> Dict[str, Any]:
@@ -434,3 +443,4 @@ class CloudWandererResourceFactory(ResourceFactory):
             attrs["secondary_attribute_names"] = self._create_secondary_attribute_names()
             attrs["shape"] = self._create_shape()
             attrs["relationships"] = self._create_relationships()
+            attrs["is_dependent_resource"] = self._create_is_dependent_resource()
