@@ -287,6 +287,7 @@ class ResourceMap(NamedTuple):
     default_filters: Dict[str, Any]
     service_map: ServiceMap
     relationships: List["RelationshipSpecification"]
+    secondary_attribute_maps: List["SecondaryAttributeMap"]
     requires_load_for_full_metadata: bool = False
     regional_resource: bool = True
 
@@ -312,6 +313,10 @@ class ResourceMap(NamedTuple):
             relationships=[
                 RelationshipSpecification.factory(relationship_specification)
                 for relationship_specification in definition.get("relationships", [])
+            ],
+            secondary_attribute_maps=[
+                SecondaryAttributeMap(source_path=mapping["sourcePath"], destination_name=mapping["destinationName"])
+                for mapping in definition.get("secondaryAttributeMaps", [])
             ],
         )
 
@@ -407,3 +412,10 @@ class IdPartSpecification(NamedTuple):
     @classmethod
     def factory(cls, definition) -> "IdPartSpecification":
         return cls(path=definition["path"], regex_pattern=definition.get("regexPattern", ""))
+
+
+class SecondaryAttributeMap(NamedTuple):
+    """Specification for how to map the attributes contained in a secondary attribute resource to its parent's resource."""
+
+    source_path: str
+    destination_name: str

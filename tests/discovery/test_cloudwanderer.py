@@ -18,6 +18,7 @@ def cloud_wanderer() -> CloudWanderer:
                 ActionSet(
                     get_urns=[
                         PartialUrn(
+                            cloud_name="aws",
                             account_id="111111111111",
                             region="eu-west-1",
                             service="ec2",
@@ -27,6 +28,7 @@ def cloud_wanderer() -> CloudWanderer:
                     ],
                     delete_urns=[
                         PartialUrn(
+                            cloud_name="aws",
                             account_id="111111111111",
                             region="eu-west-1",
                             service="ec2",
@@ -39,6 +41,7 @@ def cloud_wanderer() -> CloudWanderer:
             "get_resources.return_value": [
                 CloudWandererResource(
                     URN(
+                        cloud_name="aws",
                         account_id="111111111111",
                         region="eu-west-1",
                         service="ec2",
@@ -64,6 +67,7 @@ def test_write_resources(cloud_wanderer: CloudWanderer):
     cloud_wanderer.storage_connectors[0].write_resource.assert_called_with(
         CloudWandererResource(
             urn=URN(
+                cloud_name="aws",
                 account_id="111111111111",
                 region="eu-west-1",
                 service="ec2",
@@ -72,10 +76,10 @@ def test_write_resources(cloud_wanderer: CloudWanderer):
             ),
             dependent_resource_urns=[],
             resource_data={},
-            secondary_attributes=[],
         )
     )
     cloud_wanderer.storage_connectors[0].delete_resource_of_type_in_account_region.assert_called_with(
+        cloud_name="aws",
         account_id="111111111111",
         region="eu-west-1",
         service="ec2",
@@ -94,6 +98,7 @@ def test_get_resources_specific_resource(cloud_wanderer: CloudWanderer):
     cloud_wanderer.storage_connectors[0].write_resource.assert_called_with(
         CloudWandererResource(
             urn=URN(
+                cloud_name="aws",
                 account_id="111111111111",
                 region="eu-west-1",
                 service="ec2",
@@ -102,10 +107,10 @@ def test_get_resources_specific_resource(cloud_wanderer: CloudWanderer):
             ),
             dependent_resource_urns=[],
             resource_data={},
-            secondary_attributes=[],
         )
     )
     cloud_wanderer.storage_connectors[0].delete_resource_of_type_in_account_region.assert_called_with(
+        cloud_name="aws",
         account_id="111111111111",
         region="eu-west-1",
         service="ec2",

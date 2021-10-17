@@ -186,7 +186,13 @@
       ]
     },
     "VpcEnableDnsSupport": {
-      "type": "secondaryAttribute"
+      "type": "secondaryAttribute",
+      "secondaryAttributeMaps": [
+        {
+          "sourcePath": "EnableDnsSupport.Value",
+          "destinationName": "EnableDnsSupport"
+        }
+      ]
     },
     "Image": {
       "type": "resource",
@@ -206,13 +212,17 @@
         }
       ],
       "defaultFilters": {
-        "Owners": ["self"]
+        "Owners": [
+          "self"
+        ]
       }
     },
     "Snapshot": {
       "type": "resource",
       "defaultFilters": {
-        "OwnerIds": ["self"]
+        "OwnerIds": [
+          "self"
+        ]
       }
     },
     "Instance": {

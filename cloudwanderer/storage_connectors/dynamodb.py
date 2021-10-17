@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 else:
     DynamoDBServiceResource = object
 
-from ..cloud_wanderer_resource import CloudWandererResource, SecondaryAttribute
+from ..cloud_wanderer_resource import CloudWandererResource
 from ..urn import URN
 from ..utils import standardise_data_types
 from .base_connector import BaseStorageConnector, ISO_DATE_FORMAT
@@ -114,18 +114,12 @@ def _dynamodb_items_to_resources(items: Iterable[dict], loader: Callable) -> Ite
     """
     for _, group in itertools.groupby(items, lambda x: x["_id"]):
         grouped_items = list(group)
-        attributes = [
-            SecondaryAttribute(name=attribute["_attr"], **_strip_dynamodb_attrs(attribute))
-            for attribute in grouped_items
-            if attribute["_attr"] != "BaseResource"
-        ]
         base_resource = next(resource for resource in grouped_items if resource["_attr"] == "BaseResource")
         dependent_resource_urns = [URN.from_string(urn) for urn in base_resource.get("_dependent_resource_urns", [])]
         yield CloudWandererResource(
             urn=_urn_from_primary_key(base_resource["_id"]),
             dependent_resource_urns=dependent_resource_urns,
             resource_data=_strip_dynamodb_attrs(base_resource),
-            secondary_attributes=attributes,
             discovery_time=datetime.strptime(base_resource["_discovery_time"], ISO_DATE_FORMAT),
             loader=loader,
         )
@@ -215,26 +209,6 @@ class DynamoDbConnector(BaseStorageConnector):
         }
         if resource.is_dependent_resource:
             item["_parent_urn"] = str(resource.parent_urn)
-        self.dynamodb_table.put_item(Item=item)
-        for secondary_attribute in resource.cloudwanderer_metadata.secondary_attributes:
-            self._write_secondary_attribute(
-                urn=resource.urn, attribute_type=secondary_attribute.name, secondary_attribute=secondary_attribute
-            )
-
-    def _write_secondary_attribute(self, urn: URN, attribute_type: str, secondary_attribute: Dict[str, Any]) -> None:
-        """Write the specified resource attribute to DynamoDb.
-
-        Arguments:
-            urn (URN): The resource whose attribute to write.
-            attribute_type (str): The type of the resource attribute to write (usually the boto3 client method name)
-            secondary_attribute (boto3.resources.base.ServiceResource): The resource attribute to write to storage.
-
-        """
-        logger.debug(f"Writing: {attribute_type} of {urn} to {self.table_name}")
-        item = {
-            **self._generate_urn_index_values(urn, attribute_type),
-            **standardise_data_types(secondary_attribute or {}),
-        }
         self.dynamodb_table.put_item(Item=item)
 
     def _generate_urn_index_values(self, urn: URN, attr: str = "BaseResource") -> Dict[str, Any]:

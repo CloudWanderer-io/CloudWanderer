@@ -86,10 +86,15 @@ def test_get_region(service_resource_s3_bucket):
     assert region == "eu-west-1"
 
 
+def test_get_secondary_attributes_map(service_resource_ec2_vpc):
+    assert service_resource_ec2_vpc.get_secondary_attributes_map() == {"EnableDnsSupport": True}
+
+
 def test_get_secondary_attributes(service_resource_ec2_vpc):
-    assert list(service_resource_ec2_vpc.get_secondary_attributes()) == [
-        {"EnableDnsSupport": {"Value": True}, "VpcId": "vpc-11111"}
-    ]
+    assert list(service_resource_ec2_vpc.get_secondary_attributes())[0].meta.data == {
+        "EnableDnsSupport": {"Value": True},
+        "VpcId": "vpc-11111",
+    }
 
 
 def test_secondary_attribute_names(service_resource_ec2_vpc):

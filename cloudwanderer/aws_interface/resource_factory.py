@@ -13,7 +13,6 @@ from botocore import xform_name
 from botocore.loaders import Loader
 from botocore.model import Shape
 
-from ..cloud_wanderer_resource import SecondaryAttribute
 from ..exceptions import UnsupportedResourceTypeError
 from ..models import Relationship, RelationshipAccountIdSource, RelationshipRegionSource, TemplateActionSet
 from ..urn import URN, PartialUrn
@@ -76,6 +75,7 @@ class CloudWandererResourceFactory(ResourceFactory):
             # This should only exist only exist on Resources, not on Services
             attrs["get_discovery_action_templates"] = self._create_get_discovery_action_templates()
             attrs["get_dependent_resource"] = self._create_get_dependent_resource(service_context)
+            attrs["get_secondary_attributes_map"] = self._create_get_secondary_attributes_map()
             if hasattr(original_class_definition, "load"):
                 attrs["load"] = self._create_load(original_class_definition=original_class_definition)
         else:
@@ -271,21 +271,31 @@ class CloudWandererResourceFactory(ResourceFactory):
 
         return get_urn
 
+    def _create_get_secondary_attributes_map(self) -> Callable[..., Dict[str, Any]]:
+        def get_secondary_attributes_map(self) -> Dict[str, Any]:
+            """Return a dictionary representation of this resource's secondary attributes."""
+            result = {}
+            for secondary_attribute in self.get_secondary_attributes():
+                for attribute_map in secondary_attribute.resource_map.secondary_attribute_maps:
+                    result[attribute_map.destination_name] = jmespath.search(
+                        attribute_map.source_path, secondary_attribute.meta.data
+                    )
+            return result
+
+        return get_secondary_attributes_map
+
     def _create_get_secondary_attributes(self) -> Callable:
-        def get_secondary_attributes(self) -> Generator[SecondaryAttribute, None, None]:
+        def get_secondary_attributes(self) -> Generator["CloudWandererServiceResource", None, None]:
             for secondary_attribute_name in self.secondary_attribute_names:
                 getter = getattr(self, snake_to_pascal(secondary_attribute_name))
                 secondary_attribute_resource = getter()
                 secondary_attribute_resource.load()
-                yield SecondaryAttribute(
-                    secondary_attribute_name, **_clean_boto3_metadata(secondary_attribute_resource.meta.data)
-                )
+                yield secondary_attribute_resource
 
         return get_secondary_attributes
 
     def _create_secondary_attribute_names(self) -> Callable:
-        @property  # type: ignore
-        def secondary_attribute_names(self) -> List[SecondaryAttribute]:
+        def secondary_attribute_names(self) -> List[str]:
             secondary_attribute_names = []
             for subresource in self.meta.resource_model.subresources:
                 resource_map = self.service_map.get_resource_map(xform_name(subresource.name))
@@ -295,7 +305,7 @@ class CloudWandererResourceFactory(ResourceFactory):
                 secondary_attribute_names.append(xform_name(subresource.name))
             return secondary_attribute_names
 
-        return secondary_attribute_names
+        return property(secondary_attribute_names)
 
     def _create_get_account_id(self) -> Callable:
         def get_account_id(self) -> str:
