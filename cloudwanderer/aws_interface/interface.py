@@ -189,7 +189,7 @@ class CloudWandererAWSInterface:
                 if not include_dependent_resource:
                     continue
                 for dependent_resource_type in resource.dependent_resource_types:
-                    yield resource.get_dependent_resource(dependent_resource_type, empty_resource=True)
+                    yield service.resource(dependent_resource_type, empty_resource=True)
 
     def _inflate_action_set_regions(self, action_set_templates: List[TemplateActionSet]) -> List[ActionSet]:
         enabled_regions = self.cloudwanderer_boto3_session.get_enabled_regions()
@@ -217,13 +217,13 @@ class CloudWandererAWSInterface:
             resource = service.resource(resource_type, empty_resource=True)
             action_templates.extend(
                 self._get_discovery_action_templates_for_resource(
-                    resource=resource, discovery_regions=discovery_regions
+                    service=service, resource=resource, discovery_regions=discovery_regions
                 )
             )
         return action_templates
 
     def _get_discovery_action_templates_for_resource(
-        self, resource: "CloudWandererServiceResource", discovery_regions: List[str]
+        self, service: "CloudWandererServiceResource", resource: "CloudWandererServiceResource", discovery_regions: List[str]
     ) -> List[TemplateActionSet]:
         action_templates = []
 
@@ -234,7 +234,7 @@ class CloudWandererAWSInterface:
             return []
         logger.debug("getting actions for: %s", resource.dependent_resource_types)
         for dependent_resource_type in resource.dependent_resource_types:
-            dependent_resource = resource.get_dependent_resource(dependent_resource_type, empty_resource=True)
+            dependent_resource = service.resource(dependent_resource_type, empty_resource=True)
             action_templates.extend(
                 dependent_resource.get_discovery_action_templates(discovery_regions=discovery_regions)
             )

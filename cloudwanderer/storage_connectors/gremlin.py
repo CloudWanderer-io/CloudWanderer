@@ -117,6 +117,7 @@ class GremlinStorageConnector(BaseStorageConnector):
                 pre_existing_resource_id = None
 
             if pre_existing_resource_id:
+                logger.debug("writing relationship with pre_existing_resource_id %s", pre_existing_resource_id)
                 self._write_relationship_edge(
                     resource_id=str(resource.urn),
                     relationship_resource_id=pre_existing_resource_id,
@@ -145,56 +146,59 @@ class GremlinStorageConnector(BaseStorageConnector):
         for id_part in new_resource_urn.resource_id_parts:
             resources_of_the_same_type.has("_resource_id_parts", id_part)
         resources_with_same_id_but_unknown = (
-            resources_of_the_same_type.properties()
-            .hasValue("unknown")
-            .or_(__.hasKey("_account_id"), __.hasKey("_region"))
-            .select("old_vertex")
-        )
-        # Outbound
-        old_vertices_outbound_edges = resources_with_same_id_but_unknown.outE().as_("e1")
-        old_outbound_edges_partner_vertex = old_vertices_outbound_edges.inV().as_("b")
+            resources_of_the_same_type
+            .or_(__.has("_account_id", "unknown"), __.has("_region", "unknown"))
+        ).toList()
+        logger.debug("resources_with_same_id_but_unknown %s", resources_with_same_id_but_unknown)
+        for old_vertex in resources_with_same_id_but_unknown:
+            # Outbound
+            old_vertices_outbound_edges = self.g.V(old_vertex).outE().as_("e1")
+            old_outbound_edges_partner_vertex = old_vertices_outbound_edges.inV().as_("b")
 
-        new_vertex = old_outbound_edges_partner_vertex.V(str(new_resource_urn)).as_("new_vertex")
-        add_old_outbound_edges_to_new_vertex = (
-            new_vertex.addE("has")
-            .to("b")
-            .as_("e2")
-            .sideEffect(
-                __.select("e1")
-                .properties()
-                .unfold()
-                .as_("p")
-                .select("e2")
-                .property(__.select("p").key(), __.select("p").value())
+            new_vertex = old_outbound_edges_partner_vertex.V(str(new_resource_urn)).as_("new_vertex")
+            add_old_outbound_edges_to_new_vertex = (
+                new_vertex.addE("has")
+                .to("b")
+                .as_("e2")
+                .sideEffect(
+                    __.select("e1")
+                    .properties()
+                    .unfold()
+                    .as_("p")
+                    .select("e2")
+                    .property(__.select("p").key(), __.select("p").value())
+                )
             )
-        )
-        drop_old_edges = add_old_outbound_edges_to_new_vertex.select("e1").drop()
+            drop_old_edges = add_old_outbound_edges_to_new_vertex.select("e1").sideEffect(__.drop()).toList()
+            logger.debug("dropped old outbound edges %s", drop_old_edges)
+            # Inbound
+            old_vertices_inbound_edges = self.g.V(old_vertex).select("old_vertex").inE().as_("old_inbound_edge")
+            old_inbound_edges_partner_vertex = old_vertices_inbound_edges.inV().as_("c")
 
-        # Inbound
-        old_vertices_inbound_edges = drop_old_edges.select("old_vertex").inE().as_("e3")
-        old_inbound_edges_partner_vertex = old_vertices_inbound_edges.inV().as_("c")
-
-        new_vertex = old_inbound_edges_partner_vertex.select("new_vertex")
-        add_old_inbound_edges_to_new_vertex = (
-            new_vertex.addE("has")
-            .from_("c")
-            .as_("e4")
-            .sideEffect(
-                __.select("e3")
-                .properties()
-                .unfold()
-                .as_("p")
-                .select("e4")
-                .property(__.select("p").key(), __.select("p").value())
+            new_vertex = old_inbound_edges_partner_vertex.select("new_vertex")
+            add_old_inbound_edges_to_new_vertex = (
+                new_vertex.addE("has")
+                .from_("c")
+                .as_("new_inbound_edge")
+                .sideEffect(
+                    __.select("old_inbound_edge")
+                    .properties()
+                    .unfold()
+                    .as_("p")
+                    .select("new_inbound_edge")
+                    .property(__.select("p").key(), __.select("p").value())
+                )
             )
-        )
-        drop_old_edges = add_old_inbound_edges_to_new_vertex.select("e3").drop()
+            drop_old_edges = add_old_inbound_edges_to_new_vertex.select("old_inbound_edge").sideEffect(__.drop())
+            logger.debug("dropped old inbound edges %s", drop_old_edges)
 
-        # Delete old vertex
-        delete_old_vertex = drop_old_edges.select("old_vertex").drop()
+            # Delete old vertex
+            delete_old_vertex = self.g.V(old_vertex).sideEffect(__.drop())
 
-        # Execute
-        delete_old_vertex.iterate()
+
+            # Execute
+            to_be_deleted = delete_old_vertex.toList()
+            logger.debug("deleted vertices: %s", to_be_deleted)
 
     def _delete_relationship_edge(
         self, resource_id: str, relationship_resource_id: str, direction: RelationshipDirection

@@ -36,6 +36,37 @@
     }
   },
   "resources": {
+    "FunctionVersion": {
+      "identifiers": [
+        {
+          "name": "FunctionName",
+          "memberName": "FunctionName"
+        },
+        {
+          "name": "Version",
+          "memberName": "Version"
+        }
+      ],
+      "shape": "FunctionConfiguration",
+      "load": {
+        "request": {
+          "operation": "GetFunctionConfiguration",
+          "params": [
+            {
+              "target": "FunctionName",
+              "source": "identifier",
+              "name": "FunctionName"
+            },
+            {
+              "target": "Qualifier",
+              "source": "identifier",
+              "name": "Version"
+            }
+          ]
+        },
+        "path": "@"
+      }
+    },
     "Function": {
       "identifiers": [
         {
@@ -56,6 +87,36 @@
           ]
         },
         "path": "Configuration"
+      },
+      "hasMany": {
+        "FunctionVersions": {
+          "request": {
+            "operation": "ListVersionsByFunction",
+            "params": [
+              {
+                "target": "FunctionName",
+                "source": "identifier",
+                "name": "FunctionName"
+              }
+            ]
+          },
+          "resource": {
+            "type": "FunctionVersion",
+            "identifiers": [
+              {
+                "target": "FunctionName",
+                "source": "identifier",
+                "name": "FunctionName"
+              },
+              {
+                "target": "Version",
+                "source": "response",
+                "path": "Versions[].Version"
+              }
+            ],
+            "path": "Versions[]"
+          }
+        }
       }
     },
     "Layer": {
@@ -79,26 +140,6 @@
         }
       ],
       "shape": "LayersListItem",
-      "has": {
-        "LayerVersion": {
-          "resource": {
-            "type": "LayerVersion",
-            "identifiers": [
-              {
-                "target": "LayerName",
-                "source": "identifier",
-                "name": "LayerName"
-              },
-              {
-                "target": "Version",
-                "source": "input",
-                "path": "LayerVersions[].Version"
-              }
-            ],
-            "path": "LayerVersions[]"
-          }
-        }
-      },
       "hasMany": {
         "LayerVersions": {
           "request": {

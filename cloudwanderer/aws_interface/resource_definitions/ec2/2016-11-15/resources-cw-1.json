@@ -4,6 +4,63 @@
     "regionalResources": true
   },
   "resources": {
+    "NatGateway": {
+      "type": "resource",
+      "relationships": [
+        {
+          "basePath": "@",
+          "idParts": [
+            {
+              "path": "VpcId"
+            }
+          ],
+          "service": "ec2",
+          "resourceType": "vpc",
+          "regionSource": "sameAsResource",
+          "accountIdSource": "unknown",
+          "direction": "inbound"
+        },
+        {
+          "basePath": "@",
+          "idParts": [
+            {
+              "path": "SubnetId"
+            }
+          ],
+          "service": "ec2",
+          "resourceType": "subnet",
+          "regionSource": "sameAsResource",
+          "accountIdSource": "unknown",
+          "direction": "inbound"
+        },
+        {
+          "basePath": "NatGatewayAddresses[]",
+          "idParts": [
+            {
+              "path": "NetworkInterfaceId"
+            }
+          ],
+          "service": "ec2",
+          "resourceType": "network_interface",
+          "regionSource": "sameAsResource",
+          "accountIdSource": "unknown",
+          "direction": "outbound"
+        },
+        {
+          "basePath": "NatGatewayAddresses[]",
+          "idParts": [
+            {
+              "path": "AllocationId"
+            }
+          ],
+          "service": "ec2",
+          "resourceType": "elastic_ip",
+          "regionSource": "sameAsResource",
+          "accountIdSource": "unknown",
+          "direction": "outbound"
+        }
+      ]
+    },
     "Route": {
       "type": "dependentResource"
     },
@@ -212,17 +269,13 @@
         }
       ],
       "defaultFilters": {
-        "Owners": [
-          "self"
-        ]
+        "Owners": ["self"]
       }
     },
     "Snapshot": {
       "type": "resource",
       "defaultFilters": {
-        "OwnerIds": [
-          "self"
-        ]
+        "OwnerIds": ["self"]
       }
     },
     "Instance": {

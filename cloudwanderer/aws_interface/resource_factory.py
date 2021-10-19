@@ -276,6 +276,7 @@ class CloudWandererResourceFactory(ResourceFactory):
             """Return a dictionary representation of this resource's secondary attributes."""
             result = {}
             for secondary_attribute in self.get_secondary_attributes():
+                logger.debug("Getting secondary attribute: %s", secondary_attribute)
                 for attribute_map in secondary_attribute.resource_map.secondary_attribute_maps:
                     result[attribute_map.destination_name] = jmespath.search(
                         attribute_map.source_path, secondary_attribute.meta.data
@@ -286,6 +287,7 @@ class CloudWandererResourceFactory(ResourceFactory):
 
     def _create_get_secondary_attributes(self) -> Callable:
         def get_secondary_attributes(self) -> Generator["CloudWandererServiceResource", None, None]:
+            logger.debug("secondary attribute names: %s", self.secondary_attribute_names)
             for secondary_attribute_name in self.secondary_attribute_names:
                 getter = getattr(self, snake_to_pascal(secondary_attribute_name))
                 secondary_attribute_resource = getter()
@@ -357,6 +359,7 @@ class CloudWandererResourceFactory(ResourceFactory):
             dependent_resource_types = []
             for collection in self.meta.resource_model.collections:
                 resource_type = xform_name(collection.resource.type)
+                logger.warning(resource_type)
                 resource_map = self.service_map.get_resource_map(resource_type=resource_type)
                 if resource_map.type == "dependentResource":
                     dependent_resource_types.append(resource_type)
@@ -385,7 +388,10 @@ class CloudWandererResourceFactory(ResourceFactory):
             """Return PartialURNs for the relationships this resource has with other resources."""
             relationships = []
             for relationship_specification in self.resource_map.relationships:
-                base_paths_raw = jmespath.search(relationship_specification.base_path, self.normalized_raw_data)
+                base_paths_raw = jmespath.search(relationship_specification.base_path, {
+                            **self.normalized_raw_data,
+                            **self.get_secondary_attributes_map(),
+                        })
                 base_paths = [base_paths_raw] if not isinstance(base_paths_raw, list) else base_paths_raw
                 for base_path in base_paths:
                     if not base_path:
@@ -414,6 +420,8 @@ class CloudWandererResourceFactory(ResourceFactory):
                             urn_args["resource_id_parts"].append(id_raw)
                             continue
                         result = re.match(id_part.regex_pattern, id_raw)
+                        if not result:
+                            continue
                         for arg_name, arg_value in result.groupdict().items():
                             if arg_name in ["cloud_name", "account_id", "region", "service", "resource_type"]:
                                 urn_args[arg_name] = arg_value
