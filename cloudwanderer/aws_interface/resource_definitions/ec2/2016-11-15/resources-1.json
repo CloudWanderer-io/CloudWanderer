@@ -153,7 +153,8 @@
         },
         "path": "RouteTables[0]"
       },
-      "hasMany": {
+
+      "has": {
         "Associations": {
           "resource": {
             "type": "RouteTableAssociation",
@@ -168,39 +169,6 @@
           }
         },
         "Routes": {
-          "resource": {
-            "type": "Route",
-            "identifiers": [
-              {
-                "target": "RouteTableId",
-                "source": "identifier",
-                "name": "Id"
-              },
-              {
-                "target": "DestinationCidrBlock",
-                "source": "data",
-                "path": "Routes[].DestinationCidrBlock"
-              }
-            ],
-            "path": "Routes[]"
-          }
-        }
-      },
-      "has": {
-        "Association": {
-          "resource": {
-            "type": "RouteTableAssociation",
-            "identifiers": [
-              {
-                "target": "Id",
-                "source": "data",
-                "path": "Associations[].RouteTableAssociationId"
-              }
-            ],
-            "path": "Associations[]"
-          }
-        },
-        "Route": {
           "resource": {
             "type": "Route",
             "identifiers": [

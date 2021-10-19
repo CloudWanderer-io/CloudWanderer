@@ -74,7 +74,7 @@ class CloudWandererResourceFactory(ResourceFactory):
         if service_context.service_name != xform_name(resource_name):
             # This should only exist only exist on Resources, not on Services
             attrs["get_discovery_action_templates"] = self._create_get_discovery_action_templates()
-            attrs["get_dependent_resource"] = self._create_get_dependent_resource(service_context)
+            # attrs["get_dependent_resource"] = self._create_get_dependent_resource(service_context)
             attrs["get_secondary_attributes_map"] = self._create_get_secondary_attributes_map()
             if hasattr(original_class_definition, "load"):
                 attrs["load"] = self._create_load(original_class_definition=original_class_definition)
@@ -173,17 +173,17 @@ class CloudWandererResourceFactory(ResourceFactory):
             Arguments;
                 resource_type: The snake case resource type to get a model for (e.g. ``'bucket'``)
             """
-            boto3_resource_type = None
-            for resource in self.meta.resource_model.subresources:
-                # The key name in the resources dictionary in the service definition json
-                resource_name = xform_name(resource.name)
-                if resource_name == resource_type:
-                    boto3_resource_type = resource.resource.type
-                    break
-            if not boto3_resource_type:
-                raise UnsupportedResourceTypeError(f"Could not find Boto3 resource by the name {resource_type}")
+            # boto3_resource_type = None
+            # for resource in self.meta.resource_model.subresources:
+            #     # The key name in the resources dictionary in the service definition json
+            #     resource_name = xform_name(resource.name)
+            #     if resource_name == resource_type:
+            #         boto3_resource_type = resource.resource.type
+            #         break
+            # if not boto3_resource_type:
+            #     raise UnsupportedResourceTypeError(f"Could not find Boto3 resource by the name {resource_type}")
             for collection_model in self.meta.resource_model.collections:
-                if collection_model.resource.type == boto3_resource_type:
+                if xform_name(collection_model.resource.type) == resource_type:
                     return collection_model
             raise UnsupportedResourceTypeError(f"Could not find Boto3 collection for {resource_type}")
 
@@ -215,9 +215,9 @@ class CloudWandererResourceFactory(ResourceFactory):
                 collection_model = self.get_collection_model(resource_type)
             except UnsupportedResourceTypeError:
                 # If it's not a collection it might be a 'reference'
-                for resource in self.meta.resource_model.references:
-                    if resource.name == resource_type:
-                        return getattr(self, resource.name)
+                for reference in self.meta.resource_model.references:
+                    if xform_name(reference.resource.type) == resource_type:
+                        return getattr(self, reference.name)
                 raise
             collection_model.name
             collection_manager = getattr(self, collection_model.name)
@@ -225,38 +225,38 @@ class CloudWandererResourceFactory(ResourceFactory):
 
         return collection
 
-    def _create_get_dependent_resource(factory_self, service_context: "ServiceContext") -> Callable:
-        def get_dependent_resource(
-            self, resource_type: str, args: List[str] = None, empty_resource=False
-        ) -> "CloudWandererServiceResource":
-            # We need to check for dependent resources in subresources and references to cover cases where the dependent
-            # resource is only enumerable from the content of the parent resource (rather than a separate API call)
-            # e.g. route_table > routes
-            subresources_and_references = self.meta.resource_model.subresources + self.meta.resource_model.references
-            for resource in subresources_and_references:
-                resource_name = xform_name(resource.name)
-                # references have snake_case names so let's make sure it's pascalcase
-                pascal_resource_name = snake_to_pascal(resource_name)
-                if resource_name == resource_type:
-                    if empty_resource:
+    # def _create_get_dependent_resource(factory_self, service_context: "ServiceContext") -> Callable:
+    #     def get_dependent_resource(
+    #         self, resource_type: str, args: List[str] = None, empty_resource=False
+    #     ) -> "CloudWandererServiceResource":
+    #         # We need to check for dependent resources in subresources and references to cover cases where the dependent
+    #         # resource is only enumerable from the content of the parent resource (rather than a separate API call)
+    #         # e.g. route_table > routes
+    #         subresources_and_references = self.meta.resource_model.subresources + self.meta.resource_model.references
+    #         for resource in subresources_and_references:
+    #             resource_name = xform_name(resource.name)
+    #             # references have snake_case names so let's make sure it's pascalcase
+    #             pascal_resource_name = snake_to_pascal(resource_name)
+    #             if resource_name == resource_type:
+    #                 if empty_resource:
 
-                        args = ["" for _ in range(len(resource.resource.model.identifiers))]
-                        logger.debug("args: %s", args)
-                        return factory_self.load_from_definition(
-                            resource_name=pascal_resource_name,
-                            single_resource_json_definition=service_context.resource_json_definitions.get(
-                                pascal_resource_name
-                            ),
-                            service_context=service_context,
-                        )(*args)
+    #                     args = ["" for _ in range(len(resource.resource.model.identifiers))]
+    #                     logger.debug("args: %s", args)
+    #                     return factory_self.load_from_definition(
+    #                         resource_name=pascal_resource_name,
+    #                         single_resource_json_definition=service_context.resource_json_definitions.get(
+    #                             pascal_resource_name
+    #                         ),
+    #                         service_context=service_context,
+    #                     )(*args)
 
-                    return getattr(self, resource.name)(*args)
+    #                 return getattr(self, resource.name)(*args)
 
-            raise UnsupportedResourceTypeError(
-                f"Could not find Boto3 subresource {resource_type} for {self.resource_type}."
-            )
+    #         raise UnsupportedResourceTypeError(
+    #             f"Could not find Boto3 subresource {resource_type} for {self.resource_type}."
+    #         )
 
-        return get_dependent_resource
+    #     return get_dependent_resource
 
     def _create_get_urn(self) -> Callable:
         def get_urn(self) -> URN:
@@ -342,7 +342,6 @@ class CloudWandererResourceFactory(ResourceFactory):
         return normalized_raw_data
 
     def _create_resource_types(self) -> Callable[..., List[str]]:
-        @property  # type: ignore
         def resource_types(self) -> List[str]:
             """Lists resources which are directly enumerable from the service"""
             resource_types = [
@@ -351,30 +350,34 @@ class CloudWandererResourceFactory(ResourceFactory):
 
             return resource_types
 
-        return resource_types
+        return property(resource_types)
 
     def _create_dependent_resource_types(self) -> Callable[..., List[str]]:
-        @property  # type: ignore
         def dependent_resource_types(self) -> List[str]:
-            dependent_resource_types = []
+            dependent_resource_types = set()
             for collection in self.meta.resource_model.collections:
                 resource_type = xform_name(collection.resource.type)
-                logger.warning(resource_type)
                 resource_map = self.service_map.get_resource_map(resource_type=resource_type)
                 if resource_map.type == "dependentResource":
-                    dependent_resource_types.append(resource_type)
+                    dependent_resource_types.add(resource_type)
+            for subresource in self.meta.resource_model.subresources + self.meta.resource_model.references:
+                resource_type = xform_name(subresource.resource.type)
+                if resource_type in dependent_resource_types:
+                    continue
+                resource_map = self.service_map.get_resource_map(resource_type=resource_type)
+                if resource_map.type == "dependentResource":
+                    dependent_resource_types.add(resource_type)
 
             return dependent_resource_types
 
-        return dependent_resource_types
+        return property(dependent_resource_types)
 
     def _create_shape(self) -> Callable[..., Shape]:
-        @property  # type: ignore
         def shape(self) -> Shape:
             service_model = self.meta.client.meta.service_model
             return service_model.shape_for(self.meta.resource_model.shape)
 
-        return shape
+        return property(shape)
 
     def _create_is_dependent_resource(self) -> Callable[..., bool]:
         def is_dependent_resource(self) -> bool:
@@ -383,7 +386,6 @@ class CloudWandererResourceFactory(ResourceFactory):
         return property(is_dependent_resource)
 
     def _create_relationships(self) -> Callable[..., Dict[str, Any]]:
-        @property  # type: ignore
         def relationships(self) -> Dict[str, Any]:
             """Return PartialURNs for the relationships this resource has with other resources."""
             relationships = []
@@ -435,7 +437,7 @@ class CloudWandererResourceFactory(ResourceFactory):
                     )
             return relationships
 
-        return relationships
+        return property(relationships)
 
     def _load_cloudwanderer_properties(
         self, attrs: Dict[str, Any], resource_name: str, service_context: "ServiceContext"

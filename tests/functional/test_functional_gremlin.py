@@ -38,9 +38,9 @@ class TestFunctional(unittest.TestCase):
         self.wanderer = CloudWanderer(storage_connectors=[self.storage_connector])
 
     # The _a_ in this test name ensures this test runs first so that subsequent read tests have values to read.
-    def test_a_write_resources_without_concurrency(self):
-        """It is sufficient for this not to throw an exception."""
-        self.wanderer.write_resources()
+    # def test_a_write_resources_without_concurrency(self):
+    #     """It is sufficient for this not to throw an exception."""
+    #     self.wanderer.write_resources()
 
     def test_write_resources_in_region(self):
         """It is sufficient for this not to throw an exception."""
@@ -126,7 +126,8 @@ class TestFunctional(unittest.TestCase):
                 ):
                     continue
                 raise ex
-        self.storage_connector.close()
+        for storage_connector in self.wanderer.storage_connectors:
+            storage_connector.close()
 
     # def test_read_all(self):
     #     results = list(self.storage_connector.read_all())
@@ -144,7 +145,8 @@ class TestFunctional(unittest.TestCase):
         assert all(isinstance(x, str) for x in vpcs[0].cloudwanderer_metadata.resource_data.values())
         # TODO: Add secondary attributes
         # assert isinstance(vpcs[0].get_secondary_attribute(name="vpc_enable_dns_support")[0], dict)
-        assert isinstance(vpcs[0].is_default, bool)
+        logging.info(vpcs[0])
+        assert vpcs[0].is_default in ['True', 'False']
 
     # def test_read_all_resources_in_account(self):
     #     resources = list(self.storage_connector.read_resources(account_id=self.wanderer.cloud_interface.account_id))
