@@ -31,10 +31,10 @@
           "direction": "outbound"
         },
         {
-          "basePath": "@",
+          "basePath": "TargetGroupARNs[]",
           "idParts": [
             {
-              "path": "TargetGroupARNs",
+              "path": "@",
               "regexPattern": "[^:]+:[^:]+:[^:]+:(?P<region>[^:]+):(?P<account_id>[^:]+):.*/(?P<id_part_0>[^/]+)/[^/]+"
             }
           ],
