@@ -26,6 +26,9 @@
     "FunctionVersion": {
       "type": "dependentResource"
     },
+    "FunctionAlias": {
+      "type": "dependentResource"
+    },
     "Layer": {
       "type": "baseResource"
     },

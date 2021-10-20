@@ -36,6 +36,37 @@
     }
   },
   "resources": {
+    "FunctionAlias": {
+      "identifiers": [
+        {
+          "name": "FunctionName",
+          "memberName": "FunctionName"
+        },
+        {
+          "name": "Name",
+          "memberName": "Name"
+        }
+      ],
+      "shape": "AliasConfiguration",
+      "load": {
+        "request": {
+          "operation": "GetAlias",
+          "params": [
+            {
+              "target": "FunctionName",
+              "source": "identifier",
+              "name": "FunctionName"
+            },
+            {
+              "target": "Name",
+              "source": "identifier",
+              "name": "Name"
+            }
+          ]
+        },
+        "path": "@"
+      }
+    },
     "FunctionVersion": {
       "identifiers": [
         {
@@ -115,6 +146,34 @@
               }
             ],
             "path": "Versions[]"
+          }
+        },
+        "FunctionAliases": {
+          "request": {
+            "operation": "ListAliases",
+            "params": [
+              {
+                "target": "FunctionName",
+                "source": "identifier",
+                "name": "FunctionName"
+              }
+            ]
+          },
+          "resource": {
+            "type": "FunctionAlias",
+            "identifiers": [
+              {
+                "target": "FunctionName",
+                "source": "identifier",
+                "name": "FunctionName"
+              },
+              {
+                "target": "Name",
+                "source": "response",
+                "path": "Aliases[].Name"
+              }
+            ],
+            "path": "Aliases[]"
           }
         }
       }
