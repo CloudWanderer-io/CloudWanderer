@@ -75,6 +75,8 @@ class CloudWandererAWSInterface:
         if include_dependent_resources:
             for dependent_resource_type in resource.dependent_resource_types:
                 for dependent_resource in resource.collection(resource_type=dependent_resource_type):
+                    if not dependent_resource.meta.data and hasattr(dependent_resource, 'load'):
+                        dependent_resource.load()
                     urn = dependent_resource.get_urn()
                     dependent_resource_urns.append(urn)
                     yield CloudWandererResource(
@@ -128,6 +130,8 @@ class CloudWandererAWSInterface:
                         resource.get_urn().resource_id,
                     )
                     for dependent_resource in resource.collection(resource_type=dependent_resource_type):
+                        if not dependent_resource.meta.data and hasattr(dependent_resource, 'load'):
+                            dependent_resource.load()
                         urn = dependent_resource.get_urn()
                         dependent_resource_urns.append(urn)
                         yield CloudWandererResource(
