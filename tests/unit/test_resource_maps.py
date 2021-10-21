@@ -10,10 +10,7 @@ from cloudwanderer.aws_interface.boto3_loaders import (
     ResourceMap,
     ResourceRegionRequest,
 )
-from cloudwanderer.models import RelationshipAccountIdSource, RelationshipRegionSource, RelationshipDirection
-
-
-from .helpers import named_mock
+from cloudwanderer.models import RelationshipAccountIdSource, RelationshipDirection, RelationshipRegionSource
 
 
 class TestResourceMap(unittest.TestCase):
@@ -103,6 +100,7 @@ class TestResourceMap(unittest.TestCase):
                         "resourceType": "vpc",
                         "regionSource": "sameAsResource",
                         "accountIdSource": "unknown",
+                        "direction": "inbound",
                     }
                 ],
             },
