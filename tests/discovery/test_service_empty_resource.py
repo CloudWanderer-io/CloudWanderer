@@ -1,10 +1,8 @@
 from boto3.resources.collection import ResourceCollection
-from cloudwanderer.urn import PartialUrn, URN
-from unittest.mock import MagicMock
-
 from pytest import fixture
 
 from cloudwanderer.aws_interface import CloudWandererBoto3Session
+from cloudwanderer.urn import PartialUrn
 
 
 @fixture
@@ -32,8 +30,7 @@ def service_resource_iam_role():
 def service_resource_iam_role_policy():
     session = CloudWandererBoto3Session()
     service = session.resource("iam")
-    resource = service.resource("role", empty_resource=True)
-    return resource.get_dependent_resource("role_policy", empty_resource=True)
+    return service.resource("role_policy", empty_resource=True)
 
 
 @fixture
@@ -45,8 +42,9 @@ def service_resource_ec2_route_table():
 
 @fixture
 def service_resource_ec2_route(service_resource_ec2_route_table):
-
-    return service_resource_ec2_route_table.get_dependent_resource("route", empty_resource=True)
+    session = CloudWandererBoto3Session()
+    service = session.resource("ec2")
+    return service.resource("route", empty_resource=True)
 
 
 @fixture

@@ -1,8 +1,10 @@
-from cloudwanderer.urn import PartialUrn
-from cloudwanderer.models import TemplateActionSet, ActionSet, ServiceResourceType
-from pytest import fixture
 from unittest.mock import ANY, MagicMock
+
+from pytest import fixture
+
 from cloudwanderer.aws_interface import CloudWandererAWSInterface
+from cloudwanderer.models import ActionSet, ServiceResourceType, TemplateActionSet
+from cloudwanderer.urn import PartialUrn
 
 
 @fixture
@@ -208,7 +210,7 @@ def test_get__get_discovery_action_templates_for_service(aws_interface: CloudWan
 
     service.resource.assert_called_with("role", empty_resource=True)
     aws_interface._get_discovery_action_templates_for_resource.assert_called_with(
-        resource=ANY, discovery_regions=["eu-west-1"]
+        service=ANY, resource=ANY, discovery_regions=["eu-west-1"]
     )
 
 
@@ -216,16 +218,20 @@ def test__get_discovery_action_templates_for_resource(
     aws_interface: CloudWandererAWSInterface, mock_action_set_role, mock_action_set_role_policy
 ):
     dependent_resource = MagicMock(**{"get_discovery_action_templates.return_value": [mock_action_set_role_policy]})
+    service = MagicMock(
+        **{
+            "resource.return_value": dependent_resource,
+        }
+    )
     resource = MagicMock(
         **{
             "dependent_resource_types": ["role_policy"],
             "get_discovery_action_templates.return_value": [mock_action_set_role],
-            "get_dependent_resource.return_value": dependent_resource,
         }
     )
 
     result = aws_interface._get_discovery_action_templates_for_resource(
-        resource=resource, discovery_regions=["eu-west-1"]
+        service=service, resource=resource, discovery_regions=["eu-west-1"]
     )
 
     resource.get_discovery_action_templates.assert_called_with(discovery_regions=["eu-west-1"])
