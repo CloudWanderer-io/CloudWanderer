@@ -18,16 +18,21 @@ resource_type='vpc', resource_id_parts=['vpc-11111111'])
 
 """
 import re
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional
 
 
 class PartialUrn:
+    """A partially specified URN.
+
+    Useful for matching unknown or multiple URNs.
+    """
+
     cloud_name: Optional[str]
     account_id: Optional[str]
     region: Optional[str]
     service: Optional[str]
     resource_type: Optional[str]
-    resource_id_parts: Optional[str]
+    resource_id_parts: List[str]
 
     def __init__(
         self,
@@ -81,17 +86,21 @@ class PartialUrn:
 
     @property
     def cloud_service_resource_label(self) -> str:
-        """Return the cloud service resource label (e.g. ``aws_iam_role``)."""
-        if not all([self.cloud_name, self.service, self.resource_type]):
+        """Return the cloud service resource label (e.g. ``aws_iam_role``).
+
+        Raises:
+            ValueError: If we do not have sufficient information to generate a label
+        """
+        if (
+            not isinstance(self.cloud_name, str)
+            or not isinstance(self.service, str)
+            or not isinstance(self.resource_type, str)
+        ):
             raise ValueError(
-                "Cannot determine this PartialURN's cloud_service_resource as it is missing one of the required attributes"
+                "Cannot determine this PartialURN's "
+                "cloud_service_resource as it is missing one of the required attributes"
             )
         return "_".join([self.cloud_name, self.service, self.resource_type]).lower()
-
-    # @property
-    # def resource_id_parts_parsed(self) -> List[Union[str, int]]:
-    #     """Return the URNs ID parts parsed to their original types where possible."""
-    #     return [int(part) if part.isnumeric() else part for part in self.resource_id_parts]
 
     @staticmethod
     def unescape_id(escaped_id: Optional[str]) -> Optional[str]:

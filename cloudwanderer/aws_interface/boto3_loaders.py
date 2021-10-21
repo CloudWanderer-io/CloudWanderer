@@ -21,11 +21,9 @@ from boto3.resources.model import ResourceModel
 from botocore.exceptions import DataNotFoundError, UnknownServiceError  # type: ignore
 from botocore.loaders import Loader
 
-from ..models import RelationshipAccountIdSource, RelationshipDirection, RelationshipRegionSource
-
-
 from ..cache_helpers import memoized_method
 from ..exceptions import MalformedFileError, UnsupportedServiceError
+from ..models import RelationshipAccountIdSource, RelationshipDirection, RelationshipRegionSource
 from ..utils import camel_to_snake, snake_to_pascal
 
 logger = logging.getLogger(__name__)
@@ -380,14 +378,14 @@ class ResourceRegionRequestParam(NamedTuple):
 
 
 class RelationshipSpecification(NamedTuple):
-    """Specification for a relationship between two resources"""
+    """Specification for a relationship between two resources."""
 
     base_path: str
-    id_parts: str
+    id_parts: List["IdPartSpecification"]
     service: str
     resource_type: str
-    region_source: str
-    account_id_source: str
+    region_source: RelationshipRegionSource
+    account_id_source: RelationshipAccountIdSource
     direction: RelationshipDirection
 
     @classmethod
@@ -415,7 +413,7 @@ class IdPartSpecification(NamedTuple):
 
 
 class SecondaryAttributeMap(NamedTuple):
-    """Specification for how to map the attributes contained in a secondary attribute resource to its parent's resource."""
+    """Specification for mapping attributes contained in a secondary attribute to its parent's resource."""
 
     source_path: str
     destination_name: str

@@ -9,11 +9,10 @@ from typing import TYPE_CHECKING, Iterator, List, Optional, cast
 import botocore
 from botocore.exceptions import ClientError
 from mypy_boto3_dynamodb import ServiceResource
+
 from ..cloud_wanderer_resource import CloudWandererResource
-
-from ..exceptions import BadRequestError, ResourceNotFoundError, UnsupportedResourceTypeError
+from ..exceptions import UnsupportedResourceTypeError
 from ..models import ActionSet, ServiceResourceType, TemplateActionSet
-
 from ..urn import URN
 from .aws_services import AWS_SERVICES
 from .session import CloudWandererBoto3Session
@@ -47,13 +46,17 @@ class CloudWandererAWSInterface:
     def get_resource(self, urn: URN, include_dependent_resources: bool = True) -> Iterator[CloudWandererResource]:
         """Yield the resource picked out by this URN and optionally its subresources.
 
-        #     Arguments:
-        #         urn (URN): The urn of the resource to get.
-        #         include_dependent_resources: Whether or not to additionally yield the dependent_resources of the resource.
-        """
+        Arguments:
+            urn (URN): The urn of the resource to get.
+            include_dependent_resources: Whether or not to additionally yield the dependent_resources of the resource.
 
+        Raises:
+            UnsupportedResourceTypeError: Occurs when we try to get an unsupported resource type.
+            ClientError: Raises from Boto3 client.
+        """
         try:
 
+            # type: ignore
             service = self.cloudwanderer_boto3_session.resource(service_name=urn.service, region_name=urn.region)
             resource = service.resource(resource_type=urn.resource_type, identifiers=urn.resource_id_parts)
             if not hasattr(resource, "load"):
@@ -63,6 +66,8 @@ class CloudWandererAWSInterface:
 
         except ClientError as ex:
             error_code = ex.response.get("ResponseMetadata", {}).get("HTTPStatusCode")
+            if not error_code:
+                raise
             if error_code == 404:
                 return None
             if error_code >= 400 and error_code < 500:
@@ -75,7 +80,7 @@ class CloudWandererAWSInterface:
         if include_dependent_resources:
             for dependent_resource_type in resource.dependent_resource_types:
                 for dependent_resource in resource.collection(resource_type=dependent_resource_type):
-                    if not dependent_resource.meta.data and hasattr(dependent_resource, 'load'):
+                    if not dependent_resource.meta.data and hasattr(dependent_resource, "load"):
                         dependent_resource.load()
                     urn = dependent_resource.get_urn()
                     dependent_resource_urns.append(urn)
@@ -130,7 +135,7 @@ class CloudWandererAWSInterface:
                         resource.get_urn().resource_id,
                     )
                     for dependent_resource in resource.collection(resource_type=dependent_resource_type):
-                        if not dependent_resource.meta.data and hasattr(dependent_resource, 'load'):
+                        if not dependent_resource.meta.data and hasattr(dependent_resource, "load"):
                             dependent_resource.load()
                         urn = dependent_resource.get_urn()
                         dependent_resource_urns.append(urn)
@@ -184,9 +189,13 @@ class CloudWandererAWSInterface:
         return self._inflate_action_set_regions(action_sets)
 
     def get_all_empty_resources(self, include_dependent_resource=False) -> Iterator[ServiceResource]:
-        """Return an ``empty_resource=True`` ServiceResource object for each resource type."""
+        """Return an ``empty_resource=True`` ServiceResource object for each resource type.
+
+        Arguments:
+            include_dependent_resource: Whether or not dependent resources should be returned.
+        """
         for service_name in self.cloudwanderer_boto3_session.get_available_resources():
-            service = self.cloudwanderer_boto3_session.resource(service_name)
+            service = self.cloudwanderer_boto3_session.resource(service_name)  # type: ignore
             for resource_type in service.resource_types:
                 resource = service.resource(resource_type, empty_resource=True)
                 yield resource
@@ -227,7 +236,10 @@ class CloudWandererAWSInterface:
         return action_templates
 
     def _get_discovery_action_templates_for_resource(
-        self, service: "CloudWandererServiceResource", resource: "CloudWandererServiceResource", discovery_regions: List[str]
+        self,
+        service: "CloudWandererServiceResource",
+        resource: "CloudWandererServiceResource",
+        discovery_regions: List[str],
     ) -> List[TemplateActionSet]:
         action_templates = []
 

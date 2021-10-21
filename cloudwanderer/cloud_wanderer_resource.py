@@ -1,13 +1,12 @@
 """Standardised dataclasses for returning resources from storage."""
-from datetime import datetime
 import logging
-from typing import Callable, List, Optional
+from datetime import datetime
+from typing import Callable, List, Optional, Union
 
-import jmespath  # type: ignore
-from botocore import xform_name  # type: ignore
+from botocore import xform_name
 
+from .models import Relationship  # type: ignore
 from .urn import URN, PartialUrn
-
 
 logger = logging.getLogger(__name__)
 
@@ -49,9 +48,9 @@ class CloudWandererResource:
 
     def __init__(
         self,
-        urn: URN,
+        urn: Union[URN, PartialUrn],
         resource_data: dict,
-        relationships: List[PartialUrn] = None,
+        relationships: List[Relationship] = None,
         loader: Optional[Callable] = None,
         dependent_resource_urns: List[URN] = None,
         parent_urn: URN = None,
@@ -61,9 +60,12 @@ class CloudWandererResource:
 
         Arguments:
             urn: The URN of the resource.
-            dependent_resource_urns: The URNs of the dependent resources of this resource.
             resource_data: The dictionary containing the raw data about this resource.
+            relationships: The relationships this resource has with other resources.
             loader: The method which can be used to fulfil the :meth:`CloudWandererResource.load`.
+            dependent_resource_urns: The URNs of the dependent resources of this resource.
+            parent_urn: The URN of the resource's parent resource.
+            discovery_time: The time the resource was discovered.
         """
         self.urn = urn
         self.relationships = relationships or []
@@ -71,14 +73,6 @@ class CloudWandererResource:
         self.parent_urn = parent_urn
         self.cloudwanderer_metadata = ResourceMetadata(resource_data=resource_data or {})
         self.discovery_time = discovery_time or datetime.now()
-        # service_mapping_loader = ServiceMappingLoader()
-        # self.cloudwanderer_service_metadata = ServiceMap.factory(
-        #     name=urn.service,
-        #     definition=service_mapping_loader.get_service_mapping(service_name=urn.service),
-        # )
-        # self.cloudwanderer_resource_metadata = self.cloudwanderer_service_metadata.get_resource_map(
-        #     snake_to_pascal(urn.resource_type)
-        # )
 
         self._loader = loader
         self._set_resource_data_attrs()
@@ -128,4 +122,9 @@ class CloudWandererResource:
         return repr(self)
 
     def __eq__(self, other) -> bool:
+        """Return the equality or not of the compared object.
+
+        Arguments:
+            other: The resource to compare our equality against.
+        """
         return repr(self) == repr(other)

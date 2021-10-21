@@ -25,9 +25,9 @@ else:
     DynamoDBServiceResource = object
 
 from ..cloud_wanderer_resource import CloudWandererResource
-from ..urn import URN
+from ..urn import URN, PartialUrn
 from ..utils import standardise_data_types
-from .base_connector import BaseStorageConnector, ISO_DATE_FORMAT
+from .base_connector import ISO_DATE_FORMAT, BaseStorageConnector
 
 logger = logging.getLogger(__name__)
 
@@ -199,6 +199,8 @@ class DynamoDbConnector(BaseStorageConnector):
 
     def write_resource(self, resource: CloudWandererResource) -> None:
         logger.debug(f"Writing: {resource.urn} to {self.table_name}")
+        if isinstance(resource.urn, PartialUrn):
+            raise ValueError("Expected URN got PartialURN for resource URN.")
         item = {
             **self._generate_urn_index_values(resource.urn),
             **standardise_data_types(resource.cloudwanderer_metadata.resource_data or {}),
@@ -244,13 +246,14 @@ class DynamoDbConnector(BaseStorageConnector):
 
     def read_resources(
         self,
+        cloud_name: str = None,
         account_id: str = None,
         region: str = None,
         service: str = None,
         resource_type: str = None,
         urn: URN = None,
     ) -> Iterator["CloudWandererResource"]:
-        query_generator = DynamoDbQueryGenerator(account_id, region, service, resource_type, urn)
+        query_generator = DynamoDbQueryGenerator(cloud_name, account_id, region, service, resource_type, urn)
         for condition_expression in query_generator.condition_expressions:
             query_args = DynamoDBQueryArgs(
                 Select="ALL_PROJECTED_ATTRIBUTES",
@@ -291,16 +294,24 @@ class DynamoDbConnector(BaseStorageConnector):
                 batch.delete_item(Key={"_id": record["_id"], "_attr": record["_attr"]})
 
     def delete_resource_of_type_in_account_region(
-        self, service: str, resource_type: str, account_id: str, region: str, cutoff: Optional[datetime]
+        self,
+        cloud_name: str,
+        service: str,
+        resource_type: str,
+        account_id: str,
+        region: str,
+        cutoff: Optional[datetime],
     ) -> None:
         logger.info("Deleting any %s discovered before %s", resource_type, cutoff)
         resource_records = self.read_resources(
-            service=service, resource_type=resource_type, account_id=account_id, region=region
+            cloud_name=cloud_name, service=service, resource_type=resource_type, account_id=account_id, region=region
         )
         for resource in resource_records:
             if cutoff and resource.discovery_time > cutoff:
                 logger.debug("Skipping deletion of %s as it was discovered after our cutoff.", resource.urn)
                 continue
+            if isinstance(resource.urn, PartialUrn):
+                raise NotImplementedError("The DynamoDB Storage connector does not know how to delete partial URNs.")
             self.delete_resource(urn=resource.urn)
 
     def open(self) -> None:
@@ -342,6 +353,7 @@ class DynamoDbQueryGenerator:
 
     def __init__(
         self,
+        cloud_name: str = None,
         account_id: str = None,
         region: str = None,
         service: str = None,
@@ -352,6 +364,7 @@ class DynamoDbQueryGenerator:
         """Initialise QueryGenerator.
 
         Arguments:
+            cloud_name: The name of the cloud
             account_id (str): AWS Account ID
             region (str): AWS region (e.g. ``'eu-west-2'``)
             service (str): Service name (e.g. ``'ec2'``)
@@ -359,6 +372,7 @@ class DynamoDbQueryGenerator:
             urn (URN): Urn of the resource to retrieve
             number_of_shards (int): The number of shards we need to query in the table
         """
+        self.cloud_name = cloud_name
         self.account_id = account_id
         self.region = region
         self.service = service

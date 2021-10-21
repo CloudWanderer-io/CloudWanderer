@@ -1,15 +1,15 @@
 """Main cloudwanderer module."""
 import concurrent.futures
-from datetime import datetime
 import logging
-from typing import Callable, DefaultDict, List, NamedTuple
+from datetime import datetime
+from typing import Callable, Dict, List, NamedTuple, Union
 
 from cloudwanderer.models import ServiceResourceType
 
 from .aws_interface import CloudWandererAWSInterface
 from .cloud_wanderer_resource import CloudWandererResource
 from .storage_connectors import BaseStorageConnector
-from .urn import URN
+from .urn import URN, PartialUrn
 from .utils import exception_logging_wrapper
 
 logger = logging.getLogger("cloudwanderer")
@@ -83,9 +83,9 @@ class CloudWanderer:
         action_sets = self.cloud_interface.get_resource_discovery_actions(
             regions=regions, service_resource_types=service_resource_types
         )
-        discovery_start_times = {}
+        discovery_start_times: Dict[str, datetime] = {}
         for action_set in action_sets:
-            for get_urn in sorted(action_set.get_urns):
+            for get_urn in action_set.get_urns:
                 if not get_urn.region or not get_urn.service or not get_urn.resource_type:
                     raise ValueError(f"Invalid get_urn {get_urn}")
                 resources = self.cloud_interface.get_resources(
@@ -104,6 +104,7 @@ class CloudWanderer:
                     or not delete_urn.region
                     or not delete_urn.service
                     or not delete_urn.resource_type
+                    or not delete_urn.cloud_name
                 ):
                     raise ValueError(f"Invalid delete_urn {delete_urn}")
                 for storage_connector in self.storage_connectors:
@@ -171,7 +172,7 @@ class CloudWanderer:
                 thread_results.append(CloudWandererConcurrentWriteThreadResult(storage_connectors=result))
         return thread_results
 
-    def _write_resource(self, resource: CloudWandererResource) -> URN:
+    def _write_resource(self, resource: CloudWandererResource) -> Union[URN, PartialUrn]:
         for storage_connector in self.storage_connectors:
             storage_connector.write_resource(resource)
         return resource.urn

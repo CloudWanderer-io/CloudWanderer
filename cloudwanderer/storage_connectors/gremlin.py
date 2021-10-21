@@ -1,65 +1,79 @@
+"""Storage Connector for Gremlin databases."""
 import logging
 from datetime import datetime
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Any, Dict, Iterator, List, Optional, Union
 
-from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
-from gremlin_python.process.anonymous_traversal import traversal
-from gremlin_python.process.graph_traversal import __
-from gremlin_python.process.traversal import Cardinality, T, P, Traversal
+from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection  # type: ignore
+from gremlin_python.process.anonymous_traversal import traversal  # type: ignore
+from gremlin_python.process.graph_traversal import __  # type: ignore
+from gremlin_python.process.traversal import Cardinality, P, T, Traversal  # type: ignore
 
 from cloudwanderer.models import RelationshipDirection
 
 from ..cloud_wanderer_resource import CloudWandererResource
-from ..exceptions import ResourceNotFoundError
 from ..urn import URN, PartialUrn
-from .base_connector import BaseStorageConnector, ISO_DATE_FORMAT
+from .base_connector import ISO_DATE_FORMAT, BaseStorageConnector
 
 logger = logging.getLogger(__name__)
 
-# TODO: figure out how to get previously unknown resources to migrate edges to known resource once discovered.
-# eg: get vpc to associate its subnet with itself once discovered (if they were previously associated with unknown vpc vertex.)
-
 
 def generate_primary_label(urn: PartialUrn) -> str:
-    return "_".join([urn.cloud_name, urn.service, urn.resource_type])
+    """Generate a primary vertex label.
+
+    Arguments:
+        urn: The URN to generate the vertex label from.
+    """
+    return urn.cloud_service_resource_label
 
 
-def generate_edge_id(source_urn, destination_urn):
+def generate_edge_id(source_urn, destination_urn) -> str:
+    """Generate a primary edge id.
+
+    Arguments:
+        source_urn: The URN of the resource we're generating an edge from.
+        destination_urn: The URN of the resource we're generating an edge to.
+    """
     return f"{source_urn}#{destination_urn}"
 
 
 class GremlinStorageConnector(BaseStorageConnector):
+    """Storage Connector for Gremlin databases."""
+
     _g: Optional[Traversal] = None
     connection: Optional[DriverRemoteConnection] = None
 
-    def __init__(self, endpoint_url: str, supports_multiple_labels=False, **kwargs):
-        """
+    def __init__(self, endpoint_url: str, supports_multiple_labels=False, **kwargs) -> None:
+        """Create a GremlinStorageConnector.
+
         Arguments:
+            endpoint_url: The url of the gremlin endpoint to connect to (e.g. ``ws://localhost:8182``)
             supports_multiple_labels: Some GraphDBs (Neptune/Neo4J) support multiple labels on a single vertex.
+            **kwargs: Any unspecified args will be pased to the ``DriverRemoteConnection`` object.
         """
         self.endpoint_url = endpoint_url
         self.supports_multiple_labels = supports_multiple_labels
         self.connection_args = kwargs
 
-    def init(self):
+    def init(self) -> None:
         ...
 
     @property
-    def g(self):
+    def g(self) -> Traversal:
         if not self.connection:
             self.open()
         if not self._g:
             self._g = traversal().withRemote(self.connection)
         return self._g
 
-    def open(self):
+    def open(self) -> DriverRemoteConnection:
         if not self.connection:
             logger.debug("Opening connection to %s", self.endpoint_url)
             self.connection = DriverRemoteConnection(f"{self.endpoint_url}/gremlin", "g", **self.connection_args)
 
-    def close(self):
+    def close(self) -> None:
         logger.debug("Closing gremlin connection")
-        self.connection.close()
+        if self.connection:
+            self.connection.close()
         self.connection = None
         self._g = None
 
@@ -139,15 +153,14 @@ class GremlinStorageConnector(BaseStorageConnector):
                 direction=relationship.direction,
             )
 
-    def _repoint_vertex_edges(self, vertex_label: str, new_resource_urn: URN) -> None:
+    def _repoint_vertex_edges(self, vertex_label: str, new_resource_urn: Union[URN, PartialUrn]) -> None:
         # https://tinkerpop.apache.org/docs/current/recipes/#edge-move
 
         resources_of_the_same_type = self.g.V().as_("old_vertex").hasLabel(vertex_label)
         for id_part in new_resource_urn.resource_id_parts:
             resources_of_the_same_type.has("_resource_id_parts", id_part)
         resources_with_same_id_but_unknown = (
-            resources_of_the_same_type
-            .or_(__.has("_account_id", "unknown"), __.has("_region", "unknown"))
+            resources_of_the_same_type.or_(__.has("_account_id", "unknown"), __.has("_region", "unknown"))
         ).toList()
         logger.debug("resources_with_same_id_but_unknown %s", resources_with_same_id_but_unknown)
         for old_vertex in resources_with_same_id_but_unknown:
@@ -189,13 +202,9 @@ class GremlinStorageConnector(BaseStorageConnector):
                 )
             )
             add_old_inbound_edges_to_new_vertex.select("old_inbound_edge").drop().iterate()
-            
 
             # Delete old vertex
             self.g.V(old_vertex).drop().iterate()
-
-
-            
 
     def _delete_relationship_edge(
         self, resource_id: str, relationship_resource_id: str, direction: RelationshipDirection
@@ -272,7 +281,6 @@ class GremlinStorageConnector(BaseStorageConnector):
     def _delete_edge(self, edge_id: str) -> Traversal:
         logger.debug("Deleting edge %s", edge_id)
         self.g.E(edge_id).drop().iterate()
-        
 
     def read_all(self) -> Iterator[dict]:
         """Return all records from storage."""
@@ -286,12 +294,12 @@ class GremlinStorageConnector(BaseStorageConnector):
 
     def read_resources(
         self,
-        cloud_name: str,
+        cloud_name: str = None,
         account_id: str = None,
         region: str = None,
         service: str = None,
         resource_type: str = None,
-        urn: URN = None,
+        urn: Union[URN, PartialUrn] = None,
     ) -> Iterator["CloudWandererResource"]:
         """Yield a resource matching the supplied urn from storage.
 
@@ -328,7 +336,6 @@ class GremlinStorageConnector(BaseStorageConnector):
         """
         logger.debug("Deleting resource %s", urn)
         self.g.V(str(urn)).drop().iterate()
-        
 
     def delete_resource_of_type_in_account_region(
         self,
@@ -363,7 +370,7 @@ class GremlinStorageConnector(BaseStorageConnector):
         if cutoff:
             traversal.where(__.values("_discovery_time").is_(P.lt(cutoff.isoformat())))
         traversal.drop().iterate()
-        
+
 
 def _normalise_gremlin_attrs(raw_dict: Dict[str, Any]) -> Dict[str, Any]:
     """Remove any underscore prefixed keys as these are attributes we use to identify the DynamoDB record.
