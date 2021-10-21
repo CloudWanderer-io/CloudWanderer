@@ -33,7 +33,7 @@ class TestFunctional(unittest.TestCase):
         logging.basicConfig(level="debug")
 
     def setUp(self):
-        self.storage_connector = GremlinStorageConnector(endpoint_url="ws://localhost:8182", pool_size=1, max_workers=1)
+        self.storage_connector = GremlinStorageConnector(endpoint_url="wss://cloudwanderertest.cluster-cj4mow8tlcit.eu-west-1.neptune.amazonaws.com:8182", pool_size=1, max_workers=1)
         self.storage_connector.init()
         self.wanderer = CloudWanderer(storage_connectors=[self.storage_connector])
 

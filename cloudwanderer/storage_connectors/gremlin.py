@@ -169,8 +169,7 @@ class GremlinStorageConnector(BaseStorageConnector):
                     .property(__.select("p").key(), __.select("p").value())
                 )
             )
-            drop_old_edges = add_old_outbound_edges_to_new_vertex.select("e1").sideEffect(__.drop()).toList()
-            logger.debug("dropped old outbound edges %s", drop_old_edges)
+            add_old_outbound_edges_to_new_vertex.select("e1").drop().iterate()
             # Inbound
             old_vertices_inbound_edges = self.g.V(old_vertex).select("old_vertex").inE().as_("old_inbound_edge")
             old_inbound_edges_partner_vertex = old_vertices_inbound_edges.inV().as_("c")
@@ -189,16 +188,14 @@ class GremlinStorageConnector(BaseStorageConnector):
                     .property(__.select("p").key(), __.select("p").value())
                 )
             )
-            drop_old_edges = add_old_inbound_edges_to_new_vertex.select("old_inbound_edge").sideEffect(__.drop())
-            logger.debug("dropped old inbound edges %s", drop_old_edges)
+            add_old_inbound_edges_to_new_vertex.select("old_inbound_edge").drop().iterate()
+            
 
             # Delete old vertex
-            delete_old_vertex = self.g.V(old_vertex).sideEffect(__.drop())
+            self.g.V(old_vertex).drop().iterate()
 
 
-            # Execute
-            to_be_deleted = delete_old_vertex.toList()
-            logger.debug("deleted vertices: %s", to_be_deleted)
+            
 
     def _delete_relationship_edge(
         self, resource_id: str, relationship_resource_id: str, direction: RelationshipDirection
@@ -274,9 +271,8 @@ class GremlinStorageConnector(BaseStorageConnector):
 
     def _delete_edge(self, edge_id: str) -> Traversal:
         logger.debug("Deleting edge %s", edge_id)
-        deleted_edges = self.g.E(edge_id).drop().toList()
-        if deleted_edges:
-            logger.debug("Deleted edges %s", deleted_edges)
+        self.g.E(edge_id).drop().iterate()
+        
 
     def read_all(self) -> Iterator[dict]:
         """Return all records from storage."""
@@ -331,9 +327,8 @@ class GremlinStorageConnector(BaseStorageConnector):
             urn (URN): The URN of the resource to delete
         """
         logger.debug("Deleting resource %s", urn)
-        deleted_resources = self.g.V(str(urn)).sideEffect(__.drop()).toList()
-        if deleted_resources:
-            logger.debug("Deleted %s", deleted_resources)
+        self.g.V(str(urn)).drop().iterate()
+        
 
     def delete_resource_of_type_in_account_region(
         self,
@@ -367,10 +362,8 @@ class GremlinStorageConnector(BaseStorageConnector):
         traversal = self._lookup_resource(partial_urn=partial_urn)
         if cutoff:
             traversal.where(__.values("_discovery_time").is_(P.lt(cutoff.isoformat())))
-        deleted_vertices = traversal.sideEffect(__.drop()).toList()
-        if deleted_vertices:
-            logger.debug("Deleted %s", deleted_vertices)
-
+        traversal.drop().iterate()
+        
 
 def _normalise_gremlin_attrs(raw_dict: Dict[str, Any]) -> Dict[str, Any]:
     """Remove any underscore prefixed keys as these are attributes we use to identify the DynamoDB record.
