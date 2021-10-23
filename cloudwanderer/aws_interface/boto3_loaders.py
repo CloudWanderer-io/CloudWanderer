@@ -125,7 +125,7 @@ class MergedServiceLoader(Loader):
         return boto3_api_versions
 
     @memoized_method()
-    def load_service_model(self, service_name: str, type_name: str, api_version: Optional[str]) -> OrderedDict:
+    def load_service_model(self, service_name: str, type_name: str, api_version: Optional[str] = None) -> OrderedDict:
         logger.debug(
             "botocore_loaders load_service_model service_name %s, type_name %s, api_version %s",
             service_name,
