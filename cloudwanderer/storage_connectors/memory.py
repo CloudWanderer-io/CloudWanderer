@@ -30,6 +30,12 @@ class MemoryStorageConnector(BaseStorageConnector):
     def init(self) -> None:
         """Do nothing. Dummy method to fulfil interface requirements."""
 
+    def open(self) -> None:
+        """Do nothing. Dummy method to fulfil interface requirements."""
+
+    def close(self) -> None:
+        """Do nothing. Dummy method to fulfil interface requirements."""
+
     def read_resource(self, urn: URN) -> Optional[CloudWandererResource]:
         try:
             return memory_item_to_resource(urn, self._data[str(urn)], loader=self.read_resource)

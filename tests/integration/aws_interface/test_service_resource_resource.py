@@ -1,11 +1,10 @@
 import unittest
 from unittest.mock import ANY
 
-from cloudwanderer.boto3_services import Boto3Services
-from cloudwanderer.cloud_wanderer_resource import SecondaryAttribute
+from cloudwanderer.aws_interface import CloudWandererBoto3Session
 from cloudwanderer.urn import URN
 
-from ..helpers import DEFAULT_SESSION, get_default_mocker
+from ..helpers import get_default_mocker
 from ..mocks import add_infra
 
 
@@ -15,17 +14,17 @@ class TestCloudWandererBoto3Resource(unittest.TestCase):
         get_default_mocker().start_general_mock(restrict_regions=["eu-west-2", "us-east-1", "ap-east-1"])
         add_infra()
 
-        cls.services = Boto3Services(boto3_session=DEFAULT_SESSION)
+        cls.session = CloudWandererBoto3Session(aws_access_key_id="aaaa")
 
-        cls.service = cls.services.get_service("ec2", region_name="eu-west-2")
-        cls.iam_service = cls.services.get_service("iam", region_name="us-east-1")
-        cls.s3_service = cls.services.get_service("s3", region_name="us-east-1")
+        cls.service = cls.session.resource("ec2", region_name="eu-west-2")
+        cls.iam_service = cls.session.resource("iam", region_name="us-east-1")
+        cls.s3_service = cls.session.resource("s3", region_name="us-east-1")
 
-        cls.resource = next(cls.service.get_resources("vpc"))
+        cls.resource = next(cls.service.resource("vpc"))
 
-        cls.role_resource = next(cls.iam_service.get_resources("role"))
+        cls.role_resource = next(cls.iam_service.resource("role"))
         cls.role_policy_resource = next(cls.role_resource.get_subresources())
-        cls.bucket_resources = list(cls.s3_service.get_resources("bucket"))
+        cls.bucket_resources = list(cls.s3_service.resource("bucket"))
 
     @classmethod
     def tearDownClass(cls) -> None:
@@ -101,12 +100,6 @@ class TestCloudWandererBoto3Resource(unittest.TestCase):
         assert str(self.resource.urn).startswith(
             "urn:aws:123456789012:eu-west-2:ec2:vpc"
         ), f"{str(self.resource.urn)} does not match 'urn:aws:123456789012:eu-west-2:ec2:vpc'"
-
-    def test_get_secondary_attributes(self):
-        result = next(self.resource.get_secondary_attributes())
-
-        assert isinstance(result, SecondaryAttribute)
-        assert result["EnableDnsSupport"] == {"Value": True}
 
     def test_get_subresources(self):
         result = next(self.role_resource.get_subresources())

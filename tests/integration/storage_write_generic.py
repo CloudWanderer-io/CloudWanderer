@@ -1,4 +1,4 @@
-from cloudwanderer.cloud_wanderer_resource import URN, CloudWandererResource, SecondaryAttribute
+from cloudwanderer.cloud_wanderer_resource import URN, CloudWandererResource
 
 from .helpers import get_default_mocker
 from .mocks import add_infra, generate_mock_session, generate_urn
@@ -26,9 +26,6 @@ class StorageWriteTestMixin:
             CloudWandererResource(
                 urn=generate_urn(service="ec2", resource_type="vpc", resource_id_parts=[vpc.vpc_id]),
                 resource_data=vpc.meta.data,
-                secondary_attributes=[
-                    SecondaryAttribute(name="EnableDnsSupport", **{"EnableDnsSupport": {"Value": True}})
-                ],
             )
             for vpc in cls.mock_session.resource("ec2").vpcs.all()
         ]
@@ -40,23 +37,18 @@ class StorageWriteTestMixin:
                     service="iam", resource_type="role_policy", resource_id_parts=["test-role", "test-role-policy"]
                 )
             ],
-            secondary_attributes=[
-                SecondaryAttribute(name="role_inline_policy_attachments", **{"PolicyNames": ["test-role"]})
-            ],
         )
         cls.role_policy_1 = CloudWandererResource(
             urn=generate_urn(
                 service="iam", resource_type="role_policy", resource_id_parts=["test-role", "test-role-policy-1"]
             ),
             resource_data={},
-            secondary_attributes=[],
         )
         cls.role_policy_2 = CloudWandererResource(
             urn=generate_urn(
                 service="iam", resource_type="role_policy", resource_id_parts=["test-role", "test-role-policy-2"]
             ),
             resource_data={},
-            secondary_attributes=[],
         )
 
     @classmethod
@@ -70,7 +62,7 @@ class StorageWriteTestMixin:
         result.load()
         assert result.urn == self.role.urn
         assert result.role_name == "test-role"
-        assert result.get_secondary_attribute(name="role_inline_policy_attachments") == [{"PolicyNames": ["test-role"]}]
+        assert result.role_inline_policy_attachments == [{"PolicyNames": ["test-role"]}]
         assert result.subresource_urns == [
             URN(
                 account_id="111111111111",

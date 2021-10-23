@@ -1,6 +1,6 @@
 import unittest
 
-from cloudwanderer.boto3_loaders import MergedServiceLoader
+from cloudwanderer.aws_interface.boto3_loaders import MergedServiceLoader
 
 
 class TestMergedServiceLoader(unittest.TestCase):

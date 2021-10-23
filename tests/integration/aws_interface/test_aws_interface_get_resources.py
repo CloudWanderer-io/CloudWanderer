@@ -2,8 +2,8 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from cloudwanderer import URN, CloudWandererAWSInterface
+from cloudwanderer.aws_interface.models import ResourceFilter
 from cloudwanderer.exceptions import BadServiceMapError, UnsupportedServiceError
-from cloudwanderer.models import ResourceFilter
 
 from ..helpers import GenericAssertionHelpers, get_default_mocker
 from ..mocks import add_infra
