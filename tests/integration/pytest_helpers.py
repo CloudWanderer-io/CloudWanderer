@@ -30,13 +30,20 @@ def create_iam_role() -> None:
     )
 
 
+def create_ec2_instances(regions: List[str] = ["eu-west-2"]):
+    for region_name in regions:
+        ec2_resource = boto3.resource("ec2", region_name=region_name)
+        images = list(ec2_resource.images.all())
+        ec2_resource.create_instances(ImageId=images[0].image_id, MinCount=1, MaxCount=1)
+
+
 def create_secretsmanager_secrets(regions=["eu-west-2"]) -> None:
     for region_name in regions:
         secretsmanager = boto3.client("secretsmanager", region_name=region_name)
         secretsmanager.create_secret(Name="TestSecret", SecretString="Ssshhh")
 
 
-def compare_dict_allow_any(first: Dict[str, Any], second: Dict[str, Any]) -> bool:
+def compare_dict_allow_any(first: Dict[str, Any], second: Dict[str, Any]) -> None:
     """Compare two dictionaries allowing the values of either side to be ANY and match.
 
     Raises:
@@ -48,3 +55,9 @@ def compare_dict_allow_any(first: Dict[str, Any], second: Dict[str, Any]) -> boo
     diff = "\n" + "\n".join(difflib.ndiff(pprint.pformat(first).splitlines(), pprint.pformat(second).splitlines()))
 
     raise AssertionError("Dictionaries do not match" + diff)
+
+
+def compare_list_of_dicts_allow_any(first: List[Dict[str, Any]], second: List[Dict[str, Any]]) -> None:
+    assert len(first) == len(second), f"Length of first {len(first)} and second {len(second)} is not equal"
+    for first_item, second_item in zip(first, second):
+        compare_dict_allow_any(first_item, second_item)
