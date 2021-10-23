@@ -44,10 +44,22 @@
       "regionalResource": false
     },
     "RoleInlinePolicyAttachments": {
-      "type": "secondaryAttribute"
+      "type": "secondaryAttribute",
+      "secondaryAttributeMaps": [
+        {
+          "sourcePath": "@",
+          "destinationName": "InlinePolicyAttachments"
+        }
+      ]
     },
     "RoleManagedPolicyAttachments": {
-      "type": "secondaryAttribute"
+      "type": "secondaryAttribute",
+      "secondaryAttributeMaps": [
+        {
+          "sourcePath": "@",
+          "destinationName": "ManagedPolicyAttachments"
+        }
+      ]
     },
     "RolePolicy": {
       "type": "dependentResource",

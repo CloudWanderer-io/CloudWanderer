@@ -245,7 +245,7 @@ class CloudWandererResourceFactory(ResourceFactory):
                 logger.debug("Getting secondary attribute: %s", secondary_attribute)
                 for attribute_map in secondary_attribute.resource_map.secondary_attribute_maps:
                     result[attribute_map.destination_name] = jmespath.search(
-                        attribute_map.source_path, secondary_attribute.meta.data
+                        attribute_map.source_path, secondary_attribute.normalized_raw_data
                     )
             return result
 
@@ -253,7 +253,6 @@ class CloudWandererResourceFactory(ResourceFactory):
 
     def _create_get_secondary_attributes(self) -> Callable:
         def get_secondary_attributes(self) -> Generator["CloudWandererServiceResource", None, None]:
-            logger.debug("secondary attribute names: %s", self.secondary_attribute_names)
             for secondary_attribute_name in self.secondary_attribute_names:
                 getter = getattr(self, snake_to_pascal(secondary_attribute_name))
                 secondary_attribute_resource = getter()
@@ -267,10 +266,10 @@ class CloudWandererResourceFactory(ResourceFactory):
             secondary_attribute_names = []
             for subresource in self.meta.resource_model.subresources:
                 resource_map = self.service_map.get_resource_map(xform_name(subresource.name))
-                logger.debug("ServiceResource get_secondary_attributes, subresource_name: %s", subresource.name)
                 if not resource_map or resource_map.type != "secondaryAttribute":
                     continue
                 secondary_attribute_names.append(xform_name(subresource.name))
+
             return secondary_attribute_names
 
         return property(secondary_attribute_names)
@@ -297,15 +296,14 @@ class CloudWandererResourceFactory(ResourceFactory):
 
         return get_region
 
-    def _create_normalized_raw_data(self) -> Callable[..., Dict[str, Any]]:
-        @property  # type: ignore
+    def _create_normalized_raw_data(self) -> property:
         def normalized_raw_data(self) -> Dict[str, Any]:
             """Return the raw data dictionary for this resource, ensuring that all possible keys are present."""
             result = {attribute: None for attribute in self.shape.members.keys()}
             result.update(self.meta.data or {})
             return _clean_boto3_metadata(result)
 
-        return normalized_raw_data
+        return property(normalized_raw_data)
 
     def _create_resource_types(self) -> property:
         def resource_types(self) -> List[str]:
@@ -345,11 +343,11 @@ class CloudWandererResourceFactory(ResourceFactory):
 
         return property(shape)
 
-    def _create_is_dependent_resource(self) -> property:
-        def is_dependent_resource(self) -> bool:
-            return self.resource_map.type == "dependentResource"
+    # def _create_is_dependent_resource(self) -> property:
+    #     def is_dependent_resource(self) -> bool:
+    #         return self.resource_map.type == "dependentResource"
 
-        return property(is_dependent_resource)
+    #     return property(is_dependent_resource)
 
     def _create_relationships(self) -> property:
         def relationships(self) -> List[Relationship]:
@@ -432,4 +430,4 @@ class CloudWandererResourceFactory(ResourceFactory):
             attrs["secondary_attribute_names"] = self._create_secondary_attribute_names()
             attrs["shape"] = self._create_shape()
             attrs["relationships"] = self._create_relationships()
-            attrs["is_dependent_resource"] = self._create_is_dependent_resource()
+            # attrs["is_dependent_resource"] = self._create_is_dependent_resource()
