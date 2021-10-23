@@ -9,6 +9,7 @@ from cloudwanderer.urn import URN
 from ..pytest_helpers import compare_list_of_dicts_allow_any, create_ec2_instances, create_iam_role, create_s3_buckets
 
 
+@mock_ec2
 @mock_s3
 @mock_sts
 def test_write_resources(cloudwanderer_aws):
