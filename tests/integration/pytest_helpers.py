@@ -1,9 +1,12 @@
 import difflib
 import json
+import logging
 import pprint
 from typing import Any, Dict, List
 
 import boto3
+
+logger = logging.getLogger(__name__)
 
 
 def create_s3_buckets(regions: List[str] = ["eu-west-2"]) -> None:
@@ -43,21 +46,39 @@ def create_secretsmanager_secrets(regions=["eu-west-2"]) -> None:
         secretsmanager.create_secret(Name="TestSecret", SecretString="Ssshhh")
 
 
-def compare_dict_allow_any(first: Dict[str, Any], second: Dict[str, Any]) -> None:
+def compare_dict_allow_any(first: Dict[str, Any], second: Dict[str, Any], allow_partial_match_second: bool) -> None:
     """Compare two dictionaries allowing the values of either side to be ANY and match.
+
+    Arguments:
+        allow_partial_match_second: Assertion will succeed if the second param only has some of the keys of the first.
 
     Raises:
         AssertionError: If dictionaries are not equal.
+        ValueError: If one of the arguments is incorrect
     """
-    if first.items() == second.items():
-        assert True
+    if not allow_partial_match_second:
+        if first.items() == second.items():
+            assert True
+            return
+    else:
+        if not second:
+            raise ValueError("Second dict is empty.")
+        for key, value in second.items():
+            assert first[key] == value
         return
     diff = "\n" + "\n".join(difflib.ndiff(pprint.pformat(first).splitlines(), pprint.pformat(second).splitlines()))
 
     raise AssertionError("Dictionaries do not match" + diff)
 
 
-def compare_list_of_dicts_allow_any(first: List[Dict[str, Any]], second: List[Dict[str, Any]]) -> None:
+def compare_list_of_dicts_allow_any(
+    first: List[Dict[str, Any]], second: List[Dict[str, Any]], allow_partial_match_second: bool
+) -> None:
+    """
+    Arguments:
+        allow_partial_match_second: Success if the dictionaries in second only have some of the keys from first.
+
+    """
     assert len(first) == len(second), f"Length of first {len(first)} and second {len(second)} is not equal"
     for first_item, second_item in zip(first, second):
-        compare_dict_allow_any(first_item, second_item)
+        compare_dict_allow_any(first_item, second_item, allow_partial_match_second=allow_partial_match_second)
