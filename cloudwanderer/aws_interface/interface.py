@@ -55,9 +55,16 @@ class CloudWandererAWSInterface:
             ClientError: Raises from Boto3 client.
         """
         try:
-
-            # type: ignore
             service = self.cloudwanderer_boto3_session.resource(service_name=urn.service, region_name=urn.region)
+            if service.service_map.is_global_service and service.service_map.global_service_region != urn.region:
+                logger.info(
+                    "Creating service in %s instead of the resource's %s region because the service has a global API",
+                    service.service_map.global_service_region,
+                    urn.region,
+                )
+                service = self.cloudwanderer_boto3_session.resource(
+                    service_name=urn.service, region_name=service.service_map.global_service_region
+                )
             resource = service.resource(resource_type=urn.resource_type, identifiers=urn.resource_id_parts)
             if not hasattr(resource, "load"):
                 raise UnsupportedResourceTypeError(f"Resource type {urn.resource_type} doesn't support get_resource()")
@@ -74,6 +81,7 @@ class CloudWandererAWSInterface:
                 return None
             raise ex
         if not resource.meta.data:
+            logger.warning("Found no data for %s", urn)
             return None
 
         dependent_resource_urns = []

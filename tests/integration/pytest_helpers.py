@@ -1,10 +1,12 @@
+import difflib
 import json
+import pprint
 from typing import Any, Dict, List
 
 import boto3
 
 
-def create_s3_buckets(regions: List[str]) -> None:
+def create_s3_buckets(regions: List[str] = ["eu-west-2"]) -> None:
     for region_name in regions:
         if region_name != "us-east-1":
             bucket_args = {"CreateBucketConfiguration": {"LocationConstraint": region_name}}
@@ -28,6 +30,21 @@ def create_iam_role() -> None:
     )
 
 
+def create_secretsmanager_secrets(regions=["eu-west-2"]) -> None:
+    for region_name in regions:
+        secretsmanager = boto3.client("secretsmanager", region_name=region_name)
+        secretsmanager.create_secret(Name="TestSecret", SecretString="Ssshhh")
+
+
 def compare_dict_allow_any(first: Dict[str, Any], second: Dict[str, Any]) -> bool:
-    """Compare two dictionaries allowing the values of either side to be ANY and match."""
-    return first.items() == second.items()
+    """Compare two dictionaries allowing the values of either side to be ANY and match.
+
+    Raises:
+        AssertionError: If dictionaries are not equal.
+    """
+    if first.items() == second.items():
+        assert True
+        return
+    diff = "\n" + "\n".join(difflib.ndiff(pprint.pformat(first).splitlines(), pprint.pformat(second).splitlines()))
+
+    raise AssertionError("Dictionaries do not match" + diff)

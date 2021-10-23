@@ -21,7 +21,7 @@ def test_get_resources_of_type_in_region_eu_west_2(aws_interface):
         )
     )[0]
 
-    assert compare_dict_allow_any(
+    compare_dict_allow_any(
         dict(result),
         {
             "cidr_block": "172.31.0.0/16",
@@ -51,7 +51,7 @@ def test_get_resources_of_type_in_region_us_east_1(aws_interface):
     create_iam_role()
     result = list(aws_interface.get_resources(service_name="iam", resource_type="role", region="us-east-1"))[0]
 
-    assert compare_dict_allow_any(
+    compare_dict_allow_any(
         dict(result),
         {
             "urn": URN(

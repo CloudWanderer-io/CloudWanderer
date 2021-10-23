@@ -94,9 +94,17 @@ class CloudWandererResourceFactory(ResourceFactory):
         original_class_load = original_class_definition.load
 
         def load(self, *args) -> None:
-            if not self.meta.resource_model.load:
-                return
-            identifiers = create_request_parameters(self, self.meta.resource_model.load.request)
+            if self.meta.resource_model.load:
+                identifiers = create_request_parameters(self, self.meta.resource_model.load.request)
+            elif self.service_name in "s3" and self.resource_type in "bucket":
+                # This is hardcoded in boto3 believe it or not!
+                # https://github.com/boto/boto3/blob/master/boto3/s3/inject.py#L57
+                identifiers = {"BucketName": self.name}
+            else:
+                raise UnsupportedResourceTypeError(
+                    f"{self.service_name} {self.resource_type} does not have a load definition in its resources-1.json"
+                )
+
             has_non_empty_values = any(list([x for x in identifiers.values()]))
             if not has_non_empty_values:
                 logger.debug(
