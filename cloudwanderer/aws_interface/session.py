@@ -52,7 +52,7 @@ class CloudWandererBoto3Session(boto3.session.Session):
         """Create loader paths so that we can load resources."""
         self._loader = self.service_mapping_loader or MergedServiceLoader()
 
-    @memoized_method()  # type: ignore
+    @memoized_method()
     def get_enabled_regions(self) -> List[str]:
         """Return a list of enabled regions in this account."""
         regions = self.client("ec2").describe_regions()["Regions"]
