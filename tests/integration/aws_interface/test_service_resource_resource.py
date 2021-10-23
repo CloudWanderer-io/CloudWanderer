@@ -1,5 +1,6 @@
 from unittest.mock import ANY
 
+from boto3.resources.base import ServiceResource
 from moto import mock_ec2, mock_iam, mock_s3, mock_sts
 
 from cloudwanderer.aws_interface.boto3_loaders import ResourceMap
@@ -146,3 +147,9 @@ def test_shape(single_ec2_vpc):
 def test_relationships(ec2_service):
     single_ec2_vpc = list(ec2_service.collection("vpc").all())[0]
     assert single_ec2_vpc.relationships[0].partial_urn.resource_type == "dhcp_options"
+
+
+def test_empty_resource(ec2_service):
+    vpc = ec2_service.resource("vpc", empty_resource=True)
+
+    assert isinstance(vpc, ServiceResource)

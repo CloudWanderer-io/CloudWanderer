@@ -1,7 +1,8 @@
 """Standardised dataclasses for returning resources from storage."""
+
 import logging
 from datetime import datetime
-from typing import Callable, List, Optional, Union
+from typing import Any, Callable, Generator, List, Optional, Tuple, Union
 
 from botocore import xform_name
 
@@ -29,6 +30,10 @@ class ResourceMetadata:
                 The raw dictionary representation of the Resource.
         """
         self.resource_data = resource_data
+
+    def __iter__(self) -> Generator[Tuple[str, Any], None, None]:
+        """Allow this object to be converted to a dictionary."""
+        yield from self.resource_data.items()
 
 
 class CloudWandererResource:
@@ -128,3 +133,13 @@ class CloudWandererResource:
             other: The resource to compare our equality against.
         """
         return repr(self) == repr(other)
+
+    def __iter__(self) -> Generator[Tuple[str, Any], None, None]:
+        """Allow this object to be converted to a dictionary."""
+        for attribute_name in vars(self):
+            if attribute_name.startswith("_"):
+                continue
+            value = getattr(self, attribute_name)
+            if isinstance(value, ResourceMetadata):
+                value = dict(value)
+            yield attribute_name, value

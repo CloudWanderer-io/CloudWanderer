@@ -1,5 +1,5 @@
 import json
-from typing import List
+from typing import Any, Dict, List
 
 import boto3
 
@@ -26,3 +26,8 @@ def create_iam_role() -> None:
             }
         )
     )
+
+
+def compare_dict_allow_any(first: Dict[str, Any], second: Dict[str, Any]) -> bool:
+    """Compare two dictionaries allowing the values of either side to be ANY and match."""
+    return first.items() == second.items()

@@ -1,7 +1,7 @@
 import pytest
 from moto import mock_ec2, mock_iam
 
-from cloudwanderer.aws_interface import CloudWandererBoto3Session
+from cloudwanderer.aws_interface import CloudWandererAWSInterface, CloudWandererBoto3Session
 
 from .pytest_helpers import create_iam_role
 
@@ -50,3 +50,8 @@ def single_ec2_vpc(ec2_service):
     """
     with mock_ec2():
         return list(ec2_service.collection("vpc").all())[0]
+
+
+@pytest.fixture
+def aws_interface(cloudwanderer_boto3_session):
+    return CloudWandererAWSInterface(cloudwanderer_boto3_session=cloudwanderer_boto3_session)

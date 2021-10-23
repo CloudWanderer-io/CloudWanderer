@@ -130,7 +130,7 @@ class PartialUrn:
         """Return a string representation of the URN."""
         base = ":".join(
             [
-                str(part)
+                str(part or "unknown")
                 for part in ["urn", self.cloud_name, self.account_id, self.region, self.service, self.resource_type]
             ]
         )
