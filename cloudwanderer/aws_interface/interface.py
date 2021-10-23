@@ -43,6 +43,13 @@ class CloudWandererAWSInterface:
         """
         self.cloudwanderer_boto3_session = cloudwanderer_boto3_session or CloudWandererBoto3Session()
 
+    def get_enabled_regions(self) -> List[str]:
+        """Return the list of regions enabled.
+
+        Fulfils the interface requirements for :class:`CloudWanderer`__ to call.
+        """
+        return self.cloudwanderer_boto3_session.get_enabled_regions()
+
     def get_resource(self, urn: URN, include_dependent_resources: bool = True) -> Iterator[CloudWandererResource]:
         """Yield the resource picked out by this URN and optionally its subresources.
 

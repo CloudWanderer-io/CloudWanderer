@@ -3,7 +3,9 @@ from moto import mock_ec2, mock_iam
 
 from cloudwanderer import CloudWanderer
 from cloudwanderer.aws_interface import CloudWandererAWSInterface, CloudWandererBoto3Session
+from cloudwanderer.models import ActionSet
 from cloudwanderer.storage_connectors import MemoryStorageConnector
+from cloudwanderer.urn import PartialUrn
 
 from .pytest_helpers import create_iam_role
 
@@ -62,3 +64,93 @@ def single_ec2_vpc(ec2_service):
     """
     with mock_ec2():
         return list(ec2_service.collection("vpc").all())[0]
+
+
+@pytest.fixture
+def default_test_discovery_actions():
+    return [
+        ActionSet(
+            get_urns=[
+                PartialUrn(
+                    cloud_name="aws",
+                    account_id="123456789012",
+                    region="eu-west-2",
+                    service="ec2",
+                    resource_type="vpc",
+                    resource_id_parts=["ALL"],
+                ),
+                PartialUrn(
+                    cloud_name="aws",
+                    account_id="123456789012",
+                    region="us-east-1",
+                    service="ec2",
+                    resource_type="vpc",
+                    resource_id_parts=["ALL"],
+                ),
+            ],
+            delete_urns=[
+                PartialUrn(
+                    cloud_name="aws",
+                    account_id="123456789012",
+                    region="eu-west-2",
+                    service="ec2",
+                    resource_type="vpc",
+                    resource_id_parts=["ALL"],
+                ),
+                PartialUrn(
+                    cloud_name="aws",
+                    account_id="123456789012",
+                    region="us-east-1",
+                    service="ec2",
+                    resource_type="vpc",
+                    resource_id_parts=["ALL"],
+                ),
+            ],
+        ),
+        # S3
+        ActionSet(
+            get_urns=[
+                PartialUrn(
+                    cloud_name="aws",
+                    account_id="123456789012",
+                    region="us-east-1",
+                    service="s3",
+                    resource_type="bucket",
+                    resource_id_parts=["ALL"],
+                ),
+            ],
+            delete_urns=[
+                PartialUrn(
+                    cloud_name="aws",
+                    account_id="123456789012",
+                    region="us-east-1",
+                    service="s3",
+                    resource_type="bucket",
+                    resource_id_parts=["ALL"],
+                ),
+            ],
+        ),
+        # IAM
+        ActionSet(
+            get_urns=[
+                PartialUrn(
+                    cloud_name="aws",
+                    account_id="123456789012",
+                    region="us-east-1",
+                    service="iam",
+                    resource_type="role",
+                    resource_id_parts=["ALL"],
+                ),
+            ],
+            delete_urns=[
+                PartialUrn(
+                    cloud_name="aws",
+                    account_id="123456789012",
+                    region="us-east-1",
+                    service="iam",
+                    resource_type="role",
+                    resource_id_parts=["ALL"],
+                ),
+            ],
+        ),
+    ]

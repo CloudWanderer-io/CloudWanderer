@@ -123,7 +123,6 @@ class CloudWanderer:
         self,
         cloud_interface_generator: Callable,
         storage_connector_generator: Callable,
-        exclude_resources: List[str] = None,
         concurrency: int = 10,
         **kwargs,
     ) -> List["CloudWandererConcurrentWriteThreadResult"]:
@@ -133,8 +132,6 @@ class CloudWanderer:
         **WARNING:** Experimental.
 
         Arguments:
-            exclude_resources (list):
-                exclude_resources (list): A list of service:resources to exclude (e.g. ``['ec2:instance']``)
             concurrency (int):
                 Number of query threads to invoke concurrently.
             cloud_interface_generator (Callable):
@@ -151,7 +148,7 @@ class CloudWanderer:
         logger.warning("Using concurrency of: %s - CONCURRENCY IS EXPERIMENTAL", concurrency)
         with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency) as executor:
             threads = []
-            for region_name in self.cloud_interface.enabled_regions:
+            for region_name in self.cloud_interface.get_enabled_regions():
                 cw = CloudWanderer(
                     storage_connectors=storage_connector_generator(), cloud_interface=cloud_interface_generator()
                 )
@@ -159,7 +156,6 @@ class CloudWanderer:
                     executor.submit(
                         exception_logging_wrapper,
                         method=cw.write_resources,
-                        exclude_resources=exclude_resources,
                         regions=[region_name],
                         return_value=cw.storage_connectors,
                         **kwargs,

@@ -1,156 +1,79 @@
-import re
-import unittest
-from unittest.mock import ANY
+from unittest.mock import MagicMock
 
-import boto3
+from moto import mock_ec2, mock_iam, mock_s3, mock_sts
 
-from cloudwanderer import CloudWanderer
-from cloudwanderer.aws_interface import CloudWandererAWSInterface
 from cloudwanderer.storage_connectors import MemoryStorageConnector
+from cloudwanderer.urn import URN
+from tests.integration.pytest_helpers import create_iam_role, create_s3_buckets
 
-from ..helpers import DEFAULT_SESSION, GenericAssertionHelpers, get_default_mocker
-from ..mocks import add_infra
 
+@mock_sts
+@mock_ec2
+@mock_s3
+@mock_iam
+def test_write_resources(cloudwanderer_aws, aws_interface, default_test_discovery_actions):
+    create_iam_role()
+    create_s3_buckets(regions=["eu-west-2", "us-east-1"])
+    aws_interface.get_resource_discovery_actions = MagicMock(return_value=default_test_discovery_actions)
 
-class TestCloudWandererWriteResourcesConcurrently(unittest.TestCase, GenericAssertionHelpers):
-    us_east_1_resources = [
-        {
-            "urn": "urn:aws:.*:us-east-1:iam:role:.*",
-            "attr": "BaseResource",
-            "RoleName": "test-role",
-            "Path": re.escape("/"),
-        },
-        {
-            "urn": "urn:aws:.*:us-east-1:iam:role:.*",
-            "attr": "role_inline_policy_attachments",
-            "PolicyNames": ["test-role-policy"],
-        },
-        {
-            "urn": "urn:aws:.*:us-east-1:iam:role:.*",
-            "attr": "role_managed_policy_attachments",
-            "AttachedPolicies": [
-                {
-                    "PolicyName": "APIGatewayServiceRolePolicy",
-                    "PolicyArn": "arn:aws:iam::aws:policy/aws-service-role/APIGatewayServiceRolePolicy",
-                }
-            ],
-            "IsTruncated": False,
-        },
-        {
-            "urn": "urn:aws:.*:us-east-1:iam:role_policy:.*",
-            "attr": "BaseResource",
-            "PolicyName": "test-role-policy",
-            "PolicyDocument": ANY,
-        },
-        {
-            # This is a us-east-1 resource because s3 buckets are
-            # discovered from us-east-1 irrespective of their region.
-            "urn": "urn:aws:.*:eu-west-2:s3:bucket:.*",
-            "attr": "BaseResource",
-            "Name": "test-eu-west-2",
-        },
+    thread_results = list(
+        cloudwanderer_aws.write_resources_concurrently(
+            concurrency=2,
+            cloud_interface_generator=lambda: aws_interface,
+            storage_connector_generator=lambda: [MemoryStorageConnector()],
+        )
+    )
+
+    connector_results = [
+        resource_record
+        for result in thread_results
+        for connector in result.storage_connectors
+        for resource_record in connector.read_all()
     ]
 
-    @classmethod
-    def setUpClass(cls):
-        cls.enabled_regions = ["eu-west-2", "us-east-1", "ap-east-1"]
-        get_default_mocker().start_general_mock(
-            restrict_regions=cls.enabled_regions,
-            restrict_services=["ec2", "s3", "iam"],
-            limit_resources=[
-                "ec2:instance",
-                "s3:bucket",
-                "iam:group",
-                "iam:role",
-            ],
-        )
-        add_infra(regions=cls.enabled_regions)
-
-    @classmethod
-    def tearDownClass(cls):
-        get_default_mocker().stop_general_mock()
-
-    def setUp(self):
-        self.wanderer = CloudWanderer(storage_connectors=[])
-
-    def test_write_resources(self):
-
-        thread_results = list(
-            self.wanderer.write_resources_concurrently(
-                cloud_interface_generator=lambda: CloudWandererAWSInterface(
-                    boto3.Session(
-                        aws_access_key_id="11111111", aws_secret_access_key="111111", aws_session_token="1111"
-                    )
-                ),
-                storage_connector_generator=lambda: [MemoryStorageConnector()],
-            )
-        )
-        connector_results = [
-            resource_record
-            for result in thread_results
-            for connector in result.storage_connectors
-            for resource_record in connector.read_all()
+    result_summary = set(
+        [
+            (URN.from_string(result["urn"]).region, URN.from_string(result["urn"]).resource_type)
+            for result in connector_results
         ]
+    )
 
-        for region_name in self.enabled_regions:
-            self.assert_dictionary_overlap(
-                connector_results,
-                [
-                    {
-                        "urn": f"urn:aws:.*:{region_name}:ec2:instance:.*",
-                        "attr": "BaseResource",
-                        "VpcId": "vpc-.*",
-                        "SubnetId": "subnet-.*",
-                        "InstanceId": "i-.*",
-                    },
-                    {
-                        "urn": f"urn:aws:.*:{region_name}:s3:bucket:.*",
-                        "attr": "BaseResource",
-                        "Name": f"test-{region_name}",
-                    },
-                ],
-            )
+    assert result_summary == {
+        ("eu-west-2", "bucket"),
+        ("eu-west-2", "vpc"),
+        ("us-east-1", "bucket"),
+        ("us-east-1", "role"),
+        ("us-east-1", "role_policy"),
+        ("us-east-1", "vpc"),
+    }
 
-            if region_name == "us-east-1":
-                self.assert_dictionary_overlap(connector_results, self.us_east_1_resources)
-            else:
-                self.assert_no_dictionary_overlap(
-                    connector_results,
-                    [
-                        {
-                            "urn": f"urn:aws:.*:{region_name}:iam:role:.*",
-                            "attr": "BaseResource",
-                            "RoleName": "test-role",
-                            "Path": re.escape("/"),
-                        }
-                    ],
-                )
 
-    def test_write_resources_exclude_resources(self):
-        thread_results = list(
-            self.wanderer.write_resources_concurrently(
-                cloud_interface_generator=lambda: CloudWandererAWSInterface(DEFAULT_SESSION),
-                storage_connector_generator=lambda: [MemoryStorageConnector()],
-                exclude_resources=["ec2:instance"],
-            )
-        )
-        connector_results = [
-            resource_record
-            for result in thread_results
-            for connector in result.storage_connectors
-            for resource_record in connector.read_all()
-        ]
-        for region_name in self.enabled_regions:
-            self.assert_no_dictionary_overlap(
-                connector_results,
-                [
-                    {
-                        "urn": f"urn:aws:.*:{region_name}:ec2:instance:.*",
-                        "attr": "BaseResource",
-                        "VpcId": "vpc-.*",
-                        "SubnetId": "subnet-.*",
-                        "InstanceId": "i-.*",
-                    }
-                ],
-            )
-        self.assert_dictionary_overlap(connector_results, self.us_east_1_resources)
+# TODO: Reinstate exclude_resources
+# def test_write_resources_exclude_resources(self):
+#     thread_results = list(
+#         cloudwanderer_aws.write_resources_concurrently(
+#             cloud_interface_generator=lambda: CloudWandererAWSInterface(DEFAULT_SESSION),
+#             storage_connector_generator=lambda: [MemoryStorageConnector()],
+#             exclude_resources=["ec2:instance"],
+#         )
+#     )
+#     connector_results = [
+#         resource_record
+#         for result in thread_results
+#         for connector in result.storage_connectors
+#         for resource_record in connector.read_all()
+#     ]
+#     for region_name in self.enabled_regions:
+#         self.assert_no_dictionary_overlap(
+#             connector_results,
+#             [
+#                 {
+#                     "urn": f"urn:aws:.*:{region_name}:ec2:instance:.*",
+#                     "attr": "BaseResource",
+#                     "VpcId": "vpc-.*",
+#                     "SubnetId": "subnet-.*",
+#                     "InstanceId": "i-.*",
+#                 }
+#             ],
+#         )
+#     self.assert_dictionary_overlap(connector_results, US_EAST_1_RESOURCES)
