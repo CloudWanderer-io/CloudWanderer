@@ -13,8 +13,8 @@ find a resource in AWS, whereas AWS ARNs do not always provide this information.
 Example:
     >>> from cloudwanderer import URN
     >>> URN.from_string('urn:aws:111111111111:eu-west-2:iam:vpc:vpc-11111111')
-    URN(account_id='111111111111', region='eu-west-2', service='iam', \
-resource_type='vpc', resource_id_parts=['vpc-11111111'])
+    URN(cloud_name='aws', account_id='111111111111', region='eu-west-2', \
+service='iam', resource_type='vpc', resource_id_parts=['vpc-11111111'])
 
 """
 import re

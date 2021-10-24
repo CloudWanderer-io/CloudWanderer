@@ -96,15 +96,106 @@ import logging
 from unittest.mock import MagicMock, patch
 import boto3
 import cloudwanderer
-from moto import ec2
+from moto import ec2, mock_ec2, mock_sts, mock_s3, mock_iam
+from cloudwanderer.models import ActionSet
+from cloudwanderer.urn import PartialUrn
+from tests.pytest_helpers import create_iam_role
 
 ec2.models.random_vpc_id = MagicMock(return_value='vpc-11111111')
-from tests.integration.helpers import get_default_mocker
-from tests.integration.mocks import add_infra
-get_default_mocker().start_general_mock(
-    restrict_regions=['eu-west-2', 'us-east-1']
+
+for mock in [mock_ec2, mock_sts, mock_s3, mock_iam]:
+    mock().start()
+
+create_iam_role()
+
+cloudwanderer.aws_interface.session.CloudWandererBoto3Session.get_available_regions = ['eu-west-1', 'us-east-1']
+cloudwanderer.aws_interface.CloudWandererAWSInterface.get_resource_discovery_actions = MagicMock(return_value=[
+        ActionSet(
+            get_urns=[
+                PartialUrn(
+                    cloud_name="aws",
+                    account_id="123456789012",
+                    region="eu-west-2",
+                    service="ec2",
+                    resource_type="vpc",
+                    resource_id_parts=["ALL"],
+                ),
+                PartialUrn(
+                    cloud_name="aws",
+                    account_id="123456789012",
+                    region="us-east-1",
+                    service="ec2",
+                    resource_type="vpc",
+                    resource_id_parts=["ALL"],
+                ),
+            ],
+            delete_urns=[
+                PartialUrn(
+                    cloud_name="aws",
+                    account_id="123456789012",
+                    region="eu-west-2",
+                    service="ec2",
+                    resource_type="vpc",
+                    resource_id_parts=["ALL"],
+                ),
+                PartialUrn(
+                    cloud_name="aws",
+                    account_id="123456789012",
+                    region="us-east-1",
+                    service="ec2",
+                    resource_type="vpc",
+                    resource_id_parts=["ALL"],
+                ),
+            ],
+        ),
+        # S3
+        ActionSet(
+            get_urns=[
+                PartialUrn(
+                    cloud_name="aws",
+                    account_id="123456789012",
+                    region="us-east-1",
+                    service="s3",
+                    resource_type="bucket",
+                    resource_id_parts=["ALL"],
+                ),
+            ],
+            delete_urns=[
+                PartialUrn(
+                    cloud_name="aws",
+                    account_id="123456789012",
+                    region="us-east-1",
+                    service="s3",
+                    resource_type="bucket",
+                    resource_id_parts=["ALL"],
+                ),
+            ],
+        ),
+        # IAM
+        ActionSet(
+            get_urns=[
+                PartialUrn(
+                    cloud_name="aws",
+                    account_id="123456789012",
+                    region="us-east-1",
+                    service="iam",
+                    resource_type="role",
+                    resource_id_parts=["ALL"],
+                ),
+            ],
+            delete_urns=[
+                PartialUrn(
+                    cloud_name="aws",
+                    account_id="123456789012",
+                    region="us-east-1",
+                    service="iam",
+                    resource_type="role",
+                    resource_id_parts=["ALL"],
+                ),
+            ],
+        ),
+    ]
 )
-add_infra()
 
 cloudwanderer.storage_connectors.DynamoDbConnector = MagicMock(
     return_value=cloudwanderer.storage_connectors.MemoryStorageConnector()
