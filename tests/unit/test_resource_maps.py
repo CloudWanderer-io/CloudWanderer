@@ -49,7 +49,6 @@ class TestResourceMap(unittest.TestCase):
                 "requiresLoadForFullMetadata": True,
                 "defaultFilters": {"Key": "Value"},
             },
-            boto3_resource_model=self.bucket_resource_model,
             service_map=MagicMock(),
         )
 
@@ -62,17 +61,14 @@ class TestResourceMap(unittest.TestCase):
     def test_dependent_resource_map(self):
         resource_map = ResourceMap.factory(
             definition={"type": "resource", "parentResourceType": "role"},
-            boto3_resource_model=self.bucket_resource_model,
             service_map=MagicMock(),
         )
 
-        assert resource_map.parent_resource_type == "role"
         assert resource_map.default_filters == {}
 
     def test_should_query_resources_in_region_global_service(self):
         resource_map = ResourceMap.factory(
             definition={},
-            boto3_resource_model=self.bucket_resource_model,
             service_map=MagicMock(is_global_service=True, global_service_region="us-east-1"),
         )
 
@@ -82,7 +78,6 @@ class TestResourceMap(unittest.TestCase):
     def test_should_query_resources_in_region_regional_service(self):
         resource_map = ResourceMap.factory(
             definition={},
-            boto3_resource_model=self.bucket_resource_model,
             service_map=MagicMock(is_global_service=False),
         )
 
@@ -104,7 +99,6 @@ class TestResourceMap(unittest.TestCase):
                     }
                 ],
             },
-            boto3_resource_model=self.bucket_resource_model,
             service_map=MagicMock(is_global_service=False),
         )
 
