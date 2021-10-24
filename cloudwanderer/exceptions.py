@@ -49,4 +49,4 @@ class BadServiceMapError(Exception):
 
 
 class MalformedFileError(Exception):
-    """There was a malformed file found"""
+    """There was a malformed file found."""
