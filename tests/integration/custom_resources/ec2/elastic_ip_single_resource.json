@@ -1,0 +1,38 @@
+{
+    "service": "ec2",
+    "mockData": {
+        "describe_addresses.return_value": {
+            "Addresses": [
+                {
+                    "PublicIp": "1.1.1.1",
+                    "AllocationId": "eipalloc-11111111111111111",
+                    "Domain": "vpc",
+                    "PublicIpv4Pool": "amazon",
+                    "NetworkBorderGroup": "eu-west-1"
+                }
+            ]
+        }
+    },
+    "getResource": {
+        "urn": "urn:aws:123456789012:eu-west-2:ec2:elastic_ip:eipalloc-11111111111111111"
+    },
+    "expectedResults": [
+        {
+            "allocation_id": "eipalloc-11111111111111111",
+            "cloudwanderer_metadata": {
+                "AllocationId": "eipalloc-11111111111111111",
+                "Domain": "vpc",
+                "NetworkBorderGroup": "eu-west-1",
+                "PublicIp": "1.1.1.1",
+                "PublicIpv4Pool": "amazon"
+            },
+            "dependent_resource_urns": [],
+            "domain": "vpc",
+            "network_border_group": "eu-west-1",
+            "parent_urn": null,
+            "public_ip": "1.1.1.1",
+            "public_ipv4_pool": "amazon",
+            "relationships": []
+        }
+    ]
+}

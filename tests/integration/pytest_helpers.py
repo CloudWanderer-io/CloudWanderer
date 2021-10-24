@@ -79,7 +79,12 @@ def compare_list_of_dicts_allow_any(
     Arguments:
         allow_partial_match_second: Success if the dictionaries in second only have some of the keys from first.
 
+    Raises:
+        AssertionError: If lists are not equal.
     """
-    assert len(first) == len(second), f"Length of first {len(first)} and second {len(second)} is not equal"
+
+    if not len(first) == len(second):
+        diff = "\n" + "\n".join(difflib.ndiff(pprint.pformat(first).splitlines(), pprint.pformat(second).splitlines()))
+        raise AssertionError(f"The two lists are not of equal length: {diff}")
     for first_item, second_item in zip(first, second):
         compare_dict_allow_any(first_item, second_item, allow_partial_match_second=allow_partial_match_second)
