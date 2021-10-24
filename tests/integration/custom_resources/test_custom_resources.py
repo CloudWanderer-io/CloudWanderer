@@ -26,7 +26,7 @@ def try_dict(value):
     """Try converting objects first to dict, then to str so we can easily compare them against JSON."""
     try:
         return dict(value)
-    except ValueError:
+    except (ValueError, TypeError):
         return str(value)
 
 
@@ -46,12 +46,7 @@ def test_all_custom_resources(file_name, aws_interface):
         test_spec = json.load(f)
 
     aws_interface.cloudwanderer_boto3_session.client = MagicMock(
-        return_value=MagicMock(
-            **{
-                # **{"meta": aws_interface.cloudwanderer_boto3_session.client(test_spec["service"]).meta},
-                **test_spec["mockData"],
-            }
-        ),
+        return_value=MagicMock(**test_spec["mockData"]),
     )
 
     if "getResource" in test_spec:
@@ -70,7 +65,6 @@ def test_all_custom_resources(file_name, aws_interface):
                 )
             )
 
-            logger.info(result)
         except NotImplementedError:
             raise ValueError(
                 "Boto3 raised a NotImplementedError, usually this means "
