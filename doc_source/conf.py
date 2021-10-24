@@ -1,8 +1,6 @@
 import os
 import sys
 
-import sphinx_rtd_theme  # noqa
-
 # Configuration file for the Sphinx documentation builder.
 #
 # This file only contains a selection of the most common options. For a full
@@ -33,6 +31,7 @@ nitpick_ignore = [
     ("py:exc", "botocore.exceptions.ClientError"),
     ("py:class", "botocore.client.ClientCreator"),
     ("py:class", "botocore.model.Shape"),
+    ("py:class", "datetime.datetime"),
 ]
 
 

@@ -1,4 +1,5 @@
 """Allows CloudWanderer to store resources in DynamoDB."""
+import datetime
 import itertools
 import json
 import logging
@@ -6,7 +7,6 @@ import operator
 import os
 import pathlib
 import sys
-from datetime import datetime
 from functools import reduce
 from random import randrange
 from typing import TYPE_CHECKING, Any, Callable, Dict, Generator, Iterable, Iterator, Optional, Union, cast
@@ -125,7 +125,7 @@ def _dynamodb_items_to_resources(items: Iterable[dict], loader: Callable) -> Ite
             dependent_resource_urns=dependent_resource_urns,
             resource_data=_strip_dynamodb_attrs(base_resource),
             parent_urn=parent_urn,
-            discovery_time=datetime.strptime(base_resource["_discovery_time"], ISO_DATE_FORMAT),
+            discovery_time=datetime.datetime.strptime(base_resource["_discovery_time"], ISO_DATE_FORMAT),
             loader=loader,
         )
 
@@ -305,7 +305,7 @@ class DynamoDbConnector(BaseStorageConnector):
         resource_type: str,
         account_id: str,
         region: str,
-        cutoff: Optional[datetime],
+        cutoff: Optional[datetime.datetime],
     ) -> None:
         logger.debug("Deleting any %s discovered before %s", resource_type, cutoff)
         resource_records = self.read_resources(

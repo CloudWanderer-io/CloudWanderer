@@ -1,4 +1,0 @@
-pytest
-moto==2.0.1
-parameterized
-gremlinpython

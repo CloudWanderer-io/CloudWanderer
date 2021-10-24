@@ -16,6 +16,6 @@ CloudWanderer
    supported_resources
    resource_definitions
    reference
-   writing_custom_resources
+   .. writing_custom_resources
 
 .. include:: ../README.rst

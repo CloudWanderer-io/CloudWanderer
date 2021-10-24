@@ -1,7 +1,7 @@
 """Standardised dataclasses for returning resources from storage."""
 
+import datetime
 import logging
-from datetime import datetime
 from typing import Any, Callable, Generator, List, Optional, Tuple, Union
 
 from botocore import xform_name
@@ -45,7 +45,7 @@ class CloudWandererResource:
 
     Attributes:
         urn: The URN of the resource.
-        dependent resource_urns: The URNs of this resource's dependent resources (e.g. role_policies for a role).
+        dependent_resource_urns: The URNs of this resource's dependent resources (e.g. role_policies for a role).
         relationships: The PartialURNs of resources that are related to this one.
         parent_urn: The URN of this resource's parent (only exists if this is a dependent resource).
         cloudwanderer_metadata (ResourceMetadata): The metadata of this resource (including attributes).
@@ -59,7 +59,7 @@ class CloudWandererResource:
         loader: Optional[Callable] = None,
         dependent_resource_urns: List[URN] = None,
         parent_urn: URN = None,
-        discovery_time: datetime = None,
+        discovery_time: datetime.datetime = None,
     ) -> None:
         """Initialise the resource.
 
@@ -77,7 +77,7 @@ class CloudWandererResource:
         self.dependent_resource_urns = dependent_resource_urns or []
         self.parent_urn = parent_urn
         self.cloudwanderer_metadata = ResourceMetadata(resource_data=resource_data or {})
-        self.discovery_time = discovery_time or datetime.now()
+        self.discovery_time = discovery_time or datetime.datetime.now()
 
         self._loader = loader
         self._set_resource_data_attrs()

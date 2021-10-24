@@ -7,8 +7,7 @@ import logging
 from typing import TYPE_CHECKING, Iterator, List, Optional, cast
 
 import botocore
-from botocore.exceptions import ClientError
-from mypy_boto3_dynamodb import ServiceResource
+from boto3.resources.base import ServiceResource
 
 from ..cloud_wanderer_resource import CloudWandererResource
 from ..exceptions import UnsupportedResourceTypeError
@@ -46,7 +45,7 @@ class CloudWandererAWSInterface:
     def get_enabled_regions(self) -> List[str]:
         """Return the list of regions enabled.
 
-        Fulfils the interface requirements for :class:`CloudWanderer`__ to call.
+        Fulfils the interface requirements for :class:`cloudwanderer.cloud_wanderer.CloudWanderer` to call.
         """
         return self.cloudwanderer_boto3_session.get_enabled_regions()
 
@@ -59,10 +58,12 @@ class CloudWandererAWSInterface:
 
         Raises:
             UnsupportedResourceTypeError: Occurs when we try to get an unsupported resource type.
-            ClientError: Raises from Boto3 client.
+            botocore.exceptions.ClientError: Raises from Boto3 client.
         """
         try:
-            service = self.cloudwanderer_boto3_session.resource(service_name=urn.service, region_name=urn.region)
+            service = self.cloudwanderer_boto3_session.resource(
+                service_name=cast(AWS_SERVICES, urn.service), region_name=urn.region
+            )
             if service.service_map.is_global_service and service.service_map.global_service_region != urn.region:
                 logger.info(
                     "Creating service in %s instead of the resource's %s region because the service has a global API",
@@ -70,7 +71,7 @@ class CloudWandererAWSInterface:
                     urn.region,
                 )
                 service = self.cloudwanderer_boto3_session.resource(
-                    service_name=urn.service, region_name=service.service_map.global_service_region
+                    service_name=cast(AWS_SERVICES, urn.service), region_name=service.service_map.global_service_region
                 )
             resource = service.resource(resource_type=urn.resource_type, identifiers=urn.resource_id_parts)
             if not hasattr(resource, "load"):
@@ -78,7 +79,7 @@ class CloudWandererAWSInterface:
             logger.info("Loading resource data.")
             resource.load()
 
-        except ClientError as ex:
+        except botocore.exceptions.ClientError as ex:
             error_code = ex.response.get("ResponseMetadata", {}).get("HTTPStatusCode")
             if not error_code:
                 raise
@@ -86,7 +87,7 @@ class CloudWandererAWSInterface:
                 return None
             if error_code >= 400 and error_code < 500:
                 return None
-            raise ex
+            raise
         if not resource.meta.data:
             logger.warning("Found no data for %s", urn)
             return None
@@ -278,7 +279,3 @@ class CloudWandererAWSInterface:
             )
 
         return action_templates
-
-    @property
-    def enabled_regions(self) -> List[str]:
-        return self.cloudwanderer_boto3_session.get_enabled_regions()
