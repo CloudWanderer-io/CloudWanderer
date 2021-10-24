@@ -14,6 +14,15 @@ from ..pytest_helpers import compare_list_of_dicts_allow_any, prepare_for_compar
 logger = logging.getLogger(__name__)
 
 
+def build_mock(mock_spec):
+    result = {}
+    for key, value in mock_spec.items():
+        if key == "get_paginator.side_effect":
+            value = MagicMock(side_effect=[MagicMock(**effect) for effect in value])
+        result[key] = value
+    return result
+
+
 def get_resources_to_test():
     results = []
     for root, dirs, files in os.walk(Path(__file__).parent):
@@ -32,7 +41,7 @@ def test_all_custom_resources(file_name, aws_interface):
         return_value=MagicMock(
             **{
                 **{"meta": aws_interface.cloudwanderer_boto3_session.client(test_spec["service"]).meta},
-                **test_spec["mockData"],
+                **build_mock(test_spec["mockData"]),
             }
         ),
     )

@@ -75,7 +75,7 @@ class CloudWandererAWSInterface:
             resource = service.resource(resource_type=urn.resource_type, identifiers=urn.resource_id_parts)
             if not hasattr(resource, "load"):
                 raise UnsupportedResourceTypeError(f"Resource type {urn.resource_type} doesn't support get_resource()")
-
+            logger.info("Loading resource data.")
             resource.load()
 
         except ClientError as ex:
@@ -94,6 +94,13 @@ class CloudWandererAWSInterface:
         dependent_resource_urns = []
         if include_dependent_resources:
             for dependent_resource_type in resource.dependent_resource_types:
+                logger.info(
+                    "Getting %s %s dependent resources from %s for %s",
+                    urn.service,
+                    dependent_resource_type,
+                    urn.region,
+                    resource.get_urn().resource_id,
+                )
                 for dependent_resource in resource.collection(resource_type=dependent_resource_type):
                     if not dependent_resource.meta.data and hasattr(dependent_resource, "load"):
                         dependent_resource.load()

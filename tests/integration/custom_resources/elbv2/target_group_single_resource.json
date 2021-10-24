@@ -1,0 +1,105 @@
+{
+    "service": "elbv2",
+    "mockData": {
+        "describe_target_groups.return_value": {
+            "TargetGroups": [
+                {
+                    "TargetGroupArn": "arn:aws:elasticloadbalancing:eu-west-1:111111111111:targetgroup/test-targetgroup/1111111111111111",
+                    "TargetGroupName": "test-targetgroup",
+                    "Protocol": "TCP",
+                    "Port": 80,
+                    "VpcId": "vpc-11111111",
+                    "HealthCheckProtocol": "TCP",
+                    "HealthCheckPort": "traffic-port",
+                    "HealthCheckEnabled": true,
+                    "HealthCheckIntervalSeconds": 30,
+                    "HealthCheckTimeoutSeconds": 10,
+                    "HealthyThresholdCount": 3,
+                    "UnhealthyThresholdCount": 3,
+                    "LoadBalancerArns": [],
+                    "TargetType": "ip"
+                }
+            ]
+        }
+    },
+    "getResource": {
+        "urn": "urn:aws:123456789012:eu-west-2:elbv2:target_group:test-targetgroup"
+    },
+    "expectedResults": [
+        {
+            "cloudwanderer_metadata": {
+                "HealthCheckEnabled": true,
+                "HealthCheckIntervalSeconds": 30,
+                "HealthCheckPath": null,
+                "HealthCheckPort": "traffic-port",
+                "HealthCheckProtocol": "TCP",
+                "HealthCheckTimeoutSeconds": 10,
+                "HealthyThresholdCount": 3,
+                "IpAddressType": null,
+                "LoadBalancerArns": [],
+                "Matcher": null,
+                "Port": 80,
+                "Protocol": "TCP",
+                "ProtocolVersion": null,
+                "TargetGroupArn": "arn:aws:elasticloadbalancing:eu-west-1:111111111111:targetgroup/test-targetgroup/1111111111111111",
+                "TargetGroupName": "test-targetgroup",
+                "TargetHealth": {
+                    "TargetHealthDescriptions": null
+                },
+                "TargetType": "ip",
+                "UnhealthyThresholdCount": 3,
+                "VpcId": "vpc-11111111"
+            },
+            "dependent_resource_urns": [],
+            "health_check_enabled": true,
+            "health_check_interval_seconds": 30,
+            "health_check_path": null,
+            "health_check_port": "traffic-port",
+            "health_check_protocol": "TCP",
+            "health_check_timeout_seconds": 10,
+            "healthy_threshold_count": 3,
+            "ip_address_type": null,
+            "load_balancer_arns": [],
+            "matcher": null,
+            "parent_urn": null,
+            "port": 80,
+            "protocol": "TCP",
+            "protocol_version": null,
+            "relationships": [
+                [
+                    {
+                        "account_id": "unknown",
+                        "cloud_name": "aws",
+                        "region": "eu-west-2",
+                        "resource_id": "vpc-11111111",
+                        "resource_id_parts": [
+                            "vpc-11111111"
+                        ],
+                        "resource_type": "vpc",
+                        "service": "ec2"
+                    },
+                    "RelationshipDirection.INBOUND"
+                ]
+            ],
+            "target_group_arn": "arn:aws:elasticloadbalancing:eu-west-1:111111111111:targetgroup/test-targetgroup/1111111111111111",
+            "target_group_name": "test-targetgroup",
+            "target_health": {
+                "TargetHealthDescriptions": null
+            },
+            "target_type": "ip",
+            "unhealthy_threshold_count": 3,
+            "urn": {
+                "account_id": {},
+                "cloud_name": "aws",
+                "region": "eu-west-2",
+                "resource_id": "test-targetgroup",
+                "resource_id_parts": [
+                    "test-targetgroup"
+                ],
+                "resource_type": "target_group",
+                "service": "elbv2"
+            },
+            "vpc_id": "vpc-11111111"
+        }
+    ]
+}

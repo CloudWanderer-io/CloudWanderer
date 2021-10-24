@@ -179,19 +179,6 @@
       }
     },
     "Layer": {
-      "load": {
-        "request": {
-          "operation": "ListLayerVersions",
-          "params": [
-            {
-              "target": "LayerName",
-              "source": "identifier",
-              "name": "LayerName"
-            }
-          ]
-        },
-        "path": "Layers[0]"
-      },
       "identifiers": [
         {
           "name": "LayerName",
