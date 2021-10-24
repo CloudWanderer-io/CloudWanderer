@@ -10,11 +10,11 @@ with open(path.join(this_directory, "README.rst"), encoding="utf-8") as f:
     long_description = re.sub(r"..\s+doctest\s+::", ".. code-block ::", f.read())
 
 setup(
-    version="0.18.0",
+    version="0.19.0",
     python_requires=">=3.6.0",
     name="cloudwanderer",
     packages=find_packages(include=["cloudwanderer", "cloudwanderer.*"]),
-    description="A Python package which wanders across your AWS account and records your resources in multiple databases",
+    description="A Python package which wanders across your AWS account and records resources in multiple databases",
     long_description=long_description,
     long_description_content_type="text/x-rst",
     author="Sam Martin",

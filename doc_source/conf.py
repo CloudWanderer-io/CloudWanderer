@@ -32,6 +32,7 @@ nitpick_ignore = [
     ("py:class", "botocore.client.ClientCreator"),
     ("py:class", "botocore.model.Shape"),
     ("py:class", "datetime.datetime"),
+    ("py:class", "gremlin_python.driver.driver_remote_connection.DriverRemoteConnection"),
 ]
 
 

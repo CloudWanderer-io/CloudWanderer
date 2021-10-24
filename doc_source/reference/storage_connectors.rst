@@ -3,6 +3,16 @@ CloudWanderer Storage Connectors
 
 These storage connector classes allow CloudWanderer to push data to an extensible list of storage backends.
 
+Neptune GraphDB Connector
+---------------------------
+
+.. automodule :: cloudwanderer.storage_connectors.gremlin
+
+.. autoclass :: cloudwanderer.storage_connectors.GremlinStorageConnector
+    :members:
+
+
+
 DynamoDB Connector
 -------------------
 

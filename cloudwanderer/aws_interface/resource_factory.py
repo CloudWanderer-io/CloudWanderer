@@ -3,7 +3,7 @@ import logging
 import re
 from typing import TYPE_CHECKING, Any, Callable, Dict, Generator, List, Optional, Type
 
-import jmespath
+import jmespath  # type: ignore
 from boto3.resources.base import ServiceResource
 from boto3.resources.collection import CollectionManager
 from boto3.resources.factory import ResourceFactory
@@ -350,12 +350,6 @@ class CloudWandererResourceFactory(ResourceFactory):
             return service_model.shape_for(self.meta.resource_model.shape)
 
         return property(shape)
-
-    # def _create_is_dependent_resource(self) -> property:
-    #     def is_dependent_resource(self) -> bool:
-    #         return self.resource_map.type == "dependentResource"
-
-    #     return property(is_dependent_resource)
 
     def _create_relationships(self) -> property:
         def relationships(self) -> List[Relationship]:

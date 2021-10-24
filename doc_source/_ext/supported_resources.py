@@ -14,7 +14,6 @@ from jinja2 import Template
 from sphinx.domains import Domain
 from sphinx.util.docutils import SphinxDirective
 
-import cloudwanderer
 from cloudwanderer.aws_interface.boto3_loaders import MergedServiceLoader
 from cloudwanderer.aws_interface.session import CloudWandererBoto3Session
 from cloudwanderer.utils import snake_to_pascal
@@ -65,6 +64,7 @@ RESOURCE_TEMPLATE = Template(
         for resource in resources:
             resource.load()
             print(resource.urn)
+
 """
 )
 
@@ -109,9 +109,7 @@ class SummarisedResources:
                     continue
                 subresource_summary = []
                 for dependent_resource_type in resource.dependent_resource_types:
-                    dependent_resource = service.resource(dependent_resource_type, empty_resource=True)
                     friendly_name = dependent_resource_type.replace("_", " ").title().replace(" ", "")
-                    # subresource_name = dependent_resource.meta.resource_model.type
                     subresource_summary.append((collection_name, friendly_name))
                 resource_list.append((service_name, collection_name, resource_name, subresource_summary))
 
@@ -138,9 +136,7 @@ class SummarisedResources:
                     continue
                 subresource_summary = []
                 for dependent_resource_type in resource.dependent_resource_types:
-                    dependent_resource = service.resource(dependent_resource_type, empty_resource=True)
                     friendly_name = dependent_resource_type.replace("_", " ").title().replace(" ", "")
-                    # subresource_name = dependent_resource.meta.resource_model.type
                     subresource_summary.append((collection_name, friendly_name))
                 services_summary[service_id].append((service_name, collection_name, resource_name, subresource_summary))
 

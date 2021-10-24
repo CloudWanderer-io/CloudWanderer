@@ -10,14 +10,14 @@ import json
 import logging
 import os
 import pathlib
+from collections import OrderedDict
 from pathlib import Path
-from typing import Any, Dict, List, NamedTuple, Optional, OrderedDict
+from typing import Any, Dict, List, NamedTuple, Optional
 
 import boto3
 import botocore
 import jmespath  # type: ignore
 from boto3.resources.base import ServiceResource
-from boto3.resources.model import ResourceModel
 from botocore.exceptions import DataNotFoundError, UnknownServiceError  # type: ignore
 from botocore.loaders import Loader
 
@@ -207,7 +207,6 @@ class ServiceMap(NamedTuple):
     global_service: bool
     global_service_region: str
     service_definition: dict
-    boto3_definition: dict
 
     @property
     def is_global_service(self) -> bool:
@@ -229,11 +228,6 @@ class ServiceMap(NamedTuple):
         return ResourceMap.factory(
             service_map=self,
             definition=self.resource_definition.get(boto3_resource_name, {}),
-            boto3_resource_model=ResourceModel(
-                name=boto3_resource_name,
-                definition=self.boto3_definition["resources"].get(boto3_resource_name, {}),
-                resource_defs=self.boto3_definition["resources"],
-            ),
         )
 
     @classmethod
@@ -245,9 +239,6 @@ class ServiceMap(NamedTuple):
             global_service_region=service_definition.get("globalServiceRegion"),
             service_definition=service_definition,
             resource_definition=definition.get("resources", {}),
-            boto3_definition=MergedServiceLoader().load_service_model(
-                service_name=name, type_name="resources-1", api_version=None
-            ),
         )
 
 
@@ -262,8 +253,6 @@ class ResourceMap(NamedTuple):
             The snake_case resource type of the parent (if this is a subresource).
         ignored_subresources:
             A list of snake case subresources which exist in the Boto3 definition but should be ignored.
-        boto3_resource_model:
-            The Boto3 model for this resource.
         default_filters:
             A dict of arguments to supply to the API Method used when enumerating this resource type.
             This can be overridden by the user with the ``filters`` argument.
@@ -278,10 +267,7 @@ class ResourceMap(NamedTuple):
 
     type: Optional[str]
     region_request: Optional["ResourceRegionRequest"]
-    resource_type: str
-    parent_resource_type: str
     ignored_subresources: list
-    boto3_resource_model: ResourceModel
     default_filters: Dict[str, Any]
     service_map: ServiceMap
     relationships: List["RelationshipSpecification"]
@@ -294,20 +280,15 @@ class ResourceMap(NamedTuple):
         cls,
         service_map: ServiceMap,
         definition: Dict[str, Any],
-        # TODO: remove boto3 resource model
-        boto3_resource_model: ResourceModel,
     ) -> "ResourceMap":
         return cls(
             type=definition.get("type"),
             region_request=ResourceRegionRequest.factory(definition.get("regionRequest")),
             ignored_subresources=definition.get("ignoredSubresources", []),
-            resource_type=botocore.xform_name(boto3_resource_model.name),
-            parent_resource_type=definition.get("parentResourceType", ""),
             requires_load_for_full_metadata=definition.get("requiresLoadForFullMetadata", False),
             regional_resource=definition.get("regionalResource", True),
             default_filters=definition.get("defaultFilters", {}),
             service_map=service_map,
-            boto3_resource_model=boto3_resource_model,
             relationships=[
                 RelationshipSpecification.factory(relationship_specification)
                 for relationship_specification in definition.get("relationships", [])
