@@ -1,6 +1,7 @@
 from typing import OrderedDict
-from pytest import fixture
+
 import pytest
+from pytest import fixture
 
 from cloudwanderer.aws_interface.boto3_loaders import MergedServiceLoader
 from cloudwanderer.exceptions import UnsupportedServiceError
@@ -49,7 +50,7 @@ def test_list_api_versions(merged_service_loader):
 def test_list_api_versions_incorrect_type_name(merged_service_loader):
 
     with pytest.raises(UnsupportedServiceError) as excinfo:
-        result = merged_service_loader.list_api_versions(service_name="lambda", type_name="resources-2")
+        merged_service_loader.list_api_versions(service_name="lambda", type_name="resources-2")
     assert "lambda is not supported by either Boto3 or CloudWanderer's custom services" in str(excinfo.value)
 
 

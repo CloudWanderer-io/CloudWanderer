@@ -1,7 +1,6 @@
 from unittest.mock import MagicMock
 
 import botocore
-from boto3.resources.collection import ResourceCollection
 from pytest import fixture
 
 from cloudwanderer.aws_interface import CloudWandererBoto3Session

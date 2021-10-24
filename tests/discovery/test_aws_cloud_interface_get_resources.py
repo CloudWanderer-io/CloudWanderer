@@ -1,8 +1,9 @@
-from unittest.mock import ANY, MagicMock
-from cloudwanderer.aws_interface import CloudWandererAWSInterface
-from cloudwanderer.cloud_wanderer_resource import CloudWandererResource
+from unittest.mock import MagicMock
+
 from pytest import fixture
 
+from cloudwanderer.aws_interface import CloudWandererAWSInterface
+from cloudwanderer.cloud_wanderer_resource import CloudWandererResource
 from cloudwanderer.urn import URN
 
 

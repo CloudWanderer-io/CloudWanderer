@@ -1,7 +1,8 @@
+"""Create a graphviz visualisation of the resource's relationships."""
 import graphviz
 from botocore import xform_name
 
-from cloudwanderer import CloudWanderer, CloudWandererAWSInterface
+from cloudwanderer import CloudWandererAWSInterface
 from cloudwanderer.exceptions import UnsupportedResourceTypeError
 from cloudwanderer.models import RelationshipDirection
 

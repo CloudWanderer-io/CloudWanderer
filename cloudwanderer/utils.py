@@ -72,7 +72,14 @@ def snake_to_pascal(snake_case: str) -> str:
     snake_case = snake_case.lower()
     return snake_case.replace("_", " ").title().replace(" ", "")
 
-def camel_to_snake(camel, upper=True):
+
+def camel_to_snake(camel, upper=True) -> str:
+    """Convert camelCase to snake_case (uppercase by default).
+
+    Arguments:
+        camel: Input camelCase string
+        upper: Whether to conver to uppercase snake_case
+    """
     if upper:
         return xform_name(camel).upper()
     return xform_name(camel)
