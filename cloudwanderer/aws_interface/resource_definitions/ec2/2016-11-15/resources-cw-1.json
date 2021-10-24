@@ -62,7 +62,23 @@
       ]
     },
     "Route": {
-      "type": "dependentResource"
+      "type": "dependentResource",
+      "relationships": [
+        {
+          "basePath": "@",
+          "idParts": [
+            {
+              "path": "GatewayId",
+              "regexPattern": "^(?P<id_part_0>igw-.*)"
+            }
+          ],
+          "service": "ec2",
+          "resourceType": "internet_gatway",
+          "regionSource": "sameAsResource",
+          "accountIdSource": "unknown",
+          "direction": "inbound"
+        }
+      ]
     },
     "RouteTable": {
       "type": "resource",
@@ -269,13 +285,17 @@
         }
       ],
       "defaultFilters": {
-        "Owners": ["self"]
+        "Owners": [
+          "self"
+        ]
       }
     },
     "Snapshot": {
       "type": "resource",
       "defaultFilters": {
-        "OwnerIds": ["self"]
+        "OwnerIds": [
+          "self"
+        ]
       }
     },
     "Instance": {

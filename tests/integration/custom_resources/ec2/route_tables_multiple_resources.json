@@ -1,0 +1,298 @@
+{
+    "service": "ec2",
+    "mockData": {
+        "get_paginator.return_value.paginate.return_value": [
+            {
+                "RouteTables": [
+                    {
+                        "Associations": [
+                            {
+                                "Main": true,
+                                "RouteTableAssociationId": "rtbassoc-11111111",
+                                "RouteTableId": "rtb-11111111",
+                                "AssociationState": {
+                                    "State": "associated"
+                                }
+                            }
+                        ],
+                        "PropagatingVgws": [],
+                        "RouteTableId": "rtb-11111111",
+                        "Routes": [
+                            {
+                                "DestinationCidrBlock": "172.31.0.0/16",
+                                "GatewayId": "local",
+                                "Origin": "CreateRouteTable",
+                                "State": "active"
+                            },
+                            {
+                                "DestinationCidrBlock": "0.0.0.0/0",
+                                "GatewayId": "igw-11111111",
+                                "Origin": "CreateRoute",
+                                "State": "active"
+                            }
+                        ],
+                        "Tags": [],
+                        "VpcId": "vpc-11111111",
+                        "OwnerId": "111111111111"
+                    }
+                ]
+            }
+        ]
+    },
+    "getResources": {
+        "serviceName": "ec2",
+        "resourceType": "route_table",
+        "region": "eu-west-2"
+    },
+    "expectedResults": [
+        {
+            "urn": {
+                "cloud_name": "aws",
+                "account_id": {},
+                "region": "eu-west-2",
+                "service": "ec2",
+                "resource_type": "route",
+                "resource_id_parts": [
+                    "rtb-11111111",
+                    "172.31.0.0/16"
+                ],
+                "resource_id": "rtb-11111111/172.31.0.0\\/16"
+            },
+            "relationships": [],
+            "dependent_resource_urns": [],
+            "parent_urn": {
+                "cloud_name": "aws",
+                "account_id": {},
+                "region": "eu-west-2",
+                "service": "ec2",
+                "resource_type": "route_table",
+                "resource_id_parts": [
+                    "rtb-11111111"
+                ],
+                "resource_id": "rtb-11111111"
+            },
+            "cloudwanderer_metadata": {
+                "DestinationCidrBlock": "172.31.0.0/16",
+                "DestinationIpv6CidrBlock": null,
+                "DestinationPrefixListId": null,
+                "EgressOnlyInternetGatewayId": null,
+                "GatewayId": "local",
+                "InstanceId": null,
+                "InstanceOwnerId": null,
+                "NatGatewayId": null,
+                "TransitGatewayId": null,
+                "LocalGatewayId": null,
+                "CarrierGatewayId": null,
+                "NetworkInterfaceId": null,
+                "Origin": "CreateRouteTable",
+                "State": "active",
+                "VpcPeeringConnectionId": null
+            },
+            "destination_cidr_block": "172.31.0.0/16",
+            "destination_ipv6_cidr_block": null,
+            "destination_prefix_list_id": null,
+            "egress_only_internet_gateway_id": null,
+            "gateway_id": "local",
+            "instance_id": null,
+            "instance_owner_id": null,
+            "nat_gateway_id": null,
+            "transit_gateway_id": null,
+            "local_gateway_id": null,
+            "carrier_gateway_id": null,
+            "network_interface_id": null,
+            "origin": "CreateRouteTable",
+            "state": "active",
+            "vpc_peering_connection_id": null
+        },
+        {
+            "urn": {
+                "cloud_name": "aws",
+                "account_id": {},
+                "region": "eu-west-2",
+                "service": "ec2",
+                "resource_type": "route",
+                "resource_id_parts": [
+                    "rtb-11111111",
+                    "0.0.0.0/0"
+                ],
+                "resource_id": "rtb-11111111/0.0.0.0\\/0"
+            },
+            "relationships": [
+                [
+                    {
+                        "cloud_name": "aws",
+                        "account_id": "unknown",
+                        "region": "eu-west-2",
+                        "service": "ec2",
+                        "resource_type": "internet_gatway",
+                        "resource_id_parts": [
+                            "igw-11111111"
+                        ],
+                        "resource_id": "igw-11111111"
+                    },
+                    "RelationshipDirection.INBOUND"
+                ]
+            ],
+            "dependent_resource_urns": [],
+            "parent_urn": {
+                "cloud_name": "aws",
+                "account_id": {},
+                "region": "eu-west-2",
+                "service": "ec2",
+                "resource_type": "route_table",
+                "resource_id_parts": [
+                    "rtb-11111111"
+                ],
+                "resource_id": "rtb-11111111"
+            },
+            "cloudwanderer_metadata": {
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "DestinationIpv6CidrBlock": null,
+                "DestinationPrefixListId": null,
+                "EgressOnlyInternetGatewayId": null,
+                "GatewayId": "igw-11111111",
+                "InstanceId": null,
+                "InstanceOwnerId": null,
+                "NatGatewayId": null,
+                "TransitGatewayId": null,
+                "LocalGatewayId": null,
+                "CarrierGatewayId": null,
+                "NetworkInterfaceId": null,
+                "Origin": "CreateRoute",
+                "State": "active",
+                "VpcPeeringConnectionId": null
+            },
+            "destination_cidr_block": "0.0.0.0/0",
+            "destination_ipv6_cidr_block": null,
+            "destination_prefix_list_id": null,
+            "egress_only_internet_gateway_id": null,
+            "gateway_id": "igw-11111111",
+            "instance_id": null,
+            "instance_owner_id": null,
+            "nat_gateway_id": null,
+            "transit_gateway_id": null,
+            "local_gateway_id": null,
+            "carrier_gateway_id": null,
+            "network_interface_id": null,
+            "origin": "CreateRoute",
+            "state": "active",
+            "vpc_peering_connection_id": null
+        },
+        {
+            "urn": {
+                "cloud_name": "aws",
+                "account_id": {},
+                "region": "eu-west-2",
+                "service": "ec2",
+                "resource_type": "route_table",
+                "resource_id_parts": [
+                    "rtb-11111111"
+                ],
+                "resource_id": "rtb-11111111"
+            },
+            "relationships": [
+                [
+                    {
+                        "cloud_name": "aws",
+                        "account_id": "unknown",
+                        "region": "eu-west-2",
+                        "service": "ec2",
+                        "resource_type": "vpc",
+                        "resource_id_parts": [
+                            "vpc-11111111"
+                        ],
+                        "resource_id": "vpc-11111111"
+                    },
+                    "RelationshipDirection.INBOUND"
+                ]
+            ],
+            "dependent_resource_urns": [
+                {
+                    "cloud_name": "aws",
+                    "account_id": {},
+                    "region": "eu-west-2",
+                    "service": "ec2",
+                    "resource_type": "route",
+                    "resource_id_parts": [
+                        "rtb-11111111",
+                        "172.31.0.0/16"
+                    ],
+                    "resource_id": "rtb-11111111/172.31.0.0\\/16"
+                },
+                {
+                    "cloud_name": "aws",
+                    "account_id": {},
+                    "region": "eu-west-2",
+                    "service": "ec2",
+                    "resource_type": "route",
+                    "resource_id_parts": [
+                        "rtb-11111111",
+                        "0.0.0.0/0"
+                    ],
+                    "resource_id": "rtb-11111111/0.0.0.0\\/0"
+                }
+            ],
+            "parent_urn": null,
+            "cloudwanderer_metadata": {
+                "Associations": [
+                    {
+                        "Main": true,
+                        "RouteTableAssociationId": "rtbassoc-11111111",
+                        "RouteTableId": "rtb-11111111",
+                        "AssociationState": {
+                            "State": "associated"
+                        }
+                    }
+                ],
+                "PropagatingVgws": [],
+                "RouteTableId": "rtb-11111111",
+                "Routes": [
+                    {
+                        "DestinationCidrBlock": "172.31.0.0/16",
+                        "GatewayId": "local",
+                        "Origin": "CreateRouteTable",
+                        "State": "active"
+                    },
+                    {
+                        "DestinationCidrBlock": "0.0.0.0/0",
+                        "GatewayId": "igw-11111111",
+                        "Origin": "CreateRoute",
+                        "State": "active"
+                    }
+                ],
+                "Tags": [],
+                "VpcId": "vpc-11111111",
+                "OwnerId": "111111111111"
+            },
+            "associations": [
+                {
+                    "Main": true,
+                    "RouteTableAssociationId": "rtbassoc-11111111",
+                    "RouteTableId": "rtb-11111111",
+                    "AssociationState": {
+                        "State": "associated"
+                    }
+                }
+            ],
+            "propagating_vgws": [],
+            "route_table_id": "rtb-11111111",
+            "routes": [
+                {
+                    "DestinationCidrBlock": "172.31.0.0/16",
+                    "GatewayId": "local",
+                    "Origin": "CreateRouteTable",
+                    "State": "active"
+                },
+                {
+                    "DestinationCidrBlock": "0.0.0.0/0",
+                    "GatewayId": "igw-11111111",
+                    "Origin": "CreateRoute",
+                    "State": "active"
+                }
+            ],
+            "tags": [],
+            "vpc_id": "vpc-11111111",
+            "owner_id": "111111111111"
+        }
+    ]
+}
