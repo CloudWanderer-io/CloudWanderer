@@ -92,7 +92,6 @@ class MemoryStorageConnector(BaseStorageConnector):
         self._data[str(resource.urn)]["BaseResource"] = standardise_data_types(
             resource.cloudwanderer_metadata.resource_data
         )
-
         self._data[str(resource.urn)]["ParentUrn"] = resource.parent_urn
         self._data[str(resource.urn)]["DependentResourceUrns"] = resource.dependent_resource_urns
 
@@ -159,9 +158,11 @@ def memory_item_to_resource(urn: URN, items: Dict[str, Any] = None, loader: Call
     base_resource: Dict[str, Any] = next(
         iter(resource for item_type, resource in items.items() if item_type == "BaseResource"), {}
     )
+
     return CloudWandererResource(
         urn=urn,
         dependent_resource_urns=items.get("DependentResourceUrns"),
         resource_data=base_resource,
+        parent_urn=items.get("ParentUrn"),
         loader=loader,
     )
