@@ -65,12 +65,12 @@ def test_all_custom_resources(file_name, aws_interface):
                 )
             )
 
-        except NotImplementedError:
+        except NotImplementedError as ex:
             raise ValueError(
                 "Boto3 raised a NotImplementedError, usually this means "
                 "you forgot to wrap your paginate.return_results in a list or "
                 "include the key at the top level (e.g. Instances)"
-            )
+            ) from ex
 
     compare_list_of_dicts_allow_any(
         test_spec["expectedResults"], [dict(x) for x in result], allow_partial_match_first=True
