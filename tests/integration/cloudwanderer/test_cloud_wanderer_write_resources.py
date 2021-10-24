@@ -79,7 +79,7 @@ def test_write_resources(cloudwanderer_aws):
                         "Groups": [],
                         "MacAddress": "1b:2b:3c:4d:5e:6f",
                         "NetworkInterfaceId": ANY,
-                        "OwnerId": "123456789012",
+                        "OwnerId": ANY,
                         "PrivateIpAddress": ANY,
                         "PrivateIpAddresses": [
                             {
@@ -236,7 +236,7 @@ def test_cleanup_resources_of_type_us_east_1(cloudwanderer_aws):
                     "IsTruncated": False,
                     "Marker": None,
                 },
-                "MaxSessionDuration": 3600,
+                "MaxSessionDuration": ANY,
                 "Path": "/",
                 "PermissionsBoundary": None,
                 "RoleId": ANY,

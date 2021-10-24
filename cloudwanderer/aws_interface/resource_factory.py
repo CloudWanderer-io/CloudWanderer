@@ -408,6 +408,12 @@ class CloudWandererResourceFactory(ResourceFactory):
 
         return property(relationships)
 
+    def _create_is_dependent_resource(self) -> property:
+        def is_dependent_resource(self) -> bool:
+            return self.resource_map.type == "dependentResource"
+
+        return property(is_dependent_resource)
+
     def _load_cloudwanderer_properties(
         self, attrs: Dict[str, Any], resource_name: str, service_context: "ServiceContext"
     ) -> None:
@@ -432,4 +438,4 @@ class CloudWandererResourceFactory(ResourceFactory):
             attrs["secondary_attribute_names"] = self._create_secondary_attribute_names()
             attrs["shape"] = self._create_shape()
             attrs["relationships"] = self._create_relationships()
-            # attrs["is_dependent_resource"] = self._create_is_dependent_resource()
+            attrs["is_dependent_resource"] = self._create_is_dependent_resource()

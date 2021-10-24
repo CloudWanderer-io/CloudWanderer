@@ -6,51 +6,56 @@ from moto import mock_ec2, mock_iam, mock_s3, mock_sts
 from cloudwanderer.aws_interface.boto3_loaders import ResourceMap
 from cloudwanderer.urn import URN
 
-from ...pytest_helpers import create_iam_role, create_s3_buckets
+from ...pytest_helpers import compare_dict_allow_any, create_iam_role, create_s3_buckets
 
 
 @mock_ec2
 def test_raw_data(single_ec2_vpc):
-    assert single_ec2_vpc.meta.data == {
-        "CidrBlock": "172.31.0.0/16",
-        "CidrBlockAssociationSet": [
-            {
-                "AssociationId": ANY,
-                "CidrBlock": "172.31.0.0/16",
-                "CidrBlockState": {"State": "associated"},
-            }
-        ],
-        "DhcpOptionsId": ANY,
-        "InstanceTenancy": "default",
-        "Ipv6CidrBlockAssociationSet": [],
-        "IsDefault": True,
-        "OwnerId": "123456789012",
-        "State": "available",
-        "Tags": [],
-        "VpcId": ANY,
-    }
+    compare_dict_allow_any(
+        {
+            "CidrBlock": "172.31.0.0/16",
+            "CidrBlockAssociationSet": [
+                {
+                    "AssociationId": ANY,
+                    "CidrBlock": "172.31.0.0/16",
+                    "CidrBlockState": {"State": "associated"},
+                }
+            ],
+            "DhcpOptionsId": ANY,
+            "InstanceTenancy": "default",
+            "Ipv6CidrBlockAssociationSet": [],
+            "IsDefault": True,
+            "State": "available",
+            "Tags": [],
+            "VpcId": ANY,
+        },
+        single_ec2_vpc.meta.data,
+    )
 
 
 @mock_ec2
 def test_normalized_raw_data(single_ec2_vpc):
-    assert single_ec2_vpc.normalized_raw_data == {
-        "CidrBlock": "172.31.0.0/16",
-        "CidrBlockAssociationSet": [
-            {
-                "AssociationId": ANY,
-                "CidrBlock": "172.31.0.0/16",
-                "CidrBlockState": {"State": "associated"},
-            }
-        ],
-        "DhcpOptionsId": ANY,
-        "InstanceTenancy": "default",
-        "Ipv6CidrBlockAssociationSet": [],
-        "IsDefault": True,
-        "OwnerId": "123456789012",
-        "State": "available",
-        "Tags": [],
-        "VpcId": ANY,
-    }
+    compare_dict_allow_any(
+        {
+            "CidrBlock": "172.31.0.0/16",
+            "CidrBlockAssociationSet": [
+                {
+                    "AssociationId": ANY,
+                    "CidrBlock": "172.31.0.0/16",
+                    "CidrBlockState": {"State": "associated"},
+                }
+            ],
+            "DhcpOptionsId": ANY,
+            "InstanceTenancy": "default",
+            "Ipv6CidrBlockAssociationSet": [],
+            "IsDefault": True,
+            "OwnerId": None,
+            "State": "available",
+            "Tags": [],
+            "VpcId": ANY,
+        },
+        single_ec2_vpc.normalized_raw_data,
+    )
 
 
 def test_resource_type(single_ec2_vpc):
@@ -154,3 +159,11 @@ def test_empty_resource(ec2_service):
     vpc = ec2_service.resource("vpc", empty_resource=True)
 
     assert isinstance(vpc, ServiceResource)
+
+
+def test_empty_resource_is_dependent_resource_true(iam_service):
+    assert iam_service.resource("role_policy", empty_resource=True).is_dependent_resource
+
+
+def test_empty_resource_is_dependent_resource_false(iam_service):
+    assert not iam_service.resource("role", empty_resource=True).is_dependent_resource
