@@ -9,8 +9,8 @@ class TestGetCwServices(unittest.TestCase):
         self.getter = GetCwServices()
 
     def test_get_secondary_attributes(self):
-        service = self.getter.services.get_service("iam")
-        resource = service._get_empty_resource("role")
+        service = self.getter.session.resource("iam")
+        resource = service.resource("role", empty_resource=True)
 
         result = self.getter.get_secondary_attributes(service=service, resource=resource)
 
@@ -52,8 +52,8 @@ class TestGetCwServices(unittest.TestCase):
         )
 
     def test_get_subresources(self):
-        service = self.getter.services.get_service("iam")
-        resource = service._get_empty_resource("role")
+        service = self.getter.session.resource("iam")
+        resource = service.resource("role", empty_resource=True)
 
         result = self.getter.get_subresources(service, resource)
         assert (
@@ -95,8 +95,8 @@ class TestGetCwServices(unittest.TestCase):
         )
 
     def test_generate_resources_section(self):
-        service = self.getter.services.get_service("iam")
-        resource = service._get_empty_resource("role")
+        service = self.getter.session.resource("iam")
+        resource = service.resource("role", empty_resource=True)
         result = self.getter.generate_resource_section(service, resource, "{service_name}.{resource_name}")
 
         assert (

@@ -1,0 +1,146 @@
+{
+  "service": {},
+  "resources": {
+    "TargetHealth": {
+      "type": "secondaryAttribute",
+      "secondaryAttributeMaps": [
+        {
+          "sourcePath": "@",
+          "destinationName": "TargetHealth"
+        }
+      ]
+    },
+    "TargetGroup": {
+      "type": "resource",
+      "relationships": [
+        {
+          "basePath": "@",
+          "idParts": [
+            {
+              "path": "VpcId"
+            }
+          ],
+          "service": "ec2",
+          "resourceType": "vpc",
+          "regionSource": "sameAsResource",
+          "accountIdSource": "unknown",
+          "direction": "inbound"
+        },
+        {
+          "basePath": "TargetHealth[]",
+          "idParts": [
+            {
+              "path": "Target.Id",
+              "regexPattern": "(?P<id_part_0>^i-[a-z0-9]+)"
+            }
+          ],
+          "service": "ec2",
+          "resourceType": "instance",
+          "regionSource": "sameAsResource",
+          "accountIdSource": "unknown",
+          "direction": "outbound"
+        },
+        {
+          "basePath": "TargetHealth[]",
+          "idParts": [
+            {
+              "path": "Target.Id",
+              "regexPattern": "arn:aws:lambda:(?P<region>[^:]+):(?P<account_id>[^:]+):function:(?P<id_part_0>[^:]+)$"
+            }
+          ],
+          "service": "lambda",
+          "resourceType": "function",
+          "regionSource": "sameAsResource",
+          "accountIdSource": "unknown",
+          "direction": "outbound"
+        },
+        {
+          "basePath": "TargetHealth[]",
+          "idParts": [
+            {
+              "path": "Target.Id",
+              "regexPattern": "^arn:aws:lambda:(?P<region>[^:]+):(?P<account_id>[^:]+):function:(?P<id_part_0>[^:]+):(?P<id_part_1>[0-9]+)$"
+            }
+          ],
+          "service": "lambda",
+          "resourceType": "function_version",
+          "regionSource": "sameAsResource",
+          "accountIdSource": "unknown",
+          "direction": "outbound"
+        },
+        {
+          "basePath": "TargetHealth[]",
+          "idParts": [
+            {
+              "path": "Target.Id",
+              "regexPattern": "^arn:aws:lambda:(?P<region>[^:]+):(?P<account_id>[^:]+):function:(?P<id_part_0>[^:]+):(?P<id_part_1>[a-zA-Z0-9]*[a-zA-Z]+[a-zA-Z0-9]*)$"
+            }
+          ],
+          "service": "lambda",
+          "resourceType": "function_alias",
+          "regionSource": "sameAsResource",
+          "accountIdSource": "unknown",
+          "direction": "outbound"
+        },
+        {
+          "basePath": "LoadBalancerArns[]",
+          "idParts": [
+            {
+              "path": "@",
+              "regexPattern": "[^:]+:[^:]+:[^:]+:(?P<region>[^:]+):(?P<account_id>[^:]+):.*/(?P<id_part_0>[^/]+)/[^/]+"
+            }
+          ],
+          "service": "elbv2",
+          "resourceType": "load_balancer",
+          "regionSource": "sameAsResource",
+          "accountIdSource": "unknown",
+          "direction": "inbound"
+        }
+      ]
+    },
+    "LoadBalancer": {
+      "type": "resource",
+      "relationships": [
+        {
+          "basePath": "@",
+          "idParts": [
+            {
+              "path": "VpcId"
+            }
+          ],
+          "service": "ec2",
+          "resourceType": "vpc",
+          "regionSource": "sameAsResource",
+          "accountIdSource": "unknown",
+          "direction": "inbound"
+        },
+        {
+          "basePath": "SecurityGroups[]",
+          "idParts": [
+            {
+              "path": "@"
+            }
+          ],
+          "service": "ec2",
+          "resourceType": "security_group",
+          "regionSource": "sameAsResource",
+          "accountIdSource": "unknown",
+          "direction": "outbound"
+        },
+        {
+          "basePath": "AvailabilityZones[]",
+          "idParts": [
+            {
+              "path": "SubnetId"
+            }
+          ],
+          "service": "ec2",
+          "resourceType": "subnet",
+          "regionSource": "sameAsResource",
+          "accountIdSource": "unknown",
+          "direction": "inbound"
+        }
+      ]
+    }
+  }
+}

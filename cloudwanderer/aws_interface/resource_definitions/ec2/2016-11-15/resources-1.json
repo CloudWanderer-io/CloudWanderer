@@ -1,0 +1,432 @@
+{
+  "service": {
+    "hasMany": {
+      "VpcEndpoints": {
+        "request": {
+          "operation": "DescribeVpcEndpoints"
+        },
+        "resource": {
+          "type": "VpcEndpoint",
+          "identifiers": [
+            {
+              "target": "Id",
+              "source": "response",
+              "path": "VpcEndpoints[].VpcEndpointId"
+            }
+          ],
+          "path": "VpcEndpoints[]"
+        }
+      },
+      "VpcEndpointServices": {
+        "request": {
+          "operation": "DescribeVpcEndpointServices"
+        },
+        "resource": {
+          "type": "VpcEndpointService",
+          "identifiers": [
+            {
+              "target": "Name",
+              "source": "response",
+              "path": "ServiceDetails[].ServiceName"
+            }
+          ],
+          "path": "ServiceDetails[]"
+        }
+      },
+      "ElasticIps": {
+        "request": {
+          "operation": "DescribeAddresses"
+        },
+        "resource": {
+          "type": "ElasticIp",
+          "identifiers": [
+            {
+              "target": "Id",
+              "source": "response",
+              "path": "Addresses[].AllocationId"
+            }
+          ],
+          "path": "Addresses[]"
+        }
+      },
+      "NatGateways": {
+        "request": {
+          "operation": "DescribeNatGateways"
+        },
+        "resource": {
+          "type": "NatGateway",
+          "identifiers": [
+            {
+              "target": "Id",
+              "source": "response",
+              "path": "NatGateways[].NatGatewayId"
+            }
+          ],
+          "path": "NatGateways[]"
+        }
+      },
+      "EgressOnlyInternetGateways": {
+        "request": {
+          "operation": "DescribeEgressOnlyInternetGateways"
+        },
+        "resource": {
+          "type": "EgressOnlyInternetGateway",
+          "identifiers": [
+            {
+              "target": "Id",
+              "source": "response",
+              "path": "EgressOnlyInternetGateways[].EgressOnlyInternetGatewayId"
+            }
+          ],
+          "path": "EgressOnlyInternetGateways[]"
+        }
+      },
+      "VpnGateways": {
+        "request": {
+          "operation": "DescribeVpnGateways"
+        },
+        "resource": {
+          "type": "VpnGateway",
+          "identifiers": [
+            {
+              "target": "Id",
+              "source": "response",
+              "path": "VpnGateways[].VpnGatewayId"
+            }
+          ],
+          "path": "VpnGateways[]"
+        }
+      },
+      "CustomerGateways": {
+        "request": {
+          "operation": "DescribeCustomerGateways"
+        },
+        "resource": {
+          "type": "CustomerGateway",
+          "identifiers": [
+            {
+              "target": "Id",
+              "source": "response",
+              "path": "CustomerGateways[].CustomerGatewayId"
+            }
+          ],
+          "path": "CustomerGateways[]"
+        }
+      },
+      "VpnConnections": {
+        "request": {
+          "operation": "DescribeVpnConnections"
+        },
+        "resource": {
+          "type": "VpnConnection",
+          "identifiers": [
+            {
+              "target": "Id",
+              "source": "response",
+              "path": "VpnConnections[].VpnConnectionId"
+            }
+          ],
+          "path": "VpnConnections[]"
+        }
+      }
+    }
+  },
+  "resources": {
+    "RouteTable": {
+      "identifiers": [
+        {
+          "name": "Id",
+          "memberName": "RouteTableId"
+        }
+      ],
+      "shape": "RouteTable",
+      "load": {
+        "request": {
+          "operation": "DescribeRouteTables",
+          "params": [
+            {
+              "target": "RouteTableIds[0]",
+              "source": "identifier",
+              "name": "Id"
+            }
+          ]
+        },
+        "path": "RouteTables[0]"
+      },
+
+      "has": {
+        "Associations": {
+          "resource": {
+            "type": "RouteTableAssociation",
+            "identifiers": [
+              {
+                "target": "Id",
+                "source": "data",
+                "path": "Associations[].RouteTableAssociationId"
+              }
+            ],
+            "path": "Associations[]"
+          }
+        },
+        "Routes": {
+          "resource": {
+            "type": "Route",
+            "identifiers": [
+              {
+                "target": "RouteTableId",
+                "source": "identifier",
+                "name": "Id"
+              },
+              {
+                "target": "DestinationCidrBlock",
+                "source": "data",
+                "path": "Routes[].DestinationCidrBlock"
+              }
+            ],
+            "path": "Routes[]"
+          }
+        }
+      }
+    },
+    "Vpc": {
+      "identifiers": [
+        {
+          "name": "Id",
+          "memberName": "VpcId"
+        }
+      ],
+      "shape": "Vpc",
+      "has": {
+        "VpcEnableDnsSupport": {
+          "resource": {
+            "type": "VpcEnableDnsSupport",
+            "identifiers": [
+              {
+                "target": "VpcId",
+                "source": "identifier",
+                "name": "Id"
+              }
+            ],
+            "path": "@"
+          }
+        }
+      },
+      "load": {
+        "request": {
+          "operation": "DescribeVpcs",
+          "params": [
+            {
+              "target": "VpcIds[0]",
+              "source": "identifier",
+              "name": "Id"
+            }
+          ]
+        },
+        "path": "Vpcs[0]"
+      }
+    },
+    "VpcEnableDnsSupport": {
+      "shape": "DescribeVpcAttributeResult",
+      "identifiers": [
+        {
+          "name": "VpcId",
+          "memberName": "VpcId"
+        }
+      ],
+      "load": {
+        "request": {
+          "operation": "DescribeVpcAttribute",
+          "params": [
+            {
+              "target": "VpcId",
+              "source": "identifier",
+              "name": "VpcId"
+            },
+            {
+              "target": "Attribute",
+              "source": "string",
+              "value": "enableDnsSupport"
+            }
+          ]
+        },
+        "path": "@"
+      }
+    },
+    "VpcEndpoint": {
+      "identifiers": [
+        {
+          "name": "Id",
+          "memberName": "VpcEndpointId"
+        }
+      ],
+      "shape": "VpcEndpoint",
+      "load": {
+        "request": {
+          "operation": "DescribeVpcEndpoints",
+          "params": [
+            {
+              "target": "VpcEndpointIds[0]",
+              "source": "identifier",
+              "name": "Id"
+            }
+          ]
+        },
+        "path": "VpcEndpoints[0]"
+      }
+    },
+    "VpcEndpointService": {
+      "identifiers": [
+        {
+          "name": "Name",
+          "memberName": "ServiceName"
+        }
+      ],
+      "shape": "ServiceDetail",
+      "load": {
+        "request": {
+          "operation": "DescribeVpcEndpointServices",
+          "params": [
+            {
+              "target": "ServiceNames[0]",
+              "source": "identifier",
+              "name": "Name"
+            }
+          ]
+        },
+        "path": "ServiceDetails[0]"
+      }
+    },
+    "ElasticIp": {
+      "identifiers": [
+        {
+          "name": "Id",
+          "memberName": "AllocationId"
+        }
+      ],
+      "shape": "Address",
+      "load": {
+        "request": {
+          "operation": "DescribeAddresses",
+          "params": [
+            {
+              "target": "AllocationIds[0]",
+              "source": "identifier",
+              "name": "Id"
+            }
+          ]
+        },
+        "path": "Addresses[0]"
+      }
+    },
+    "NatGateway": {
+      "identifiers": [
+        {
+          "name": "Id",
+          "memberName": "NatGatewayId"
+        }
+      ],
+      "shape": "NatGateway",
+      "load": {
+        "request": {
+          "operation": "DescribeNatGateways",
+          "params": [
+            {
+              "target": "NatGatewayIds[0]",
+              "source": "identifier",
+              "name": "Id"
+            }
+          ]
+        },
+        "path": "NatGateways[0]"
+      }
+    },
+    "EgressOnlyInternetGateway": {
+      "identifiers": [
+        {
+          "name": "Id",
+          "memberName": "EgressOnlyInternetGatewayIds"
+        }
+      ],
+      "shape": "EgressOnlyInternetGateway",
+      "load": {
+        "request": {
+          "operation": "DescribeEgressOnlyInternetGateways",
+          "params": [
+            {
+              "target": "EgressOnlyInternetGatewayIds[0]",
+              "source": "identifier",
+              "name": "Id"
+            }
+          ]
+        },
+        "path": "EgressOnlyInternetGateways[0]"
+      }
+    },
+    "VpnGateway": {
+      "identifiers": [
+        {
+          "name": "Id",
+          "memberName": "VpnGatewayId"
+        }
+      ],
+      "shape": "VpnGateway",
+      "load": {
+        "request": {
+          "operation": "DescribeVpnGateways",
+          "params": [
+            {
+              "target": "VpnGatewayIds[0]",
+              "source": "identifier",
+              "name": "Id"
+            }
+          ]
+        },
+        "path": "VpnGateways[0]"
+      }
+    },
+    "CustomerGateway": {
+      "identifiers": [
+        {
+          "name": "Id",
+          "memberName": "CustomerGatewayId"
+        }
+      ],
+      "shape": "CustomerGateway",
+      "load": {
+        "request": {
+          "operation": "DescribeCustomerGateways",
+          "params": [
+            {
+              "target": "CustomerGatewayIds[0]",
+              "source": "identifier",
+              "name": "Id"
+            }
+          ]
+        },
+        "path": "CustomerGateways[0]"
+      }
+    },
+    "VpnConnection": {
+      "identifiers": [
+        {
+          "name": "Id",
+          "memberName": "VpnConnectionId"
+        }
+      ],
+      "shape": "VpnConnection",
+      "load": {
+        "request": {
+          "operation": "DescribeVpnConnections",
+          "params": [
+            {
+              "target": "VpnConnectionIds[0]",
+              "source": "identifier",
+              "name": "Id"
+            }
+          ]
+        },
+        "path": "VpnConnections[0]"
+      }
+    }
+  }
+}

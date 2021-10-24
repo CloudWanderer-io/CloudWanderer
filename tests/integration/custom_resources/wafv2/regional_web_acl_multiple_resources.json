@@ -1,0 +1,72 @@
+{
+    "service": "wafv2",
+    "mockData": {
+        "get_paginator.return_value.paginate.return_value": [
+            {
+                "WebACLs": [
+                    {
+                        "Name": "test-webacl",
+                        "Id": "11111111-1111-1111-1111-111111111111",
+                        "Description": "Test Web ACL",
+                        "LockToken": "11111111-1111-1111-1111-111111111111",
+                        "ARN": "arn:aws:wafv2:eu-west-1:123456789012:regional/webacl/test-webacl/11111111-1111-1111-1111-111111111111"
+                    }
+                ]
+            }
+        ]
+    },
+    "getResources": {
+        "serviceName": "wafv2",
+        "resourceType": "regional_web_acl",
+        "region": "eu-west-2"
+    },
+    "expectedResults": [
+        {
+            "urn": {
+                "cloud_name": "aws",
+                "account_id": {},
+                "region": "eu-west-2",
+                "service": "wafv2",
+                "resource_type": "regional_web_acl",
+                "resource_id_parts": [
+                    "test-webacl",
+                    "11111111-1111-1111-1111-111111111111"
+                ],
+                "resource_id": "test-webacl/11111111-1111-1111-1111-111111111111"
+            },
+            "relationships": [],
+            "dependent_resource_urns": [],
+            "parent_urn": null,
+            "cloudwanderer_metadata": {
+                "Name": "test-webacl",
+                "Id": "11111111-1111-1111-1111-111111111111",
+                "ARN": "arn:aws:wafv2:eu-west-1:123456789012:regional/webacl/test-webacl/11111111-1111-1111-1111-111111111111",
+                "DefaultAction": null,
+                "Description": "Test Web ACL",
+                "Rules": null,
+                "VisibilityConfig": null,
+                "Capacity": null,
+                "PreProcessFirewallManagerRuleGroups": null,
+                "PostProcessFirewallManagerRuleGroups": null,
+                "ManagedByFirewallManager": null,
+                "LabelNamespace": null,
+                "CustomResponseBodies": null,
+                "LockToken": "11111111-1111-1111-1111-111111111111"
+            },
+            "name": "test-webacl",
+            "id": "11111111-1111-1111-1111-111111111111",
+            "arn": "arn:aws:wafv2:eu-west-1:123456789012:regional/webacl/test-webacl/11111111-1111-1111-1111-111111111111",
+            "default_action": null,
+            "description": "Test Web ACL",
+            "rules": null,
+            "visibility_config": null,
+            "capacity": null,
+            "pre_process_firewall_manager_rule_groups": null,
+            "post_process_firewall_manager_rule_groups": null,
+            "managed_by_firewall_manager": null,
+            "label_namespace": null,
+            "custom_response_bodies": null,
+            "lock_token": "11111111-1111-1111-1111-111111111111"
+        }
+    ]
+}

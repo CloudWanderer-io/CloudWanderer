@@ -1,0 +1,50 @@
+{
+  "service": {},
+  "resources": {
+    "AutoScalingGroup": {
+      "type": "resource",
+      "relationships": [
+        {
+          "basePath": "@",
+          "idParts": [
+            {
+              "path": "LaunchConfigurationName"
+            }
+          ],
+          "service": "autoscaling",
+          "resourceType": "launch_configuration",
+          "regionSource": "sameAsResource",
+          "accountIdSource": "unknown",
+          "direction": "outbound"
+        },
+        {
+          "basePath": "@",
+          "idParts": [
+            {
+              "path": "LoadBalancerNames"
+            }
+          ],
+          "service": "elb",
+          "resourceType": "load_balancer",
+          "regionSource": "sameAsResource",
+          "accountIdSource": "unknown",
+          "direction": "outbound"
+        },
+        {
+          "basePath": "TargetGroupARNs[]",
+          "idParts": [
+            {
+              "path": "@",
+              "regexPattern": "[^:]+:[^:]+:[^:]+:(?P<region>[^:]+):(?P<account_id>[^:]+):.*/(?P<id_part_0>[^/]+)/[^/]+"
+            }
+          ],
+          "service": "elbv2",
+          "resourceType": "target_group",
+          "regionSource": "sameAsResource",
+          "accountIdSource": "unknown",
+          "direction": "outbound"
+        }
+      ]
+    }
+  }
+}

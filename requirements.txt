@@ -1,4 +1,5 @@
 boto3>=1.17.22
+botocore
 docker
 flake8
 parameterized
@@ -9,6 +10,10 @@ sphinx_rtd_theme
 darglint
 pre-commit
 boto3-stubs[dynamodb]
-mypy==0.812
+mypy==0.910
 typing_extensions; python_version < "3.8.0"
 jinja2
+boto3-stubs
+gremlinpython
+pytest
+moto==2.0.1

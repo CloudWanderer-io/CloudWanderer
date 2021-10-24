@@ -1,9 +1,12 @@
 """Module containing abstract classes for CloudWanderer storage connectors."""
 from abc import ABC, abstractmethod
-from typing import Iterator, List, Optional
+from datetime import datetime
+from typing import Iterator, Optional
 
 from ..cloud_wanderer_resource import CloudWandererResource
 from ..urn import URN
+
+ISO_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 
 
 class BaseStorageConnector(ABC):
@@ -12,6 +15,14 @@ class BaseStorageConnector(ABC):
     @abstractmethod
     def init(self) -> None:
         """Initialise the storage backend whatever it is."""
+
+    @abstractmethod
+    def open(self) -> None:
+        """Open the connection to the backend storage."""
+
+    @abstractmethod
+    def close(self) -> None:
+        """Close the connection to the backend storage."""
 
     @abstractmethod
     def write_resource(self, resource: CloudWandererResource) -> None:
@@ -36,6 +47,7 @@ class BaseStorageConnector(ABC):
     @abstractmethod
     def read_resources(
         self,
+        cloud_name: str = None,
         account_id: str = None,
         region: str = None,
         service: str = None,
@@ -47,6 +59,7 @@ class BaseStorageConnector(ABC):
         All arguments are optional.
 
         Arguments:
+            cloud_name: The name of the cloud.
             urn: The AWS URN of the resource to return
             account_id: AWS Account ID
             region: AWS region (e.g. ``'eu-west-2'``)
@@ -64,16 +77,23 @@ class BaseStorageConnector(ABC):
 
     @abstractmethod
     def delete_resource_of_type_in_account_region(
-        self, service: str, resource_type: str, account_id: str, region: str, urns_to_keep: List[URN] = None
+        self,
+        cloud_name: str,
+        service: str,
+        resource_type: str,
+        account_id: str,
+        region: str,
+        cutoff: Optional[datetime],
     ) -> None:
         """Delete resources of type in account and region unless in list of URNs.
 
         This is used primarily to clean up old resources.
 
         Arguments:
+            cloud_name: The name of the cloud.
             account_id (str): AWS Account ID
             region (str): AWS region (e.g. ``'eu-west-2'``)
             service (str): Service name (e.g. ``'ec2'``)
             resource_type (str): Resource Type (e.g. ``'instance'``)
-            urns_to_keep (List[cloudwanderer.urn.URN]): A list of resources not to delete
+            cutoff: The date before which to delete resources of the specified type and account.
         """

@@ -1,79 +1,137 @@
-import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY
 
-from cloudwanderer import URN, CloudWandererAWSInterface
-from cloudwanderer.exceptions import BadServiceMapError, UnsupportedServiceError
-from cloudwanderer.models import ResourceFilter
+import pytest
+from moto import mock_ec2, mock_iam, mock_sts
 
-from ..helpers import GenericAssertionHelpers, get_default_mocker
-from ..mocks import add_infra
+from cloudwanderer import URN
+from cloudwanderer.exceptions import UnsupportedResourceTypeError, UnsupportedServiceError
+
+from ...pytest_helpers import compare_dict_allow_any, create_iam_role
 
 
-class TestAWSInterfaceGetResources(unittest.TestCase, GenericAssertionHelpers):
-    @classmethod
-    def setUpClass(cls):
-        cls.enabled_regions = ["eu-west-2", "us-east-1", "ap-east-1"]
-        get_default_mocker().start_general_mock(
-            restrict_regions=cls.enabled_regions,
-            restrict_services=["ec2", "s3", "iam"],
-            limit_resources=["ec2:instance", "s3:bucket", "iam:group", "iam:role"],
+@mock_ec2
+@mock_sts
+def test_get_resources_of_type_in_region_eu_west_2(aws_interface):
+    result = list(
+        aws_interface.get_resources(
+            service_name="ec2",
+            resource_type="vpc",
+            region="eu-west-2",
         )
-        add_infra(regions=cls.enabled_regions)
+    )[0]
 
-    @classmethod
-    def tearDownClass(cls):
-        get_default_mocker().stop_general_mock()
+    compare_dict_allow_any(
+        dict(result),
+        {
+            "cidr_block": "172.31.0.0/16",
+            "cidr_block_association_set": ANY,
+            "cloudwanderer_metadata": {
+                "CidrBlock": "172.31.0.0/16",
+                "CidrBlockAssociationSet": [
+                    {
+                        "AssociationId": ANY,
+                        "CidrBlock": "172.31.0.0/16",
+                        "CidrBlockState": {"State": "associated"},
+                    }
+                ],
+                "DhcpOptionsId": ANY,
+                "EnableDnsSupport": True,
+                "InstanceTenancy": "default",
+                "Ipv6CidrBlockAssociationSet": [],
+                "IsDefault": True,
+                "OwnerId": ANY,
+                "State": "available",
+                "Tags": [],
+                "VpcId": ANY,
+            },
+            "dependent_resource_urns": [],
+            "dhcp_options_id": ANY,
+            "discovery_time": ANY,
+            "enable_dns_support": True,
+            "instance_tenancy": "default",
+            "ipv6_cidr_block_association_set": [],
+            "is_default": True,
+            "owner_id": ANY,
+            "parent_urn": None,
+            "relationships": ANY,
+            "state": "available",
+            "tags": [],
+            "urn": ANY,
+            "vpc_id": ANY,
+        },
+    )
 
-    def setUp(self):
-        self.aws_interface = CloudWandererAWSInterface()
 
-    def test_get_resources_of_type_in_region_eu_west_2(self):
-        result = list(
-            self.aws_interface.get_resources(
-                service_name="ec2",
-                resource_type="instance",
-                region="eu-west-2",
-            )
-        )
+@mock_iam
+@mock_sts
+def test_get_resources_of_type_in_region_us_east_1(aws_interface):
+    create_iam_role()
+    result = list(aws_interface.get_resources(service_name="iam", resource_type="role", region="us-east-1"))[0]
 
-        self.assert_dictionary_overlap(result, [{"urn": "urn:aws:.*:eu-west-2:ec2:instance:.*"}])
-
-    def test_get_resources_of_type_in_region_us_east_1(self):
-        result = self.aws_interface.get_resources(service_name="iam", resource_type="role", region="us-east-1")
-        self.assert_dictionary_overlap(
-            result,
-            [
-                {
-                    "urn": "urn:aws:.*:us-east-1:iam:role:test-role",
-                    "subresource_urns": [
-                        URN.from_string("urn:aws:123456789012:us-east-1:iam:role_policy:test-role/test-role-policy"),
-                    ],
+    compare_dict_allow_any(
+        dict(result),
+        {
+            "urn": URN(
+                cloud_name="aws",
+                account_id="123456789012",
+                region="us-east-1",
+                service="iam",
+                resource_type="role_policy",
+                resource_id_parts=["test-role", "test-role-policy"],
+            ),
+            "relationships": [],
+            "dependent_resource_urns": [],
+            "parent_urn": URN(
+                cloud_name="aws",
+                account_id="123456789012",
+                region="us-east-1",
+                service="iam",
+                resource_type="role",
+                resource_id_parts=["test-role"],
+            ),
+            "cloudwanderer_metadata": {
+                "RoleName": "test-role",
+                "PolicyName": "test-role-policy",
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": {
+                        "Effect": "Allow",
+                        "Action": "s3:ListBucket",
+                        "Resource": "arn:aws:s3:::example_bucket",
+                    },
                 },
-                {
-                    "urn": "urn:aws:.*:us-east-1:iam:role_policy:test-role/test-role-policy",
-                    "parent_urn": "urn:aws:.*:us-east-1:iam:role:test-role",
-                },
-            ],
-        )
+            },
+            "discovery_time": ANY,
+            "role_name": "test-role",
+            "policy_name": "test-role-policy",
+            "policy_document": {
+                "Version": "2012-10-17",
+                "Statement": {"Effect": "Allow", "Action": "s3:ListBucket", "Resource": "arn:aws:s3:::example_bucket"},
+            },
+        },
+    )
 
-    def test_get_resources_unsupported_service(self):
-        with self.assertRaises(UnsupportedServiceError):
-            list(self.aws_interface.get_resources(service_name="unicorn_stable", resource_type="instance"))
 
-    def test_get_resources_unsupported_resource_type(self):
-        with self.assertRaisesRegex(
-            BadServiceMapError,
-            "resource type 'unicorn' has no Collection in service 'ec2'.",
-        ):
-            list(self.aws_interface.get_resources(service_name="ec2", resource_type="unicorn"))
+def test_get_resources_unsupported_service(aws_interface):
+    with pytest.raises(UnsupportedServiceError):
+        list(aws_interface.get_resources(service_name="unicorn_stable", resource_type="instance", region="eu-west-1"))
 
-    @patch("cloudwanderer.boto3_services.CloudWandererBoto3Service")
-    def test_filters(self, mock_service: MagicMock):
-        aws_interface = CloudWandererAWSInterface(
-            resource_filters=[ResourceFilter(service_name="ec2", resource_type="image", filters={"Owners": "all"})]
-        )
-        list(aws_interface.get_resources(service_name="ec2", resource_type="image"))
 
-        mock_service.return_value.get_resources.assert_called_with(
-            resource_type="image", resource_filters={"Owners": "all"}
-        )
+def test_get_resources_unsupported_resource_type(aws_interface):
+    with pytest.raises(
+        UnsupportedResourceTypeError,
+        match="Could not find Boto3 collection for unicorn",
+    ):
+        list(aws_interface.get_resources(service_name="ec2", resource_type="unicorn", region="eu-west-1"))
+
+
+# TODO: Add filter support back to get_resources
+# def test_filters(self, mock_service: MagicMock):
+#     aws_interface = CloudWandererAWSInterface(
+#         resource_filters=[ResourceFilter(service_name="ec2", resource_type="image", filters={"Owners": "all"})]
+#     )
+#     list(aws_interface.get_resources(service_name="ec2", resource_type="image"))
+
+#     mock_service.return_value.get_resources.assert_called_with(
+#         resource_type="image", resource_filters={"Owners": "all"}
+#     )

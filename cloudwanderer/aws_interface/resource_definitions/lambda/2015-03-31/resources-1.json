@@ -1,0 +1,252 @@
+{
+  "service": {
+    "hasMany": {
+      "Functions": {
+        "request": {
+          "operation": "ListFunctions"
+        },
+        "resource": {
+          "type": "Function",
+          "identifiers": [
+            {
+              "target": "FunctionName",
+              "source": "response",
+              "path": "Functions[].FunctionName"
+            }
+          ],
+          "path": "Functions[]"
+        }
+      },
+      "Layers": {
+        "request": {
+          "operation": "ListLayers"
+        },
+        "resource": {
+          "type": "Layer",
+          "identifiers": [
+            {
+              "target": "LayerName",
+              "source": "response",
+              "path": "Layers[].LayerName"
+            }
+          ],
+          "path": "Layers[]"
+        }
+      }
+    }
+  },
+  "resources": {
+    "FunctionAlias": {
+      "identifiers": [
+        {
+          "name": "FunctionName",
+          "memberName": "FunctionName"
+        },
+        {
+          "name": "Name",
+          "memberName": "Name"
+        }
+      ],
+      "shape": "AliasConfiguration",
+      "load": {
+        "request": {
+          "operation": "GetAlias",
+          "params": [
+            {
+              "target": "FunctionName",
+              "source": "identifier",
+              "name": "FunctionName"
+            },
+            {
+              "target": "Name",
+              "source": "identifier",
+              "name": "Name"
+            }
+          ]
+        },
+        "path": "@"
+      }
+    },
+    "FunctionVersion": {
+      "identifiers": [
+        {
+          "name": "FunctionName",
+          "memberName": "FunctionName"
+        },
+        {
+          "name": "Version",
+          "memberName": "Version"
+        }
+      ],
+      "shape": "FunctionConfiguration",
+      "load": {
+        "request": {
+          "operation": "GetFunctionConfiguration",
+          "params": [
+            {
+              "target": "FunctionName",
+              "source": "identifier",
+              "name": "FunctionName"
+            },
+            {
+              "target": "Qualifier",
+              "source": "identifier",
+              "name": "Version"
+            }
+          ]
+        },
+        "path": "@"
+      }
+    },
+    "Function": {
+      "identifiers": [
+        {
+          "name": "FunctionName",
+          "memberName": "FunctionName"
+        }
+      ],
+      "shape": "FunctionConfiguration",
+      "load": {
+        "request": {
+          "operation": "GetFunction",
+          "params": [
+            {
+              "target": "FunctionName",
+              "source": "identifier",
+              "name": "FunctionName"
+            }
+          ]
+        },
+        "path": "Configuration"
+      },
+      "hasMany": {
+        "FunctionVersions": {
+          "request": {
+            "operation": "ListVersionsByFunction",
+            "params": [
+              {
+                "target": "FunctionName",
+                "source": "identifier",
+                "name": "FunctionName"
+              }
+            ]
+          },
+          "resource": {
+            "type": "FunctionVersion",
+            "identifiers": [
+              {
+                "target": "FunctionName",
+                "source": "identifier",
+                "name": "FunctionName"
+              },
+              {
+                "target": "Version",
+                "source": "response",
+                "path": "Versions[].Version"
+              }
+            ],
+            "path": "Versions[]"
+          }
+        },
+        "FunctionAliases": {
+          "request": {
+            "operation": "ListAliases",
+            "params": [
+              {
+                "target": "FunctionName",
+                "source": "identifier",
+                "name": "FunctionName"
+              }
+            ]
+          },
+          "resource": {
+            "type": "FunctionAlias",
+            "identifiers": [
+              {
+                "target": "FunctionName",
+                "source": "identifier",
+                "name": "FunctionName"
+              },
+              {
+                "target": "Name",
+                "source": "response",
+                "path": "Aliases[].Name"
+              }
+            ],
+            "path": "Aliases[]"
+          }
+        }
+      }
+    },
+    "Layer": {
+      "identifiers": [
+        {
+          "name": "LayerName",
+          "memberName": "LayerName"
+        }
+      ],
+      "shape": "LayersListItem",
+      "hasMany": {
+        "LayerVersions": {
+          "request": {
+            "operation": "ListLayerVersions",
+            "params": [
+              {
+                "target": "LayerName",
+                "source": "identifier",
+                "name": "LayerName"
+              }
+            ]
+          },
+          "resource": {
+            "type": "LayerVersion",
+            "identifiers": [
+              {
+                "target": "LayerName",
+                "source": "identifier",
+                "name": "LayerName"
+              },
+              {
+                "target": "Version",
+                "source": "response",
+                "path": "LayerVersions[].Version"
+              }
+            ],
+            "path": "LayerVersions[]"
+          }
+        }
+      }
+    },
+    "LayerVersion": {
+      "identifiers": [
+        {
+          "name": "LayerName",
+          "memberName": "LayerName"
+        },
+        {
+          "name": "Version",
+          "memberName": "Version"
+        }
+      ],
+      "shape": "LayerVersionsListItem",
+      "load": {
+        "request": {
+          "operation": "GetLayerVersion",
+          "params": [
+            {
+              "target": "LayerName",
+              "source": "identifier",
+              "name": "LayerName"
+            },
+            {
+              "target": "VersionNumber",
+              "source": "identifier",
+              "name": "Version"
+            }
+          ]
+        },
+        "path": "@"
+      }
+    }
+  }
+}

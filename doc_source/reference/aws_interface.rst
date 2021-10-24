@@ -6,6 +6,4 @@ CloudWanderer AWS Interface
 .. toctree::
 
     aws_interface/index
-    aws_interface/boto3_services
-    aws_interface/boto3_helpers
     aws_interface/boto3_loaders

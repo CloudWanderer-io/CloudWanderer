@@ -1,4 +1,5 @@
 """Allows CloudWanderer to store resources in DynamoDB."""
+import datetime
 import itertools
 import json
 import logging
@@ -8,7 +9,7 @@ import pathlib
 import sys
 from functools import reduce
 from random import randrange
-from typing import TYPE_CHECKING, Any, Callable, Dict, Generator, Iterable, Iterator, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, Generator, Iterable, Iterator, Optional, Union, cast
 
 if sys.version_info >= (3, 8):
     from typing import Literal, TypedDict
@@ -23,10 +24,10 @@ if TYPE_CHECKING:
 else:
     DynamoDBServiceResource = object
 
-from ..cloud_wanderer_resource import CloudWandererResource, SecondaryAttribute
+from ..cloud_wanderer_resource import CloudWandererResource
 from ..urn import URN
 from ..utils import standardise_data_types
-from .base_connector import BaseStorageConnector
+from .base_connector import ISO_DATE_FORMAT, BaseStorageConnector
 
 logger = logging.getLogger(__name__)
 
@@ -35,11 +36,7 @@ class DynamoDBQueryArgs(TypedDict, total=False):
     """Valid DynamoDB Query args to facilitate type hinting."""
 
     Select: Union[
-        Literal["ALL_ATTRIBUTES"],
-        Literal["ALL_PROJECTED_ATTRIBUTES"],
-        Literal["SPECIFIC_ATTRIBUTES"],
-        Literal["COUNT"],
-        None,
+        Literal["ALL_ATTRIBUTES"], Literal["ALL_PROJECTED_ATTRIBUTES"], Literal["COUNT"], Literal["SPECIFIC_ATTRIBUTES"]
     ]
     KeyConditionExpression: Optional[Union[str, ConditionBase]]
     FilterExpression: Optional[Union[str, ConditionBase]]
@@ -117,18 +114,18 @@ def _dynamodb_items_to_resources(items: Iterable[dict], loader: Callable) -> Ite
     """
     for _, group in itertools.groupby(items, lambda x: x["_id"]):
         grouped_items = list(group)
-        attributes = [
-            SecondaryAttribute(name=attribute["_attr"], **_strip_dynamodb_attrs(attribute))
-            for attribute in grouped_items
-            if attribute["_attr"] != "BaseResource"
-        ]
         base_resource = next(resource for resource in grouped_items if resource["_attr"] == "BaseResource")
-        subresource_urns = [URN.from_string(urn) for urn in base_resource.get("_subresource_urns", [])]
+        dependent_resource_urns = [URN.from_string(urn) for urn in base_resource.get("_dependent_resource_urns", [])]
+        parent_urn: Optional[URN] = None
+        if "_parent_urn" in base_resource:
+            parent_urn = URN.from_string(base_resource["_parent_urn"])
+
         yield CloudWandererResource(
             urn=_urn_from_primary_key(base_resource["_id"]),
-            subresource_urns=subresource_urns,
+            dependent_resource_urns=dependent_resource_urns,
             resource_data=_strip_dynamodb_attrs(base_resource),
-            secondary_attributes=attributes,
+            parent_urn=parent_urn,
+            discovery_time=datetime.datetime.strptime(base_resource["_discovery_time"], ISO_DATE_FORMAT),
             loader=loader,
         )
 
@@ -207,33 +204,18 @@ class DynamoDbConnector(BaseStorageConnector):
 
     def write_resource(self, resource: CloudWandererResource) -> None:
         logger.debug(f"Writing: {resource.urn} to {self.table_name}")
+        if resource.urn.is_partial:
+            raise ValueError("Expected complete urn got partial for resource URN: %s.", resource.urn)
         item = {
-            **self._generate_urn_index_values(resource.urn),
+            **self._generate_urn_index_values(cast(URN, resource.urn)),
             **standardise_data_types(resource.cloudwanderer_metadata.resource_data or {}),
-            **{"_subresource_urns": [str(urn) for urn in resource.subresource_urns]},
+            **{
+                "_dependent_resource_urns": [str(urn) for urn in resource.dependent_resource_urns],
+                "_discovery_time": resource.discovery_time.isoformat(),
+            },
         }
-        if resource.is_subresource:
+        if resource.is_dependent_resource:
             item["_parent_urn"] = str(resource.parent_urn)
-        self.dynamodb_table.put_item(Item=item)
-        for secondary_attribute in resource.cloudwanderer_metadata.secondary_attributes:
-            self._write_secondary_attribute(
-                urn=resource.urn, attribute_type=secondary_attribute.name, secondary_attribute=secondary_attribute
-            )
-
-    def _write_secondary_attribute(self, urn: URN, attribute_type: str, secondary_attribute: Dict[str, Any]) -> None:
-        """Write the specified resource attribute to DynamoDb.
-
-        Arguments:
-            urn (URN): The resource whose attribute to write.
-            attribute_type (str): The type of the resource attribute to write (usually the boto3 client method name)
-            secondary_attribute (boto3.resources.base.ServiceResource): The resource attribute to write to storage.
-
-        """
-        logger.debug(f"Writing: {attribute_type} of {urn} to {self.table_name}")
-        item = {
-            **self._generate_urn_index_values(urn, attribute_type),
-            **standardise_data_types(secondary_attribute or {}),
-        }
         self.dynamodb_table.put_item(Item=item)
 
     def _generate_urn_index_values(self, urn: URN, attr: str = "BaseResource") -> Dict[str, Any]:
@@ -269,20 +251,21 @@ class DynamoDbConnector(BaseStorageConnector):
 
     def read_resources(
         self,
+        cloud_name: str = None,
         account_id: str = None,
         region: str = None,
         service: str = None,
         resource_type: str = None,
         urn: URN = None,
     ) -> Iterator["CloudWandererResource"]:
-        query_generator = DynamoDbQueryGenerator(account_id, region, service, resource_type, urn)
+        query_generator = DynamoDbQueryGenerator(cloud_name, account_id, region, service, resource_type, urn)
         for condition_expression in query_generator.condition_expressions:
             query_args = DynamoDBQueryArgs(
-                Select="ALL_PROJECTED_ATTRIBUTES",
                 KeyConditionExpression=condition_expression,
             )
             if query_generator.index is not None:
                 query_args["IndexName"] = query_generator.index
+                query_args["Select"] = "ALL_PROJECTED_ATTRIBUTES"
             if query_generator.condition_expressions is not None:
                 query_args["FilterExpression"] = query_generator.filter_expression
 
@@ -290,7 +273,7 @@ class DynamoDbConnector(BaseStorageConnector):
 
     def _paginated_query(self, query_args: DynamoDBQueryArgs) -> Generator[Dict[str, Any], None, None]:
         paginator = self.dynamodb.meta.client.get_paginator("query")
-        pages = paginator.paginate(TableName=self.dynamodb_table.name, **query_args)
+        pages = paginator.paginate(TableName=self.dynamodb_table.name, **query_args)  # type: ignore
         yield from (item for result in pages for item in result["Items"])
 
     def read_all(self) -> Iterator[dict]:
@@ -312,23 +295,38 @@ class DynamoDbConnector(BaseStorageConnector):
         )
         with self.dynamodb_table.batch_writer() as batch:
             for record in resource_records:
-                logger.debug("Deleting %s", record["_id"])
+                logger.info("Deleting %s", record["_id"])
                 batch.delete_item(Key={"_id": record["_id"], "_attr": record["_attr"]})
 
     def delete_resource_of_type_in_account_region(
-        self, service: str, resource_type: str, account_id: str, region: str, urns_to_keep: List[URN] = None
+        self,
+        cloud_name: str,
+        service: str,
+        resource_type: str,
+        account_id: str,
+        region: str,
+        cutoff: Optional[datetime.datetime],
     ) -> None:
-        urns_to_keep = urns_to_keep or []
-        logger.debug("Deleting any %s not in %s", resource_type, str([x.resource_id for x in urns_to_keep]))
-        urns_to_keep = urns_to_keep or []
+        logger.debug("Deleting any %s discovered before %s", resource_type, cutoff)
         resource_records = self.read_resources(
-            service=service, resource_type=resource_type, account_id=account_id, region=region
+            cloud_name=cloud_name, service=service, resource_type=resource_type, account_id=account_id, region=region
         )
         for resource in resource_records:
-            if resource.urn in urns_to_keep:
-                logger.debug("Skipping deletion of %s as we were told to keep it.", resource.urn)
+            if cutoff and resource.discovery_time >= cutoff:
+                logger.debug("Skipping deletion of %s as it was discovered after our cutoff.", resource.urn)
                 continue
-            self.delete_resource(urn=resource.urn)
+            if resource.urn.is_partial:
+                raise NotImplementedError(
+                    "The DynamoDB Storage connector does not know how to delete partial URNs: %s.", resource.urn
+                )
+            logger.debug("Cleaning up %s discovered %s", str(resource.urn), resource.discovery_time)
+            self.delete_resource(urn=cast(URN, resource.urn))
+
+    def open(self) -> None:
+        ...
+
+    def close(self) -> None:
+        ...
 
     def _gen_shard(self, key: str, shard_id: int = None) -> str:
         """Append a shard designation to the end of a supplied key.
@@ -363,6 +361,7 @@ class DynamoDbQueryGenerator:
 
     def __init__(
         self,
+        cloud_name: str = None,
         account_id: str = None,
         region: str = None,
         service: str = None,
@@ -373,6 +372,7 @@ class DynamoDbQueryGenerator:
         """Initialise QueryGenerator.
 
         Arguments:
+            cloud_name: The name of the cloud
             account_id (str): AWS Account ID
             region (str): AWS region (e.g. ``'eu-west-2'``)
             service (str): Service name (e.g. ``'ec2'``)
@@ -380,6 +380,7 @@ class DynamoDbQueryGenerator:
             urn (URN): Urn of the resource to retrieve
             number_of_shards (int): The number of shards we need to query in the table
         """
+        self.cloud_name = cloud_name
         self.account_id = account_id
         self.region = region
         self.service = service
@@ -413,6 +414,7 @@ class DynamoDbQueryGenerator:
             ValueError: If not all required arguments are passed for a given combination
         """
         if self.index is None and self.urn is not None:
+            logger.info("Querying for %s", _primary_key_from_urn(self.urn))
             yield Key("_id").eq(_primary_key_from_urn(self.urn))
             return
         if self.index == "resource_type":
@@ -475,9 +477,15 @@ class DynamoDbTableCreator:
 
     def create_table(self) -> None:
         """Create the DynamoDB table."""
+        logger.info(
+            "Creating table in %s via %s",
+            self.dynamodb.meta.client.meta.region_name,
+            self.dynamodb.meta.client.meta.endpoint_url,
+        )
         try:
             self.dynamodb.create_table(**{**self.schema["table"], **{"TableName": self.table_name}})
         except self.dynamodb_table.meta.client.exceptions.ResourceInUseException:
+            self.dynamodb_table.load()
             logger.info("Table %s already exists, skipping creation.", self.table_name)
 
     @property

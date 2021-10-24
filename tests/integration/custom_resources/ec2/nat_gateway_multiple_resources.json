@@ -1,0 +1,159 @@
+{
+    "service": "ec2",
+    "mockData": {
+        "get_paginator.return_value.paginate.return_value": [
+            {
+                "NatGateways": [
+                    {
+                        "CreateTime": "2021-04-13T09:39:49.000Z",
+                        "NatGatewayAddresses": [
+                            {
+                                "AllocationId": "eipalloc-11111111111111111",
+                                "NetworkInterfaceId": "eni-11111111111111111",
+                                "PrivateIp": "10.10.10.78"
+                            }
+                        ],
+                        "NatGatewayId": "nat-11111111111111111",
+                        "State": "pending",
+                        "SubnetId": "subnet-11111111",
+                        "VpcId": "vpc-11111111",
+                        "Tags": [
+                            {
+                                "Key": "Name",
+                                "Value": "test-gateway"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "getResources": {
+        "serviceName": "ec2",
+        "resourceType": "nat_gateway",
+        "region": "eu-west-2"
+    },
+    "expectedResults": [
+        {
+            "urn": {
+                "cloud_name": "aws",
+                "account_id": {},
+                "region": "eu-west-2",
+                "service": "ec2",
+                "resource_type": "nat_gateway",
+                "resource_id_parts": [
+                    "nat-11111111111111111"
+                ],
+                "resource_id": "nat-11111111111111111"
+            },
+            "relationships": [
+                [
+                    {
+                        "cloud_name": "aws",
+                        "account_id": "unknown",
+                        "region": "eu-west-2",
+                        "service": "ec2",
+                        "resource_type": "vpc",
+                        "resource_id_parts": [
+                            "vpc-11111111"
+                        ],
+                        "resource_id": "vpc-11111111"
+                    },
+                    "RelationshipDirection.INBOUND"
+                ],
+                [
+                    {
+                        "cloud_name": "aws",
+                        "account_id": "unknown",
+                        "region": "eu-west-2",
+                        "service": "ec2",
+                        "resource_type": "subnet",
+                        "resource_id_parts": [
+                            "subnet-11111111"
+                        ],
+                        "resource_id": "subnet-11111111"
+                    },
+                    "RelationshipDirection.INBOUND"
+                ],
+                [
+                    {
+                        "cloud_name": "aws",
+                        "account_id": "unknown",
+                        "region": "eu-west-2",
+                        "service": "ec2",
+                        "resource_type": "network_interface",
+                        "resource_id_parts": [
+                            "eni-11111111111111111"
+                        ],
+                        "resource_id": "eni-11111111111111111"
+                    },
+                    "RelationshipDirection.OUTBOUND"
+                ],
+                [
+                    {
+                        "cloud_name": "aws",
+                        "account_id": "unknown",
+                        "region": "eu-west-2",
+                        "service": "ec2",
+                        "resource_type": "elastic_ip",
+                        "resource_id_parts": [
+                            "eipalloc-11111111111111111"
+                        ],
+                        "resource_id": "eipalloc-11111111111111111"
+                    },
+                    "RelationshipDirection.OUTBOUND"
+                ]
+            ],
+            "dependent_resource_urns": [],
+            "parent_urn": null,
+            "cloudwanderer_metadata": {
+                "CreateTime": "2021-04-13T09:39:49.000Z",
+                "DeleteTime": null,
+                "FailureCode": null,
+                "FailureMessage": null,
+                "NatGatewayAddresses": [
+                    {
+                        "AllocationId": "eipalloc-11111111111111111",
+                        "NetworkInterfaceId": "eni-11111111111111111",
+                        "PrivateIp": "10.10.10.78"
+                    }
+                ],
+                "NatGatewayId": "nat-11111111111111111",
+                "ProvisionedBandwidth": null,
+                "State": "pending",
+                "SubnetId": "subnet-11111111",
+                "VpcId": "vpc-11111111",
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "test-gateway"
+                    }
+                ],
+                "ConnectivityType": null
+            },
+            "create_time": "2021-04-13T09:39:49.000Z",
+            "delete_time": null,
+            "failure_code": null,
+            "failure_message": null,
+            "nat_gateway_addresses": [
+                {
+                    "AllocationId": "eipalloc-11111111111111111",
+                    "NetworkInterfaceId": "eni-11111111111111111",
+                    "PrivateIp": "10.10.10.78"
+                }
+            ],
+            "nat_gateway_id": "nat-11111111111111111",
+            "provisioned_bandwidth": null,
+            "state": "pending",
+            "subnet_id": "subnet-11111111",
+            "vpc_id": "vpc-11111111",
+            "tags": [
+                {
+                    "Key": "Name",
+                    "Value": "test-gateway"
+                }
+            ],
+            "connectivity_type": null
+        }
+    ]
+}

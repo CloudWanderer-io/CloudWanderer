@@ -1,0 +1,152 @@
+{
+    "service": "lambda",
+    "mockData": {
+        "get_paginator.side_effect": [
+            {
+                "paginate.return_value": [
+                    {
+                        "Layers": [
+                            {
+                                "LayerName": "test-layer",
+                                "LayerArn": "arn:aws:lambda:eu-west-1:123456789012:layer:test-layer",
+                                "LatestMatchingVersion": {
+                                    "LayerVersionArn": "arn:aws:lambda:eu-west-1:123456789012:layer:test-layer:1",
+                                    "Version": 1,
+                                    "Description": "This is a test layer!",
+                                    "CreatedDate": "2020-10-17T13:18:00.303+0000",
+                                    "CompatibleRuntimes": [
+                                        "nodejs10.x"
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "paginate.return_value": [
+                    {
+                        "LayerVersions": [
+                            {
+                                "LayerVersionArn": "arn:aws:lambda:eu-west-1:123456789012:layer:test-layer:1",
+                                "Version": 1,
+                                "Description": "This is a test layer!",
+                                "CreatedDate": "2020-10-17T13:18:00.303+0000",
+                                "CompatibleRuntimes": [
+                                    "nodejs10.x"
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "getResources": {
+        "serviceName": "lambda",
+        "resourceType": "layer",
+        "region": "eu-west-2"
+    },
+    "expectedResults": [
+        {
+            "urn": {
+                "cloud_name": "aws",
+                "account_id": {},
+                "region": "eu-west-2",
+                "service": "lambda",
+                "resource_type": "layer_version",
+                "resource_id_parts": [
+                    "test-layer",
+                    1
+                ],
+                "resource_id": "test-layer/1"
+            },
+            "relationships": [],
+            "dependent_resource_urns": [],
+            "parent_urn": {
+                "cloud_name": "aws",
+                "account_id": {},
+                "region": "eu-west-2",
+                "service": "lambda",
+                "resource_type": "layer",
+                "resource_id_parts": [
+                    "test-layer"
+                ],
+                "resource_id": "test-layer"
+            },
+            "cloudwanderer_metadata": {
+                "LayerVersionArn": "arn:aws:lambda:eu-west-1:123456789012:layer:test-layer:1",
+                "Version": 1,
+                "Description": "This is a test layer!",
+                "CreatedDate": "2020-10-17T13:18:00.303+0000",
+                "CompatibleRuntimes": [
+                    "nodejs10.x"
+                ],
+                "LicenseInfo": null,
+                "CompatibleArchitectures": null
+            },
+            "layer_version_arn": "arn:aws:lambda:eu-west-1:123456789012:layer:test-layer:1",
+            "version": 1,
+            "description": "This is a test layer!",
+            "created_date": "2020-10-17T13:18:00.303+0000",
+            "compatible_runtimes": [
+                "nodejs10.x"
+            ],
+            "license_info": null,
+            "compatible_architectures": null
+        },
+        {
+            "urn": {
+                "cloud_name": "aws",
+                "account_id": {},
+                "region": "eu-west-2",
+                "service": "lambda",
+                "resource_type": "layer",
+                "resource_id_parts": [
+                    "test-layer"
+                ],
+                "resource_id": "test-layer"
+            },
+            "relationships": [],
+            "dependent_resource_urns": [
+                {
+                    "account_id": {},
+                    "cloud_name": "aws",
+                    "region": "eu-west-2",
+                    "resource_id": "test-layer/1",
+                    "resource_id_parts": [
+                        "test-layer",
+                        1
+                    ],
+                    "resource_type": "layer_version",
+                    "service": "lambda"
+                }
+            ],
+            "parent_urn": null,
+            "cloudwanderer_metadata": {
+                "LayerName": "test-layer",
+                "LayerArn": "arn:aws:lambda:eu-west-1:123456789012:layer:test-layer",
+                "LatestMatchingVersion": {
+                    "LayerVersionArn": "arn:aws:lambda:eu-west-1:123456789012:layer:test-layer:1",
+                    "Version": 1,
+                    "Description": "This is a test layer!",
+                    "CreatedDate": "2020-10-17T13:18:00.303+0000",
+                    "CompatibleRuntimes": [
+                        "nodejs10.x"
+                    ]
+                }
+            },
+            "layer_name": "test-layer",
+            "layer_arn": "arn:aws:lambda:eu-west-1:123456789012:layer:test-layer",
+            "latest_matching_version": {
+                "LayerVersionArn": "arn:aws:lambda:eu-west-1:123456789012:layer:test-layer:1",
+                "Version": 1,
+                "Description": "This is a test layer!",
+                "CreatedDate": "2020-10-17T13:18:00.303+0000",
+                "CompatibleRuntimes": [
+                    "nodejs10.x"
+                ]
+            }
+        }
+    ]
+}

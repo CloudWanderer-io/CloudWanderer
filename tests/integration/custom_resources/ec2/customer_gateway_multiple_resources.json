@@ -1,0 +1,60 @@
+{
+    "service": "ec2",
+    "mockData": {
+        "get_paginator.return_value.paginate.return_value": [
+            {
+                "CustomerGateways": [
+                    {
+                        "BgpAsn": "65000",
+                        "CustomerGatewayId": "cgw-11111111111111111",
+                        "IpAddress": "1.1.1.1",
+                        "State": "available",
+                        "Type": "ipsec.1",
+                        "Tags": []
+                    }
+                ]
+            }
+        ]
+    },
+    "getResources": {
+        "serviceName": "ec2",
+        "resourceType": "customer_gateway",
+        "region": "eu-west-2"
+    },
+    "expectedResults": [
+        {
+            "urn": {
+                "cloud_name": "aws",
+                "account_id": {},
+                "region": "eu-west-2",
+                "service": "ec2",
+                "resource_type": "customer_gateway",
+                "resource_id_parts": [
+                    "cgw-11111111111111111"
+                ],
+                "resource_id": "cgw-11111111111111111"
+            },
+            "relationships": [],
+            "dependent_resource_urns": [],
+            "parent_urn": null,
+            "cloudwanderer_metadata": {
+                "BgpAsn": "65000",
+                "CustomerGatewayId": "cgw-11111111111111111",
+                "IpAddress": "1.1.1.1",
+                "CertificateArn": null,
+                "State": "available",
+                "Type": "ipsec.1",
+                "DeviceName": null,
+                "Tags": []
+            },
+            "bgp_asn": "65000",
+            "customer_gateway_id": "cgw-11111111111111111",
+            "ip_address": "1.1.1.1",
+            "certificate_arn": null,
+            "state": "available",
+            "type": "ipsec.1",
+            "device_name": null,
+            "tags": []
+        }
+    ]
+}

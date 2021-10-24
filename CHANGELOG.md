@@ -1,3 +1,8 @@
+# 0.19.0
+
+- Dispense with wrapper methods and instead subclass the boto3 resource factory so we can create new methods directly on the ServiceResource objects.
+- Added Gremlin GraphDB storage connector
+
 # 0.18.0
 
 - Added `requiresLoadForFullMetadata` to service mappings. Allows resources like Regional WebACLs to declare that they get impoverished data from their list operation and need `resource.load()` called to fetch all info.

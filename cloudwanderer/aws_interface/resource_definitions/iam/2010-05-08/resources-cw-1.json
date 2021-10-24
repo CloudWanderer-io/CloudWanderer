@@ -1,0 +1,112 @@
+{
+  "service": {
+    "globalServiceRegion": "us-east-1",
+    "globalService": true
+  },
+  "resources": {
+    "User": {
+      "type": "resource",
+      "regionalResource": false
+    },
+    "UserPolicy": {
+      "type": "dependentResource",
+      "parentResourceType": "user",
+      "regionalResource": false
+    },
+    "VirtualMfaDevice": {
+      "type": "resource",
+      "regionalResource": false
+    },
+    "MfaDevice": {
+      "type": "dependentResource",
+      "parentResourceType": "user",
+      "regionalResource": false
+    },
+    "Group": {
+      "type": "resource",
+      "regionalResource": false
+    },
+    "GroupPolicy": {
+      "type": "dependentResource",
+      "parentResourceType": "group",
+      "regionalResource": false
+    },
+    "SamlProvider": {
+      "type": "resource",
+      "regionalResource": false
+    },
+    "ServerCertificate": {
+      "type": "resource",
+      "regionalResource": false
+    },
+    "Role": {
+      "type": "resource",
+      "regionalResource": false
+    },
+    "RoleInlinePolicyAttachments": {
+      "type": "secondaryAttribute",
+      "secondaryAttributeMaps": [
+        {
+          "sourcePath": "@",
+          "destinationName": "InlinePolicyAttachments"
+        }
+      ]
+    },
+    "RoleManagedPolicyAttachments": {
+      "type": "secondaryAttribute",
+      "secondaryAttributeMaps": [
+        {
+          "sourcePath": "@",
+          "destinationName": "ManagedPolicyAttachments"
+        }
+      ]
+    },
+    "RolePolicy": {
+      "type": "dependentResource",
+      "parentResourceType": "role",
+      "regionalResource": false
+    },
+    "AccessKey": {
+      "type": "dependentResource",
+      "parentResourceType": "user",
+      "regionalResource": false
+    },
+    "SigningCertificate": {
+      "type": "dependentResource",
+      "parentResourceType": "user",
+      "regionalResource": false
+    },
+    "Policy": {
+      "type": "resource",
+      "regionalResource": false,
+      "defaultFilters": {
+        "Scope": "Local"
+      }
+    },
+    "PolicyVersion": {
+      "type": "dependentResource",
+      "parentResourceType": "policy",
+      "regionalResource": false
+    },
+    "InstanceProfile": {
+      "type": "resource",
+      "regionalResource": false,
+      "relationships": [
+        {
+          "basePath": "Roles[]",
+          "idParts": [
+            {
+              "path": "Arn",
+              "regexPattern": "[^:]+:[^:]+:[^:]+::(?P<account_id>[^:]+):role.*/(?P<id_part_0>[^:]+)"
+            }
+          ],
+          "service": "iam",
+          "resourceType": "role",
+          "regionSource": "sameAsResource",
+          "accountIdSource": "unknown",
+          "direction": "outbound"
+        }
+      ]
+    }
+  }
+}

@@ -1,12 +1,15 @@
 """Main cloudwanderer module."""
 import concurrent.futures
 import logging
-from typing import Callable, Iterator, List, NamedTuple
+from datetime import datetime
+from typing import Callable, Dict, List, NamedTuple, Union
+
+from cloudwanderer.models import ServiceResourceType
 
 from .aws_interface import CloudWandererAWSInterface
 from .cloud_wanderer_resource import CloudWandererResource
 from .storage_connectors import BaseStorageConnector
-from .urn import URN
+from .urn import URN, PartialUrn
 from .utils import exception_logging_wrapper
 
 logger = logging.getLogger("cloudwanderer")
@@ -41,20 +44,23 @@ class CloudWanderer:
             **kwargs:
                 All additional keyword arguments will be passed down to the cloud interface client calls.
         """
+        for storage_connector in self.storage_connectors:
+            storage_connector.open()
         resources = list(self.cloud_interface.get_resource(urn=urn, **kwargs))
 
         for resource in resources:
-            list(self._write_resource(resource=resource))
+            self._write_resource(resource=resource)
         if not resources:
             for storage_connector in self.storage_connectors:
                 storage_connector.delete_resource(urn)
 
+        for storage_connector in self.storage_connectors:
+            storage_connector.close()
+
     def write_resources(
         self,
         regions: List[str] = None,
-        service_names: List[str] = None,
-        resource_types: List[str] = None,
-        exclude_resources: List[str] = None,
+        service_resource_types: List[ServiceResourceType] = None,
         **kwargs,
     ) -> None:
         """Write all AWS resources in this account from all regions and all services to storage.
@@ -62,49 +68,61 @@ class CloudWanderer:
         All arguments are optional.
 
         Arguments:
-            regions(list):
+            regions:
                 The name of the region to get resources from (defaults to session default if not specified)
-            service_names (str):
-                The names of the services to write resources for (e.g. ``['ec2']``)
-            resource_types (list):
-                A list of resource types to include (e.g. ``['instance']``)
-            exclude_resources (list):
-                A list of service:resources to exclude (e.g. ``['ec2:instance']``)
+            service_resource_types:
+                The resource types to discover.
             kwargs:
                 All additional keyword arguments will be passed down to the cloud interface client calls.
 
+        Raises:
+            ValueError: If invalid get/delete urns are produced by the cloud interface's get_resource_discovery_actions
         """
-        urns = []
-        actions = self.cloud_interface.get_actions(
-            regions=regions,
-            service_names=service_names,
-            resource_types=resource_types,
-            exclude_resources=exclude_resources,
+        for storage_connector in self.storage_connectors:
+            storage_connector.open()
+        action_sets = self.cloud_interface.get_resource_discovery_actions(
+            regions=regions, service_resource_types=service_resource_types
         )
-        for action_set in actions:
-            for get_action in action_set.get_actions:
+        discovery_start_times: Dict[str, datetime] = {}
+        for action_set in action_sets:
+            for get_urn in action_set.get_urns:
+                if not get_urn.region or not get_urn.service or not get_urn.resource_type:
+                    raise ValueError(f"Invalid get_urn {get_urn}")
                 resources = self.cloud_interface.get_resources(
-                    region=get_action.region,
-                    service_name=get_action.service_name,
-                    resource_type=get_action.resource_type,
+                    region=get_urn.region,
+                    service_name=get_urn.service,
+                    resource_type=get_urn.resource_type,
                 )
                 for resource in resources:
-                    urns.extend(list(self._write_resource(resource)))
-            for cleanup_action in action_set.cleanup_actions:
+                    earliest_resource_discovered = discovery_start_times.get(resource.urn.cloud_service_resource_label)
+                    if not earliest_resource_discovered or resource.discovery_time < earliest_resource_discovered:
+                        discovery_start_times[resource.urn.cloud_service_resource_label] = resource.discovery_time
+                    self._write_resource(resource)
+            for delete_urn in action_set.delete_urns:
+                if (
+                    not delete_urn.account_id
+                    or not delete_urn.region
+                    or not delete_urn.service
+                    or not delete_urn.resource_type
+                    or not delete_urn.cloud_name
+                ):
+                    raise ValueError(f"Invalid delete_urn {delete_urn}")
                 for storage_connector in self.storage_connectors:
                     storage_connector.delete_resource_of_type_in_account_region(
-                        account_id=self.cloud_interface.account_id,
-                        region=cleanup_action.region,
-                        service=cleanup_action.service_name,
-                        resource_type=cleanup_action.resource_type,
-                        urns_to_keep=urns,
+                        cloud_name=delete_urn.cloud_name,
+                        account_id=delete_urn.account_id,
+                        region=delete_urn.region,
+                        service=delete_urn.service,
+                        resource_type=delete_urn.resource_type,
+                        cutoff=discovery_start_times.get(delete_urn.cloud_service_resource_label),
                     )
+        for storage_connector in self.storage_connectors:
+            storage_connector.close()
 
     def write_resources_concurrently(
         self,
         cloud_interface_generator: Callable,
         storage_connector_generator: Callable,
-        exclude_resources: List[str] = None,
         concurrency: int = 10,
         **kwargs,
     ) -> List["CloudWandererConcurrentWriteThreadResult"]:
@@ -114,8 +132,6 @@ class CloudWanderer:
         **WARNING:** Experimental.
 
         Arguments:
-            exclude_resources (list):
-                exclude_resources (list): A list of service:resources to exclude (e.g. ``['ec2:instance']``)
             concurrency (int):
                 Number of query threads to invoke concurrently.
             cloud_interface_generator (Callable):
@@ -132,7 +148,7 @@ class CloudWanderer:
         logger.warning("Using concurrency of: %s - CONCURRENCY IS EXPERIMENTAL", concurrency)
         with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency) as executor:
             threads = []
-            for region_name in self.cloud_interface.enabled_regions:
+            for region_name in self.cloud_interface.get_enabled_regions():
                 cw = CloudWanderer(
                     storage_connectors=storage_connector_generator(), cloud_interface=cloud_interface_generator()
                 )
@@ -140,7 +156,6 @@ class CloudWanderer:
                     executor.submit(
                         exception_logging_wrapper,
                         method=cw.write_resources,
-                        exclude_resources=exclude_resources,
                         regions=[region_name],
                         return_value=cw.storage_connectors,
                         **kwargs,
@@ -153,10 +168,10 @@ class CloudWanderer:
                 thread_results.append(CloudWandererConcurrentWriteThreadResult(storage_connectors=result))
         return thread_results
 
-    def _write_resource(self, resource: CloudWandererResource) -> Iterator[URN]:
+    def _write_resource(self, resource: CloudWandererResource) -> Union[URN, PartialUrn]:
         for storage_connector in self.storage_connectors:
             storage_connector.write_resource(resource)
-        yield resource.urn
+        return resource.urn
 
 
 class CloudWandererConcurrentWriteThreadResult(NamedTuple):

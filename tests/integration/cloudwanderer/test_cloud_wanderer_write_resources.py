@@ -1,238 +1,283 @@
-import re
-import unittest
 from unittest.mock import ANY
 
 import boto3
+from moto import mock_ec2, mock_iam, mock_s3, mock_sts
 
-from cloudwanderer import CloudWanderer
-from cloudwanderer.storage_connectors import MemoryStorageConnector
+from cloudwanderer.models import ServiceResourceType
+from cloudwanderer.urn import URN
 
-from ..helpers import GenericAssertionHelpers, get_default_mocker
-from ..mocks import add_infra
+from ...pytest_helpers import compare_list_of_dicts_allow_any, create_ec2_instances, create_iam_role, create_s3_buckets
 
 
-class TestCloudWandererWriteResources(unittest.TestCase, GenericAssertionHelpers):
-    eu_west_2_resources = [
-        {
-            "urn": "urn:aws:.*:eu-west-2:ec2:instance:.*",
-            "attr": "BaseResource",
-            "VpcId": "vpc-.*",
-            "SubnetId": "subnet-.*",
-            "InstanceId": "i-.*",
-        }
-    ]
-    us_east_1_resources = [
-        {
-            "urn": "urn:aws:.*:us-east-1:iam:role:.*",
-            "attr": "BaseResource",
-            "RoleName": "test-role",
-            "Path": re.escape("/"),
-        },
-        {
-            "urn": "urn:aws:.*:us-east-1:iam:role:.*",
-            "attr": "role_inline_policy_attachments",
-            "PolicyNames": ["test-role-policy"],
-        },
-        {
-            "urn": "urn:aws:.*:us-east-1:iam:role:.*",
-            "attr": "role_managed_policy_attachments",
-            "AttachedPolicies": [
-                {
-                    "PolicyName": "APIGatewayServiceRolePolicy",
-                    "PolicyArn": "arn:aws:iam::aws:policy/aws-service-role/APIGatewayServiceRolePolicy",
-                }
-            ],
-            "IsTruncated": False,
-        },
-        {
-            "urn": "urn:aws:.*:us-east-1:iam:role_policy:.*",
-            "attr": "BaseResource",
-            "PolicyName": "test-role-policy",
-            "PolicyDocument": ANY,
-        },
-        {
-            # This is a us-east-1 resource because s3 buckets are discovered from us-east-1
-            # irrespective of their region.
-            "urn": "urn:aws:.*:eu-west-2:s3:bucket:.*",
-            "attr": "BaseResource",
-            "Name": "test-eu-west-2",
-        },
-    ]
+@mock_ec2
+@mock_s3
+@mock_sts
+def test_write_resources(cloudwanderer_aws):
+    create_s3_buckets()
+    create_ec2_instances()
+    cloudwanderer_aws.write_resources(
+        regions=["eu-west-2", "us-east-1"],
+        service_resource_types=[
+            ServiceResourceType(service_name="ec2", name="instance"),
+            ServiceResourceType(service_name="s3", name="bucket"),
+        ],
+    )
 
-    def setUp(self):
-        self.enabled_regions = ["eu-west-2", "us-east-1", "ap-east-1"]
-        get_default_mocker().start_general_mock(
-            restrict_regions=self.enabled_regions,
-            restrict_services=["ec2", "s3", "iam"],
-            limit_resources=[
-                "ec2:instance",
-                "s3:bucket",
-                "iam:group",
-                "iam:role",
-            ],
-        )
-        add_infra(regions=self.enabled_regions)
-        self.storage_connector = MemoryStorageConnector()
-        self.wanderer = CloudWanderer(storage_connectors=[self.storage_connector])
+    result = list(cloudwanderer_aws.storage_connectors[0].read_all())
 
-    def tearDown(self):
-        get_default_mocker().stop_general_mock()
-
-    def test_write_resources(self):
-
-        self.wanderer.write_resources()
-
-        for region_name in self.enabled_regions:
-            self.assert_dictionary_overlap(
-                self.storage_connector.read_all(),
-                [
+    compare_list_of_dicts_allow_any(
+        result,
+        [
+            {
+                "AmiLaunchIndex": 0,
+                "Architecture": "x86_64",
+                "BlockDeviceMappings": [
                     {
-                        "urn": f"urn:aws:.*:{region_name}:ec2:instance:.*",
-                        "attr": "BaseResource",
-                        "VpcId": "vpc-.*",
-                        "SubnetId": "subnet-.*",
-                        "InstanceId": "i-.*",
-                    },
-                    {
-                        "urn": f"urn:aws:.*:{region_name}:s3:bucket:.*",
-                        "attr": "BaseResource",
-                        "Name": f"test-{region_name}",
-                    },
-                ],
-            )
-
-            if region_name == "us-east-1":
-                self.assert_dictionary_overlap(self.storage_connector.read_all(), self.us_east_1_resources)
-            else:
-                self.assert_no_dictionary_overlap(
-                    self.storage_connector.read_all(),
-                    [
-                        {
-                            "urn": f"urn:aws:.*:{region_name}:iam:role:.*",
-                            "attr": "BaseResource",
-                            "RoleName": "test-role",
-                            "Path": re.escape("/"),
-                        }
-                    ],
-                )
-
-    def test_write_resources_exclude_resources(self):
-        self.wanderer.write_resources(exclude_resources=["ec2:instance"])
-
-        for region_name in self.enabled_regions:
-            self.assert_no_dictionary_overlap(
-                self.storage_connector.read_all(),
-                [
-                    {
-                        "urn": f"urn:aws:.*:{region_name}:ec2:instance:.*",
-                        "attr": "BaseResource",
-                        "VpcId": "vpc-.*",
-                        "SubnetId": "subnet-.*",
-                        "InstanceId": "i-.*",
+                        "DeviceName": "/dev/sda1",
+                        "Ebs": {
+                            "AttachTime": ANY,
+                            "DeleteOnTermination": True,
+                            "Status": "in-use",
+                            "VolumeId": ANY,
+                        },
                     }
                 ],
-            )
-        self.assert_dictionary_overlap(self.storage_connector.read_all(), self.us_east_1_resources)
+                "BootMode": None,
+                "CapacityReservationId": None,
+                "CapacityReservationSpecification": None,
+                "ClientToken": "ABCDE1234567890123",
+                "CpuOptions": None,
+                "EbsOptimized": False,
+                "ElasticGpuAssociations": None,
+                "ElasticInferenceAcceleratorAssociations": None,
+                "EnaSupport": None,
+                "EnclaveOptions": None,
+                "HibernationOptions": None,
+                "Hypervisor": "xen",
+                "IamInstanceProfile": None,
+                "ImageId": ANY,
+                "InstanceId": ANY,
+                "InstanceLifecycle": None,
+                "InstanceType": "m1.small",
+                "KernelId": "None",
+                "KeyName": "None",
+                "LaunchTime": ANY,
+                "Licenses": None,
+                "MetadataOptions": None,
+                "Monitoring": {"State": "disabled"},
+                "NetworkInterfaces": [
+                    {
+                        "Association": {"IpOwnerId": "123456789012", "PublicIp": ANY},
+                        "Attachment": {
+                            "AttachTime": "2015-01-01T00:00:00+00:00",
+                            "AttachmentId": ANY,
+                            "DeleteOnTermination": True,
+                            "DeviceIndex": 0,
+                            "Status": "attached",
+                        },
+                        "Description": "Primary network interface",
+                        "Groups": [],
+                        "MacAddress": "1b:2b:3c:4d:5e:6f",
+                        "NetworkInterfaceId": ANY,
+                        "OwnerId": ANY,
+                        "PrivateIpAddress": ANY,
+                        "PrivateIpAddresses": [
+                            {
+                                "Association": {"IpOwnerId": "123456789012", "PublicIp": ANY},
+                                "Primary": True,
+                                "PrivateIpAddress": ANY,
+                            }
+                        ],
+                        "SourceDestCheck": True,
+                        "Status": "in-use",
+                        "SubnetId": ANY,
+                        "VpcId": ANY,
+                    }
+                ],
+                "OutpostArn": None,
+                "Placement": {"AvailabilityZone": "eu-west-2a", "GroupName": None, "Tenancy": "default"},
+                "Platform": "windows",
+                "PlatformDetails": None,
+                "PrivateDnsName": ANY,
+                "PrivateIpAddress": ANY,
+                "ProductCodes": [],
+                "PublicDnsName": ANY,
+                "PublicIpAddress": ANY,
+                "RamdiskId": None,
+                "RootDeviceName": "/dev/sda1",
+                "RootDeviceType": "ebs",
+                "SecurityGroups": [],
+                "SourceDestCheck": True,
+                "SpotInstanceRequestId": None,
+                "SriovNetSupport": None,
+                "State": {"Code": 16, "Name": "running"},
+                "StateReason": {"Code": None, "Message": None},
+                "StateTransitionReason": None,
+                "SubnetId": ANY,
+                "Tags": None,
+                "UsageOperation": None,
+                "UsageOperationUpdateTime": None,
+                "VirtualizationType": "hvm",
+                "VpcId": ANY,
+                "attr": "BaseResource",
+                "urn": ANY,
+            },
+            {
+                "attr": "ParentUrn",
+                "urn": ANY,
+                "value": None,
+            },
+            {
+                "attr": "DependentResourceUrns",
+                "urn": ANY,
+                "value": [],
+            },
+            {
+                "CreationDate": ANY,
+                "Name": "test-eu-west-2",
+                "attr": "BaseResource",
+                "urn": ANY,
+            },
+            {
+                "attr": "ParentUrn",
+                "urn": ANY,
+                "value": None,
+            },
+            {
+                "attr": "DependentResourceUrns",
+                "urn": "urn:aws:123456789012:eu-west-2:s3:bucket:test-eu-west-2",
+                "value": [],
+            },
+        ],
+    )
 
-    def test_write_resources_eu_west_1(self):
-        self.wanderer.write_resources(
-            regions=["eu-west-2"],
-        )
 
-        self.assert_dictionary_overlap(self.storage_connector.read_all(), self.eu_west_2_resources)
-        self.assert_no_dictionary_overlap(self.storage_connector.read_all(), self.us_east_1_resources)
+# TODO: Reinstate exclude resources
+# @mock_ec2
+# @mock_sts
+# def test_write_resources_exclude_resources(cloudwanderer_aws):
+#     cloudwanderer_aws.write_resources(exclude_resources=["ec2:instance"])
 
-    def test_write_resources_us_east_1(self):
-        self.wanderer.write_resources(regions=["us-east-1"])
+#     for region_name in ["eu-west-2", "us-east-1"]:
+#         assert_no_dictionary_overlap(
+#             cloudwanderer_aws.storage_connectors[0].read_all(),
+#             [
+#                 {
+#                     "urn": f"urn:aws:.*:{region_name}:ec2:instance:.*",
+#                     "attr": "BaseResource",
+#                     "VpcId": "vpc-.*",
+#                     "SubnetId": "subnet-.*",
+#                     "InstanceId": "i-.*",
+#                 }
+#             ],
+#         )
+#     assert_dictionary_overlap(cloudwanderer_aws.storage_connectors[0].read_all(), us_east_1_resources)
 
-        self.assert_dictionary_overlap(self.storage_connector.read_all(), self.us_east_1_resources)
-        self.assert_no_dictionary_overlap(self.storage_connector.read_all(), self.eu_west_2_resources)
 
-    def test_write_resources_of_service_eu_west_1(self):
-        self.wanderer.write_resources(regions=["eu-west-2"], service_names=["ec2"])
-        self.wanderer.write_resources(regions=["eu-west-2"], service_names=["s3"])
+@mock_iam
+@mock_ec2
+@mock_sts
+def test_cleanup_resources_of_type_us_east_1(cloudwanderer_aws):
+    create_iam_role()
 
-        self.assert_dictionary_overlap(self.storage_connector.read_all(), self.eu_west_2_resources)
-        self.assert_no_dictionary_overlap(self.storage_connector.read_all(), self.us_east_1_resources)
+    cloudwanderer_aws.write_resources(
+        regions=["us-east-1"],
+        service_resource_types=[
+            ServiceResourceType(service_name="iam", name="role"),
+        ],
+    )
 
-    def test_write_resources_of_service_us_east_1(self):
-        self.wanderer.write_resources(service_names=["ec2"], regions=["us-east-1"])
-        self.wanderer.write_resources(service_names=["s3"], regions=["us-east-1"])
-        self.wanderer.write_resources(service_names=["iam"], regions=["us-east-1"])
-
-        self.assert_dictionary_overlap(self.storage_connector.read_all(), self.us_east_1_resources)
-        self.assert_no_dictionary_overlap(self.storage_connector.read_all(), self.eu_west_2_resources)
-
-    def test_write_resources_of_type_eu_west_1(self):
-        self.wanderer.write_resources(regions=["eu-west-2"], service_names=["s3"], resource_types=["bucket"])
-        self.wanderer.write_resources(regions=["eu-west-2"], service_names=["ec2"], resource_types=["instance"])
-        self.wanderer.write_resources(regions=["eu-west-2"], service_names=["iam"], resource_types=["role"])
-
-        self.assert_dictionary_overlap(self.storage_connector.read_all(), self.eu_west_2_resources)
-        self.assert_no_dictionary_overlap(self.storage_connector.read_all(), self.us_east_1_resources)
-
-    def test_write_resources_of_type_us_east_1(self):
-        self.wanderer.write_resources(service_names=["s3"], resource_types=["bucket"], regions=["us-east-1"])
-        self.wanderer.write_resources(service_names=["ec2"], resource_types=["instance"], regions=["us-east-1"])
-        self.wanderer.write_resources(service_names=["iam"], resource_types=["role"], regions=["us-east-1"])
-
-        self.assert_dictionary_overlap(self.storage_connector.read_all(), self.us_east_1_resources)
-        self.assert_no_dictionary_overlap(self.storage_connector.read_all(), self.eu_west_2_resources)
-
-    def test_cleanup_resources_of_type_us_east_1(self):
-        self.wanderer.write_resources(service_names=["iam"], resource_types=["role"], regions=["us-east-1"])
-
-        self.assert_dictionary_overlap(
-            self.storage_connector.read_all(),
-            [
-                {
-                    "urn": "urn:aws:.*:us-east-1:iam:role:.*",
-                    "attr": "role_managed_policy_attachments",
+    compare_list_of_dicts_allow_any(
+        [
+            {
+                "PolicyDocument": {
+                    "Statement": {
+                        "Action": "s3:ListBucket",
+                        "Effect": "Allow",
+                        "Resource": "arn:aws:s3:::example_bucket",
+                    },
+                    "Version": "2012-10-17",
+                },
+                "PolicyName": "test-role-policy",
+                "RoleName": "test-role",
+                "attr": "BaseResource",
+                "urn": "urn:aws:123456789012:us-east-1:iam:role_policy:test-role/test-role-policy",
+            },
+            {
+                "attr": "ParentUrn",
+                "urn": "urn:aws:123456789012:us-east-1:iam:role_policy:test-role/test-role-policy",
+                "value": URN(
+                    cloud_name="aws",
+                    account_id="123456789012",
+                    region="us-east-1",
+                    service="iam",
+                    resource_type="role",
+                    resource_id_parts=["test-role"],
+                ),
+            },
+            {
+                "attr": "DependentResourceUrns",
+                "urn": "urn:aws:123456789012:us-east-1:iam:role_policy:test-role/test-role-policy",
+                "value": [],
+            },
+            {
+                "Arn": "arn:aws:iam::123456789012:role/test-role",
+                "AssumeRolePolicyDocument": {},
+                "CreateDate": ANY,
+                "Description": None,
+                "InlinePolicyAttachments": {"IsTruncated": False, "Marker": None, "PolicyNames": ["test-role-policy"]},
+                "ManagedPolicyAttachments": {
                     "AttachedPolicies": [
                         {
-                            "PolicyName": "APIGatewayServiceRolePolicy",
                             "PolicyArn": "arn:aws:iam::aws:policy/aws-service-role/APIGatewayServiceRolePolicy",
+                            "PolicyName": "APIGatewayServiceRolePolicy",
                         }
                     ],
                     "IsTruncated": False,
+                    "Marker": None,
                 },
-                {
-                    "urn": "urn:aws:.*:us-east-1:iam:role_policy:.*",
-                    "attr": "BaseResource",
-                    "PolicyName": "test-role-policy",
-                    "PolicyDocument": ANY,
-                },
-            ],
-        )
+                "MaxSessionDuration": ANY,
+                "Path": "/",
+                "PermissionsBoundary": None,
+                "RoleId": ANY,
+                "RoleLastUsed": None,
+                "RoleName": "test-role",
+                "Tags": None,
+                "attr": "BaseResource",
+                "urn": "urn:aws:123456789012:us-east-1:iam:role:test-role",
+            },
+            {"attr": "ParentUrn", "urn": "urn:aws:123456789012:us-east-1:iam:role:test-role", "value": None},
+            {
+                "attr": "DependentResourceUrns",
+                "urn": "urn:aws:123456789012:us-east-1:iam:role:test-role",
+                "value": [
+                    URN(
+                        cloud_name="aws",
+                        account_id="123456789012",
+                        region="us-east-1",
+                        service="iam",
+                        resource_type="role_policy",
+                        resource_id_parts=["test-role", "test-role-policy"],
+                    )
+                ],
+            },
+        ],
+        list(cloudwanderer_aws.storage_connectors[0].read_all()),
+    )
 
-        # Delete the role
-        iam_resource = boto3.resource("iam")
-        iam_resource.Role("test-role").detach_policy(
-            PolicyArn="arn:aws:iam::aws:policy/aws-service-role/APIGatewayServiceRolePolicy"
-        )
-        iam_resource.Role("test-role").Policy("test-role-policy").delete()
-        iam_resource.Role("test-role").delete()
+    # Delete the role
+    iam_resource = boto3.resource("iam")
+    iam_resource.Role("test-role").detach_policy(
+        PolicyArn="arn:aws:iam::aws:policy/aws-service-role/APIGatewayServiceRolePolicy"
+    )
+    iam_resource.Role("test-role").Policy("test-role-policy").delete()
+    iam_resource.Role("test-role").delete()
 
-        self.wanderer.write_resources(service_names=["iam"], resource_types=["role"], regions=["us-east-1"])
-        self.assert_no_dictionary_overlap(
-            self.storage_connector.read_all(),
-            [
-                {
-                    "urn": "urn:aws:.*:us-east-1:iam:role:.*",
-                    "attr": "role_managed_policy_attachments",
-                    "AttachedPolicies": [
-                        {
-                            "PolicyName": "APIGatewayServiceRolePolicy",
-                            "PolicyArn": "arn:aws:iam::aws:policy/aws-service-role/APIGatewayServiceRolePolicy",
-                        }
-                    ],
-                    "IsTruncated": False,
-                },
-                {
-                    "urn": "urn:aws:.*:us-east-1:iam:role_policy:.*",
-                    "attr": "BaseResource",
-                    "PolicyName": "test-role-policy",
-                    "PolicyDocument": ANY,
-                },
-            ],
-        )
+    cloudwanderer_aws.write_resources(
+        regions=["us-east-1"],
+        service_resource_types=[
+            ServiceResourceType(service_name="iam", name="role"),
+        ],
+    )
+
+    assert list(cloudwanderer_aws.storage_connectors[0].read_all()) == []

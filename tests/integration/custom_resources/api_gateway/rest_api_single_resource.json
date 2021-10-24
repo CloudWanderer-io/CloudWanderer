@@ -1,0 +1,108 @@
+{
+    "service": "apigateway",
+    "mockData": {
+        "get_rest_api.return_value": {
+            "id": "string",
+            "name": "string",
+            "description": "string",
+            "createdDate": "2015-01-01",
+            "version": "string",
+            "warnings": [
+                "string"
+            ],
+            "binaryMediaTypes": [
+                "string"
+            ],
+            "minimumCompressionSize": 123,
+            "apiKeySource": "HEADER",
+            "endpointConfiguration": {
+                "types": [
+                    "REGIONAL"
+                ],
+                "vpcEndpointIds": [
+                    "string"
+                ]
+            },
+            "policy": "string",
+            "tags": {
+                "string": "string"
+            },
+            "disableExecuteApiEndpoint": true
+        }
+    },
+    "getResource": {
+        "urn": "urn:aws:123456789012:eu-west-2:apigateway:rest_api:string"
+    },
+    "expectedResults": [
+        {
+            "urn": {
+                "cloud_name": "aws",
+                "account_id": {},
+                "region": "eu-west-2",
+                "service": "apigateway",
+                "resource_type": "rest_api",
+                "resource_id_parts": [
+                    "string"
+                ],
+                "resource_id": "string"
+            },
+            "relationships": [],
+            "dependent_resource_urns": [],
+            "parent_urn": null,
+            "cloudwanderer_metadata": {
+                "id": "string",
+                "name": "string",
+                "description": "string",
+                "createdDate": "2015-01-01",
+                "version": "string",
+                "warnings": [
+                    "string"
+                ],
+                "binaryMediaTypes": [
+                    "string"
+                ],
+                "minimumCompressionSize": 123,
+                "apiKeySource": "HEADER",
+                "endpointConfiguration": {
+                    "types": [
+                        "REGIONAL"
+                    ],
+                    "vpcEndpointIds": [
+                        "string"
+                    ]
+                },
+                "policy": "string",
+                "tags": {
+                    "string": "string"
+                },
+                "disableExecuteApiEndpoint": true
+            },
+            "id": "string",
+            "name": "string",
+            "description": "string",
+            "created_date": "2015-01-01",
+            "version": "string",
+            "warnings": [
+                "string"
+            ],
+            "binary_media_types": [
+                "string"
+            ],
+            "minimum_compression_size": 123,
+            "api_key_source": "HEADER",
+            "endpoint_configuration": {
+                "types": [
+                    "REGIONAL"
+                ],
+                "vpcEndpointIds": [
+                    "string"
+                ]
+            },
+            "policy": "string",
+            "tags": {
+                "string": "string"
+            },
+            "disable_execute_api_endpoint": true
+        }
+    ]
+}

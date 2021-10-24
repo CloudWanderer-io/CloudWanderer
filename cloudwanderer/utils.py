@@ -1,11 +1,11 @@
 """Collection of loose utility functions."""
 import json
 import logging
-import os
 from datetime import datetime
 from decimal import Decimal
-from pathlib import Path
 from typing import Any, Callable, Dict, Optional
+
+from botocore import xform_name
 
 logger = logging.getLogger(__name__)
 
@@ -63,24 +63,6 @@ def standardise_data_types(resource: dict) -> Dict[str, Any]:
     return result
 
 
-def load_json_definitions(path: str) -> Dict[str, Any]:
-    """Return the parsed contents of all JSON files in a given path.
-
-    Arguments:
-        path: The path to load JSON files from.
-    """
-    definition_files = [
-        (os.path.abspath(os.path.join(path, file_name)), Path(file_name).stem)
-        for file_name in os.listdir(path)
-        if os.path.isfile(os.path.join(path, file_name))
-    ]
-    definitions = {}
-    for file_path, service_name in definition_files:
-        with open(file_path) as definition_path:
-            definitions[service_name] = json.load(definition_path)
-    return definitions
-
-
 def snake_to_pascal(snake_case: str) -> str:
     """Return a PascalCase version of a snake_case name.
 
@@ -89,3 +71,15 @@ def snake_to_pascal(snake_case: str) -> str:
     """
     snake_case = snake_case.lower()
     return snake_case.replace("_", " ").title().replace(" ", "")
+
+
+def camel_to_snake(camel, upper=True) -> str:
+    """Convert camelCase to snake_case (uppercase by default).
+
+    Arguments:
+        camel: Input camelCase string
+        upper: Whether to conver to uppercase snake_case
+    """
+    if upper:
+        return xform_name(camel).upper()
+    return xform_name(camel)

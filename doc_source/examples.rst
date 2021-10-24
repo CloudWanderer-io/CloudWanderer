@@ -120,7 +120,7 @@ without discovering all of the other resources of that type as well.
     ...     region="eu-west-2",
     ...     service="ec2",
     ...     resource_type="vpc",
-    ...     resource_id="vpc-1111111111",
+    ...     resource_id_parts=["vpc-1111111111"],
     ... )
 
     >>> wanderer.write_resource(urn=urn)
@@ -146,10 +146,10 @@ Retrieving all VPCs from all Regions
     ...     vpc.load()
     ...     print('vpc_state: ', vpc.state)
     ...     print('is_default:', vpc.is_default)
-    vpc_region: us-east-1
+    vpc_region: eu-west-2
     vpc_state:  available
     is_default: True
-    vpc_region: eu-west-2
+    vpc_region: us-east-1
     vpc_state:  available
     is_default: True
 
@@ -199,23 +199,23 @@ Next we need to find out what policies are attached, we can either do this with 
 
 .. doctest ::
 
-    >>> role.get_secondary_attribute('role_inline_policy_attachments')
-    [{'PolicyNames': ['test-role-policy'], 'IsTruncated': False}]
-    >>> role.get_secondary_attribute(jmes_path='[].PolicyNames[0]')
+    >>> role.inline_policy_attachments
+    {'PolicyNames': ['test-role-policy'], 'IsTruncated': False, 'Marker': None}
+    >>> role.inline_policy_attachments['PolicyNames']
     ['test-role-policy']
 
-Or we can do it with the :attr:`~cloudwanderer.cloud_wanderer_resource.CloudWandererResource.subresource_urns` property.
+Or we can do it with the :attr:`~cloudwanderer.cloud_wanderer_resource.CloudWandererResource.dependent_resource_urns` property.
 
 .. doctest ::
 
-    >>> role.subresource_urns
-    [URN(account_id='123456789012', region='us-east-1', service='iam', resource_type='role_policy', resource_id_parts=['test-role', 'test-role-policy'])]
+    >>> role.dependent_resource_urns
+    [URN(cloud_name='aws', account_id='123456789012', region='us-east-1', service='iam', resource_type='role_policy', resource_id_parts=['test-role', 'test-role-policy'])]
 
 Then we can lookup the inline policy
 
 .. doctest ::
 
-    >>> inline_policy_urn = role.subresource_urns[0]
+    >>> inline_policy_urn = role.dependent_resource_urns[0]
     >>> inline_policy = storage_connector.read_resource(urn=inline_policy_urn)
     >>> inline_policy.policy_document
     {'Version': '2012-10-17', 'Statement': {'Effect': 'Allow', 'Action': 's3:ListBucket', 'Resource': 'arn:aws:s3:::example_bucket'}}
@@ -234,27 +234,16 @@ How do I retrieve Secondary Attributes?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Let's say we want to get the value of ``enableDnsSupport`` for a VPC.
-We can get this one of two ways, either by looping over the dictionaries in
-:attr:`~cloudwanderer.cloud_wanderer_resource.ResourceMetadata.secondary_attributes` on
-:attr:`~cloudwanderer.cloud_wanderer_resource.CloudWandererResource.cloudwanderer_metadata`, or by calling
-:meth:`~cloudwanderer.cloud_wanderer_resource.CloudWandererResource.get_secondary_attribute`
-with a `JMESPath <https://jmespath.org/>`_.
+We can get this by accessing the ``enable_dns_support`` attribute on the VPC object.
 
 .. doctest ::
 
     >>> first_vpc = next(storage_connector.read_resources(service='ec2', resource_type='vpc'))
     >>> first_vpc.load()
 
-    >>> first_vpc.cloudwanderer_metadata.secondary_attributes[0]['EnableDnsSupport']
-    {'Value': True}
+    >>> first_vpc.enable_dns_support
+    True
 
-    >>> first_vpc.get_secondary_attribute(name='vpc_enable_dns_support')
-    [{'VpcId': 'vpc-11111111', 'EnableDnsSupport': {'Value': True}}]
-
-    >>> first_vpc.get_secondary_attribute(jmes_path='[].EnableDnsSupport.Value')
-    [True]
-
-This special way of accesssing secondary attributes ensures that secondary attributes do not conflict with primary attributes if they have the same name.
 
 Deleting Stale Resources
 -------------------------
@@ -285,48 +274,10 @@ e.g.
     ...     resource_type='vpc',
     ... ))
     >>> str(vpc.urn)
-    'urn:aws:123456789012:us-east-1:ec2:vpc:vpc-11111111'
+    'urn:aws:123456789012:eu-west-2:ec2:vpc:vpc-11111111'
     >>> storage_connector.delete_resource(urn=vpc.urn)
     >>> vpc = storage_connector.read_resource(
     ...     urn=vpc.urn
     ... )
     >>> print(vpc)
     None
-
-Filtering Resources
------------------------
-
-CloudWanderer exposes Boto3's ability to filter  which resources are returned using the
-:meth:`~boto3.resources.collection.ResourceCollection.filter` method.
-
-.. tip::
-
-    Some resources (like :class:`iam.policy` and :class:`ec2.image`) have default filtering to prevent a default
-    CloudWanderer run from spending an inordinate amount of time listing, say, public EC2 Images.
-    If you are experiencing unexpected behaviour when listing resources, check the resource definition to
-    see if it has any defaults.
-
-Getting all IAM Policies
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-By default, if you fetch all :class:`iam.policy` resources, you will only get **your** policies, not AWS's.
-This is because there is a default filter applied that filters the returned resources to only those created in the current account.
-To change this behaviour you can change the filter like so:
-
-.. doctest::
-
-    >>> from cloudwanderer import ResourceFilter, CloudWandererAWSInterface
-    >>> wanderer = cloudwanderer.CloudWanderer(
-    ...     storage_connectors=[cloudwanderer.storage_connectors.MemoryStorageConnector()],
-    ...     cloud_interface=CloudWandererAWSInterface(
-    ...         resource_filters=[ResourceFilter(
-    ...             service_name='iam',
-    ...             resource_type='policy',
-    ...             filters={'Scope': 'All'}
-    ...         )]
-    ...      )
-    ... )
-    >>> wanderer.write_resources()
-
-That way **every** time you run :meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resources` your filter
-will be applied automatically.

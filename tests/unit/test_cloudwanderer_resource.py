@@ -1,109 +1,86 @@
-import unittest
-from unittest.mock import MagicMock
+import json
+from datetime import datetime
 
-from cloudwanderer import URN
-from cloudwanderer.cloud_wanderer_resource import CloudWandererResource, SecondaryAttribute
+import pytest
+
+from cloudwanderer import CloudWandererResource
+from cloudwanderer.urn import URN
 
 
-class TestCloudWandererResource(unittest.TestCase):
-    def test_default(self):
-        urn = URN.from_string("urn:aws:111111111111:us-east-1:iam:role:test-role")
-        cwr = CloudWandererResource(
-            urn=urn,
-            resource_data={"RoleName": "test-role"},
-            subresource_urns=[URN.from_string("urn:aws:111111111111:us-east-1:iam:role_policy:test-role/test-policy")],
-            secondary_attributes=[
-                SecondaryAttribute(name="role_inline_policy_attachments", **{"PolicyNames": ["test-policy"]})
-            ],
-        )
+@pytest.fixture
+def partial_urn():
+    return URN(
+        account_id="unknown",
+        region="unknown",
+        service="ec2",
+        resource_type="vpc",
+        resource_id_parts=["vpc-111111"],
+    )
 
-        assert cwr.urn == urn
-        assert cwr.role_name == "test-role"
-        assert cwr.get_secondary_attribute(jmes_path="[].PolicyNames")[0] == ["test-policy"]
-        assert cwr.get_secondary_attribute(name="role_inline_policy_attachments") == [{"PolicyNames": ["test-policy"]}]
-        assert cwr.is_inflated is True
 
-    def test_clashing_attributes(self):
-        urn = URN.from_string("urn:aws:111111111111:eu-west-2:ec2:vpc:vpc-11111111")
-        cwr = CloudWandererResource(
-            urn=urn,
-            resource_data={"CidrBlock": "10.0.0.0/0"},
-            secondary_attributes=[{"EnableDnsSupport": {"Value": True}}, {"EnableDnsSupport": {"Value": False}}],
-        )
-        assert cwr.get_secondary_attribute(jmes_path="[].EnableDnsSupport.Value") == [True, False]
-        self.assertRaises(AttributeError, getattr, cwr, "enable_dns_support")
-        assert cwr.is_inflated is True
+@pytest.fixture
+def urn():
+    return URN(
+        account_id="111111111111",
+        region="eu-west-1",
+        service="ec2",
+        resource_type="vpc",
+        resource_id_parts=["vpc-111111"],
+    )
 
-    def test_load_without_loader(self):
-        urn = URN.from_string("urn:aws:111111111111:eu-west-2:ec2:vpc:vpc-11111111")
-        cwr = CloudWandererResource(
-            urn=urn, resource_data={}, secondary_attributes=[{"EnableDnsSupport": {"Value": True}}]
-        )
-        assert cwr.is_inflated is False
-        self.assertRaises(ValueError, cwr.load)
 
-    def test_load_with_loader(self):
-        urn = URN.from_string("urn:aws:111111111111:eu-west-2:ec2:vpc:vpc-11111111")
-        mock_loader = MagicMock(
-            return_value=CloudWandererResource(
-                urn=urn,
-                resource_data={"CidrBlock": "10.0.0.0/0"},
-                secondary_attributes=[{"EnableDnsSupport": {"Value": True}}],
+@pytest.fixture
+def cloudwanderer_resource(urn, partial_urn):
+    return CloudWandererResource(
+        urn=urn,
+        resource_data={"VpcId": "vpc-111111"},
+        relationships=[partial_urn],
+        discovery_time=datetime(2021, 10, 23),
+    )
+
+
+def test_relationships(cloudwanderer_resource, partial_urn):
+    assert cloudwanderer_resource.relationships == [partial_urn]
+
+
+def test_dict_conversion(cloudwanderer_resource):
+    assert dict(cloudwanderer_resource) == {
+        "urn": URN(
+            cloud_name="aws",
+            account_id="111111111111",
+            region="eu-west-1",
+            service="ec2",
+            resource_type="vpc",
+            resource_id_parts=["vpc-111111"],
+        ),
+        "relationships": [
+            URN(
+                cloud_name="aws",
+                account_id="unknown",
+                region="unknown",
+                service="ec2",
+                resource_type="vpc",
+                resource_id_parts=["vpc-111111"],
             )
-        )
-        cwr = CloudWandererResource(urn=urn, resource_data={}, secondary_attributes=[], loader=mock_loader)
-        assert cwr.is_inflated is False
-        cwr.load()
-        assert cwr.is_inflated is True
-        assert cwr.cidr_block == "10.0.0.0/0"
+        ],
+        "dependent_resource_urns": [],
+        "parent_urn": None,
+        "cloudwanderer_metadata": {"VpcId": "vpc-111111"},
+        "discovery_time": datetime(2021, 10, 23, 0, 0),
+        "vpc_id": "vpc-111111",
+    }
 
-    def test_str(self):
-        cwr = CloudWandererResource(
-            urn=URN.from_string("urn:aws:111111111111:eu-west-2:ec2:vpc:vpc-11111111"),
-            resource_data={"CidrBlock": "10.0.0.0/0"},
-            secondary_attributes=[{"EnableDnsSupport": {"Value": True}}],
-        )
 
-        assert str(cwr) == str(
-            "CloudWandererResource("
-            "urn=URN(account_id='111111111111', region='eu-west-2', service='ec2', "
-            "resource_type='vpc', resource_id_parts=['vpc-11111111']), "
-            "subresource_urns=[], "
-            "resource_data={'CidrBlock': '10.0.0.0/0'}, secondary_attributes=[{'EnableDnsSupport': {'Value': True}}]"
-            ")"
-        )
+def test_json_conversion(cloudwanderer_resource):
 
-    def test_repr(self):
-        cwr = CloudWandererResource(
-            urn=URN.from_string("urn:aws:111111111111:eu-west-2:ec2:vpc:vpc-11111111"),
-            resource_data={"CidrBlock": "10.0.0.0/0"},
-            secondary_attributes=[{"EnableDnsSupport": {"Value": True}}],
-        )
-
-        assert repr(cwr) == str(
-            "CloudWandererResource("
-            "urn=URN(account_id='111111111111', region='eu-west-2', service='ec2', "
-            "resource_type='vpc', resource_id_parts=['vpc-11111111']), "
-            "subresource_urns=[], "
-            "resource_data={'CidrBlock': '10.0.0.0/0'}, secondary_attributes=[{'EnableDnsSupport': {'Value': True}}]"
-            ")"
-        )
-
-    def test_empty(self):
-        """Do not throw when there is no resource data.
-
-        This scenario occurs for some older AWS resources like sns topics as
-        their ``describe_`` methods can return no data.
-        """
-        CloudWandererResource(
-            urn=URN.from_string("urn:aws:111111111111:eu-west-2:ec2:vpc:vpc-11111111"),
-            resource_data=None,
-            secondary_attributes=[],
-        )
-
-    def test_subresource(self):
-        parent_urn = URN.from_string("urn:aws:111111111111:us-east-1:iam:role:test-role")
-        urn = URN.from_string("urn:aws:111111111111:us-east-1:iam:role_policy:test-role/test-policy")
-        cwr = CloudWandererResource(urn=urn, resource_data={}, secondary_attributes=[])
-
-        assert cwr.parent_urn == parent_urn
+    assert json.dumps(dict(cloudwanderer_resource), default=str) == json.dumps(
+        {
+            "urn": "urn:aws:111111111111:eu-west-1:ec2:vpc:vpc-111111",
+            "relationships": ["urn:aws:unknown:unknown:ec2:vpc:vpc-111111"],
+            "dependent_resource_urns": [],
+            "parent_urn": None,
+            "cloudwanderer_metadata": {"VpcId": "vpc-111111"},
+            "discovery_time": "2021-10-23 00:00:00",
+            "vpc_id": "vpc-111111",
+        }
+    )

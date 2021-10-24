@@ -1,0 +1,71 @@
+{
+    "service": "ec2",
+    "mockData": {
+        "get_paginator.return_value.paginate.return_value": [
+            {
+                "Addresses": [
+                    {
+                        "PublicIp": "1.1.1.1",
+                        "AllocationId": "eipalloc-11111111111111111",
+                        "Domain": "vpc",
+                        "PublicIpv4Pool": "amazon",
+                        "NetworkBorderGroup": "eu-west-1"
+                    }
+                ]
+            }
+        ]
+    },
+    "getResources": {
+        "serviceName": "ec2",
+        "resourceType": "elastic_ip",
+        "region": "eu-west-2"
+    },
+    "expectedResults": [
+        {
+            "urn": {
+                "cloud_name": "aws",
+                "account_id": {},
+                "region": "eu-west-2",
+                "service": "ec2",
+                "resource_type": "elastic_ip",
+                "resource_id_parts": [
+                    "eipalloc-11111111111111111"
+                ],
+                "resource_id": "eipalloc-11111111111111111"
+            },
+            "relationships": [],
+            "dependent_resource_urns": [],
+            "parent_urn": null,
+            "cloudwanderer_metadata": {
+                "InstanceId": null,
+                "PublicIp": "1.1.1.1",
+                "AllocationId": "eipalloc-11111111111111111",
+                "AssociationId": null,
+                "Domain": "vpc",
+                "NetworkInterfaceId": null,
+                "NetworkInterfaceOwnerId": null,
+                "PrivateIpAddress": null,
+                "Tags": null,
+                "PublicIpv4Pool": "amazon",
+                "NetworkBorderGroup": "eu-west-1",
+                "CustomerOwnedIp": null,
+                "CustomerOwnedIpv4Pool": null,
+                "CarrierIp": null
+            },
+            "instance_id": null,
+            "public_ip": "1.1.1.1",
+            "allocation_id": "eipalloc-11111111111111111",
+            "association_id": null,
+            "domain": "vpc",
+            "network_interface_id": null,
+            "network_interface_owner_id": null,
+            "private_ip_address": null,
+            "tags": null,
+            "public_ipv4_pool": "amazon",
+            "network_border_group": "eu-west-1",
+            "customer_owned_ip": null,
+            "customer_owned_ipv4_pool": null,
+            "carrier_ip": null
+        }
+    ]
+}

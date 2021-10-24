@@ -1,0 +1,143 @@
+{
+    "service": "wafv2",
+    "mockData": {
+        "get_web_acl.return_value": {
+            "WebACL": {
+                "Name": "test-webacl",
+                "Id": "11111111-1111-1111-1111-111111111111",
+                "ARN": "arn:aws:wafv2:eu-west-1:123456789012:regional/webacl/test-webacl/11111111-1111-1111-1111-111111111111",
+                "DefaultAction": {
+                    "Allow": {}
+                },
+                "Description": "Test Web ACL",
+                "Rules": [
+                    {
+                        "Name": "AWS-AWSManagedRulesAmazonIpReputationList",
+                        "Priority": 0,
+                        "Statement": {
+                            "ManagedRuleGroupStatement": {
+                                "VendorName": "AWS",
+                                "Name": "AWSManagedRulesAmazonIpReputationList"
+                            }
+                        },
+                        "OverrideAction": {
+                            "None": {}
+                        },
+                        "VisibilityConfig": {
+                            "SampledRequestsEnabled": true,
+                            "CloudWatchMetricsEnabled": true,
+                            "MetricName": "AWS-AWSManagedRulesAmazonIpReputationList"
+                        }
+                    }
+                ],
+                "VisibilityConfig": {
+                    "SampledRequestsEnabled": true,
+                    "CloudWatchMetricsEnabled": true,
+                    "MetricName": "test-webacl"
+                },
+                "Capacity": 25,
+                "ManagedByFirewallManager": false
+            }
+        }
+    },
+    "getResource": {
+        "urn": "urn:aws:123456789012:eu-west-2:wafv2:regional_web_acl:test-webacl/11111111-1111-1111-1111-111111111111"
+    },
+    "expectedResults": [
+        {
+            "urn": {
+                "cloud_name": "aws",
+                "account_id": {},
+                "region": "eu-west-2",
+                "service": "wafv2",
+                "resource_type": "regional_web_acl",
+                "resource_id_parts": [
+                    "test-webacl",
+                    "11111111-1111-1111-1111-111111111111"
+                ],
+                "resource_id": "test-webacl/11111111-1111-1111-1111-111111111111"
+            },
+            "relationships": [],
+            "dependent_resource_urns": [],
+            "parent_urn": null,
+            "cloudwanderer_metadata": {
+                "Name": "test-webacl",
+                "Id": "11111111-1111-1111-1111-111111111111",
+                "ARN": "arn:aws:wafv2:eu-west-1:123456789012:regional/webacl/test-webacl/11111111-1111-1111-1111-111111111111",
+                "DefaultAction": {
+                    "Allow": {}
+                },
+                "Description": "Test Web ACL",
+                "Rules": [
+                    {
+                        "Name": "AWS-AWSManagedRulesAmazonIpReputationList",
+                        "Priority": 0,
+                        "Statement": {
+                            "ManagedRuleGroupStatement": {
+                                "VendorName": "AWS",
+                                "Name": "AWSManagedRulesAmazonIpReputationList"
+                            }
+                        },
+                        "OverrideAction": {
+                            "None": {}
+                        },
+                        "VisibilityConfig": {
+                            "SampledRequestsEnabled": true,
+                            "CloudWatchMetricsEnabled": true,
+                            "MetricName": "AWS-AWSManagedRulesAmazonIpReputationList"
+                        }
+                    }
+                ],
+                "VisibilityConfig": {
+                    "SampledRequestsEnabled": true,
+                    "CloudWatchMetricsEnabled": true,
+                    "MetricName": "test-webacl"
+                },
+                "Capacity": 25,
+                "PreProcessFirewallManagerRuleGroups": null,
+                "PostProcessFirewallManagerRuleGroups": null,
+                "ManagedByFirewallManager": false,
+                "LabelNamespace": null,
+                "CustomResponseBodies": null
+            },
+            "name": "test-webacl",
+            "id": "11111111-1111-1111-1111-111111111111",
+            "arn": "arn:aws:wafv2:eu-west-1:123456789012:regional/webacl/test-webacl/11111111-1111-1111-1111-111111111111",
+            "default_action": {
+                "Allow": {}
+            },
+            "description": "Test Web ACL",
+            "rules": [
+                {
+                    "Name": "AWS-AWSManagedRulesAmazonIpReputationList",
+                    "Priority": 0,
+                    "Statement": {
+                        "ManagedRuleGroupStatement": {
+                            "VendorName": "AWS",
+                            "Name": "AWSManagedRulesAmazonIpReputationList"
+                        }
+                    },
+                    "OverrideAction": {
+                        "None": {}
+                    },
+                    "VisibilityConfig": {
+                        "SampledRequestsEnabled": true,
+                        "CloudWatchMetricsEnabled": true,
+                        "MetricName": "AWS-AWSManagedRulesAmazonIpReputationList"
+                    }
+                }
+            ],
+            "visibility_config": {
+                "SampledRequestsEnabled": true,
+                "CloudWatchMetricsEnabled": true,
+                "MetricName": "test-webacl"
+            },
+            "capacity": 25,
+            "pre_process_firewall_manager_rule_groups": null,
+            "post_process_firewall_manager_rule_groups": null,
+            "managed_by_firewall_manager": false,
+            "label_namespace": null,
+            "custom_response_bodies": null
+        }
+    ]
+}

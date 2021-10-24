@@ -1,8 +1,8 @@
 Boto3 Loaders
 ==============================
 
-.. automodule :: cloudwanderer.boto3_loaders
+.. automodule :: cloudwanderer.aws_interface.boto3_loaders
     :members:
     :exclude-members: ResourceMap
 
-.. autoclass :: cloudwanderer.boto3_loaders.ResourceMap
+.. autoclass :: cloudwanderer.aws_interface.boto3_loaders.ResourceMap
