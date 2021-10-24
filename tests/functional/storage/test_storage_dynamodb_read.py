@@ -6,9 +6,9 @@ import boto3
 import pytest
 from moto import mock_ec2, mock_iam, mock_s3, mock_sts
 
+from cloudwanderer import CloudWanderer
 from cloudwanderer.aws_interface.interface import CloudWandererAWSInterface
 from cloudwanderer.aws_interface.session import CloudWandererBoto3Session
-from cloudwanderer.cloud_wanderer import CloudWanderer
 from cloudwanderer.cloud_wanderer_resource import CloudWandererResource
 from cloudwanderer.models import ServiceResourceType
 from cloudwanderer.storage_connectors.dynamodb import DynamoDbConnector, IndexNotAvailableException

@@ -307,7 +307,7 @@ class DynamoDbConnector(BaseStorageConnector):
         region: str,
         cutoff: Optional[datetime],
     ) -> None:
-        logger.info("Deleting any %s discovered before %s", resource_type, cutoff)
+        logger.debug("Deleting any %s discovered before %s", resource_type, cutoff)
         resource_records = self.read_resources(
             cloud_name=cloud_name, service=service, resource_type=resource_type, account_id=account_id, region=region
         )

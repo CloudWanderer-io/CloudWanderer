@@ -33,12 +33,12 @@ def create_iam_role() -> None:
     )
 
 
-def create_ec2_instances(regions: List[str] = ["eu-west-2"]):
+def create_ec2_instances(regions: List[str] = ["eu-west-2"], count=1):
     for region_name in regions:
         logger.info("Creating ec2 instance in %s", region_name)
         ec2_resource = boto3.resource("ec2", region_name=region_name)
         images = list(ec2_resource.images.all())
-        ec2_resource.create_instances(ImageId=images[0].image_id, MinCount=1, MaxCount=1)
+        ec2_resource.create_instances(ImageId=images[0].image_id, MinCount=count, MaxCount=count)
 
 
 def create_secretsmanager_secrets(regions=["eu-west-2"]) -> None:
