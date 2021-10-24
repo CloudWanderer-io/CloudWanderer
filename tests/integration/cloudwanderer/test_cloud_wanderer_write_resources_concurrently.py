@@ -4,7 +4,8 @@ from moto import mock_ec2, mock_iam, mock_s3, mock_sts
 
 from cloudwanderer.storage_connectors import MemoryStorageConnector
 from cloudwanderer.urn import URN
-from tests.integration.pytest_helpers import create_iam_role, create_s3_buckets
+
+from ...pytest_helpers import create_iam_role, create_s3_buckets
 
 
 @mock_sts

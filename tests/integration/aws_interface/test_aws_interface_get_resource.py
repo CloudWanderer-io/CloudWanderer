@@ -6,7 +6,7 @@ from moto import mock_ec2, mock_iam, mock_s3, mock_secretsmanager, mock_sts
 from cloudwanderer import URN
 from cloudwanderer.exceptions import UnsupportedServiceError
 
-from ..pytest_helpers import compare_dict_allow_any, create_iam_role, create_s3_buckets, create_secretsmanager_secrets
+from ...pytest_helpers import compare_dict_allow_any, create_iam_role, create_s3_buckets, create_secretsmanager_secrets
 
 
 @mock_ec2
@@ -27,7 +27,6 @@ def test_get_valid_ec2_vpc(aws_interface):
     )
 
     compare_dict_allow_any(
-        dict(result),
         {
             "urn": ANY,
             "relationships": ANY,
@@ -38,7 +37,7 @@ def test_get_valid_ec2_vpc(aws_interface):
                 "DhcpOptionsId": ANY,
                 "State": "available",
                 "VpcId": ANY,
-                "OwnerId": None,
+                "OwnerId": "123456789012",
                 "InstanceTenancy": "default",
                 "Ipv6CidrBlockAssociationSet": [],
                 "CidrBlockAssociationSet": [
@@ -57,7 +56,7 @@ def test_get_valid_ec2_vpc(aws_interface):
             "dhcp_options_id": ANY,
             "state": "available",
             "vpc_id": ANY,
-            "owner_id": None,
+            "owner_id": "123456789012",
             "instance_tenancy": "default",
             "ipv6_cidr_block_association_set": [],
             "cidr_block_association_set": [
@@ -71,6 +70,8 @@ def test_get_valid_ec2_vpc(aws_interface):
             "tags": [],
             "enable_dns_support": True,
         },
+        dict(result),
+        allow_partial_match_first=True,
     )
 
 
@@ -232,7 +233,6 @@ def test_get_custom_resource(aws_interface):
     )
 
     compare_dict_allow_any(
-        dict(result),
         {
             "arn": ANY,
             "cloudwanderer_metadata": {
@@ -240,7 +240,7 @@ def test_get_custom_resource(aws_interface):
                 "CreatedDate": None,
                 "DeletedDate": None,
                 "Description": "",
-                "KmsKeyId": "",
+                "KmsKeyId": None,
                 "LastAccessedDate": None,
                 "LastChangedDate": None,
                 "LastRotatedDate": None,
@@ -259,7 +259,7 @@ def test_get_custom_resource(aws_interface):
             "dependent_resource_urns": [],
             "description": "",
             "discovery_time": ANY,
-            "kms_key_id": "",
+            "kms_key_id": None,
             "last_accessed_date": None,
             "last_changed_date": None,
             "last_rotated_date": None,
@@ -283,6 +283,8 @@ def test_get_custom_resource(aws_interface):
             ),
             "version_ids_to_stages": ANY,
         },
+        dict(result),
+        allow_partial_match_first=True,
     )
 
 

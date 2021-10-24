@@ -9,7 +9,7 @@ import pytest
 
 from cloudwanderer.urn import URN
 
-from ..pytest_helpers import compare_list_of_dicts_allow_any, prepare_for_comparison
+from ...pytest_helpers import compare_list_of_dicts_allow_any, prepare_for_comparison
 
 logger = logging.getLogger(__name__)
 

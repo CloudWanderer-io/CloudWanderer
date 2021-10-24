@@ -1,14 +1,8 @@
 import logging
 import unittest
 
-import boto3
-import botocore
-
 from cloudwanderer import URN, CloudWanderer
-from cloudwanderer.aws_interface import CloudWandererAWSInterface
-from cloudwanderer.aws_interface.session import CloudWandererBoto3Session
-from cloudwanderer.cloud_wanderer import CloudWandererConcurrentWriteThreadResult
-from cloudwanderer.exceptions import BadUrnRegionError, BadUrnSubResourceError, UnsupportedResourceTypeError
+from cloudwanderer.exceptions import UnsupportedResourceTypeError
 from cloudwanderer.models import ServiceResourceType
 from cloudwanderer.storage_connectors import GremlinStorageConnector
 
@@ -33,7 +27,11 @@ class TestFunctional(unittest.TestCase):
         logging.basicConfig(level="debug")
 
     def setUp(self):
-        self.storage_connector = GremlinStorageConnector(endpoint_url="wss://cloudwanderertest.cluster-cj4mow8tlcit.eu-west-1.neptune.amazonaws.com:8182", pool_size=1, max_workers=1)
+        self.storage_connector = GremlinStorageConnector(
+            endpoint_url="wss://cloudwanderertest.cluster-cj4mow8tlcit.eu-west-1.neptune.amazonaws.com:8182",
+            pool_size=1,
+            max_workers=1,
+        )
         self.storage_connector.init()
         self.wanderer = CloudWanderer(storage_connectors=[self.storage_connector])
 
@@ -146,7 +144,7 @@ class TestFunctional(unittest.TestCase):
         # TODO: Add secondary attributes
         # assert isinstance(vpcs[0].get_secondary_attribute(name="vpc_enable_dns_support")[0], dict)
         logging.info(vpcs[0])
-        assert vpcs[0].is_default in ['True', 'False']
+        assert vpcs[0].is_default in ["True", "False"]
 
     # def test_read_all_resources_in_account(self):
     #     resources = list(self.storage_connector.read_resources(account_id=self.wanderer.cloud_interface.account_id))

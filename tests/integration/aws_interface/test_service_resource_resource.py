@@ -6,7 +6,7 @@ from moto import mock_ec2, mock_iam, mock_s3, mock_sts
 from cloudwanderer.aws_interface.boto3_loaders import ResourceMap
 from cloudwanderer.urn import URN
 
-from ..pytest_helpers import create_iam_role, create_s3_buckets
+from ...pytest_helpers import create_iam_role, create_s3_buckets
 
 
 @mock_ec2
@@ -24,6 +24,7 @@ def test_raw_data(single_ec2_vpc):
         "InstanceTenancy": "default",
         "Ipv6CidrBlockAssociationSet": [],
         "IsDefault": True,
+        "OwnerId": "123456789012",
         "State": "available",
         "Tags": [],
         "VpcId": ANY,
@@ -45,7 +46,7 @@ def test_normalized_raw_data(single_ec2_vpc):
         "InstanceTenancy": "default",
         "Ipv6CidrBlockAssociationSet": [],
         "IsDefault": True,
-        "OwnerId": None,
+        "OwnerId": "123456789012",
         "State": "available",
         "Tags": [],
         "VpcId": ANY,

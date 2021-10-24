@@ -2,7 +2,7 @@ import unittest
 
 from cloudwanderer.storage_connectors import DynamoDbConnector
 
-from ..helpers import DEFAULT_SESSION
+from ...helpers import DEFAULT_SESSION
 
 
 class TestDynamoDBConnector(unittest.TestCase):

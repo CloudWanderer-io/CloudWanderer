@@ -9,7 +9,7 @@ import sys
 from datetime import datetime
 from functools import reduce
 from random import randrange
-from typing import TYPE_CHECKING, Any, Callable, Dict, Generator, Iterable, Iterator, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, Generator, Iterable, Iterator, Optional, Union, cast
 
 if sys.version_info >= (3, 8):
     from typing import Literal, TypedDict
@@ -25,7 +25,7 @@ else:
     DynamoDBServiceResource = object
 
 from ..cloud_wanderer_resource import CloudWandererResource
-from ..urn import URN, PartialUrn
+from ..urn import URN
 from ..utils import standardise_data_types
 from .base_connector import ISO_DATE_FORMAT, BaseStorageConnector
 
@@ -116,10 +116,15 @@ def _dynamodb_items_to_resources(items: Iterable[dict], loader: Callable) -> Ite
         grouped_items = list(group)
         base_resource = next(resource for resource in grouped_items if resource["_attr"] == "BaseResource")
         dependent_resource_urns = [URN.from_string(urn) for urn in base_resource.get("_dependent_resource_urns", [])]
+        parent_urn: Optional[URN] = None
+        if "_parent_urn" in base_resource:
+            parent_urn = URN.from_string(base_resource["_parent_urn"])
+
         yield CloudWandererResource(
             urn=_urn_from_primary_key(base_resource["_id"]),
             dependent_resource_urns=dependent_resource_urns,
             resource_data=_strip_dynamodb_attrs(base_resource),
+            parent_urn=parent_urn,
             discovery_time=datetime.strptime(base_resource["_discovery_time"], ISO_DATE_FORMAT),
             loader=loader,
         )
@@ -199,10 +204,10 @@ class DynamoDbConnector(BaseStorageConnector):
 
     def write_resource(self, resource: CloudWandererResource) -> None:
         logger.debug(f"Writing: {resource.urn} to {self.table_name}")
-        if isinstance(resource.urn, PartialUrn):
-            raise ValueError("Expected URN got PartialURN for resource URN.")
+        if resource.urn.is_partial:
+            raise ValueError("Expected complete urn got partial for resource URN: %s.", resource.urn)
         item = {
-            **self._generate_urn_index_values(resource.urn),
+            **self._generate_urn_index_values(cast(URN, resource.urn)),
             **standardise_data_types(resource.cloudwanderer_metadata.resource_data or {}),
             **{
                 "_dependent_resource_urns": [str(urn) for urn in resource.dependent_resource_urns],
@@ -256,11 +261,11 @@ class DynamoDbConnector(BaseStorageConnector):
         query_generator = DynamoDbQueryGenerator(cloud_name, account_id, region, service, resource_type, urn)
         for condition_expression in query_generator.condition_expressions:
             query_args = DynamoDBQueryArgs(
-                Select="ALL_PROJECTED_ATTRIBUTES",
                 KeyConditionExpression=condition_expression,
             )
             if query_generator.index is not None:
                 query_args["IndexName"] = query_generator.index
+                query_args["Select"] = "ALL_PROJECTED_ATTRIBUTES"
             if query_generator.condition_expressions is not None:
                 query_args["FilterExpression"] = query_generator.filter_expression
 
@@ -290,7 +295,7 @@ class DynamoDbConnector(BaseStorageConnector):
         )
         with self.dynamodb_table.batch_writer() as batch:
             for record in resource_records:
-                logger.debug("Deleting %s", record["_id"])
+                logger.info("Deleting %s", record["_id"])
                 batch.delete_item(Key={"_id": record["_id"], "_attr": record["_attr"]})
 
     def delete_resource_of_type_in_account_region(
@@ -307,12 +312,15 @@ class DynamoDbConnector(BaseStorageConnector):
             cloud_name=cloud_name, service=service, resource_type=resource_type, account_id=account_id, region=region
         )
         for resource in resource_records:
-            if cutoff and resource.discovery_time > cutoff:
+            if cutoff and resource.discovery_time >= cutoff:
                 logger.debug("Skipping deletion of %s as it was discovered after our cutoff.", resource.urn)
                 continue
-            if isinstance(resource.urn, PartialUrn):
-                raise NotImplementedError("The DynamoDB Storage connector does not know how to delete partial URNs.")
-            self.delete_resource(urn=resource.urn)
+            if resource.urn.is_partial:
+                raise NotImplementedError(
+                    "The DynamoDB Storage connector does not know how to delete partial URNs: %s.", resource.urn
+                )
+            logger.debug("Cleaning up %s discovered %s", str(resource.urn), resource.discovery_time)
+            self.delete_resource(urn=cast(URN, resource.urn))
 
     def open(self) -> None:
         ...
@@ -406,6 +414,7 @@ class DynamoDbQueryGenerator:
             ValueError: If not all required arguments are passed for a given combination
         """
         if self.index is None and self.urn is not None:
+            logger.info("Querying for %s", _primary_key_from_urn(self.urn))
             yield Key("_id").eq(_primary_key_from_urn(self.urn))
             return
         if self.index == "resource_type":
@@ -468,9 +477,15 @@ class DynamoDbTableCreator:
 
     def create_table(self) -> None:
         """Create the DynamoDB table."""
+        logger.info(
+            "Creating table in %s via %s",
+            self.dynamodb.meta.client.meta.region_name,
+            self.dynamodb.meta.client.meta.endpoint_url,
+        )
         try:
             self.dynamodb.create_table(**{**self.schema["table"], **{"TableName": self.table_name}})
         except self.dynamodb_table.meta.client.exceptions.ResourceInUseException:
+            self.dynamodb_table.load()
             logger.info("Table %s already exists, skipping creation.", self.table_name)
 
     @property

@@ -35,6 +35,7 @@ def create_iam_role() -> None:
 
 def create_ec2_instances(regions: List[str] = ["eu-west-2"]):
     for region_name in regions:
+        logger.info("Creating ec2 instance in %s", region_name)
         ec2_resource = boto3.resource("ec2", region_name=region_name)
         images = list(ec2_resource.images.all())
         ec2_resource.create_instances(ImageId=images[0].image_id, MinCount=1, MaxCount=1)
@@ -64,7 +65,9 @@ def prepare_for_comparison(result):
     )
 
 
-def compare_dict_allow_any(first: Dict[str, Any], second: Dict[str, Any], allow_partial_match_first: bool) -> None:
+def compare_dict_allow_any(
+    first: Dict[str, Any], second: Dict[str, Any], allow_partial_match_first: bool = False
+) -> None:
     """Compare two dictionaries allowing the values of either side to be ANY and match.
 
     Arguments:
@@ -84,23 +87,23 @@ def compare_dict_allow_any(first: Dict[str, Any], second: Dict[str, Any], allow_
         + "\n".join(difflib.ndiff(pprint.pformat(first).splitlines(), pprint.pformat(second).splitlines()))
     )
     if not allow_partial_match_first:
-        if first.items() == second.items():
-            assert True
-            return
-    else:
-        if not first:
-            raise AssertionError("Dictionaries do not match" + diff)
-        for key, value in first.items():
-            if second.get(key) == value:
-                continue
+        if first.keys() != second.keys():
+            raise AssertionError("Dictionaries do not have the same number of keys" + diff)
+        if first.items() != second.items():
             raise AssertionError("Dictionaries do not match" + diff)
         return
 
-    raise AssertionError("Dictionaries do not match" + diff)
+    if not first:
+        raise AssertionError("Dictionaries do not match" + diff)
+    for key, value in first.items():
+        if value == second.get(key):
+            continue
+        raise AssertionError(f"Dictionaries do not match on key {key}, {value} vs {second.get(key)} {diff}")
+    return
 
 
 def compare_list_of_dicts_allow_any(
-    first: List[Dict[str, Any]], second: List[Dict[str, Any]], allow_partial_match_first: bool
+    first: List[Dict[str, Any]], second: List[Dict[str, Any]], allow_partial_match_first: bool = False
 ) -> None:
     """
     Arguments:

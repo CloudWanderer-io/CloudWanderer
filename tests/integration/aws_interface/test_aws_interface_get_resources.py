@@ -5,9 +5,8 @@ from moto import mock_ec2, mock_iam, mock_sts
 
 from cloudwanderer import URN
 from cloudwanderer.exceptions import UnsupportedResourceTypeError, UnsupportedServiceError
-from tests.integration.pytest_helpers import compare_dict_allow_any
 
-from ..pytest_helpers import create_iam_role
+from ...pytest_helpers import compare_dict_allow_any, create_iam_role
 
 
 @mock_ec2
@@ -26,7 +25,25 @@ def test_get_resources_of_type_in_region_eu_west_2(aws_interface):
         {
             "cidr_block": "172.31.0.0/16",
             "cidr_block_association_set": ANY,
-            "cloudwanderer_metadata": ANY,
+            "cloudwanderer_metadata": {
+                "CidrBlock": "172.31.0.0/16",
+                "CidrBlockAssociationSet": [
+                    {
+                        "AssociationId": ANY,
+                        "CidrBlock": "172.31.0.0/16",
+                        "CidrBlockState": {"State": "associated"},
+                    }
+                ],
+                "DhcpOptionsId": ANY,
+                "EnableDnsSupport": True,
+                "InstanceTenancy": "default",
+                "Ipv6CidrBlockAssociationSet": [],
+                "IsDefault": True,
+                "OwnerId": "123456789012",
+                "State": "available",
+                "Tags": [],
+                "VpcId": ANY,
+            },
             "dependent_resource_urns": [],
             "dhcp_options_id": ANY,
             "discovery_time": ANY,
@@ -34,7 +51,7 @@ def test_get_resources_of_type_in_region_eu_west_2(aws_interface):
             "instance_tenancy": "default",
             "ipv6_cidr_block_association_set": [],
             "is_default": True,
-            "owner_id": None,
+            "owner_id": "123456789012",
             "parent_urn": None,
             "relationships": ANY,
             "state": "available",

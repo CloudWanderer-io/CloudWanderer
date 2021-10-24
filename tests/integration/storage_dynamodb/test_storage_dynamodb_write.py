@@ -4,11 +4,15 @@ from cloudwanderer.storage_connectors import DynamoDbConnector
 
 from ..storage_write_generic import StorageWriteTestMixin
 
+# from moto import mock_dynamodb2
+
 
 class TestStorageDynamoDbWrite(StorageWriteTestMixin, unittest.TestCase):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.connector = DynamoDbConnector()
+    @classmethod
+    def setupClass(cls):
+        super().setupClass()
+        # cls.mocks.append(mock_dynamodb2().start())
+        cls.connector = DynamoDbConnector()
 
     def reset_dynamodb_table(self):
         try:

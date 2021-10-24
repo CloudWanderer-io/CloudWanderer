@@ -5,7 +5,7 @@ from moto import mock_ec2, mock_iam, mock_s3, mock_secretsmanager, mock_sts
 
 from cloudwanderer import URN
 
-from ..pytest_helpers import compare_dict_allow_any, create_iam_role, create_s3_buckets, create_secretsmanager_secrets
+from ...pytest_helpers import compare_dict_allow_any, create_iam_role, create_s3_buckets, create_secretsmanager_secrets
 
 
 @mock_ec2

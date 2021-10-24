@@ -1,7 +1,6 @@
 import logging
 import unittest
 
-import boto3
 import botocore
 
 from cloudwanderer import URN, CloudWanderer

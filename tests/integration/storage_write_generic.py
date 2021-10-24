@@ -1,7 +1,10 @@
+from moto import mock_ec2, mock_iam, mock_s3, mock_sts
+
 from cloudwanderer.cloud_wanderer_resource import URN, CloudWandererResource
 
-from .helpers import get_default_mocker
-from .mocks import add_infra, generate_mock_session, generate_urn
+from ..helpers import DEFAULT_SESSION
+from ..pytest_helpers import create_ec2_instances, create_iam_role, create_s3_buckets
+from .mocks import generate_urn
 
 
 class StorageWriteTestMixin:
@@ -10,29 +13,35 @@ class StorageWriteTestMixin:
 
     @classmethod
     def setUpClass(cls):
-        mocker = get_default_mocker()
-        mocker.start_general_mock()
-        cls.mock_session = generate_mock_session()
+        cls.mocks = [
+            mock_sts().start(),
+            mock_ec2().start(),
+            mock_s3().start(),
+            mock_iam().start(),
+        ]
+        create_ec2_instances()
+        create_iam_role()
+        create_s3_buckets()
+        cls.maxDiff = 10000
 
-        add_infra(count=100, regions=["eu-west-2"])
         cls.ec2_instances = [
             CloudWandererResource(
                 urn=generate_urn(service="ec2", resource_type="instance", resource_id_parts=[instance.instance_id]),
                 resource_data=instance.meta.data,
             )
-            for instance in cls.mock_session.resource("ec2").instances.all()
+            for instance in DEFAULT_SESSION.resource("ec2").instances.all()
         ]
         cls.vpcs = [
             CloudWandererResource(
                 urn=generate_urn(service="ec2", resource_type="vpc", resource_id_parts=[vpc.vpc_id]),
                 resource_data=vpc.meta.data,
             )
-            for vpc in cls.mock_session.resource("ec2").vpcs.all()
+            for vpc in DEFAULT_SESSION.resource("ec2").vpcs.all()
         ]
         cls.role = CloudWandererResource(
             urn=generate_urn(service="iam", resource_type="role", resource_id_parts=["test-role"]),
             resource_data={"RoleName": "test-role"},
-            subresource_urns=[
+            dependent_resource_urns=[
                 generate_urn(
                     service="iam", resource_type="role_policy", resource_id_parts=["test-role", "test-role-policy"]
                 )
@@ -53,7 +62,8 @@ class StorageWriteTestMixin:
 
     @classmethod
     def tearDownClass(cls):
-        get_default_mocker().stop_general_mock()
+        for mock in cls.mocks:
+            mock.stop()
 
     def test_write_resource_and_attribute(self):
 
@@ -63,7 +73,7 @@ class StorageWriteTestMixin:
         assert result.urn == self.role.urn
         assert result.role_name == "test-role"
         assert result.role_inline_policy_attachments == [{"PolicyNames": ["test-role"]}]
-        assert result.subresource_urns == [
+        assert result.dependent_resource_urns == [
             URN(
                 account_id="111111111111",
                 region="eu-west-2",

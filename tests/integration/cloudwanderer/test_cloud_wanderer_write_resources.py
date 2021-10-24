@@ -6,7 +6,7 @@ from moto import mock_ec2, mock_iam, mock_s3, mock_sts
 from cloudwanderer.models import ServiceResourceType
 from cloudwanderer.urn import URN
 
-from ..pytest_helpers import compare_list_of_dicts_allow_any, create_ec2_instances, create_iam_role, create_s3_buckets
+from ...pytest_helpers import compare_list_of_dicts_allow_any, create_ec2_instances, create_iam_role, create_s3_buckets
 
 
 @mock_ec2
@@ -188,7 +188,6 @@ def test_cleanup_resources_of_type_us_east_1(cloudwanderer_aws):
     )
 
     compare_list_of_dicts_allow_any(
-        list(cloudwanderer_aws.storage_connectors[0].read_all()),
         [
             {
                 "PolicyDocument": {
@@ -237,7 +236,7 @@ def test_cleanup_resources_of_type_us_east_1(cloudwanderer_aws):
                     "IsTruncated": False,
                     "Marker": None,
                 },
-                "MaxSessionDuration": None,
+                "MaxSessionDuration": 3600,
                 "Path": "/",
                 "PermissionsBoundary": None,
                 "RoleId": ANY,
@@ -263,6 +262,7 @@ def test_cleanup_resources_of_type_us_east_1(cloudwanderer_aws):
                 ],
             },
         ],
+        list(cloudwanderer_aws.storage_connectors[0].read_all()),
     )
 
     # Delete the role
