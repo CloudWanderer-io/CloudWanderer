@@ -124,13 +124,13 @@
                         "account_id": "unknown",
                         "region": "eu-west-2",
                         "service": "ec2",
-                        "resource_type": "internet_gatway",
+                        "resource_type": "internet_gateway",
                         "resource_id_parts": [
                             "igw-11111111"
                         ],
                         "resource_id": "igw-11111111"
                     },
-                    "RelationshipDirection.INBOUND"
+                    "RelationshipDirection.OUTBOUND"
                 ]
             ],
             "dependent_resource_urns": [],

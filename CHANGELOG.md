@@ -1,3 +1,6 @@
+# 0.19.1
+
+- Fix typo in relationship between igw and route
 # 0.19.0
 
 - Dispense with wrapper methods and instead subclass the boto3 resource factory so we can create new methods directly on the ServiceResource objects.
