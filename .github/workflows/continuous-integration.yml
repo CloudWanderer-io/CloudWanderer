@@ -5,6 +5,8 @@ on: [push]
 jobs:
   linting-and-type-checking:
     runs-on: ubuntu-latest
+    env:
+      AWS_REGION: eu-west-2
     strategy:
       matrix:
         python-version: [3.6, 3.7, 3.8]

@@ -4,6 +4,8 @@ jobs:
   build-n-publish:
     name: Build and publish Python 🐍 distributions 📦 to PyPI and PyPI
     runs-on: ubuntu-latest
+    env:
+      AWS_REGION: eu-west-2
     steps:
       - uses: actions/checkout@master
       - name: Set up Python 3.7
