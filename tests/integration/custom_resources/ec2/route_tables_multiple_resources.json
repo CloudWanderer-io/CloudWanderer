@@ -130,7 +130,7 @@
                         ],
                         "resource_id": "igw-11111111"
                     },
-                    "RelationshipDirection.INBOUND"
+                    "RelationshipDirection.OUTBOUND"
                 ]
             ],
             "dependent_resource_urns": [],

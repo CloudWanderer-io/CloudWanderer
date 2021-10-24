@@ -76,7 +76,7 @@
           "resourceType": "internet_gateway",
           "regionSource": "sameAsResource",
           "accountIdSource": "unknown",
-          "direction": "inbound"
+          "direction": "outbound"
         }
       ]
     },
