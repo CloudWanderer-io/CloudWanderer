@@ -38,58 +38,64 @@
     },
     "expectedResults": [
         {
-            "acceptance_required": true,
-            "availability_zones": [
-                "eu-west-1a"
-            ],
-            "base_endpoint_dns_names": [
-                "vpce-svc-11111111111111111.eu-west-1.vpce.amazonaws.com"
-            ],
+            "urn": {
+                "cloud_name": "aws",
+                "account_id": {},
+                "region": "eu-west-2",
+                "service": "ec2",
+                "resource_type": "vpc_endpoint_service",
+                "resource_id_parts": [
+                    "com.amazonaws.vpce.eu-west-1.vpce-svc-11111111111111111"
+                ],
+                "resource_id": "com.amazonaws.vpce.eu-west-1.vpce-svc-11111111111111111"
+            },
+            "relationships": [],
+            "dependent_resource_urns": [],
+            "parent_urn": null,
             "cloudwanderer_metadata": {
-                "AcceptanceRequired": true,
-                "AvailabilityZones": [
-                    "eu-west-1a"
-                ],
-                "BaseEndpointDnsNames": [
-                    "vpce-svc-11111111111111111.eu-west-1.vpce.amazonaws.com"
-                ],
-                "ManagesVpcEndpoints": false,
-                "Owner": "111111111111",
-                "ServiceId": "vpce-svc-11111111111111111",
                 "ServiceName": "com.amazonaws.vpce.eu-west-1.vpce-svc-11111111111111111",
+                "ServiceId": "vpce-svc-11111111111111111",
                 "ServiceType": [
                     {
                         "ServiceType": "Interface"
                     }
                 ],
+                "AvailabilityZones": [
+                    "eu-west-1a"
+                ],
+                "Owner": "111111111111",
+                "BaseEndpointDnsNames": [
+                    "vpce-svc-11111111111111111.eu-west-1.vpce.amazonaws.com"
+                ],
+                "PrivateDnsName": null,
+                "PrivateDnsNames": null,
+                "VpcEndpointPolicySupported": false,
+                "AcceptanceRequired": true,
+                "ManagesVpcEndpoints": false,
                 "Tags": [],
-                "VpcEndpointPolicySupported": false
+                "PrivateDnsNameVerificationState": null
             },
-            "dependent_resource_urns": [],
-            "manages_vpc_endpoints": false,
-            "owner": "111111111111",
-            "parent_urn": null,
-            "relationships": [],
-            "service_id": "vpce-svc-11111111111111111",
             "service_name": "com.amazonaws.vpce.eu-west-1.vpce-svc-11111111111111111",
+            "service_id": "vpce-svc-11111111111111111",
             "service_type": [
                 {
                     "ServiceType": "Interface"
                 }
             ],
+            "availability_zones": [
+                "eu-west-1a"
+            ],
+            "owner": "111111111111",
+            "base_endpoint_dns_names": [
+                "vpce-svc-11111111111111111.eu-west-1.vpce.amazonaws.com"
+            ],
+            "private_dns_name": null,
+            "private_dns_names": null,
+            "vpc_endpoint_policy_supported": false,
+            "acceptance_required": true,
+            "manages_vpc_endpoints": false,
             "tags": [],
-            "urn": {
-                "account_id": {},
-                "cloud_name": "aws",
-                "region": {},
-                "resource_id": "com.amazonaws.vpce.eu-west-1.vpce-svc-11111111111111111",
-                "resource_id_parts": [
-                    "com.amazonaws.vpce.eu-west-1.vpce-svc-11111111111111111"
-                ],
-                "resource_type": "vpc_endpoint_service",
-                "service": "ec2"
-            },
-            "vpc_endpoint_policy_supported": false
+            "private_dns_name_verification_state": null
         }
     ]
 }

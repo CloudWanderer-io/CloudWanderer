@@ -19,23 +19,38 @@
     },
     "expectedResults": [
         {
-            "bgp_asn": "65000",
+            "urn": {
+                "cloud_name": "aws",
+                "account_id": {},
+                "region": "eu-west-2",
+                "service": "ec2",
+                "resource_type": "customer_gateway",
+                "resource_id_parts": [
+                    "vpn-11111111111111111"
+                ],
+                "resource_id": "vpn-11111111111111111"
+            },
+            "relationships": [],
+            "dependent_resource_urns": [],
+            "parent_urn": null,
             "cloudwanderer_metadata": {
                 "BgpAsn": "65000",
                 "CustomerGatewayId": "cgw-11111111111111111",
                 "IpAddress": "1.1.1.1",
+                "CertificateArn": null,
                 "State": "available",
-                "Tags": [],
-                "Type": "ipsec.1"
+                "Type": "ipsec.1",
+                "DeviceName": null,
+                "Tags": []
             },
+            "bgp_asn": "65000",
             "customer_gateway_id": "cgw-11111111111111111",
-            "dependent_resource_urns": [],
             "ip_address": "1.1.1.1",
-            "parent_urn": null,
-            "relationships": [],
+            "certificate_arn": null,
             "state": "available",
-            "tags": [],
-            "type": "ipsec.1"
+            "type": "ipsec.1",
+            "device_name": null,
+            "tags": []
         }
     ]
 }

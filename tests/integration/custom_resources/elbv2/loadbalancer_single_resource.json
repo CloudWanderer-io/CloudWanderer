@@ -1,0 +1,182 @@
+{
+    "service": "elbv2",
+    "mockData": {
+        "describe_load_balancers.return_value": {
+            "LoadBalancers": [
+                {
+                    "LoadBalancerArn": "arn:aws:elasticloadbalancing:eu-west-1:111111111111:loadbalancer/net/test-nlb/1111111111111111",
+                    "DNSName": "test-nlb-1111111111111111.elb.eu-west-1.amazonaws.com",
+                    "CanonicalHostedZoneId": "11111111111111",
+                    "CreatedTime": "2021-04-11T14:15:20.004Z",
+                    "LoadBalancerName": "test-nlb",
+                    "Scheme": "internet-facing",
+                    "VpcId": "vpc-11111111",
+                    "State": {
+                        "Code": "provisioning"
+                    },
+                    "Type": "network",
+                    "AvailabilityZones": [
+                        {
+                            "ZoneName": "eu-west-1a",
+                            "SubnetId": "subnet-11111111",
+                            "LoadBalancerAddresses": []
+                        },
+                        {
+                            "ZoneName": "eu-west-1c",
+                            "SubnetId": "subnet-22222222",
+                            "LoadBalancerAddresses": []
+                        },
+                        {
+                            "ZoneName": "eu-west-1b",
+                            "SubnetId": "subnet-33333333",
+                            "LoadBalancerAddresses": []
+                        }
+                    ],
+                    "IpAddressType": "ipv4"
+                }
+            ]
+        }
+    },
+    "getResource": {
+        "urn": "urn:aws:123456789012:eu-west-2:elbv2:load_balancer:test-nlb"
+    },
+    "expectedResults": [
+        {
+            "urn": {
+                "cloud_name": "aws",
+                "account_id": {},
+                "region": "eu-west-2",
+                "service": "elbv2",
+                "resource_type": "load_balancer",
+                "resource_id_parts": [
+                    "test-nlb"
+                ],
+                "resource_id": "test-nlb"
+            },
+            "relationships": [
+                [
+                    {
+                        "cloud_name": "aws",
+                        "account_id": "unknown",
+                        "region": "eu-west-2",
+                        "service": "ec2",
+                        "resource_type": "vpc",
+                        "resource_id_parts": [
+                            "vpc-11111111"
+                        ],
+                        "resource_id": "vpc-11111111"
+                    },
+                    "RelationshipDirection.INBOUND"
+                ],
+                [
+                    {
+                        "cloud_name": "aws",
+                        "account_id": "unknown",
+                        "region": "eu-west-2",
+                        "service": "ec2",
+                        "resource_type": "subnet",
+                        "resource_id_parts": [
+                            "subnet-11111111"
+                        ],
+                        "resource_id": "subnet-11111111"
+                    },
+                    "RelationshipDirection.INBOUND"
+                ],
+                [
+                    {
+                        "cloud_name": "aws",
+                        "account_id": "unknown",
+                        "region": "eu-west-2",
+                        "service": "ec2",
+                        "resource_type": "subnet",
+                        "resource_id_parts": [
+                            "subnet-22222222"
+                        ],
+                        "resource_id": "subnet-22222222"
+                    },
+                    "RelationshipDirection.INBOUND"
+                ],
+                [
+                    {
+                        "cloud_name": "aws",
+                        "account_id": "unknown",
+                        "region": "eu-west-2",
+                        "service": "ec2",
+                        "resource_type": "subnet",
+                        "resource_id_parts": [
+                            "subnet-33333333"
+                        ],
+                        "resource_id": "subnet-33333333"
+                    },
+                    "RelationshipDirection.INBOUND"
+                ]
+            ],
+            "dependent_resource_urns": [],
+            "parent_urn": null,
+            "cloudwanderer_metadata": {
+                "LoadBalancerArn": "arn:aws:elasticloadbalancing:eu-west-1:111111111111:loadbalancer/net/test-nlb/1111111111111111",
+                "DNSName": "test-nlb-1111111111111111.elb.eu-west-1.amazonaws.com",
+                "CanonicalHostedZoneId": "11111111111111",
+                "CreatedTime": "2021-04-11T14:15:20.004Z",
+                "LoadBalancerName": "test-nlb",
+                "Scheme": "internet-facing",
+                "VpcId": "vpc-11111111",
+                "State": {
+                    "Code": "provisioning"
+                },
+                "Type": "network",
+                "AvailabilityZones": [
+                    {
+                        "ZoneName": "eu-west-1a",
+                        "SubnetId": "subnet-11111111",
+                        "LoadBalancerAddresses": []
+                    },
+                    {
+                        "ZoneName": "eu-west-1c",
+                        "SubnetId": "subnet-22222222",
+                        "LoadBalancerAddresses": []
+                    },
+                    {
+                        "ZoneName": "eu-west-1b",
+                        "SubnetId": "subnet-33333333",
+                        "LoadBalancerAddresses": []
+                    }
+                ],
+                "SecurityGroups": null,
+                "IpAddressType": "ipv4",
+                "CustomerOwnedIpv4Pool": null
+            },
+            "load_balancer_arn": "arn:aws:elasticloadbalancing:eu-west-1:111111111111:loadbalancer/net/test-nlb/1111111111111111",
+            "dns_name": "test-nlb-1111111111111111.elb.eu-west-1.amazonaws.com",
+            "canonical_hosted_zone_id": "11111111111111",
+            "created_time": "2021-04-11T14:15:20.004Z",
+            "load_balancer_name": "test-nlb",
+            "scheme": "internet-facing",
+            "vpc_id": "vpc-11111111",
+            "state": {
+                "Code": "provisioning"
+            },
+            "type": "network",
+            "availability_zones": [
+                {
+                    "ZoneName": "eu-west-1a",
+                    "SubnetId": "subnet-11111111",
+                    "LoadBalancerAddresses": []
+                },
+                {
+                    "ZoneName": "eu-west-1c",
+                    "SubnetId": "subnet-22222222",
+                    "LoadBalancerAddresses": []
+                },
+                {
+                    "ZoneName": "eu-west-1b",
+                    "SubnetId": "subnet-33333333",
+                    "LoadBalancerAddresses": []
+                }
+            ],
+            "security_groups": null,
+            "ip_address_type": "ipv4",
+            "customer_owned_ipv4_pool": null
+        }
+    ]
+}

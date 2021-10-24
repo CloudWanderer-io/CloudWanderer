@@ -31,8 +31,82 @@
     },
     "expectedResults": [
         {
+            "urn": {
+                "cloud_name": "aws",
+                "account_id": {},
+                "region": "eu-west-2",
+                "service": "ec2",
+                "resource_type": "nat_gateway",
+                "resource_id_parts": [
+                    "nat-11111111111111111"
+                ],
+                "resource_id": "nat-11111111111111111"
+            },
+            "relationships": [
+                [
+                    {
+                        "cloud_name": "aws",
+                        "account_id": "unknown",
+                        "region": "eu-west-2",
+                        "service": "ec2",
+                        "resource_type": "vpc",
+                        "resource_id_parts": [
+                            "vpc-11111111"
+                        ],
+                        "resource_id": "vpc-11111111"
+                    },
+                    "RelationshipDirection.INBOUND"
+                ],
+                [
+                    {
+                        "cloud_name": "aws",
+                        "account_id": "unknown",
+                        "region": "eu-west-2",
+                        "service": "ec2",
+                        "resource_type": "subnet",
+                        "resource_id_parts": [
+                            "subnet-11111111"
+                        ],
+                        "resource_id": "subnet-11111111"
+                    },
+                    "RelationshipDirection.INBOUND"
+                ],
+                [
+                    {
+                        "cloud_name": "aws",
+                        "account_id": "unknown",
+                        "region": "eu-west-2",
+                        "service": "ec2",
+                        "resource_type": "network_interface",
+                        "resource_id_parts": [
+                            "eni-11111111111111111"
+                        ],
+                        "resource_id": "eni-11111111111111111"
+                    },
+                    "RelationshipDirection.OUTBOUND"
+                ],
+                [
+                    {
+                        "cloud_name": "aws",
+                        "account_id": "unknown",
+                        "region": "eu-west-2",
+                        "service": "ec2",
+                        "resource_type": "elastic_ip",
+                        "resource_id_parts": [
+                            "eipalloc-11111111111111111"
+                        ],
+                        "resource_id": "eipalloc-11111111111111111"
+                    },
+                    "RelationshipDirection.OUTBOUND"
+                ]
+            ],
+            "dependent_resource_urns": [],
+            "parent_urn": null,
             "cloudwanderer_metadata": {
                 "CreateTime": "2021-04-13T09:39:49.000Z",
+                "DeleteTime": null,
+                "FailureCode": null,
+                "FailureMessage": null,
                 "NatGatewayAddresses": [
                     {
                         "AllocationId": "eipalloc-11111111111111111",
@@ -41,17 +115,22 @@
                     }
                 ],
                 "NatGatewayId": "nat-11111111111111111",
+                "ProvisionedBandwidth": null,
                 "State": "pending",
                 "SubnetId": "subnet-11111111",
+                "VpcId": "vpc-11111111",
                 "Tags": [
                     {
                         "Key": "Name",
                         "Value": "test-gateway"
                     }
                 ],
-                "VpcId": "vpc-11111111"
+                "ConnectivityType": null
             },
-            "dependent_resource_urns": [],
+            "create_time": "2021-04-13T09:39:49.000Z",
+            "delete_time": null,
+            "failure_code": null,
+            "failure_message": null,
             "nat_gateway_addresses": [
                 {
                     "AllocationId": "eipalloc-11111111111111111",
@@ -60,85 +139,17 @@
                 }
             ],
             "nat_gateway_id": "nat-11111111111111111",
-            "parent_urn": null,
-            "relationships": [
-                [
-                    {
-                        "account_id": "unknown",
-                        "cloud_name": "aws",
-                        "region": {},
-                        "resource_id": "vpc-11111111",
-                        "resource_id_parts": [
-                            "vpc-11111111"
-                        ],
-                        "resource_type": "vpc",
-                        "service": "ec2"
-                    },
-                    "RelationshipDirection.INBOUND"
-                ],
-                [
-                    {
-                        "account_id": "unknown",
-                        "cloud_name": "aws",
-                        "region": {},
-                        "resource_id": "subnet-11111111",
-                        "resource_id_parts": [
-                            "subnet-11111111"
-                        ],
-                        "resource_type": "subnet",
-                        "service": "ec2"
-                    },
-                    "RelationshipDirection.INBOUND"
-                ],
-                [
-                    {
-                        "account_id": "unknown",
-                        "cloud_name": "aws",
-                        "region": {},
-                        "resource_id": "eni-11111111111111111",
-                        "resource_id_parts": [
-                            "eni-11111111111111111"
-                        ],
-                        "resource_type": "network_interface",
-                        "service": "ec2"
-                    },
-                    "RelationshipDirection.OUTBOUND"
-                ],
-                [
-                    {
-                        "account_id": "unknown",
-                        "cloud_name": "aws",
-                        "region": {},
-                        "resource_id": "eipalloc-11111111111111111",
-                        "resource_id_parts": [
-                            "eipalloc-11111111111111111"
-                        ],
-                        "resource_type": "elastic_ip",
-                        "service": "ec2"
-                    },
-                    "RelationshipDirection.OUTBOUND"
-                ]
-            ],
+            "provisioned_bandwidth": null,
             "state": "pending",
             "subnet_id": "subnet-11111111",
+            "vpc_id": "vpc-11111111",
             "tags": [
                 {
                     "Key": "Name",
                     "Value": "test-gateway"
                 }
             ],
-            "urn": {
-                "account_id": {},
-                "cloud_name": "aws",
-                "region": {},
-                "resource_id": "nat-11111111111111111",
-                "resource_id_parts": [
-                    "nat-11111111111111111"
-                ],
-                "resource_type": "nat_gateway",
-                "service": "ec2"
-            },
-            "vpc_id": "vpc-11111111"
+            "connectivity_type": null
         }
     ]
 }

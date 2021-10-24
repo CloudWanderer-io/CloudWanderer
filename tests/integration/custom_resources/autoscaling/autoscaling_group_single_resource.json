@@ -1,5 +1,5 @@
 {
-    "service": "ec2",
+    "service": "autoscaling",
     "mockData": {
         "describe_auto_scaling_groups.return_value": {
             "AutoScalingGroups": [
@@ -79,36 +79,26 @@
     },
     "expectedResults": [
         {
-            "auto_scaling_group_arn": "arn:aws:autoscaling:eu-west-1:111111111111:autoScalingGroup:11111111-1111-1111-1111-111111111111:autoScalingGroupName/test-group",
-            "auto_scaling_group_name": "test",
-            "availability_zones": [
-                "eu-west-1c"
-            ],
-            "capacity_rebalance": true,
-            "cloudwanderer_metadata": {
-                "AutoScalingGroupARN": "arn:aws:autoscaling:eu-west-1:111111111111:autoScalingGroup:11111111-1111-1111-1111-111111111111:autoScalingGroupName/test-group",
-                "AutoScalingGroupName": "test",
-                "AvailabilityZones": [
-                    "eu-west-1c"
+            "urn": {
+                "cloud_name": "aws",
+                "account_id": {},
+                "region": "eu-west-2",
+                "service": "autoscaling",
+                "resource_type": "auto_scaling_group",
+                "resource_id_parts": [
+                    "test"
                 ],
-                "CapacityRebalance": true,
-                "CreatedTime": "2021-04-04T11:18:44.204Z",
-                "DefaultCooldown": 300,
-                "DesiredCapacity": 0,
-                "EnabledMetrics": [],
-                "HealthCheckGracePeriod": 300,
-                "HealthCheckType": "EC2",
-                "Instances": [],
-                "LoadBalancerNames": [],
-                "MaxSize": 0,
-                "MinSize": 0,
+                "resource_id": "test"
+            },
+            "relationships": [],
+            "dependent_resource_urns": [],
+            "parent_urn": null,
+            "cloudwanderer_metadata": {
+                "AutoScalingGroupName": "test",
+                "AutoScalingGroupARN": "arn:aws:autoscaling:eu-west-1:111111111111:autoScalingGroup:11111111-1111-1111-1111-111111111111:autoScalingGroupName/test-group",
+                "LaunchConfigurationName": null,
+                "LaunchTemplate": null,
                 "MixedInstancesPolicy": {
-                    "InstancesDistribution": {
-                        "OnDemandAllocationStrategy": "prioritized",
-                        "OnDemandBaseCapacity": 0,
-                        "OnDemandPercentageAboveBaseCapacity": 70,
-                        "SpotAllocationStrategy": "capacity-optimized"
-                    },
                     "LaunchTemplate": {
                         "LaunchTemplateSpecification": {
                             "LaunchTemplateId": "lt-11111111111111111",
@@ -141,36 +131,50 @@
                                 "InstanceType": "t3.micro"
                             }
                         ]
+                    },
+                    "InstancesDistribution": {
+                        "OnDemandAllocationStrategy": "prioritized",
+                        "OnDemandBaseCapacity": 0,
+                        "OnDemandPercentageAboveBaseCapacity": 70,
+                        "SpotAllocationStrategy": "capacity-optimized"
                     }
                 },
-                "NewInstancesProtectedFromScaleIn": false,
-                "ServiceLinkedRoleARN": "arn:aws:iam::111111111111:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling",
-                "SuspendedProcesses": [],
-                "Tags": [],
+                "MinSize": 0,
+                "MaxSize": 0,
+                "DesiredCapacity": 0,
+                "PredictedCapacity": null,
+                "DefaultCooldown": 300,
+                "AvailabilityZones": [
+                    "eu-west-1c"
+                ],
+                "LoadBalancerNames": [],
                 "TargetGroupARNs": [],
+                "HealthCheckType": "EC2",
+                "HealthCheckGracePeriod": 300,
+                "Instances": [],
+                "CreatedTime": "2021-04-04T11:18:44.204Z",
+                "SuspendedProcesses": [],
+                "PlacementGroup": null,
+                "VPCZoneIdentifier": "subnet-11111111",
+                "EnabledMetrics": [],
+                "Status": null,
+                "Tags": [],
                 "TerminationPolicies": [
                     "Default"
                 ],
-                "VPCZoneIdentifier": "subnet-11111111"
+                "NewInstancesProtectedFromScaleIn": false,
+                "ServiceLinkedRoleARN": "arn:aws:iam::111111111111:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling",
+                "MaxInstanceLifetime": null,
+                "CapacityRebalance": true,
+                "WarmPoolConfiguration": null,
+                "WarmPoolSize": null,
+                "Context": null
             },
-            "created_time": "2021-04-04T11:18:44.204Z",
-            "default_cooldown": 300,
-            "dependent_resource_urns": [],
-            "desired_capacity": 0,
-            "enabled_metrics": [],
-            "health_check_grace_period": 300,
-            "health_check_type": "EC2",
-            "instances": [],
-            "load_balancer_names": [],
-            "max_size": 0,
-            "min_size": 0,
+            "auto_scaling_group_name": "test",
+            "auto_scaling_group_arn": "arn:aws:autoscaling:eu-west-1:111111111111:autoScalingGroup:11111111-1111-1111-1111-111111111111:autoScalingGroupName/test-group",
+            "launch_configuration_name": null,
+            "launch_template": null,
             "mixed_instances_policy": {
-                "InstancesDistribution": {
-                    "OnDemandAllocationStrategy": "prioritized",
-                    "OnDemandBaseCapacity": 0,
-                    "OnDemandPercentageAboveBaseCapacity": 70,
-                    "SpotAllocationStrategy": "capacity-optimized"
-                },
                 "LaunchTemplate": {
                     "LaunchTemplateSpecification": {
                         "LaunchTemplateId": "lt-11111111111111111",
@@ -203,30 +207,44 @@
                             "InstanceType": "t3.micro"
                         }
                     ]
+                },
+                "InstancesDistribution": {
+                    "OnDemandAllocationStrategy": "prioritized",
+                    "OnDemandBaseCapacity": 0,
+                    "OnDemandPercentageAboveBaseCapacity": 70,
+                    "SpotAllocationStrategy": "capacity-optimized"
                 }
             },
-            "new_instances_protected_from_scale_in": false,
-            "parent_urn": null,
-            "relationships": [],
-            "service_linked_role_arn": "arn:aws:iam::111111111111:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling",
-            "suspended_processes": [],
-            "tags": [],
+            "min_size": 0,
+            "max_size": 0,
+            "desired_capacity": 0,
+            "predicted_capacity": null,
+            "default_cooldown": 300,
+            "availability_zones": [
+                "eu-west-1c"
+            ],
+            "load_balancer_names": [],
             "target_group_arns": [],
+            "health_check_type": "EC2",
+            "health_check_grace_period": 300,
+            "instances": [],
+            "created_time": "2021-04-04T11:18:44.204Z",
+            "suspended_processes": [],
+            "placement_group": null,
+            "vpc_zone_identifier": "subnet-11111111",
+            "enabled_metrics": [],
+            "status": null,
+            "tags": [],
             "termination_policies": [
                 "Default"
             ],
-            "urn": {
-                "account_id": {},
-                "cloud_name": "aws",
-                "region": {},
-                "resource_id": "test",
-                "resource_id_parts": [
-                    "test"
-                ],
-                "resource_type": "auto_scaling_group",
-                "service": "autoscaling"
-            },
-            "vpc_zone_identifier": "subnet-11111111"
+            "new_instances_protected_from_scale_in": false,
+            "service_linked_role_arn": "arn:aws:iam::111111111111:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling",
+            "max_instance_lifetime": null,
+            "capacity_rebalance": true,
+            "warm_pool_configuration": null,
+            "warm_pool_size": null,
+            "context": null
         }
     ]
 }

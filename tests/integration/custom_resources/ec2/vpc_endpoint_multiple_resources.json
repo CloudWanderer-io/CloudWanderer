@@ -63,8 +63,46 @@
     },
     "expectedResults": [
         {
+            "urn": {
+                "cloud_name": "aws",
+                "account_id": {},
+                "region": "eu-west-2",
+                "service": "ec2",
+                "resource_type": "vpc_endpoint",
+                "resource_id_parts": [
+                    "vpce-11111111111111111"
+                ],
+                "resource_id": "vpce-11111111111111111"
+            },
+            "relationships": [],
+            "dependent_resource_urns": [],
+            "parent_urn": null,
             "cloudwanderer_metadata": {
-                "CreationTimestamp": "2021-04-11T09:46:00.672Z",
+                "VpcEndpointId": "vpce-11111111111111111",
+                "VpcEndpointType": "Interface",
+                "VpcId": "vpc-11111111",
+                "ServiceName": "com.amazonaws.eu-west-1.s3",
+                "State": "pending",
+                "PolicyDocument": "{\\n    \"Statement\": [\\n        {\\n            \"Action\": \"*\",\\n            \"Effect\": \"Allow\",\\n            \"Resource\": \"*\",\\n            \"Principal\": \"*\"\\n        }\\n    ]\\n}",
+                "RouteTableIds": [],
+                "SubnetIds": [
+                    "subnet-11111111",
+                    "subnet-22222222",
+                    "subnet-33333333"
+                ],
+                "Groups": [
+                    {
+                        "GroupId": "sg-11111111",
+                        "GroupName": "default"
+                    }
+                ],
+                "PrivateDnsEnabled": false,
+                "RequesterManaged": false,
+                "NetworkInterfaceIds": [
+                    "eni-11111111111111111",
+                    "eni-22222222222222222",
+                    "eni-33333333333333333"
+                ],
                 "DnsEntries": [
                     {
                         "DnsName": "*.vpce-11111111111111111-11111111.s3.eu-west-1.vpce.amazonaws.com",
@@ -83,36 +121,36 @@
                         "HostedZoneId": "11111111111111"
                     }
                 ],
-                "Groups": [
-                    {
-                        "GroupId": "sg-11111111",
-                        "GroupName": "default"
-                    }
-                ],
-                "NetworkInterfaceIds": [
-                    "eni-11111111111111111",
-                    "eni-22222222222222222",
-                    "eni-33333333333333333"
-                ],
-                "OwnerId": "111111111111",
-                "PolicyDocument": "{\\n    \"Statement\": [\\n        {\\n            \"Action\": \"*\",\\n            \"Effect\": \"Allow\",\\n            \"Resource\": \"*\",\\n            \"Principal\": \"*\"\\n        }\\n    ]\\n}",
-                "PrivateDnsEnabled": false,
-                "RequesterManaged": false,
-                "RouteTableIds": [],
-                "ServiceName": "com.amazonaws.eu-west-1.s3",
-                "State": "pending",
-                "SubnetIds": [
-                    "subnet-11111111",
-                    "subnet-22222222",
-                    "subnet-33333333"
-                ],
+                "CreationTimestamp": "2021-04-11T09:46:00.672Z",
                 "Tags": [],
-                "VpcEndpointId": "vpce-11111111111111111",
-                "VpcEndpointType": "Interface",
-                "VpcId": "vpc-11111111"
+                "OwnerId": "111111111111",
+                "LastError": null
             },
-            "creation_timestamp": "2021-04-11T09:46:00.672Z",
-            "dependent_resource_urns": [],
+            "vpc_endpoint_id": "vpce-11111111111111111",
+            "vpc_endpoint_type": "Interface",
+            "vpc_id": "vpc-11111111",
+            "service_name": "com.amazonaws.eu-west-1.s3",
+            "state": "pending",
+            "policy_document": "{\\n    \"Statement\": [\\n        {\\n            \"Action\": \"*\",\\n            \"Effect\": \"Allow\",\\n            \"Resource\": \"*\",\\n            \"Principal\": \"*\"\\n        }\\n    ]\\n}",
+            "route_table_ids": [],
+            "subnet_ids": [
+                "subnet-11111111",
+                "subnet-22222222",
+                "subnet-33333333"
+            ],
+            "groups": [
+                {
+                    "GroupId": "sg-11111111",
+                    "GroupName": "default"
+                }
+            ],
+            "private_dns_enabled": false,
+            "requester_managed": false,
+            "network_interface_ids": [
+                "eni-11111111111111111",
+                "eni-22222222222222222",
+                "eni-33333333333333333"
+            ],
             "dns_entries": [
                 {
                     "DnsName": "*.vpce-11111111111111111-11111111.s3.eu-west-1.vpce.amazonaws.com",
@@ -131,46 +169,10 @@
                     "HostedZoneId": "11111111111111"
                 }
             ],
-            "groups": [
-                {
-                    "GroupId": "sg-11111111",
-                    "GroupName": "default"
-                }
-            ],
-            "network_interface_ids": [
-                "eni-11111111111111111",
-                "eni-22222222222222222",
-                "eni-33333333333333333"
-            ],
-            "owner_id": "111111111111",
-            "parent_urn": null,
-            "policy_document": "{\\n    \"Statement\": [\\n        {\\n            \"Action\": \"*\",\\n            \"Effect\": \"Allow\",\\n            \"Resource\": \"*\",\\n            \"Principal\": \"*\"\\n        }\\n    ]\\n}",
-            "private_dns_enabled": false,
-            "relationships": [],
-            "requester_managed": false,
-            "route_table_ids": [],
-            "service_name": "com.amazonaws.eu-west-1.s3",
-            "state": "pending",
-            "subnet_ids": [
-                "subnet-11111111",
-                "subnet-22222222",
-                "subnet-33333333"
-            ],
+            "creation_timestamp": "2021-04-11T09:46:00.672Z",
             "tags": [],
-            "urn": {
-                "account_id": {},
-                "cloud_name": "aws",
-                "region": {},
-                "resource_id": "vpce-11111111111111111",
-                "resource_id_parts": [
-                    "vpce-11111111111111111"
-                ],
-                "resource_type": "vpc_endpoint",
-                "service": "ec2"
-            },
-            "vpc_endpoint_id": "vpce-11111111111111111",
-            "vpc_endpoint_type": "Interface",
-            "vpc_id": "vpc-11111111"
+            "owner_id": "111111111111",
+            "last_error": null
         }
     ]
 }

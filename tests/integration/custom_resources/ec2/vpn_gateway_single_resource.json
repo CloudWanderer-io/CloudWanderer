@@ -24,44 +24,46 @@
     },
     "expectedResults": [
         {
-            "amazon_side_asn": 64512,
+            "urn": {
+                "cloud_name": "aws",
+                "account_id": {},
+                "region": "eu-west-2",
+                "service": "ec2",
+                "resource_type": "vpn_gateway",
+                "resource_id_parts": [
+                    "vgw-11111111111111111"
+                ],
+                "resource_id": "vgw-11111111111111111"
+            },
+            "relationships": [],
+            "dependent_resource_urns": [],
+            "parent_urn": null,
             "cloudwanderer_metadata": {
-                "AmazonSideAsn": 64512,
+                "AvailabilityZone": null,
                 "State": "available",
+                "Type": "ipsec.1",
+                "VpcAttachments": [],
+                "VpnGatewayId": "vgw-11111111111111111",
+                "AmazonSideAsn": 64512,
                 "Tags": [
                     {
                         "Key": "Name",
                         "Value": "test-vpn-gateway"
                     }
-                ],
-                "Type": "ipsec.1",
-                "VpcAttachments": [],
-                "VpnGatewayId": "vgw-11111111111111111"
+                ]
             },
-            "dependent_resource_urns": [],
-            "parent_urn": null,
-            "relationships": [],
+            "availability_zone": null,
             "state": "available",
+            "type": "ipsec.1",
+            "vpc_attachments": [],
+            "vpn_gateway_id": "vgw-11111111111111111",
+            "amazon_side_asn": 64512,
             "tags": [
                 {
                     "Key": "Name",
                     "Value": "test-vpn-gateway"
                 }
-            ],
-            "type": "ipsec.1",
-            "urn": {
-                "account_id": {},
-                "cloud_name": "aws",
-                "region": {},
-                "resource_id": "vgw-11111111111111111",
-                "resource_id_parts": [
-                    "vgw-11111111111111111"
-                ],
-                "resource_type": "vpn_gateway",
-                "service": "ec2"
-            },
-            "vpc_attachments": [],
-            "vpn_gateway_id": "vgw-11111111111111111"
+            ]
         }
     ]
 }

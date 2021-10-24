@@ -46,6 +46,24 @@ def create_secretsmanager_secrets(regions=["eu-west-2"]) -> None:
         secretsmanager.create_secret(Name="TestSecret", SecretString="Ssshhh")
 
 
+def try_dict(value):
+    """Try converting objects first to dict, then to str so we can easily compare them against JSON."""
+    try:
+        return dict(value)
+    except (ValueError, TypeError):
+        return str(value)
+
+
+def prepare_for_comparison(result):
+    """Convert results into a JSON compatible dict for comparison"""
+    return json.loads(
+        json.dumps(
+            list(result),
+            default=try_dict,
+        )
+    )
+
+
 def compare_dict_allow_any(first: Dict[str, Any], second: Dict[str, Any], allow_partial_match_first: bool) -> None:
     """Compare two dictionaries allowing the values of either side to be ANY and match.
 
@@ -55,7 +73,16 @@ def compare_dict_allow_any(first: Dict[str, Any], second: Dict[str, Any], allow_
     Raises:
         AssertionError: If dictionaries are not equal.
     """
-    diff = "\n" + "\n".join(difflib.ndiff(pprint.pformat(first).splitlines(), pprint.pformat(second).splitlines()))
+    try:
+        second_json = json.dumps(second, default=try_dict)
+    except (ValueError, TypeError):
+        second_json = ""
+    diff = (
+        "\nSecond dict as json: "
+        + second_json
+        + "\nComparison: \n"
+        + "\n".join(difflib.ndiff(pprint.pformat(first).splitlines(), pprint.pformat(second).splitlines()))
+    )
     if not allow_partial_match_first:
         if first.items() == second.items():
             assert True
