@@ -1,0 +1,66 @@
+{
+    "service": "ec2",
+    "mockData": {
+        "get_paginator.return_value.paginate.return_value": [
+            {
+                "EgressOnlyInternetGateways": [
+                    {
+                        "Attachments": [
+                            {
+                                "State": "attached",
+                                "VpcId": "vpc-11111111"
+                            }
+                        ],
+                        "EgressOnlyInternetGatewayId": "eigw-11111111111111111",
+                        "Tags": [
+                            {
+                                "Key": "Name",
+                                "Value": "test-eigw"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "getResources": {
+        "serviceName": "ec2",
+        "resourceType": "egress_only_internet_gateway",
+        "region": "eu-west-2"
+    },
+    "expectedResults": [
+        {
+            "attachments": [
+                {
+                    "State": "attached",
+                    "VpcId": "vpc-11111111"
+                }
+            ],
+            "cloudwanderer_metadata": {
+                "Attachments": [
+                    {
+                        "State": "attached",
+                        "VpcId": "vpc-11111111"
+                    }
+                ],
+                "EgressOnlyInternetGatewayId": "eigw-11111111111111111",
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "test-eigw"
+                    }
+                ]
+            },
+            "dependent_resource_urns": [],
+            "egress_only_internet_gateway_id": "eigw-11111111111111111",
+            "parent_urn": null,
+            "relationships": [],
+            "tags": [
+                {
+                    "Key": "Name",
+                    "Value": "test-eigw"
+                }
+            ]
+        }
+    ]
+}

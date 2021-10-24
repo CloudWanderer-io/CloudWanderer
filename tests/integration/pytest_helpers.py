@@ -54,19 +54,20 @@ def compare_dict_allow_any(first: Dict[str, Any], second: Dict[str, Any], allow_
 
     Raises:
         AssertionError: If dictionaries are not equal.
-        ValueError: If one of the arguments is incorrect
     """
+    diff = "\n" + "\n".join(difflib.ndiff(pprint.pformat(first).splitlines(), pprint.pformat(second).splitlines()))
     if not allow_partial_match_second:
         if first.items() == second.items():
             assert True
             return
     else:
         if not second:
-            raise ValueError("Second dict is empty.")
+            raise AssertionError("Dictionaries do not match" + diff)
         for key, value in second.items():
-            assert first[key] == value
+            if first.get(key) == value:
+                continue
+            raise AssertionError("Dictionaries do not match" + diff)
         return
-    diff = "\n" + "\n".join(difflib.ndiff(pprint.pformat(first).splitlines(), pprint.pformat(second).splitlines()))
 
     raise AssertionError("Dictionaries do not match" + diff)
 

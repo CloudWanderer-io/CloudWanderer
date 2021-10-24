@@ -1,62 +1,41 @@
 {
     "service": "ec2",
     "mockData": {
-        "describe_egress_only_internet_gateways.return_value": {
-            "EgressOnlyInternetGateways": [
+        "describe_customer_gateways.return_value": {
+            "CustomerGateways": [
                 {
-                    "Attachments": [
-                        {
-                            "State": "attached",
-                            "VpcId": "vpc-11111111"
-                        }
-                    ],
-                    "EgressOnlyInternetGatewayId": "eigw-11111111111111111",
-                    "Tags": [
-                        {
-                            "Key": "Name",
-                            "Value": "test-eigw"
-                        }
-                    ]
+                    "BgpAsn": "65000",
+                    "CustomerGatewayId": "cgw-11111111111111111",
+                    "IpAddress": "1.1.1.1",
+                    "State": "available",
+                    "Type": "ipsec.1",
+                    "Tags": []
                 }
             ]
         }
     },
     "getResource": {
-        "urn": "urn:aws:123456789012:eu-west-2:ec2:egress_only_internet_gateway:eigw-11111111111111111"
+        "urn": "urn:aws:123456789012:eu-west-2:ec2:customer_gateway:vpn-11111111111111111"
     },
     "expectedResults": [
         {
-            "attachments": [
-                {
-                    "State": "attached",
-                    "VpcId": "vpc-11111111"
-                }
-            ],
+            "bgp_asn": "65000",
             "cloudwanderer_metadata": {
-                "Attachments": [
-                    {
-                        "State": "attached",
-                        "VpcId": "vpc-11111111"
-                    }
-                ],
-                "EgressOnlyInternetGatewayId": "eigw-11111111111111111",
-                "Tags": [
-                    {
-                        "Key": "Name",
-                        "Value": "test-eigw"
-                    }
-                ]
+                "BgpAsn": "65000",
+                "CustomerGatewayId": "cgw-11111111111111111",
+                "IpAddress": "1.1.1.1",
+                "State": "available",
+                "Tags": [],
+                "Type": "ipsec.1"
             },
+            "customer_gateway_id": "cgw-11111111111111111",
             "dependent_resource_urns": [],
-            "egress_only_internet_gateway_id": "eigw-11111111111111111",
+            "ip_address": "1.1.1.1",
             "parent_urn": null,
             "relationships": [],
-            "tags": [
-                {
-                    "Key": "Name",
-                    "Value": "test-eigw"
-                }
-            ]
+            "state": "available",
+            "tags": [],
+            "type": "ipsec.1"
         }
     ]
 }
