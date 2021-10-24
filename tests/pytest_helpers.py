@@ -3,6 +3,7 @@ import json
 import logging
 import pprint
 from typing import Any, Dict, List
+from unittest.mock import ANY
 
 import boto3
 
@@ -89,8 +90,15 @@ def compare_dict_allow_any(
     if not allow_partial_match_first:
         if first.keys() != second.keys():
             raise AssertionError("Dictionaries do not have the same number of keys" + diff)
-        if first.items() != second.items():
-            raise AssertionError("Dictionaries do not match" + diff)
+        for first_item, second_item in zip(sorted(first.items()), sorted(second.items())):
+            first_key, first_value = first_item
+            second_key, second_value = second_item
+            if first_value is ANY or second_value is ANY:
+                continue
+            if first_key != second_key or first_value != second_value:
+                raise AssertionError(
+                    f"Dictionaries do not match on {first_key}:{first_value} != {second_key}:{second_value}" + diff
+                )
         return
 
     if not first:
