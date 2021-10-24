@@ -124,7 +124,7 @@
                         "account_id": "unknown",
                         "region": "eu-west-2",
                         "service": "ec2",
-                        "resource_type": "internet_gatway",
+                        "resource_type": "internet_gateway",
                         "resource_id_parts": [
                             "igw-11111111"
                         ],

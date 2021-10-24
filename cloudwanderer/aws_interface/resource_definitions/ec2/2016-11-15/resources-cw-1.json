@@ -73,7 +73,7 @@
             }
           ],
           "service": "ec2",
-          "resourceType": "internet_gatway",
+          "resourceType": "internet_gateway",
           "regionSource": "sameAsResource",
           "accountIdSource": "unknown",
           "direction": "inbound"
