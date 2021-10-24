@@ -22,6 +22,24 @@ def get_resources_to_test():
     return results
 
 
+def try_dict(value):
+    """Try converting objects first to dict, then to str so we can easily compare them against JSON."""
+    try:
+        return dict(value)
+    except ValueError:
+        return str(value)
+
+
+def prepare_for_comparison(result):
+    """Convert results into a JSON compatible dict for comparison"""
+    return json.loads(
+        json.dumps(
+            list(result),
+            default=try_dict,
+        )
+    )
+
+
 @pytest.mark.parametrize("file_name", get_resources_to_test())
 def test_all_custom_resources(file_name, aws_interface):
     with open(file_name) as f:
@@ -39,18 +57,27 @@ def test_all_custom_resources(file_name, aws_interface):
     if "getResource" in test_spec:
         urn = URN.from_string(test_spec["getResource"]["urn"])
         logger.info("Getting resource %s", urn)
-        result = list(aws_interface.get_resource(urn=urn))
+        result = prepare_for_comparison(aws_interface.get_resource(urn=urn))
     if "getResources" in test_spec:
         get_resources = test_spec["getResources"]
         logger.info("Getting resources %s", get_resources)
-        result = list(
-            aws_interface.get_resources(
-                service_name=get_resources["serviceName"],
-                resource_type=get_resources["resourceType"],
-                region=get_resources["region"],
+        try:
+            result = prepare_for_comparison(
+                aws_interface.get_resources(
+                    service_name=get_resources["serviceName"],
+                    resource_type=get_resources["resourceType"],
+                    region=get_resources["region"],
+                )
             )
-        )
+
+            logger.info(result)
+        except NotImplementedError:
+            raise ValueError(
+                "Boto3 raised a NotImplementedError, usually this means "
+                "you forgot to wrap your paginate.return_results in a list or "
+                "include the key at the top level (e.g. Instances)"
+            )
 
     compare_list_of_dicts_allow_any(
-        [dict(x) for x in result], test_spec["expectedResults"], allow_partial_match_second=True
+        test_spec["expectedResults"], [dict(x) for x in result], allow_partial_match_first=True
     )

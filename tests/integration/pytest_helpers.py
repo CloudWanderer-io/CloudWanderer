@@ -46,25 +46,25 @@ def create_secretsmanager_secrets(regions=["eu-west-2"]) -> None:
         secretsmanager.create_secret(Name="TestSecret", SecretString="Ssshhh")
 
 
-def compare_dict_allow_any(first: Dict[str, Any], second: Dict[str, Any], allow_partial_match_second: bool) -> None:
+def compare_dict_allow_any(first: Dict[str, Any], second: Dict[str, Any], allow_partial_match_first: bool) -> None:
     """Compare two dictionaries allowing the values of either side to be ANY and match.
 
     Arguments:
-        allow_partial_match_second: Assertion will succeed if the second param only has some of the keys of the first.
+        allow_partial_match_first: Assertion will succeed if the first param only has some of the keys of the second.
 
     Raises:
         AssertionError: If dictionaries are not equal.
     """
     diff = "\n" + "\n".join(difflib.ndiff(pprint.pformat(first).splitlines(), pprint.pformat(second).splitlines()))
-    if not allow_partial_match_second:
+    if not allow_partial_match_first:
         if first.items() == second.items():
             assert True
             return
     else:
-        if not second:
+        if not first:
             raise AssertionError("Dictionaries do not match" + diff)
-        for key, value in second.items():
-            if first.get(key) == value:
+        for key, value in first.items():
+            if second.get(key) == value:
                 continue
             raise AssertionError("Dictionaries do not match" + diff)
         return
@@ -73,11 +73,11 @@ def compare_dict_allow_any(first: Dict[str, Any], second: Dict[str, Any], allow_
 
 
 def compare_list_of_dicts_allow_any(
-    first: List[Dict[str, Any]], second: List[Dict[str, Any]], allow_partial_match_second: bool
+    first: List[Dict[str, Any]], second: List[Dict[str, Any]], allow_partial_match_first: bool
 ) -> None:
     """
     Arguments:
-        allow_partial_match_second: Success if the dictionaries in second only have some of the keys from first.
+        allow_partial_match_first: Success if the dictionaries in first only have some of the keys from second.
 
     Raises:
         AssertionError: If lists are not equal.
@@ -87,4 +87,4 @@ def compare_list_of_dicts_allow_any(
         diff = "\n" + "\n".join(difflib.ndiff(pprint.pformat(first).splitlines(), pprint.pformat(second).splitlines()))
         raise AssertionError(f"The two lists are not of equal length: {diff}")
     for first_item, second_item in zip(first, second):
-        compare_dict_allow_any(first_item, second_item, allow_partial_match_second=allow_partial_match_second)
+        compare_dict_allow_any(first_item, second_item, allow_partial_match_first=allow_partial_match_first)

@@ -117,8 +117,8 @@ class TestURN(unittest.TestCase):
         )
 
         assert (
-            str(urn)
-            == r"urn:aws:111111111111:us-east-1:iam:policy:iam\:\:111111111111\:policy\/service-role\/AmazonSageMaker-ExecutionPolicy-20211016T110298"
+            str(urn) == r"urn:aws:111111111111:us-east-1:iam:policy:iam\:\:111111111111\:"
+            r"policy\/service-role\/AmazonSageMaker-ExecutionPolicy-20211016T110298"
         )
         assert urn.resource_id_parts == [
             "iam::111111111111:policy/service-role/AmazonSageMaker-ExecutionPolicy-20211016T110298"
@@ -130,7 +130,8 @@ class TestURN(unittest.TestCase):
 
     def test_resource_id_with_arn_from_string(self):
         urn = URN.from_string(
-            r"urn:aws:111111111111:us-east-1:iam:policy:iam\:\:111111111111\:policy\/service-role\/AmazonSageMaker-ExecutionPolicy-20211016T110298"
+            r"urn:aws:111111111111:us-east-1:iam:policy:iam\:\:111111111111\:"
+            r"policy\/service-role\/AmazonSageMaker-ExecutionPolicy-20211016T110298"
         )
 
         assert urn == URN(
@@ -172,3 +173,14 @@ class TestURN(unittest.TestCase):
 
     def test_cloud_service_resource_label(self):
         assert self.test_urn_resource.cloud_service_resource_label == "aws_iam_role"
+
+    def test_to_dict(self):
+        assert dict(self.test_urn_resource) == {
+            "account_id": "111111111111",
+            "cloud_name": "aws",
+            "region": "us-east-1",
+            "resource_id": "test-role",
+            "resource_id_parts": ["test-role"],
+            "resource_type": "role",
+            "service": "iam",
+        }

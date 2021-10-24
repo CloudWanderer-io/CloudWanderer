@@ -18,7 +18,7 @@ resource_type='vpc', resource_id_parts=['vpc-11111111'])
 
 """
 import re
-from typing import Any, List, Optional
+from typing import Any, Generator, List, Optional, Tuple
 
 
 class PartialUrn:
@@ -155,6 +155,13 @@ class PartialUrn:
             other (Any): The other object to compare this one with.
         """
         return str(self) == str(other)
+
+    def __iter__(self) -> Generator[Tuple[str, str], None, None]:
+        """Allow the URN to be turned into a dict."""
+        for attribute_name in vars(self):
+            if attribute_name.startswith("_"):
+                continue
+            yield attribute_name, getattr(self, attribute_name)
 
 
 class URN(PartialUrn):
