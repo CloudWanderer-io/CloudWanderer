@@ -10,6 +10,7 @@ import docutils
 import sphinx
 from docutils import nodes
 from docutils.frontend import OptionParser
+from graph_visualisation import GraphManager
 from jinja2 import Template
 from sphinx.domains import Domain
 from sphinx.util.docutils import SphinxDirective
@@ -45,6 +46,8 @@ RESOURCE_TEMPLATE = Template(
 .. py:class:: {{class_name}}
 
     {{description}}
+
+    {{image}}
 
     {% if default_filters %}
     **Default Filters:**
@@ -330,8 +333,10 @@ class GetCwServices:
         self.relative_path = "resource_properties"
         self.base_path = os.path.join(pathlib.Path(__file__).parent.absolute(), "..")
         self.session = CloudWandererBoto3Session()
-
         self.loader = MergedServiceLoader()
+        self.gm = GraphManager(pathlib.Path(__file__).parent.parent / pathlib.Path("images"))
+        self.gm.generate_graphs()
+        self.gm.render_all()
 
     def get_cloudwanderer_services(self) -> list:
         yield from self.session.get_available_resources()
@@ -414,6 +419,9 @@ class GetCwServices:
             default_filters=", ".join(
                 f"{key}={repr(value)}" for key, value in resource.resource_map.default_filters.items()
             ),
+            image=f".. image:: ../images/{service.service_name}_{resource.resource_type}.gv.png"
+            if f"{service.service_name}_{resource.resource_type}" in self.gm.graph_dict
+            else "",
         )
 
         attributes_doc = ""
