@@ -289,6 +289,7 @@ class GremlinStorageConnector(BaseStorageConnector):
         Arguments:
             urn (URN): The AWS URN of the resource to return
         """
+        return next(self.read_resources(urn=urn))
 
     def read_resources(
         self,

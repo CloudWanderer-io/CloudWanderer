@@ -1,3 +1,6 @@
+# 0.19.3
+
+- Added `read_resource` to `GremlinStorageConnector`
 # 0.19.2
 
 - Change target health from a secondary attribute to a dependent resource
