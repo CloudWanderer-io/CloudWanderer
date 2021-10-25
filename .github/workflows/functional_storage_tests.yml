@@ -11,7 +11,7 @@ jobs:
         ports:
           - 8000:8000
       gremlin:
-        image: tinkerpop/gremlin-server
+        image: samjackmartin/docker-graph-notebook-gremlin-server
         ports:
           - 8182:8182
     env:

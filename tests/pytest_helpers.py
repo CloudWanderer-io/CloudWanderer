@@ -8,7 +8,8 @@ from unittest.mock import ANY
 import boto3
 
 from cloudwanderer.cloud_wanderer_resource import CloudWandererResource
-from cloudwanderer.urn import URN
+from cloudwanderer.models import Relationship, RelationshipDirection
+from cloudwanderer.urn import URN, PartialUrn
 
 logger = logging.getLogger(__name__)
 
@@ -132,6 +133,7 @@ def compare_list_of_dicts_allow_any(
 
 
 def get_inferred_ec2_instances(cloudwanderer_boto3_session):
+    vpcs = list(cloudwanderer_boto3_session.resource("ec2").vpcs.all())
     return [
         CloudWandererResource(
             urn=URN(
@@ -142,6 +144,19 @@ def get_inferred_ec2_instances(cloudwanderer_boto3_session):
                 resource_id_parts=[instance.instance_id],
             ),
             resource_data=instance.meta.data,
+            relationships=[
+                Relationship(
+                    partial_urn=PartialUrn(
+                        cloud_name="aws",
+                        account_id="unknown",
+                        region="eu-west-2",
+                        service="ec2",
+                        resource_type="vpc",
+                        resource_id_parts=[vpcs[0].vpc_id],
+                    ),
+                    direction=RelationshipDirection.INBOUND,
+                )
+            ],
         )
         for instance in cloudwanderer_boto3_session.resource("ec2").instances.all()
     ]
