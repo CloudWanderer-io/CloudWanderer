@@ -40,6 +40,18 @@
     "getResource": {
         "urn": "urn:aws:123456789012:eu-west-2:elbv2:load_balancer:test-nlb"
     },
+    "expectedCalls": {
+        "describe_load_balancers": [
+            {
+                "args": [],
+                "kwargs": {
+                    "Names": [
+                        "test-nlb"
+                    ]
+                }
+            }
+        ]
+    },
     "expectedResults": [
         {
             "urn": {

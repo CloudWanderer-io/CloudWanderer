@@ -22,6 +22,18 @@
     "getResource": {
         "urn": "urn:aws:123456789012:eu-west-2:ec2:vpn_gateway:vgw-11111111111111111"
     },
+    "expectedCalls": {
+        "describe_vpn_gateways": [
+            {
+                "args": [],
+                "kwargs": {
+                    "VpnGatewayIds": [
+                        "vgw-11111111111111111"
+                    ]
+                }
+            }
+        ]
+    },
     "expectedResults": [
         {
             "urn": {

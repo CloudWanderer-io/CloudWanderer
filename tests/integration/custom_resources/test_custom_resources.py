@@ -37,14 +37,13 @@ def test_all_custom_resources(file_name, aws_interface):
     with open(file_name) as f:
         test_spec = json.load(f)
 
-    aws_interface.cloudwanderer_boto3_session.client = MagicMock(
-        return_value=MagicMock(
-            **{
-                **{"meta": aws_interface.cloudwanderer_boto3_session.client(test_spec["service"]).meta},
-                **build_mock(test_spec["mockData"]),
-            }
-        ),
+    mock_client = MagicMock(
+        **{
+            **{"meta": aws_interface.cloudwanderer_boto3_session.client(test_spec["service"]).meta},
+            **build_mock(test_spec["mockData"]),
+        }
     )
+    aws_interface.cloudwanderer_boto3_session.client = MagicMock(return_value=mock_client)
 
     if "getResource" in test_spec:
         urn = URN.from_string(test_spec["getResource"]["urn"])
@@ -81,3 +80,12 @@ def test_all_custom_resources(file_name, aws_interface):
     compare_list_of_dicts_allow_any(
         test_spec["expectedResults"], [dict(x) for x in result], allow_partial_match_first=True
     )
+
+    for method_path, calls in test_spec["expectedCalls"].items():
+        logger.info("Assert calls %s on %s", calls, method_path)
+        method = mock_client
+        for attr in method_path.split("."):
+            method = getattr(method, attr)
+        for call in calls:
+            logger.info("Assert %s calls on %s", call, method_path)
+            method.assert_called_with(*call["args"], **call["kwargs"])

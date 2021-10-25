@@ -33,6 +33,7 @@
         "resourceType": "nat_gateway",
         "region": "eu-west-2"
     },
+    "expectedCalls": {},
     "expectedResults": [
         {
             "urn": {

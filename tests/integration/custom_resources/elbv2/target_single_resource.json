@@ -1,0 +1,78 @@
+{
+    "service": "elbv2",
+    "mockData": {
+        "describe_target_health.return_value": {
+            "TargetHealthDescriptions": [
+                {
+                    "Target": {
+                        "Id": "i-11111111",
+                        "Port": 123,
+                        "AvailabilityZone": "string"
+                    },
+                    "HealthCheckPort": "string",
+                    "TargetHealth": {
+                        "State": "healthy",
+                        "Description": "string"
+                    }
+                }
+            ]
+        }
+    },
+    "getResource": {
+        "urn": "urn:aws:123456789012:eu-west-2:elbv2:target:arn\\:aws\\:elasticloadbalancing\\:eu-west-1\\:111111111111\\:targetgroup\\/test-targetgroup\\/1111111111111111/i-11111111"
+    },
+    "expectedCalls": {
+        "describe_target_health": [
+            {
+                "args": [],
+                "kwargs": {
+                    "TargetGroupArn": "arn:aws:elasticloadbalancing:eu-west-1:111111111111:targetgroup/test-targetgroup/1111111111111111",
+                    "Targets": {
+                        "Id": "i-11111111"
+                    }
+                }
+            }
+        ]
+    },
+    "expectedResults": [
+        {
+            "urn": {
+                "cloud_name": "aws",
+                "account_id": {},
+                "region": "eu-west-2",
+                "service": "elbv2",
+                "resource_type": "target",
+                "resource_id_parts": [
+                    "arn:aws:elasticloadbalancing:eu-west-1:111111111111:targetgroup/test-targetgroup/1111111111111111",
+                    "i-11111111"
+                ],
+                "resource_id": "arn\\:aws\\:elasticloadbalancing\\:eu-west-1\\:111111111111\\:targetgroup\\/test-targetgroup\\/1111111111111111/i-11111111"
+            },
+            "relationships": [],
+            "dependent_resource_urns": [],
+            "parent_urn": null,
+            "cloudwanderer_metadata": {
+                "Target": {
+                    "Id": "i-11111111",
+                    "Port": 123,
+                    "AvailabilityZone": "string"
+                },
+                "HealthCheckPort": "string",
+                "TargetHealth": {
+                    "State": "healthy",
+                    "Description": "string"
+                }
+            },
+            "target": {
+                "Id": "i-11111111",
+                "Port": 123,
+                "AvailabilityZone": "string"
+            },
+            "health_check_port": "string",
+            "target_health": {
+                "State": "healthy",
+                "Description": "string"
+            }
+        }
+    ]
+}

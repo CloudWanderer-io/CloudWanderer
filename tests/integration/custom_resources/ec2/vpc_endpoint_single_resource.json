@@ -57,6 +57,18 @@
     "getResource": {
         "urn": "urn:aws:123456789012:eu-west-2:ec2:vpc_endpoint:vpce-11111111111111111"
     },
+    "expectedCalls": {
+        "describe_vpc_endpoints": [
+            {
+                "args": [],
+                "kwargs": {
+                    "VpcEndpointIds": [
+                        "vpce-11111111111111111"
+                    ]
+                }
+            }
+        ]
+    },
     "expectedResults": [
         {
             "urn": {

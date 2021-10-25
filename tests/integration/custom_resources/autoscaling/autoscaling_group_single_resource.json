@@ -77,6 +77,18 @@
     "getResource": {
         "urn": "urn:aws:123456789012:eu-west-1:autoscaling:auto_scaling_group:test"
     },
+    "expectedCalls": {
+        "describe_auto_scaling_groups": [
+            {
+                "args": [],
+                "kwargs": {
+                    "AutoScalingGroupNames": [
+                        "test"
+                    ]
+                }
+            }
+        ]
+    },
     "expectedResults": [
         {
             "urn": {

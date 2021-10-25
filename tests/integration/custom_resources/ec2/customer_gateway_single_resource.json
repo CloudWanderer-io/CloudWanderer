@@ -17,6 +17,18 @@
     "getResource": {
         "urn": "urn:aws:123456789012:eu-west-2:ec2:customer_gateway:vpn-11111111111111111"
     },
+    "expectedCalls": {
+        "describe_customer_gateways": [
+            {
+                "args": [],
+                "kwargs": {
+                    "CustomerGatewayIds": [
+                        "vpn-11111111111111111"
+                    ]
+                }
+            }
+        ]
+    },
     "expectedResults": [
         {
             "urn": {

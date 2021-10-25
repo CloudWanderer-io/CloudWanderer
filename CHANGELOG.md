@@ -1,3 +1,8 @@
+# 0.19.2
+
+- Change target health from a secondary attribute to a dependent resource
+- Added test call validation to custom resources not calling paginated methods
+
 # 0.19.1
 
 - Fix typo in relationship between igw and route

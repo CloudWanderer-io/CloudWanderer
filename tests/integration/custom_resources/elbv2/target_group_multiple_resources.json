@@ -1,24 +1,48 @@
 {
     "service": "elbv2",
     "mockData": {
-        "get_paginator.return_value.paginate.return_value": [
+        "get_paginator.side_effect": [
             {
-                "TargetGroups": [
+                "paginate.return_value": [
                     {
-                        "TargetGroupArn": "arn:aws:elasticloadbalancing:eu-west-1:111111111111:targetgroup/test-targetgroup/1111111111111111",
-                        "TargetGroupName": "test-targetgroup",
-                        "Protocol": "TCP",
-                        "Port": 80,
-                        "VpcId": "vpc-11111111",
-                        "HealthCheckProtocol": "TCP",
-                        "HealthCheckPort": "traffic-port",
-                        "HealthCheckEnabled": true,
-                        "HealthCheckIntervalSeconds": 30,
-                        "HealthCheckTimeoutSeconds": 10,
-                        "HealthyThresholdCount": 3,
-                        "UnhealthyThresholdCount": 3,
-                        "LoadBalancerArns": [],
-                        "TargetType": "ip"
+                        "TargetGroups": [
+                            {
+                                "TargetGroupArn": "arn:aws:elasticloadbalancing:eu-west-1:111111111111:targetgroup/test-targetgroup/1111111111111111",
+                                "TargetGroupName": "test-targetgroup",
+                                "Protocol": "TCP",
+                                "Port": 80,
+                                "VpcId": "vpc-11111111",
+                                "HealthCheckProtocol": "TCP",
+                                "HealthCheckPort": "traffic-port",
+                                "HealthCheckEnabled": true,
+                                "HealthCheckIntervalSeconds": 30,
+                                "HealthCheckTimeoutSeconds": 10,
+                                "HealthyThresholdCount": 3,
+                                "UnhealthyThresholdCount": 3,
+                                "LoadBalancerArns": [],
+                                "TargetType": "ip"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "paginate.return_value": [
+                    {
+                        "TargetHealthDescriptions": [
+                            {
+                                "Target": {
+                                    "Id": "i-11111111",
+                                    "Port": 123,
+                                    "AvailabilityZone": "string"
+                                },
+                                "HealthCheckPort": "string",
+                                "TargetHealth": {
+                                    "State": "healthy",
+                                    "Description": "string"
+                                }
+                            }
+                        ]
                     }
                 ]
             }
@@ -29,7 +53,57 @@
         "resourceType": "target_group",
         "region": "eu-west-2"
     },
+    "expectedCalls": {},
     "expectedResults": [
+        {
+            "urn": {
+                "cloud_name": "aws",
+                "account_id": {},
+                "region": "eu-west-2",
+                "service": "elbv2",
+                "resource_type": "target",
+                "resource_id_parts": [
+                    "arn:aws:elasticloadbalancing:eu-west-1:111111111111:targetgroup/test-targetgroup/1111111111111111",
+                    "i-11111111"
+                ],
+                "resource_id": "arn\\:aws\\:elasticloadbalancing\\:eu-west-1\\:111111111111\\:targetgroup\\/test-targetgroup\\/1111111111111111/i-11111111"
+            },
+            "relationships": [],
+            "dependent_resource_urns": [],
+            "parent_urn": {
+                "cloud_name": "aws",
+                "account_id": {},
+                "region": "eu-west-2",
+                "service": "elbv2",
+                "resource_type": "target_group",
+                "resource_id_parts": [
+                    "test-targetgroup"
+                ],
+                "resource_id": "test-targetgroup"
+            },
+            "cloudwanderer_metadata": {
+                "Target": {
+                    "Id": "i-11111111",
+                    "Port": 123,
+                    "AvailabilityZone": "string"
+                },
+                "HealthCheckPort": "string",
+                "TargetHealth": {
+                    "State": "healthy",
+                    "Description": "string"
+                }
+            },
+            "target": {
+                "Id": "i-11111111",
+                "Port": 123,
+                "AvailabilityZone": "string"
+            },
+            "health_check_port": "string",
+            "target_health": {
+                "State": "healthy",
+                "Description": "string"
+            }
+        },
         {
             "cloudwanderer_metadata": {
                 "HealthCheckEnabled": true,
@@ -47,14 +121,24 @@
                 "ProtocolVersion": null,
                 "TargetGroupArn": "arn:aws:elasticloadbalancing:eu-west-1:111111111111:targetgroup/test-targetgroup/1111111111111111",
                 "TargetGroupName": "test-targetgroup",
-                "TargetHealth": {
-                    "TargetHealthDescriptions": null
-                },
                 "TargetType": "ip",
                 "UnhealthyThresholdCount": 3,
                 "VpcId": "vpc-11111111"
             },
-            "dependent_resource_urns": [],
+            "dependent_resource_urns": [
+                {
+                    "account_id": {},
+                    "cloud_name": "aws",
+                    "region": "eu-west-2",
+                    "resource_id": "arn\\:aws\\:elasticloadbalancing\\:eu-west-1\\:111111111111\\:targetgroup\\/test-targetgroup\\/1111111111111111/i-11111111",
+                    "resource_id_parts": [
+                        "arn:aws:elasticloadbalancing:eu-west-1:111111111111:targetgroup/test-targetgroup/1111111111111111",
+                        "i-11111111"
+                    ],
+                    "resource_type": "target",
+                    "service": "elbv2"
+                }
+            ],
             "health_check_enabled": true,
             "health_check_interval_seconds": 30,
             "health_check_path": null,
@@ -87,9 +171,6 @@
             ],
             "target_group_arn": "arn:aws:elasticloadbalancing:eu-west-1:111111111111:targetgroup/test-targetgroup/1111111111111111",
             "target_group_name": "test-targetgroup",
-            "target_health": {
-                "TargetHealthDescriptions": null
-            },
             "target_type": "ip",
             "unhealthy_threshold_count": 3,
             "urn": {

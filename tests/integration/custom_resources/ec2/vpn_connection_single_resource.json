@@ -49,6 +49,18 @@
     "getResource": {
         "urn": "urn:aws:123456789012:eu-west-2:ec2:vpn_connection:vpn-11111111"
     },
+    "expectedCalls": {
+        "describe_vpn_connections": [
+            {
+                "args": [],
+                "kwargs": {
+                    "VpnConnectionIds": [
+                        "vpn-11111111"
+                    ]
+                }
+            }
+        ]
+    },
     "expectedResults": [
         {
             "urn": {

@@ -29,6 +29,16 @@
     "getResource": {
         "urn": "urn:aws:123456789012:eu-west-2:lambda:function:TestFunction"
     },
+    "expectedCalls": {
+        "get_function": [
+            {
+                "args": [],
+                "kwargs": {
+                    "FunctionName": "TestFunction"
+                }
+            }
+        ]
+    },
     "expectedResults": [
         {
             "urn": {

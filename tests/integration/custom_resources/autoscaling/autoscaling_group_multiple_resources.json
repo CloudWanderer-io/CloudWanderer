@@ -81,6 +81,7 @@
         "resourceType": "auto_scaling_group",
         "region": "eu-west-2"
     },
+    "expectedCalls": {},
     "expectedResults": [
         {
             "urn": {

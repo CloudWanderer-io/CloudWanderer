@@ -47,6 +47,7 @@
         "resourceType": "layer",
         "region": "eu-west-2"
     },
+    "expectedCalls": {},
     "expectedResults": [
         {
             "urn": {

@@ -24,6 +24,18 @@
     "getResource": {
         "urn": "urn:aws:123456789012:eu-west-2:ec2:egress_only_internet_gateway:eigw-11111111111111111"
     },
+    "expectedCalls": {
+        "describe_egress_only_internet_gateways": [
+            {
+                "args": [],
+                "kwargs": {
+                    "EgressOnlyInternetGatewayIds": [
+                        "eigw-11111111111111111"
+                    ]
+                }
+            }
+        ]
+    },
     "expectedResults": [
         {
             "attachments": [

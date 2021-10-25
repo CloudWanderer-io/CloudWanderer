@@ -53,6 +53,7 @@
         "resourceType": "vpn_connection",
         "region": "eu-west-2"
     },
+    "expectedCalls": {},
     "expectedResults": [
         {
             "urn": {
