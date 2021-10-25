@@ -43,6 +43,18 @@
     "getResource": {
         "urn": "urn:aws:123456789012:eu-west-2:wafv2:regional_web_acl:test-webacl/11111111-1111-1111-1111-111111111111"
     },
+    "expectedCalls": {
+        "get_web_acl": [
+            {
+                "args": [],
+                "kwargs": {
+                    "Name": "test-webacl",
+                    "Id": "11111111-1111-1111-1111-111111111111",
+                    "Scope": "REGIONAL"
+                }
+            }
+        ]
+    },
     "expectedResults": [
         {
             "urn": {

@@ -61,6 +61,7 @@
         "resourceType": "vpc_endpoint",
         "region": "eu-west-2"
     },
+    "expectedCalls": {},
     "expectedResults": [
         {
             "urn": {

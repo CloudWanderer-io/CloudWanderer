@@ -21,6 +21,7 @@
         "resourceType": "customer_gateway",
         "region": "eu-west-2"
     },
+    "expectedCalls": {},
     "expectedResults": [
         {
             "urn": {

@@ -41,6 +41,7 @@
         "resourceType": "rest_api",
         "region": "eu-west-2"
     },
+    "expectedCalls": {},
     "expectedResults": [
         {
             "urn": {

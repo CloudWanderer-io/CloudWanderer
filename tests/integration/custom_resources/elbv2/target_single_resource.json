@@ -21,6 +21,19 @@
     "getResource": {
         "urn": "urn:aws:123456789012:eu-west-2:elbv2:target:arn\\:aws\\:elasticloadbalancing\\:eu-west-1\\:111111111111\\:targetgroup\\/test-targetgroup\\/1111111111111111/i-11111111"
     },
+    "expectedCalls": {
+        "describe_target_health": [
+            {
+                "args": [],
+                "kwargs": {
+                    "TargetGroupArn": "arn:aws:elasticloadbalancing:eu-west-1:111111111111:targetgroup/test-targetgroup/1111111111111111",
+                    "Targets": {
+                        "Id": "i-11111111"
+                    }
+                }
+            }
+        ]
+    },
     "expectedResults": [
         {
             "urn": {

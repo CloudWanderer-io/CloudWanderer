@@ -20,6 +20,7 @@
         "resourceType": "elastic_ip",
         "region": "eu-west-2"
     },
+    "expectedCalls": {},
     "expectedResults": [
         {
             "urn": {

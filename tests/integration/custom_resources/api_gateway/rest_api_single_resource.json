@@ -33,6 +33,16 @@
     "getResource": {
         "urn": "urn:aws:123456789012:eu-west-2:apigateway:rest_api:string"
     },
+    "expectedCalls": {
+        "get_rest_api": [
+            {
+                "args": [],
+                "kwargs": {
+                    "restApiId": "string"
+                }
+            }
+        ]
+    },
     "expectedResults": [
         {
             "urn": {

@@ -75,8 +75,9 @@
           "operation": "DescribeTargetHealth",
           "params": [
             {
-              "target": "identifier",
-              "source": "input"
+              "target": "TargetGroupArn",
+              "source": "identifier",
+              "name": "TargetGroupArn"
             },
             {
               "target": "Targets.Id",

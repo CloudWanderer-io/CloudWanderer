@@ -29,6 +29,18 @@
     "getResource": {
         "urn": "urn:aws:123456789012:eu-west-2:ec2:nat_gateway:nat-11111111111111111"
     },
+    "expectedCalls": {
+        "describe_nat_gateways": [
+            {
+                "args": [],
+                "kwargs": {
+                    "NatGatewayIds": [
+                        "nat-11111111111111111"
+                    ]
+                }
+            }
+        ]
+    },
     "expectedResults": [
         {
             "urn": {

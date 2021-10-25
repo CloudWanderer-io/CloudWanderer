@@ -20,6 +20,9 @@
         "resourceType": "regional_web_acl",
         "region": "eu-west-2"
     },
+    "expectedCalls": {
+        "describe_secret": []
+    },
     "expectedResults": [
         {
             "urn": {

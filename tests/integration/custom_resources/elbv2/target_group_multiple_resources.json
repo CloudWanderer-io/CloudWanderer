@@ -53,6 +53,7 @@
         "resourceType": "target_group",
         "region": "eu-west-2"
     },
+    "expectedCalls": {},
     "expectedResults": [
         {
             "urn": {

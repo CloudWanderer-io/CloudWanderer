@@ -28,6 +28,7 @@
         "resourceType": "egress_only_internet_gateway",
         "region": "eu-west-2"
     },
+    "expectedCalls": {},
     "expectedResults": [
         {
             "attachments": [
