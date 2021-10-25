@@ -113,7 +113,6 @@ class CloudWandererResourceFactory(ResourceFactory):
                     self.resource_type,
                 )
                 return
-
             original_class_load(self)
 
         return load

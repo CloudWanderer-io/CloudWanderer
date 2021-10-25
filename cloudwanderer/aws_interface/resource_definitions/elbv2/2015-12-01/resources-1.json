@@ -58,12 +58,16 @@
         "path": "LoadBalancers[0]"
       }
     },
-    "TargetHealth": {
-      "shape": "DescribeTargetHealthOutput",
+    "Target": {
+      "shape": "TargetHealthDescription",
       "identifiers": [
         {
           "name": "TargetGroupArn",
           "memberName": "TargetGroupArn"
+        },
+        {
+          "name": "Id",
+          "memberName": "Id"
         }
       ],
       "load": {
@@ -71,13 +75,17 @@
           "operation": "DescribeTargetHealth",
           "params": [
             {
-              "target": "TargetGroupArn",
+              "target": "identifier",
+              "source": "input"
+            },
+            {
+              "target": "Targets.Id",
               "source": "identifier",
-              "name": "TargetGroupArn"
+              "name": "Id"
             }
           ]
         },
-        "path": "TargetHealthDescriptions[]"
+        "path": "TargetHealthDescriptions[0]"
       }
     },
     "TargetGroup": {
@@ -101,18 +109,33 @@
         },
         "path": "TargetGroups[0]"
       },
-      "has": {
-        "TargetHealth": {
+      "hasMany": {
+        "Targets": {
+          "request": {
+            "operation": "DescribeTargetHealth",
+            "params": [
+              {
+                "target": "TargetGroupArn",
+                "source": "data",
+                "path": "TargetGroupArn"
+              }
+            ]
+          },
           "resource": {
-            "type": "TargetHealth",
+            "type": "Target",
             "identifiers": [
               {
                 "target": "TargetGroupArn",
-                "source": "identifier",
-                "name": "TargetGroupArn"
+                "source": "data",
+                "path": "TargetGroupArn"
+              },
+              {
+                "target": "Id",
+                "source": "response",
+                "path": "TargetHealthDescriptions[].Target.Id"
               }
             ],
-            "path": "@"
+            "path": "TargetHealthDescriptions[]"
           }
         }
       }

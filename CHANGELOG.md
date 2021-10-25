@@ -1,3 +1,7 @@
+# 0.19.2
+
+- Change target health from a secondary attribute to a dependent resource
+
 # 0.19.1
 
 - Fix typo in relationship between igw and route
