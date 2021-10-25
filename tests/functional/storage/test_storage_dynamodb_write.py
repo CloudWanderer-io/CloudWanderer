@@ -1,4 +1,5 @@
 import logging
+import platform
 
 import boto3
 import pytest
@@ -14,16 +15,29 @@ logger = logging.getLogger(__name__)
 
 @pytest.fixture(scope="function")
 def dynamodb_connnector(request):
+    # Take advantage of the fact that dynamodb local creates a separate db instance for each access key
+    # to allow github action tests to run multiple python version tests in parallel.
+    aws_access_key_id = platform.python_version()
     connector = DynamoDbConnector(
-        boto3_session=boto3.Session(aws_access_key_id="1", aws_secret_access_key="1", region_name="eu-west-1"),
+        boto3_session=boto3.Session(
+            aws_access_key_id=aws_access_key_id, aws_secret_access_key="1", region_name="eu-west-1"
+        ),
         endpoint_url="http://localhost:8000",
     )
     connector.init()
 
     yield connector
     logger.info("Deleting dynamodb")
-    dynamodb = boto3.resource("dynamodb", endpoint_url="http://localhost:8000", region_name="eu-west-1")
-    table = dynamodb.Table("cloud_wanderer")
+    dynamodb = boto3.resource(
+        "dynamodb",
+        endpoint_url="http://localhost:8000",
+        region_name="eu-west-1",
+        aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key="1",
+    )
+    table = dynamodb.Table(
+        "cloud_wanderer",
+    )
     table.delete()
 
 
