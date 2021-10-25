@@ -1,4 +1,5 @@
 import logging
+import platform
 from typing import List
 from unittest.mock import MagicMock
 
@@ -30,7 +31,13 @@ def loaded_dynamodb_connector():
     create_s3_buckets(regions=["us-east-1", "eu-west-2"])
     create_ec2_instances(regions=["us-east-1", "eu-west-2"])
     connector = DynamoDbConnector(
-        boto3_session=boto3.Session(aws_access_key_id="1", aws_secret_access_key="1", region_name="eu-west-1"),
+        boto3_session=boto3.Session(
+            # Take advantage of the fact that dynamodb local creates a separate db instance for each access key
+            # to allow github action tests to run multiple python version tests in parallel.
+            aws_access_key_id=platform.python_version(),
+            aws_secret_access_key="1",
+            region_name="eu-west-1",
+        ),
         endpoint_url="http://localhost:8000",
     )
     connector.init()
