@@ -132,3 +132,5 @@ doc_build
 workspace.code-workspace
 /*.png
 .DS_Store
+*.gv
+*.gv.png
