@@ -16,7 +16,7 @@ class GraphManager:
         self.path = Path(path)
         self.graph_dict = {}
 
-    def get_graph(self, graph_name: str) -> graphviz.DiGraph:
+    def get_graph(self, graph_name: str) -> "graphviz.DiGraph":
         """Get or create a graph if one does not exist with this name.
 
         Arguments:
