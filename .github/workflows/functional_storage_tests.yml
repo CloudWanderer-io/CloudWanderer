@@ -10,6 +10,10 @@ jobs:
         image: amazon/dynamodb-local
         ports:
           - 8000:8000
+      gremlin:
+        image: tinkerpop/gremlin-server
+        ports:
+          - 8182:8182
     env:
       AWS_REGION: eu-west-2
       AWS_DEFAULT_REGION: eu-west-2

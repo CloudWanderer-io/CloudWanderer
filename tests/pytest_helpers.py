@@ -7,6 +7,9 @@ from unittest.mock import ANY
 
 import boto3
 
+from cloudwanderer.cloud_wanderer_resource import CloudWandererResource
+from cloudwanderer.urn import URN
+
 logger = logging.getLogger(__name__)
 
 
@@ -126,3 +129,35 @@ def compare_list_of_dicts_allow_any(
         raise AssertionError(f"The two lists are not of equal length: {diff}")
     for first_item, second_item in zip(first, second):
         compare_dict_allow_any(first_item, second_item, allow_partial_match_first=allow_partial_match_first)
+
+
+def get_inferred_ec2_instances(cloudwanderer_boto3_session):
+    return [
+        CloudWandererResource(
+            urn=URN(
+                account_id="111111111111",
+                region="eu-west-2",
+                service="ec2",
+                resource_type="instance",
+                resource_id_parts=[instance.instance_id],
+            ),
+            resource_data=instance.meta.data,
+        )
+        for instance in cloudwanderer_boto3_session.resource("ec2").instances.all()
+    ]
+
+
+def inferred_ec2_vpcs(cloudwanderer_boto3_session):
+    return [
+        CloudWandererResource(
+            urn=URN(
+                account_id="111111111111",
+                region="eu-west-2",
+                service="ec2",
+                resource_type="vpc",
+                resource_id_parts=[vpc.vpc_id],
+            ),
+            resource_data=vpc.meta.data,
+        )
+        for vpc in cloudwanderer_boto3_session.resource("ec2").vpcs.all()
+    ]

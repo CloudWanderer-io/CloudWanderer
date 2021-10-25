@@ -112,10 +112,8 @@ class GremlinStorageConnector(BaseStorageConnector):
 
     def _write_dependent_resource_edges(self, resource: CloudWandererResource) -> None:
         for dependent_urn in resource.dependent_resource_urns:
-            edge_id = generate_edge_id(resource.urn, dependent_urn)
-            logger.debug("writing edge id %s", edge_id)
             self._write_edge(
-                edge_id=edge_id,
+                edge_id=generate_edge_id(resource.urn, dependent_urn),
                 edge_label="has",
                 source_vertex_id=str(resource.urn),
                 destination_vertex_id=str(dependent_urn),
@@ -162,7 +160,7 @@ class GremlinStorageConnector(BaseStorageConnector):
         resources_with_same_id_but_unknown = (
             resources_of_the_same_type.or_(__.has("_account_id", "unknown"), __.has("_region", "unknown"))
         ).toList()
-        logger.debug("resources_with_same_id_but_unknown %s", resources_with_same_id_but_unknown)
+
         for old_vertex in resources_with_same_id_but_unknown:
             # Outbound
             old_vertices_outbound_edges = self.g.V(old_vertex).outE().as_("e1")

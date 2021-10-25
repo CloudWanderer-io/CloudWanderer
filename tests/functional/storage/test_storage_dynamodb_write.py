@@ -5,10 +5,10 @@ import boto3
 import pytest
 from moto import mock_ec2, mock_iam, mock_sts
 
-from cloudwanderer.cloud_wanderer_resource import CloudWandererResource
 from cloudwanderer.storage_connectors.dynamodb import DynamoDbConnector
 from cloudwanderer.urn import URN
-from tests.pytest_helpers import create_ec2_instances
+
+from ...pytest_helpers import create_ec2_instances, get_inferred_ec2_instances
 
 logger = logging.getLogger(__name__)
 
@@ -41,101 +41,6 @@ def dynamodb_connnector(request):
     table.delete()
 
 
-def get_inferred_ec2_instances(cloudwanderer_boto3_session):
-    return [
-        CloudWandererResource(
-            urn=URN(
-                account_id="111111111111",
-                region="eu-west-2",
-                service="ec2",
-                resource_type="instance",
-                resource_id_parts=[instance.instance_id],
-            ),
-            resource_data=instance.meta.data,
-        )
-        for instance in cloudwanderer_boto3_session.resource("ec2").instances.all()
-    ]
-
-
-def inferred_ec2_vpcs(cloudwanderer_boto3_session):
-    return [
-        CloudWandererResource(
-            urn=URN(
-                account_id="111111111111",
-                region="eu-west-2",
-                service="ec2",
-                resource_type="vpc",
-                resource_id_parts=[vpc.vpc_id],
-            ),
-            resource_data=vpc.meta.data,
-        )
-        for vpc in cloudwanderer_boto3_session.resource("ec2").vpcs.all()
-    ]
-
-
-@pytest.fixture
-def iam_role():
-    return CloudWandererResource(
-        urn=URN(
-            account_id="111111111111",
-            region="us-east-1",
-            service="iam",
-            resource_type="role",
-            resource_id_parts=["test-role"],
-        ),
-        resource_data={"RoleName": "test-role", "InlinePolicyAttachments": [{"PolicyNames": ["test-role"]}]},
-        dependent_resource_urns=[
-            URN(
-                account_id="111111111111",
-                region="us-east-1",
-                service="iam",
-                resource_type="role_policy",
-                resource_id_parts=["test-role", "test-role-policy"],
-            )
-        ],
-    )
-
-
-@pytest.fixture
-def iam_role_policies():
-    return [
-        CloudWandererResource(
-            urn=URN(
-                account_id="111111111111",
-                region="us-east-1",
-                service="iam",
-                resource_type="role_policy",
-                resource_id_parts=["test-role", "test-role-policy-1"],
-            ),
-            resource_data={},
-            parent_urn=URN(
-                account_id="111111111111",
-                region="us-east-1",
-                service="iam",
-                resource_type="role",
-                resource_id_parts=["test-role"],
-            ),
-        ),
-        CloudWandererResource(
-            urn=URN(
-                account_id="111111111111",
-                region="us-east-1",
-                service="iam",
-                resource_type="role_policy",
-                resource_id_parts=["test-role", "test-role-policy-2"],
-            ),
-            resource_data={},
-            parent_urn=URN(
-                account_id="111111111111",
-                region="us-east-1",
-                service="iam",
-                resource_type="role",
-                resource_id_parts=["test-role"],
-            ),
-        ),
-    ]
-
-
 @mock_sts
 @mock_iam
 def test_write_resource_and_attribute(dynamodb_connnector, iam_role):
@@ -153,7 +58,7 @@ def test_write_resource_and_attribute(dynamodb_connnector, iam_role):
             region="us-east-1",
             service="iam",
             resource_type="role_policy",
-            resource_id_parts=["test-role", "test-role-policy"],
+            resource_id_parts=["test-role", "test-role-policy-1"],
         )
     ]
 
