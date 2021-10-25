@@ -70,6 +70,26 @@ def prepare_for_comparison(result):
     )
 
 
+def compare_dict_allow_partial_match_first(first: Dict[str, Any], second: Dict[str, Any]) -> None:
+    try:
+        second_json = json.dumps(second, default=try_dict)
+    except (ValueError, TypeError):
+        second_json = ""
+    diff = (
+        "\nSecond dict as json: "
+        + second_json
+        + "\nComparison: \n"
+        + "\n".join(difflib.ndiff(pprint.pformat(first).splitlines(), pprint.pformat(second).splitlines()))
+    )
+    for key, value in first.items():
+        if isinstance(value, dict) and isinstance(second.get(key), dict):
+            compare_dict_allow_partial_match_first(value, second.get(key))
+            continue
+        if value == second.get(key):
+            continue
+        raise AssertionError(f"Dictionaries do not match on key {key}, {value} vs {second.get(key)} {diff}")
+
+
 def compare_dict_allow_any(
     first: Dict[str, Any], second: Dict[str, Any], allow_partial_match_first: bool = False
 ) -> None:
@@ -99,18 +119,14 @@ def compare_dict_allow_any(
             second_key, second_value = second_item
             if first_value is ANY or second_value is ANY:
                 continue
+
             if first_key != second_key or first_value != second_value:
                 raise AssertionError(
                     f"Dictionaries do not match on {first_key}:{first_value} != {second_key}:{second_value}" + diff
                 )
         return
 
-    if not first:
-        raise AssertionError("Dictionaries do not match" + diff)
-    for key, value in first.items():
-        if value == second.get(key):
-            continue
-        raise AssertionError(f"Dictionaries do not match on key {key}, {value} vs {second.get(key)} {diff}")
+    compare_dict_allow_partial_match_first(first, second)
     return
 
 
