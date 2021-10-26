@@ -3,7 +3,6 @@ import pathlib
 from collections import defaultdict
 from functools import lru_cache
 from typing import TYPE_CHECKING
-from unittest.mock import MagicMock
 
 import boto3
 import botocore
@@ -23,23 +22,23 @@ from cloudwanderer.utils import snake_to_pascal
 if TYPE_CHECKING:
     from cloudwanderer.aws_interface.stubs.resource import CloudWandererServiceResource
 
-# SECONDARY_ATTR_TEMPLATE = """
-# .. py:class:: {service_name}.{parent_resource_name}.{resource_name}
+SECONDARY_ATTR_TEMPLATE = """
+.. py:class:: {service_name}.{parent_resource_name}.{resource_name}
 
-#     A secondary attribute for the :class:`{service_name}.{parent_resource_name}`
-#     resource type.
+    A secondary attribute for the :class:`{service_name}.{parent_resource_name}`
+    resource type.
 
-#     **Example:**
+    **Example:**
 
-#     .. code-block ::
+    .. code-block ::
 
-#         resources = storage_connector.read_resources(
-#             service="{service_name}",
-#             resource_type="{parent_resource_name}")
-#         for resource in resources:
-#             resource.get_secondary_attribute(name="{resource_name}")
+        resources = storage_connector.read_resources(
+            service="{service_name}",
+            resource_type="{parent_resource_name}")
+        for resource in resources:
+            resource.get_secondary_attribute(name="{resource_name}")
 
-# """
+"""
 
 RESOURCE_TEMPLATE = Template(
     """
@@ -368,7 +367,7 @@ class GetCwServices:
             resource = service.resource(resource_type, empty_resource=True)
             result.append(self.generate_resource_section(service, resource, "{service_name}.{resource_name}"))
             result.append(self.get_subresources(service, resource))
-            # result.append(self.get_secondary_attributes(service, resource))
+            result.append(self.get_secondary_attributes(service, resource))
         return result
 
     def get_subresources(
@@ -388,19 +387,19 @@ class GetCwServices:
             )
         return result
 
-    # def get_secondary_attributes(
-    #     self, service: "CloudWandererServiceResource", resource: "CloudWandererServiceResource"
-    # ) -> str:
-    #     result = ""
-    #     service_name = service.service_name
-    #     parent_resource_name = resource.resource_type
-    #     for secondary_attribute_name in resource.secondary_attribute_names:
-    #         result += SECONDARY_ATTR_TEMPLATE.format(
-    #             service_name=service_name,
-    #             parent_resource_name=parent_resource_name,
-    #             resource_name=secondary_attribute_name,
-    #         )
-    #     return result
+    def get_secondary_attributes(
+        self, service: "CloudWandererServiceResource", resource: "CloudWandererServiceResource"
+    ) -> str:
+        result = ""
+        service_name = service.service_name
+        parent_resource_name = resource.resource_type
+        for secondary_attribute_name in resource.secondary_attribute_names:
+            result += SECONDARY_ATTR_TEMPLATE.format(
+                service_name=service_name,
+                parent_resource_name=parent_resource_name,
+                resource_name=secondary_attribute_name,
+            )
+        return result
 
     def generate_resource_section(
         self,
@@ -412,9 +411,6 @@ class GetCwServices:
         service_model = service.meta.client.meta.service_model
         shape = service_model.shape_for(resource.meta.resource_model.shape)
         attributes = sorted(resource.meta.resource_model.get_attributes(shape).items())
-        attributes.update(
-            {attribute_name: MagicMock(documentation="") for attribute_name in resource.secondary_attribute_names}
-        )
         resource_section = RESOURCE_TEMPLATE.render(
             class_name=name.format(service_name=service.service_name, resource_name=resource.resource_type),
             service_name=service.service_name,
