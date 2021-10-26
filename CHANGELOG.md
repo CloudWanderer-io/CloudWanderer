@@ -1,3 +1,6 @@
+# 0.19.4
+
+- Fixed json files not being included
 # 0.19.3
 
 - Added `read_resource` to `GremlinStorageConnector`
