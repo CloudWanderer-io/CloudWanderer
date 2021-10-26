@@ -37,82 +37,92 @@ First we're going to use the AWS CLI to get an example response JSON for the API
 Create the tests
 --------------------
 
-We can now use this to build ``TestLambdaLayers`` in ``tests/integration/custom_resources/lambda/test_lambda_layers.py``.
+We can now use this to build the test specification in ``tests/integration/custom_resources/lambda/layer_multiple_resources.json``.
 
-We need to populate the following attributes in this class:
+We need to populate the following keys in this json:
 
-* ``mock``
-* ``expected_result``
-* ``single_resource_scenarios``
-* ``multiple_resource_scenarios``
+* ``service``
+* ``mockData``
+* ``getResources``
+* ``expectedCalls``
+* ``expectedResults``
 
-We don't actually need to specify any tests as the scenarios we specify
-will be run automatically will be run by the ``NoMotoMock`` mixin we're inheriting from.
 
 Populate the mock
 """"""""""""""""""""""
-.. code-block:: python
+.. code-block:: json
 
-    class TestLambdaLayers(NoMotoMock, unittest.TestCase):
-        layer_payload = {
-            "LayerName": "test-layer",
-            "LayerArn": "arn:aws:lambda:eu-west-1:123456789012:layer:test-layer",
-            "LatestMatchingVersion": {
-                "LayerVersionArn": "arn:aws:lambda:eu-west-1:123456789012:layer:test-layer:1",
-                "Version": 1,
-                "Description": "This is a test layer!",
-                "CreatedDate": "2020-10-17T13:18:00.303+0000",
-                "CompatibleRuntimes": ["nodejs10.x"],
-            },
-        }
-
-        mock = {
-            "lambda": {
-                "list_layers.return_value": {
-                   "Layers": [layer_payload],
+    {
+        "mockData": {
+            "get_paginator.side_effect": [
+                {
+                    "paginate.return_value": [
+                        {
+                            "Layers": [
+                                {
+                                    "LayerName": "test-layer",
+                                    "LayerArn": "arn:aws:lambda:eu-west-1:123456789012:layer:test-layer",
+                                    "LatestMatchingVersion": {
+                                        "LayerVersionArn": "arn:aws:lambda:eu-west-1:123456789012:layer:test-layer:1",
+                                        "Version": 1,
+                                        "Description": "This is a test layer!",
+                                        "CreatedDate": "2020-10-17T13:18:00.303+0000",
+                                        "CompatibleRuntimes": [
+                                            "nodejs10.x"
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    ]
                 }
-            }
+            ]
         }
+    }
 
-We're populating the ``return_value`` of ``list_layers`` as this is the name of the Boto3 client method that
-will be used internally to fetch the resource. We don't need to worry about handling pagination as this is
-handled for us by the ``NoMotoMock`` mixin.
+We're populating the ``return_value`` of ``get_paginator.side_effect.paginate`` as this is the name of the Boto3 client method that
+will be used internally to fetch the resource. This is because CloudWanderer always uses ``Collection`` s which paginate whenever possible.
 
 Populate the scenarios
 """""""""""""""""""""""""""
 
-Now we need to populate our scenarios.
+Now we need to populate our ``getResources`` and ``expectedResults`` keys.
 
-* Single resource scenarios
-    These scenarios are the expected argument and return values from :class:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resource`.
-    Lambda Layers do not have a ``Describe*`` API call and there is no other way to retrieve the metadata for a specific layer without listing
-    all of them. This means that our ``expected_results`` value for ``single_resource_scenario`` is :class:`~cloudwanderer.exceptions.UnsupportedResourceTypeError`.
-* Multiple resource scenarios
-    These scenarios are the expected argument and return values from :class:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resources`.
-    Because we split out our ``return_value`` into a separate ``layer_payload`` property when we set up the mockdata, we can re-use that as our ``expected_results`` value for the ``multiple_resource_scenarios``.
+Get Resources
+''''''''''''''''''''''
 
-.. code-block:: python
+This section simply specifies the arguments passed to the ``get_resources`` method when the test calls it.
 
-    class TestLambdaLayers(NoMotoMock, unittest.TestCase):
-        ...
-        single_resource_scenarios = [
-            SingleResourceScenario(
-                urn=URN.from_string("urn:aws:123456789012:eu-west-1:lambda:layer:test-layer"),
-                expected_results=UnsupportedResourceTypeError,
-            )
-        ]
-        multiple_resource_scenarios = [
-            MultipleResourceScenario(
-                arguments=CloudWandererCalls(regions=["eu-west-1"], service_names=["lambda"], resource_types=["layer"]),
-                expected_results=[layer_payload],
-            )
-        ]
+.. code-block:: json
+
+    {
+        "getResources": {
+            "serviceName": "lambda",
+            "resourceType": "function",
+            "region": "eu-west-2"
+        },
+    }
+
+Expected Results
+''''''''''''''''''
+
+The expected results you can leave blank until you run the test and see what the output is, as it's pretty tough to predict what it's going to be.
+What matters is taking the output from the test when the assertion fails and validating that it is actually what you expected.
+For now, let's just put an empty dict.
+
+.. code-block:: json
+
+    {
+        "expectedResults": [{}]
+    }
 
 
 Populate the definition
 --------------------------------
 
-Now we've written our tests we can set about creating our definition file in ``cloudwanderer/resource_definitions/lambda.json``.
+Now we've written our tests we can set about creating our definition file in ``aws_interface/resource_definitions/lambda/2015-03-31/resources-1.json``.
+
+The ``2015-03-31`` date comes from the latest version subfolder in the service definition in ``botocore`` which you can find `here for lambda <https://github.com/boto/botocore/tree/develop/botocore/data/lambda>`__ .
 
 .. note::
 
@@ -272,13 +282,13 @@ The most crucial things here are:
 .. note ::
 
     Normally we would have a ``load`` key inside our resource, however in this case Lambda Layers have no ``Describe`` API method
-    therefore we cannot load them by layer name. The impact of this is that we cannot use :meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resource` with this resource type.
+    therefore we cannot load them by name. The impact of this is that we cannot use :meth:`~cloudwanderer.cloud_wanderer.CloudWanderer.write_resource` with this resource type.
 
 Writing the Service Map
 ----------------------------
 The service map is CloudWanderer's store for resource type metadata that does not fit into the Boto3 specification.
 It broadly follows the structure of Boto3's to try and keep things simple and consistent.
-For our new Layer resource we just need to ensure that the following exists in ``service_mappings/lambda.json``
+For our new Layer resource we just need to ensure that the following exists in ``aws_interface/resource_definitions/lambda/2015-03-31/resources-cw-1.json``
 
 .. code-block:: json
     :linenos:
