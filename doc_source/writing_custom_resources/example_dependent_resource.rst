@@ -1,14 +1,14 @@
-Writing a Subresource
+Writing a Dependent Resource
 ==================================
 
-In this guide we're going to write a CloudWanderer subresource definition for lambda layer versions.
+In this guide we're going to write a CloudWanderer dependent resource definition for lambda layer versions.
 
-A CloudWanderer subresource is a specific type of Boto3 resource.
+A CloudWanderer dependent resource is a specific type of Boto3 resource.
 
-* Boto3 subresources are any AWS resource which depends on another resource for its existence (e.g. subnets depend on VPCs and so subnets would be a subresource).
-* CloudWanderer subresources are resources which depend on their parent for their identity. A resource is a subresource in CloudWanderer terms if you must supply the id of its parent in order to fetch it (e.g. IAM Role inline policies).
+CloudWanderer dependent resources are resources which depend on their parent for their identity. 
+A resource is a dependent resource in CloudWanderer terms if you must supply the ID of its parent in order to fetch it (e.g. IAM Role inline policies).
 
-In our case lambda layer versions are subresources because you cannot fetch metadata about them from the AWS API without supplying the
+In our case lambda layer versions are dependent resources because you cannot fetch metadata about them from the AWS API without supplying the
 name of the layer of which they are a version.
 
 .. note::
@@ -39,61 +39,76 @@ Getting the test data
 Create the tests
 -----------------
 
-Subresources are always discovered alongside their parents, so our tests for lambda layer versions will fit nicely
+Dependent resources are always discovered alongside their parents, so our tests for lambda layer versions will fit nicely
 alongside the tests for lambda layers.
 
-.. code-block:: python
+.. code-block:: json
     :linenos:
-    :emphasize-lines: 4-10, 17-18, 27-30, 36
+    :emphasize-lines: 26-42
 
-    class TestLambdaLayers(NoMotoMock, unittest.TestCase):
-        ...
-
-        layer_version_payload = {
-            "LayerVersionArn": "arn:aws:lambda:eu-west-1:123456789012:layer:test-layer:1",
-            "Version": 1,
-            "Description": "This is a test layer!",
-            "CreatedDate": "2020-10-17T13:18:00.303+0000",
-            "CompatibleRuntimes": ["nodejs10.x"],
-        }
-
-        mock = {
-            "lambda": {
-                "list_layers.return_value": {
-                    "Layers": [layer_payload],
+    {
+        "service": "lambda",
+        "mockData": {
+            "get_paginator.side_effect": [
+                {
+                    "paginate.return_value": [
+                        {
+                            "Layers": [
+                                {
+                                    "LayerName": "test-layer",
+                                    "LayerArn": "arn:aws:lambda:eu-west-1:123456789012:layer:test-layer",
+                                    "LatestMatchingVersion": {
+                                        "LayerVersionArn": "arn:aws:lambda:eu-west-1:123456789012:layer:test-layer:1",
+                                        "Version": 1,
+                                        "Description": "This is a test layer!",
+                                        "CreatedDate": "2020-10-17T13:18:00.303+0000",
+                                        "CompatibleRuntimes": [
+                                            "nodejs10.x"
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    ]
                 },
-                "list_layer_versions.return_value": {"LayerVersions": [layer_version_payload]},
-                "get_layer_version.return_value": layer_version_payload,
-            }
+                {
+                    "paginate.return_value": [
+                        {
+                            "LayerVersions": [
+                                {
+                                    "LayerVersionArn": "arn:aws:lambda:eu-west-1:123456789012:layer:test-layer:1",
+                                    "Version": 1,
+                                    "Description": "This is a test layer!",
+                                    "CreatedDate": "2020-10-17T13:18:00.303+0000",
+                                    "CompatibleRuntimes": [
+                                        "nodejs10.x"
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
         }
+    }
 
-        single_resource_scenarios = [
-            SingleResourceScenario(
-                urn=URN.from_string("urn:aws:123456789012:eu-west-1:lambda:layer:test-layer"),
-                expected_results=UnsupportedResourceTypeError,
-            ),
-            SingleResourceScenario(
-                urn=URN.from_string("urn:aws:123456789012:eu-west-1:lambda:layer_version:test-layer/1"),
-                expected_results=[layer_version_payload],
-            ),
-        ]
+We've added our test payload as a second value in the existing ``mockData.get_paginator.side_effect`` list. 
+It is the second in the list because dependent resources are discovered _after_ top level resources.
 
-        multiple_resource_scenarios = [
-            MultipleResourceScenario(
-                arguments=CloudWandererCalls(regions=["eu-west-1"], service_names=["lambda"], resource_types=["layer"]),
-                expected_results=[layer_payload, layer_version_payload],
-            )
-        ]
+..tip:: 
+    
+    We'll also need to add another dict to the end of the ``expectedResults`` key, but like before you can populate
+    that with the results the failing test spits out when you run it at the end!
 
-We've added our test payload as a class variable, referenced it in the mock on line 17, as well as the mock on line 18, and expected it as a result in
-lines 27-29 and 36. We have added it to ``single_resource_scenarios`` and ``get_layer_version.return_value`` because while lambda layers cannot be discovered individually, lambda layer **versions** can!
 
 Populate the definition
 ---------------------------
 
 Visit `Botocore's specification data on GitHub <https://github.com/boto/botocore/tree/develop/botocore/data>`_ and open the latest ``service-2.json`` for your service.
 
-We're here following much the same process as in :doc:`example_resource`.
+We're here following much the same process as in :doc:`example_resource`. We're going to add a ``LambdaLayerVersion`` resource specification to the 
+``aws_interface/resource_definitions/lambda/2015-03-31/resource-1.json`` file.
+
 We're following our ``ListLayerVersions`` through its return of ``ListLayerVersionsResponse`` to its shape of ``LayerVersionsList``
 to its member of ``LayerVersionsListItem``.
 Along the way we've identified the
@@ -102,11 +117,11 @@ Along the way we've identified the
 * Resource Shape (``LayerVersionsListItem``)
 * Identifiers (``LayerName`` and ``Version``)
 
-Subresource Identifiers
-"""""""""""""""""""""""""""""
+Dependent Resource Identifiers
+"""""""""""""""""""""""""""""""""
 
-Subresources *always* have two identifiers, one is the identifier of their parent, and the other is their identifier.
-In CloudWanderer's definition this is what makes them a subresource, that they do not have an independent identity without their parent.
+Dependent resources *always* have two identifiers, one is the identifier of their parent, and the other is their identifier.
+In CloudWanderer's definition this is what makes them a dependent resource, that they do not have an independent identity without their parent.
 
 .. code-block:: json
 
@@ -123,10 +138,10 @@ In CloudWanderer's definition this is what makes them a subresource, that they d
         }
     ]
 
-Subresource Request Operation
-"""""""""""""""""""""""""""""""""
+Dependent Resource Request Operation
+"""""""""""""""""""""""""""""""""""""
 
-Resource request operations were pretty simple as they had no arguments. Subresources on the other hand
+Top level resource request operations (e.g. ``ListLayers``) were pretty simple as they had no arguments. Dependent resources on the other hand
 need to supply the identity of their parent as an argument to whatever API method they're calling.
 
 .. code-block:: json
@@ -219,7 +234,8 @@ Writing the Service Map
 
 The service map is CloudWanderer's store for resource type metadata that does not fit into the Boto3 specification.
 It broadly follows the structure of Boto3's to try and keep things simple and consistent.
-For our new Layer resource we just need to ensure that the following exists in ``service_mappings/lambda.json``
+For our new Layer resource we just need to ensure that the following exists in 
+``aws_interface/resource_definitions/lambda/2015-03-31/resources-cw-1.json``
 
 .. code-block:: json
     :linenos:
@@ -235,13 +251,12 @@ For our new Layer resource we just need to ensure that the following exists in `
                 "type": "baseResource"
             },
             "LayerVersion": {
-                "type": "subresource",
-                "parentResourceType": "Layer"
+                "type": "dependentResource"        
             }
         }
     }
 
-We added the ``LayerVersion`` key to ``resources`` to indicate that we've added a subresource whose parent resource type is ``Layer``.
+We added the ``LayerVersion`` key to ``resources`` to indicate that we've added a dependent resource whose parent resource type is ``Layer``.
 This allows CloudWanderer to determine the proper relationship between these resources and properly generate URNs.
 
 .. include:: service_map_key.rst

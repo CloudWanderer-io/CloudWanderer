@@ -297,9 +297,6 @@ class CloudWandererResourceDefinitionsDirective(SphinxDirective):
         services_section += self.parse_rst(rst_section).children
         targetid = "cloudwanderer-%d" % self.env.new_serialno("cloudwanderer")
         targetnode = nodes.target("", "", ids=[targetid])
-
-        self.cw.gm.generate_graphs()
-        self.cw.gm.render_all()
         return [targetnode, services_section]
 
     def parse_rst(self, text: str) -> docutils.nodes.document:
@@ -321,6 +318,10 @@ class GetCwServices:
         self.session = CloudWandererBoto3Session()
         self.loader = MergedServiceLoader()
         self.gm = GraphManager(pathlib.Path(__file__).parent.parent / pathlib.Path("images"))
+
+    def write_graphs(self) -> None:
+        self.gm.generate_graphs()
+        self.gm.render_all()
 
     def get_cloudwanderer_services(self) -> list:
         yield from self.session.get_available_resources()
@@ -377,6 +378,7 @@ class GetCwServices:
         name: str,
         description: str = "",
     ) -> str:
+        image = ""
         service_model = service.meta.client.meta.service_model
         shape = service_model.shape_for(resource.meta.resource_model.shape)
         attributes = sorted(
@@ -387,6 +389,9 @@ class GetCwServices:
             attribute_resource_shape = service_model.shape_for(attribute_resource.meta.resource_model.shape)
             attributes.append((attribute_name, attribute_resource_shape))
 
+        if f"{service.service_name}_{resource.resource_type}" in self.gm.graph_dict:
+
+            image = f".. image:: ../images/{service.service_name}_{resource.resource_type}.gv.png"
         resource_section = RESOURCE_TEMPLATE.render(
             class_name=name.format(service_name=service.service_name, resource_name=resource.resource_type),
             service_name=service.service_name,
@@ -395,9 +400,7 @@ class GetCwServices:
             default_filters=", ".join(
                 f"{key}={repr(value)}" for key, value in resource.resource_map.default_filters.items()
             ),
-            image=f".. image:: ../images/{service.service_name}_{resource.resource_type}.gv.png"
-            if f"{service.service_name}_{resource.resource_type}" in self.gm.graph_dict
-            else "",
+            image=image,
         )
 
         attributes_doc = ""
@@ -426,6 +429,7 @@ class SupportedResources(Domain):
 
 def main(*args) -> None:
     d = GetCwServices()
+    d.write_graphs()
     d.write_cloudwanderer_services()
 
 
