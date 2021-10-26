@@ -239,7 +239,7 @@ For our new Layer resource we just need to ensure that the following exists in
 
 .. code-block:: json
     :linenos:
-    :emphasize-lines: 10-13
+    :emphasize-lines: 10-12
 
     {
         "service": {
