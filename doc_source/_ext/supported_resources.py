@@ -22,23 +22,6 @@ from cloudwanderer.utils import snake_to_pascal
 if TYPE_CHECKING:
     from cloudwanderer.aws_interface.stubs.resource import CloudWandererServiceResource
 
-SECONDARY_ATTR_TEMPLATE = """
-.. py:class:: {service_name}.{parent_resource_name}.{resource_name}
-
-    A secondary attribute for the :class:`{service_name}.{parent_resource_name}`
-    resource type.
-
-    **Example:**
-
-    .. code-block ::
-
-        resources = storage_connector.read_resources(
-            service="{service_name}",
-            resource_type="{parent_resource_name}")
-        for resource in resources:
-            resource.get_secondary_attribute(name="{resource_name}")
-
-"""
 
 RESOURCE_TEMPLATE = Template(
     """
@@ -113,7 +96,7 @@ class SummarisedResources:
                 subresource_summary = []
                 for dependent_resource_type in resource.dependent_resource_types:
                     friendly_name = dependent_resource_type.replace("_", " ").title().replace(" ", "")
-                    subresource_summary.append((collection_name, friendly_name))
+                    subresource_summary.append((friendly_name, friendly_name))
                 resource_list.append((service_name, collection_name, resource_name, subresource_summary))
 
             if resource_list:
@@ -140,7 +123,7 @@ class SummarisedResources:
                 subresource_summary = []
                 for dependent_resource_type in resource.dependent_resource_types:
                     friendly_name = dependent_resource_type.replace("_", " ").title().replace(" ", "")
-                    subresource_summary.append((collection_name, friendly_name))
+                    subresource_summary.append((friendly_name, friendly_name))
                 services_summary[service_id].append((service_name, collection_name, resource_name, subresource_summary))
 
         return services_summary
@@ -314,6 +297,9 @@ class CloudWandererResourceDefinitionsDirective(SphinxDirective):
         services_section += self.parse_rst(rst_section).children
         targetid = "cloudwanderer-%d" % self.env.new_serialno("cloudwanderer")
         targetnode = nodes.target("", "", ids=[targetid])
+
+        self.cw.gm.generate_graphs()
+        self.cw.gm.render_all()
         return [targetnode, services_section]
 
     def parse_rst(self, text: str) -> docutils.nodes.document:
@@ -335,8 +321,6 @@ class GetCwServices:
         self.session = CloudWandererBoto3Session()
         self.loader = MergedServiceLoader()
         self.gm = GraphManager(pathlib.Path(__file__).parent.parent / pathlib.Path("images"))
-        self.gm.generate_graphs()
-        self.gm.render_all()
 
     def get_cloudwanderer_services(self) -> list:
         yield from self.session.get_available_resources()
@@ -367,7 +351,6 @@ class GetCwServices:
             resource = service.resource(resource_type, empty_resource=True)
             result.append(self.generate_resource_section(service, resource, "{service_name}.{resource_name}"))
             result.append(self.get_subresources(service, resource))
-            result.append(self.get_secondary_attributes(service, resource))
         return result
 
     def get_subresources(
@@ -387,20 +370,6 @@ class GetCwServices:
             )
         return result
 
-    def get_secondary_attributes(
-        self, service: "CloudWandererServiceResource", resource: "CloudWandererServiceResource"
-    ) -> str:
-        result = ""
-        service_name = service.service_name
-        parent_resource_name = resource.resource_type
-        for secondary_attribute_name in resource.secondary_attribute_names:
-            result += SECONDARY_ATTR_TEMPLATE.format(
-                service_name=service_name,
-                parent_resource_name=parent_resource_name,
-                resource_name=secondary_attribute_name,
-            )
-        return result
-
     def generate_resource_section(
         self,
         service: "CloudWandererServiceResource",
@@ -410,7 +379,14 @@ class GetCwServices:
     ) -> str:
         service_model = service.meta.client.meta.service_model
         shape = service_model.shape_for(resource.meta.resource_model.shape)
-        attributes = sorted(resource.meta.resource_model.get_attributes(shape).items())
+        attributes = sorted(
+            [(name, value[1]) for name, value in resource.meta.resource_model.get_attributes(shape).items()]
+        )
+        for attribute_name in resource.secondary_attribute_names:
+            attribute_resource = service.resource(attribute_name, empty_resource=True)
+            attribute_resource_shape = service_model.shape_for(attribute_resource.meta.resource_model.shape)
+            attributes.append((attribute_name, attribute_resource_shape))
+
         resource_section = RESOURCE_TEMPLATE.render(
             class_name=name.format(service_name=service.service_name, resource_name=resource.resource_type),
             service_name=service.service_name,
@@ -426,7 +402,7 @@ class GetCwServices:
 
         attributes_doc = ""
         for attribute_name, attribute in attributes:
-            documentation = attribute[1].documentation
+            documentation = attribute.documentation
             documentation = self.parse_html(documentation).replace("\n", "")
             attributes_doc += ATTRIBUTES_TEMPLATE.format(attribute_name=attribute_name, documentation=documentation)
             resource_section += f"            print(resource.{attribute_name})\n"
