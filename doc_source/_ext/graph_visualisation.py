@@ -66,6 +66,9 @@ class GraphManager:
                     resource = service.resource(resource_type, empty_resource=True)
                 except UnsupportedResourceTypeError:
                     continue
+                for dependent_resource_type in resource.dependent_resource_types:
+                    partner_service_resource_name = f"{service_name}_{dependent_resource_type}"
+                    self.add_edge_to_graph(service_resource_name, partner_service_resource_name)
                 for relationship in resource.resource_map.relationships:
                     partner_service_resource_name = f"{relationship.service}_{relationship.resource_type}"
                     if relationship.direction == RelationshipDirection.INBOUND:
