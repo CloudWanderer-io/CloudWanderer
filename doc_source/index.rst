@@ -15,6 +15,7 @@ CloudWanderer
    examples
    supported_resources
    resource_definitions
+   writing_custom_resources
    reference
    
 

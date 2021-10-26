@@ -111,6 +111,8 @@ def compare_dict_allow_any(
         + "\nComparison: \n"
         + "\n".join(difflib.ndiff(pprint.pformat(first).splitlines(), pprint.pformat(second).splitlines()))
     )
+    if not first or not second:
+        raise AssertionError(f"Dictionaries do not match {diff}")
     if not allow_partial_match_first:
         if first.keys() != second.keys():
             raise AssertionError("Dictionaries do not have the same number of keys" + diff)
