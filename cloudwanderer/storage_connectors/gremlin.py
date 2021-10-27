@@ -26,32 +26,24 @@ def generate_primary_label(urn: PartialUrn) -> str:
     return urn.cloud_service_resource_label
 
 
-def generate_edge_id(source_urn, destination_urn) -> str:
-    """Generate a primary edge id.
-
-    Arguments:
-        source_urn: The URN of the resource we're generating an edge from.
-        destination_urn: The URN of the resource we're generating an edge to.
-    """
-    return f"{source_urn}#{destination_urn}"
-
-
 class GremlinStorageConnector(BaseStorageConnector):
     """Storage Connector for Gremlin databases."""
 
     _g: Optional[Traversal] = None
     connection: Optional[DriverRemoteConnection] = None
 
-    def __init__(self, endpoint_url: str, supports_multiple_labels=False, **kwargs) -> None:
+    def __init__(self, endpoint_url: str, supports_multiple_labels=False, test_prefix: str = "", **kwargs) -> None:
         """Create a GremlinStorageConnector.
 
         Arguments:
             endpoint_url: The url of the gremlin endpoint to connect to (e.g. ``ws://localhost:8182``)
             supports_multiple_labels: Some GraphDBs (Neptune/Neo4J) support multiple labels on a single vertex.
+            test_prefix: A prefix that will be prepended to edge and vertex ids to allow scenario separation.
             **kwargs: Any unspecified args will be pased to the ``DriverRemoteConnection`` object.
         """
         self.endpoint_url = endpoint_url
         self.supports_multiple_labels = supports_multiple_labels
+        self.test_prefix = test_prefix
         self.connection_args = kwargs
 
     def init(self) -> None:
@@ -89,7 +81,7 @@ class GremlinStorageConnector(BaseStorageConnector):
     def _write_resource(self, resource: CloudWandererResource) -> None:
         primary_label = generate_primary_label(resource.urn)
 
-        traversal = self._write_vertex(vertex_id=str(resource.urn), vertex_labels=[primary_label])
+        traversal = self._write_vertex(vertex_id=self.generate_vertex_id(resource.urn), vertex_labels=[primary_label])
         traversal = (
             traversal.property(Cardinality.single, "_cloud_name", resource.urn.cloud_name)
             .property(Cardinality.single, "_account_id", resource.urn.account_id)
@@ -107,22 +99,36 @@ class GremlinStorageConnector(BaseStorageConnector):
         traversal.next()
 
         self._write_relationships(resource)
+        self._clean_up_relationships(urn=resource.urn, cutoff=resource.discovery_time)
         if not resource.urn.is_partial:
             self._repoint_vertex_edges(vertex_label=primary_label, new_resource_urn=resource.urn)
 
     def _write_dependent_resource_edges(self, resource: CloudWandererResource) -> None:
         for dependent_urn in resource.dependent_resource_urns:
             self._write_edge(
-                edge_id=generate_edge_id(resource.urn, dependent_urn),
+                edge_id=self.generate_edge_id(resource.urn, dependent_urn),
                 edge_label="has",
-                source_vertex_id=str(resource.urn),
-                destination_vertex_id=str(dependent_urn),
+                source_vertex_id=self.generate_vertex_id(resource.urn),
+                destination_vertex_id=self.generate_vertex_id(dependent_urn),
+                owner_id=self.generate_vertex_id(resource.urn),
+                discovery_time=resource.discovery_time,
             ).next()
 
-    def _write_relationships(self, resource: CloudWandererResource) -> None:
+    def _clean_up_relationships(self, urn: PartialUrn, cutoff: datetime) -> None:
+        logger.debug("Cleaning up edges owned by %s discovered before %s", self.generate_vertex_id(urn), cutoff)
+        (
+            self.g.V(self.generate_vertex_id(urn))
+            .bothE()
+            .as_("edge")
+            .has("_edge_owner", self.generate_vertex_id(urn))
+            .where(__.values("_discovery_time").is_(P.lt(cutoff.isoformat())))
+            .select("edge")
+            .drop()
+        ).iterate()
 
+    def _write_relationships(self, resource: CloudWandererResource) -> None:
         for relationship in resource.relationships:
-            inferred_partner_urn = str(relationship.partial_urn)
+            inferred_partner_urn = relationship.partial_urn
             try:
                 pre_existing_resource_id = self._lookup_resource(relationship.partial_urn).next().id
             except StopIteration:
@@ -131,24 +137,25 @@ class GremlinStorageConnector(BaseStorageConnector):
             if pre_existing_resource_id:
                 logger.debug("writing relationship with pre_existing_resource_id %s", pre_existing_resource_id)
                 self._write_relationship_edge(
-                    resource_id=str(resource.urn),
-                    relationship_resource_id=pre_existing_resource_id,
+                    resource_urn=resource.urn,
+                    relationship_resource_urn=pre_existing_resource_id,
                     direction=relationship.direction,
+                    discovery_time=resource.discovery_time,
                 )
                 if pre_existing_resource_id != inferred_partner_urn:
-
                     self._delete_relationship_edge(
-                        resource_id=str(resource.urn),
-                        relationship_resource_id=inferred_partner_urn,
+                        resource_urn=resource.urn,
+                        relationship_resource_urn=inferred_partner_urn,
                         direction=relationship.direction,
                     )
                 continue
             logger.debug("Writing inferred resource %s", inferred_partner_urn)
             self._write_resource(CloudWandererResource(urn=relationship.partial_urn, resource_data={}))
             self._write_relationship_edge(
-                resource_id=str(resource.urn),
-                relationship_resource_id=inferred_partner_urn,
+                resource_urn=resource.urn,
+                relationship_resource_urn=inferred_partner_urn,
                 direction=relationship.direction,
+                discovery_time=resource.discovery_time,
             )
 
     def _repoint_vertex_edges(self, vertex_label: str, new_resource_urn: Union[URN, PartialUrn]) -> None:
@@ -166,7 +173,9 @@ class GremlinStorageConnector(BaseStorageConnector):
             old_vertices_outbound_edges = self.g.V(old_vertex).outE().as_("e1")
             old_outbound_edges_partner_vertex = old_vertices_outbound_edges.inV().as_("b")
 
-            new_vertex = old_outbound_edges_partner_vertex.V(str(new_resource_urn)).as_("new_vertex")
+            new_vertex = old_outbound_edges_partner_vertex.V(self.generate_vertex_id(new_resource_urn)).as_(
+                "new_vertex"
+            )
             add_old_outbound_edges_to_new_vertex = (
                 new_vertex.addE("has")
                 .to("b")
@@ -205,29 +214,37 @@ class GremlinStorageConnector(BaseStorageConnector):
             self.g.V(old_vertex).drop().iterate()
 
     def _delete_relationship_edge(
-        self, resource_id: str, relationship_resource_id: str, direction: RelationshipDirection
+        self, resource_urn: PartialUrn, relationship_resource_urn: PartialUrn, direction: RelationshipDirection
     ) -> None:
         if direction == RelationshipDirection.INBOUND:
-            self._delete_edge(generate_edge_id(relationship_resource_id, resource_id))
+            self._delete_edge(self.generate_edge_id(relationship_resource_urn, resource_urn))
         else:
-            self._delete_edge(generate_edge_id(resource_id, relationship_resource_id))
+            self._delete_edge(self.generate_edge_id(resource_urn, relationship_resource_urn))
 
     def _write_relationship_edge(
-        self, resource_id: str, relationship_resource_id: str, direction: RelationshipDirection
+        self,
+        resource_urn: PartialUrn,
+        relationship_resource_urn: PartialUrn,
+        direction: RelationshipDirection,
+        discovery_time: datetime,
     ) -> None:
         if direction == RelationshipDirection.INBOUND:
             self._write_edge(
-                edge_id=generate_edge_id(relationship_resource_id, resource_id),
+                edge_id=self.generate_edge_id(relationship_resource_urn, resource_urn),
                 edge_label="has",
-                source_vertex_id=relationship_resource_id,
-                destination_vertex_id=resource_id,
+                source_vertex_id=self.generate_vertex_id(relationship_resource_urn),
+                destination_vertex_id=self.generate_vertex_id(resource_urn),
+                owner_id=self.generate_vertex_id(resource_urn),
+                discovery_time=discovery_time,
             ).next()
         else:
             self._write_edge(
-                edge_id=generate_edge_id(resource_id, relationship_resource_id),
+                edge_id=self.generate_edge_id(resource_urn, relationship_resource_urn),
                 edge_label="has",
-                source_vertex_id=resource_id,
-                destination_vertex_id=relationship_resource_id,
+                source_vertex_id=self.generate_vertex_id(resource_urn),
+                destination_vertex_id=self.generate_vertex_id(relationship_resource_urn),
+                owner_id=self.generate_vertex_id(resource_urn),
+                discovery_time=discovery_time,
             ).next()
 
     def _lookup_resource(self, partial_urn: PartialUrn) -> Traversal:
@@ -263,7 +280,13 @@ class GremlinStorageConnector(BaseStorageConnector):
         return traversal
 
     def _write_edge(
-        self, edge_id: str, edge_label: str, source_vertex_id: str, destination_vertex_id: str
+        self,
+        edge_id: str,
+        edge_label: str,
+        source_vertex_id: str,
+        destination_vertex_id: str,
+        owner_id: str,
+        discovery_time: datetime,
     ) -> Traversal:
         logger.debug("Writing edge between %s and %s", source_vertex_id, destination_vertex_id)
         return (
@@ -272,7 +295,11 @@ class GremlinStorageConnector(BaseStorageConnector):
             .V(destination_vertex_id)
             .coalesce(
                 __.inE().where(__.outV().as_("source")),
-                __.addE(edge_label).from_("source").property(T.id, edge_id),
+                __.addE(edge_label)
+                .from_("source")
+                .property(T.id, edge_id)
+                .property("_edge_owner", owner_id)
+                .property("_discovery_time", discovery_time.isoformat()),
             )
         )
 
@@ -334,7 +361,7 @@ class GremlinStorageConnector(BaseStorageConnector):
             urn (URN): The URN of the resource to delete
         """
         logger.debug("Deleting resource %s", urn)
-        self.g.V(str(urn)).drop().iterate()
+        self.g.V(self.generate_vertex_id(urn)).drop().iterate()
 
     def delete_resource_of_type_in_account_region(
         self,
@@ -369,6 +396,23 @@ class GremlinStorageConnector(BaseStorageConnector):
         if cutoff:
             traversal.where(__.values("_discovery_time").is_(P.lt(cutoff.isoformat())))
         traversal.drop().iterate()
+
+    def generate_vertex_id(self, urn: PartialUrn) -> str:
+        """Generate a vertex id.
+
+        Arguments:
+            urn: The URN of the vertex to create.
+        """
+        return f"{self.test_prefix}{urn}"
+
+    def generate_edge_id(self, source_urn: PartialUrn, destination_urn: PartialUrn) -> str:
+        """Generate a primary edge id.
+
+        Arguments:
+            source_urn: The URN of the resource we're generating an edge from.
+            destination_urn: The URN of the resource we're generating an edge to.
+        """
+        return f"{self.test_prefix}{source_urn}#{destination_urn}"
 
 
 def _normalise_gremlin_attrs(raw_dict: Dict[str, Any]) -> Dict[str, Any]:

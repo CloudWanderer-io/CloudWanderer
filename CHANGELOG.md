@@ -1,3 +1,7 @@
+# 0.19.5
+
+- Gremlin storage connector now cleans up edges (relationships) that a resource had previously but no longer has.
+
 # 0.19.4
 
 - Fixed json files not being included
