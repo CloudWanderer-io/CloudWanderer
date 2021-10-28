@@ -3,7 +3,7 @@
         "hasMany": {
             "DbInstances": {
                 "request": {
-                    "operation": "DescribeDbInstances"
+                    "operation": "DescribeDBInstances"
                 },
                 "resource": {
                     "type": "DbInstance",
@@ -15,6 +15,22 @@
                         }
                     ],
                     "path": "DBInstances[]"
+                }
+            },
+            "DbClusters": {
+                "request": {
+                    "operation": "DescribeDBClusters"
+                },
+                "resource": {
+                    "type": "DbCluster",
+                    "identifiers": [
+                        {
+                            "target": "Identifier",
+                            "source": "response",
+                            "path": "DBClusters[].DBClusterIdentifier"
+                        }
+                    ],
+                    "path": "DBClusters[]"
                 }
             }
         }
@@ -40,6 +56,28 @@
                     ]
                 },
                 "path": "DBInstances[0]"
+            }
+        },
+        "DbCluster": {
+            "identifiers": [
+                {
+                    "name": "Identifier",
+                    "memberName": "Identifier"
+                }
+            ],
+            "shape": "DBCluster",
+            "load": {
+                "request": {
+                    "operation": "DescribeDBClusters",
+                    "params": [
+                        {
+                            "target": "DBClusterIdentifier",
+                            "source": "identifier",
+                            "name": "Identifier"
+                        }
+                    ]
+                },
+                "path": "DBClusters[0]"
             }
         }
     }

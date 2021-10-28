@@ -75,6 +75,24 @@
                     "direction": "outbound"
                 }
             ]
+        },
+        "DbCluster": {
+            "type": "baseResource",
+            "relationships": [
+                {
+                    "basePath": "VpcSecurityGroups[]",
+                    "idParts": [
+                        {
+                            "path": "VpcSecurityGroupId"
+                        }
+                    ],
+                    "service": "ec2",
+                    "resourceType": "security_group",
+                    "regionSource": "sameAsResource",
+                    "accountIdSource": "unknown",
+                    "direction": "outbound"
+                }
+            ]
         }
     }
 }
