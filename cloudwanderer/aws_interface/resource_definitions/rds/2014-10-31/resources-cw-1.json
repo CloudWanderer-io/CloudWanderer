@@ -73,6 +73,19 @@
                     "regionSource": "unknown",
                     "accountIdSource": "unknown",
                     "direction": "outbound"
+                },
+                {
+                    "basePath": "@",
+                    "idParts": [
+                        {
+                            "path": "DBClusterIdentifier"
+                        }
+                    ],
+                    "service": "rds",
+                    "resourceType": "db_cluster",
+                    "regionSource": "sameAsResource",
+                    "accountIdSource": "sameAsResource",
+                    "direction": "outbound"
                 }
             ]
         },
