@@ -28,7 +28,7 @@ class TestFunctional(unittest.TestCase):
 
     def setUp(self):
         self.storage_connector = GremlinStorageConnector(
-            endpoint_url="wss://localhost:8182",
+            endpoint_url="ws://localhost:8182",
             pool_size=1,
             max_workers=1,
         )
@@ -42,7 +42,7 @@ class TestFunctional(unittest.TestCase):
 
     def test_write_resources_in_region(self):
         """It is sufficient for this not to throw an exception."""
-        self.wanderer.write_resources(regions=["us-east-1"], exclude_resources=[])
+        self.wanderer.write_resources(regions=["eu-west-1"], exclude_resources=[])
 
     def test_write_resource_type(self):
         """It is sufficient for this not to throw an exception."""

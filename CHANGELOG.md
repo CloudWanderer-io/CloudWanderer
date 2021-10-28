@@ -2,6 +2,7 @@
 
 - Added RDS Clusters
 - Added RDS Instances
+- Fixed bug in GremlinStorageConnector causing edges to be cleaned up erroneously
 
 # 0.19.5
 
