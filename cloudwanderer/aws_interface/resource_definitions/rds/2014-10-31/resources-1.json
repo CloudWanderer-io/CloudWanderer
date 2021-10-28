@@ -1,0 +1,46 @@
+{
+    "service": {
+        "hasMany": {
+            "DbInstances": {
+                "request": {
+                    "operation": "DescribeDbInstances"
+                },
+                "resource": {
+                    "type": "DbInstance",
+                    "identifiers": [
+                        {
+                            "target": "Identifier",
+                            "source": "response",
+                            "path": "DBInstances[].DBInstanceIdentifier"
+                        }
+                    ],
+                    "path": "DBInstances[]"
+                }
+            }
+        }
+    },
+    "resources": {
+        "DbInstance": {
+            "identifiers": [
+                {
+                    "name": "Identifier",
+                    "memberName": "Identifier"
+                }
+            ],
+            "shape": "DBInstance",
+            "load": {
+                "request": {
+                    "operation": "DescribeDBInstances",
+                    "params": [
+                        {
+                            "target": "DBInstanceIdentifier",
+                            "source": "identifier",
+                            "name": "Identifier"
+                        }
+                    ]
+                },
+                "path": "DBInstances[0]"
+            }
+        }
+    }
+}
