@@ -16,6 +16,7 @@ from ...pytest_helpers import (
     get_inferred_ec2_instances,
     inferred_ec2_vpcs,
 )
+from .helpers import get_vertex_and_edges
 
 logger = logging.getLogger(__name__)
 
@@ -161,16 +162,10 @@ def test_write_then_read(gremlin_connector, cloudwanderer_boto3_session):
 @mock_iam
 def test_stale_edges_get_removed(gremlin_connector, iam_instance_profile):
     gremlin_connector.write_resource(resource=iam_instance_profile)
-    result_1, result_2 = (
-        gremlin_connector.g.V(gremlin_connector.generate_vertex_id(iam_instance_profile.urn))
-        .both()
-        .path()
-        .by(__.valueMap(True))
-        .toList()[0]
-    )
+    result = get_vertex_and_edges(gremlin_connector, iam_instance_profile.urn)[0]
 
-    assert result_1["_urn"][0] == "urn:aws:111111111111:us-east-1:iam:instance_profile:my-test-profile"
-    assert result_2["_urn"][0] == "urn:aws:unknown:us-east-1:iam:role:test-role"
+    assert result["v1"]["_urn"][0] == "urn:aws:111111111111:us-east-1:iam:instance_profile:my-test-profile"
+    assert result["v2"]["_urn"][0] == "urn:aws:unknown:us-east-1:iam:role:test-role"
 
     # Remove the relationship with the role and ensure that we don't get a result
     # when we search for an edge on the instance profile
@@ -186,3 +181,24 @@ def test_stale_edges_get_removed(gremlin_connector, iam_instance_profile):
         .toList()
         == []
     )
+
+
+@mock_sts
+@mock_iam
+def test_fresh_edges_do_not_get_removed(gremlin_connector, iam_instance_profile):
+    gremlin_connector.write_resource(resource=iam_instance_profile)
+    result = get_vertex_and_edges(gremlin_connector, iam_instance_profile.urn)[0]
+
+    assert result["v1"]["_urn"][0] == "urn:aws:111111111111:us-east-1:iam:instance_profile:my-test-profile"
+    assert result["v2"]["_urn"][0] == "urn:aws:unknown:us-east-1:iam:role:test-role"
+    assert result["e"]["_discovery_time"] == iam_instance_profile.discovery_time.isoformat()
+
+    # Write the same resource again with an updated timestamp and make sure the edge is still there.
+    iam_instance_profile.discovery_time = datetime.now()
+
+    gremlin_connector.write_resource(resource=iam_instance_profile)
+    result = get_vertex_and_edges(gremlin_connector, iam_instance_profile.urn)[0]
+
+    assert result["v1"]["_urn"][0] == "urn:aws:111111111111:us-east-1:iam:instance_profile:my-test-profile"
+    assert result["v2"]["_urn"][0] == "urn:aws:unknown:us-east-1:iam:role:test-role"
+    assert result["e"]["_discovery_time"] == iam_instance_profile.discovery_time.isoformat()

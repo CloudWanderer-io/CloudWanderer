@@ -1,0 +1,111 @@
+{
+    "service": {
+        "globalService": false,
+        "regionalResources": true
+    },
+    "resources": {
+        "DbInstance": {
+            "type": "baseResource",
+            "relationships": [
+                {
+                    "basePath": "VpcSecurityGroups[]",
+                    "idParts": [
+                        {
+                            "path": "VpcSecurityGroupId"
+                        }
+                    ],
+                    "service": "ec2",
+                    "resourceType": "security_group",
+                    "regionSource": "sameAsResource",
+                    "accountIdSource": "unknown",
+                    "direction": "outbound"
+                },
+                {
+                    "basePath": "DBSubnetGroup.Subnets[]",
+                    "idParts": [
+                        {
+                            "path": "SubnetIdentifier"
+                        }
+                    ],
+                    "service": "ec2",
+                    "resourceType": "subnet",
+                    "regionSource": "sameAsResource",
+                    "accountIdSource": "unknown",
+                    "direction": "inbound"
+                },
+                {
+                    "basePath": "DBSubnetGroup",
+                    "idParts": [
+                        {
+                            "path": "VpcId"
+                        }
+                    ],
+                    "service": "ec2",
+                    "resourceType": "vpc",
+                    "regionSource": "sameAsResource",
+                    "accountIdSource": "unknown",
+                    "direction": "inbound"
+                },
+                {
+                    "basePath": "@",
+                    "idParts": [
+                        {
+                            "path": "MonitoringRoleArn",
+                            "regexPattern": "[^:]+:[^:]+:[^:]+::(?P<account_id>[^:]+):role.*/(?P<id_part_0>[^:]+)"
+                        }
+                    ],
+                    "service": "iam",
+                    "resourceType": "role",
+                    "regionSource": "unknown",
+                    "accountIdSource": "unknown",
+                    "direction": "outbound"
+                },
+                {
+                    "basePath": "@",
+                    "idParts": [
+                        {
+                            "path": "CustomIamInstanceProfile",
+                            "regexPattern": "[^:]+:[^:]+:[^:]+::(?P<account_id>[^:]+):instance-profile.*/(?P<id_part_0>[^:]+)"
+                        }
+                    ],
+                    "service": "iam",
+                    "resourceType": "instance_profile",
+                    "regionSource": "unknown",
+                    "accountIdSource": "unknown",
+                    "direction": "outbound"
+                },
+                {
+                    "basePath": "@",
+                    "idParts": [
+                        {
+                            "path": "DBClusterIdentifier"
+                        }
+                    ],
+                    "service": "rds",
+                    "resourceType": "db_cluster",
+                    "regionSource": "sameAsResource",
+                    "accountIdSource": "sameAsResource",
+                    "direction": "outbound"
+                }
+            ]
+        },
+        "DbCluster": {
+            "type": "baseResource",
+            "relationships": [
+                {
+                    "basePath": "VpcSecurityGroups[]",
+                    "idParts": [
+                        {
+                            "path": "VpcSecurityGroupId"
+                        }
+                    ],
+                    "service": "ec2",
+                    "resourceType": "security_group",
+                    "regionSource": "sameAsResource",
+                    "accountIdSource": "unknown",
+                    "direction": "outbound"
+                }
+            ]
+        }
+    }
+}
