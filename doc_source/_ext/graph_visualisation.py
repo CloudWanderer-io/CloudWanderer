@@ -1,4 +1,5 @@
 """Create a graphviz visualisation of the resource's relationships."""
+import os
 from pathlib import Path
 
 import graphviz
@@ -54,6 +55,8 @@ class GraphManager:
 
     def generate_graphs(self) -> None:
         """Generate the graphs from the service resource relationships"""
+        if os.environ.get("SPHINX_GRAPH_VISUALISATION_DISABLE"):
+            return
         for service_name in interface.cloudwanderer_boto3_session.get_available_resources():
 
             service = interface.cloudwanderer_boto3_session.resource(service_name)
