@@ -56,7 +56,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install build -r requirements.txt
       - name: Build a tarball
         run: >-
           python -m
@@ -65,8 +65,7 @@ jobs:
           --wheel
           --outdir build_test/
       - name: Install the tarball to ensure packaging works
-        run: >-
-          pip install $(find build_test -name "*.tar.gz")
+        run: pip install $(find build_test -name "*.tar.gz")
       - name: Test with pytest
         run: |
           pytest
