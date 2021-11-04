@@ -200,8 +200,6 @@ Next we need to find out what policies are attached, we can either do this with 
 .. doctest ::
 
     >>> role.inline_policy_attachments
-    {'PolicyNames': ['test-role-policy'], 'IsTruncated': False, 'Marker': None}
-    >>> role.inline_policy_attachments['PolicyNames']
     ['test-role-policy']
 
 Or we can do it with the :attr:`~cloudwanderer.cloud_wanderer_resource.CloudWandererResource.dependent_resource_urns` property.
