@@ -1,3 +1,7 @@
+# 0.21.0
+
+- Fixed nonfunctional `read_all` method on `GremlinStorageConnector`
+
 # 0.20.0
 
 - Added RDS Clusters

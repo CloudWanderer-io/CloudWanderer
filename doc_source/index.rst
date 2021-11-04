@@ -12,6 +12,7 @@ CloudWanderer
    :caption: Contents:
 
    what_is_cloudwanderer
+   neptune_quickstart
    examples
    supported_resources
    resource_definitions

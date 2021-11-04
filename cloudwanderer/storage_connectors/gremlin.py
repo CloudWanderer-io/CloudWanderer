@@ -314,6 +314,8 @@ class GremlinStorageConnector(BaseStorageConnector):
 
     def read_all(self) -> Iterator[dict]:
         """Return all records from storage."""
+        for vertex in self.g.V().has("_urn").valueMap().toList():
+            yield vertex
 
     def read_resource(self, urn: URN) -> Optional[CloudWandererResource]:
         """Return a resource matching the supplied urn from storage.
