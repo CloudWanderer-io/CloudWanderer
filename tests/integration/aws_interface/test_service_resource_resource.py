@@ -143,17 +143,13 @@ def test_secondary_attribute_maps(iam_service):
     create_iam_role()
     single_iam_role = list(iam_service.collection("role").all())[0]
     assert single_iam_role.get_secondary_attributes_map() == {
-        "InlinePolicyAttachments": {"PolicyNames": ["test-role-policy"], "IsTruncated": False, "Marker": None},
-        "ManagedPolicyAttachments": {
-            "AttachedPolicies": [
-                {
-                    "PolicyName": "APIGatewayServiceRolePolicy",
-                    "PolicyArn": "arn:aws:iam::aws:policy/aws-service-role/APIGatewayServiceRolePolicy",
-                }
-            ],
-            "IsTruncated": False,
-            "Marker": None,
-        },
+        "InlinePolicyAttachments": ["test-role-policy"],
+        "ManagedPolicyAttachments": [
+            {
+                "PolicyName": "APIGatewayServiceRolePolicy",
+                "PolicyArn": "arn:aws:iam::aws:policy/aws-service-role/APIGatewayServiceRolePolicy",
+            }
+        ],
     }
 
 
