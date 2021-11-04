@@ -5,8 +5,7 @@ To get started with using CloudWanderer with the Gremlin Connector in order to s
 GraphDBs quickly we've created the `neptune-quickstart cloudformation template <https://github.com/CloudWanderer-io/neptune-quickstart>`__.
 
 With this deployment you'll be able to quickly run CloudWanderer in your own AWS environment
-and run both OpenCypher and Gremlin queries against the data to see the real power of relationship
-data. 
+and run both OpenCypher and Gremlin queries against the data to see the real power of treating your resources as vertices on a graph. 
 
 .. image:: images/cloudwanderer_graph.png
 
@@ -54,7 +53,7 @@ update it to reflect your stack's endpoint url.
 
 .. tip::
 
-    Make sure your ``ENDPOINT_URL`` is prefixed with ``wss://`` **not** ``ws://`` as AWS Neptunne uses SSL!
+    Make sure your ``ENDPOINT_URL`` is prefixed with ``wss://`` **not** ``ws://`` as AWS Neptune uses SSL!
 
 Finally, disabled AWS temporary credentials by clicking on the cog icon in the top right to go to Preferences, then click on AWS Settings and disable
 AWS managed temporary credentials.
@@ -74,7 +73,7 @@ Now you can run CloudWanderer!
     
 .. tip::
 
-    If you get an error ``ERROR    cloudwanderer.utils:utils.py:26 An error occurred (InvalidClientTokenId) when calling the GetGroupPolicy operation: The security token included in the request is invalid``
+    If you get an error ``An error occurred (InvalidClientTokenId) when calling the GetGroupPolicy operation: The security token included in the request is invalid``
     make sure you disabled AWS managed temporary credentials in the Cloud9 setup above!
 
 Querying Neptune
