@@ -6,11 +6,11 @@ from moto import mock_ec2, mock_iam, mock_s3, mock_sts
 from cloudwanderer.aws_interface.boto3_loaders import ResourceMap
 from cloudwanderer.urn import URN
 
-from ...pytest_helpers import compare_dict_allow_any, create_iam_role, create_s3_buckets
+from ...pytest_helpers import compare_dict_allow_any, create_iam_role, create_s3_buckets, get_single_ec2_vpc
 
 
 @mock_ec2
-def test_raw_data(single_ec2_vpc):
+def test_raw_data(ec2_service):
     compare_dict_allow_any(
         {
             "CidrBlock": "172.31.0.0/16",
@@ -29,7 +29,7 @@ def test_raw_data(single_ec2_vpc):
             "Tags": [],
             "VpcId": ANY,
         },
-        single_ec2_vpc.meta.data,
+        get_single_ec2_vpc(ec2_service).meta.data,
         allow_partial_match_first=True,
     )
 
@@ -38,7 +38,8 @@ def test_raw_data(single_ec2_vpc):
 # show OwnerId or not depending on the version. Needs further investigation.
 # Worked around for now by omitting the key and using allow_partial_match=True
 @mock_ec2
-def test_normalized_raw_data(single_ec2_vpc):
+@mock_sts
+def test_normalized_raw_data(ec2_service):
     compare_dict_allow_any(
         {
             "CidrBlock": "172.31.0.0/16",
@@ -57,17 +58,19 @@ def test_normalized_raw_data(single_ec2_vpc):
             "Tags": [],
             "VpcId": ANY,
         },
-        single_ec2_vpc.normalized_raw_data,
+        get_single_ec2_vpc(ec2_service).normalized_raw_data,
         allow_partial_match_first=True,
     )
 
 
-def test_resource_type(single_ec2_vpc):
-    assert single_ec2_vpc.resource_type == "vpc"
+@mock_ec2
+def test_resource_type(ec2_service):
+    assert get_single_ec2_vpc(ec2_service).resource_type == "vpc"
 
 
-def test_get_region_regional_resources(single_ec2_vpc):
-    assert single_ec2_vpc.get_region() == "eu-west-2"
+@mock_ec2
+def test_get_region_regional_resources(ec2_service):
+    assert get_single_ec2_vpc(ec2_service).get_region() == "eu-west-2"
 
 
 @mock_s3
@@ -80,24 +83,28 @@ def test_get_region_global_service_global_resources(s3_service):
 
 
 @mock_sts
-def test_get_account_id(single_ec2_vpc):
-    assert single_ec2_vpc.get_account_id() == "123456789012"
+@mock_ec2
+def test_get_account_id(ec2_service):
+    assert get_single_ec2_vpc(ec2_service).get_account_id() == "123456789012"
 
 
-def test_service_name(single_ec2_vpc):
-    assert single_ec2_vpc.service_name == "ec2"
+@mock_ec2
+def test_service_name(ec2_service):
+    assert get_single_ec2_vpc(ec2_service).service_name == "ec2"
 
 
-def test_resource_map(single_ec2_vpc):
-    assert isinstance(single_ec2_vpc.resource_map, ResourceMap)
+@mock_ec2
+def test_resource_map(ec2_service):
+    assert isinstance(get_single_ec2_vpc(ec2_service).resource_map, ResourceMap)
 
 
 @mock_sts
-def test_get_urn(single_ec2_vpc):
-    assert isinstance(single_ec2_vpc.get_urn(), URN)
-    assert str(single_ec2_vpc.get_urn()).startswith(
+@mock_ec2
+def test_get_urn(ec2_service):
+    assert isinstance(get_single_ec2_vpc(ec2_service).get_urn(), URN)
+    assert str(get_single_ec2_vpc(ec2_service).get_urn()).startswith(
         "urn:aws:123456789012:eu-west-2:ec2:vpc"
-    ), f"{single_ec2_vpc.get_urn()} does not match 'urn:aws:123456789012:eu-west-2:ec2:vpc'"
+    ), f"{get_single_ec2_vpc(ec2_service).get_urn()} does not match 'urn:aws:123456789012:eu-west-2:ec2:vpc'"
 
 
 def test_dependent_resource_types(single_iam_role):
@@ -125,8 +132,9 @@ def test_collection(iam_service):
     }
 
 
-def test_secondary_attribute_names(single_ec2_vpc):
-    assert single_ec2_vpc.secondary_attribute_names == ["vpc_enable_dns_support"]
+@mock_ec2
+def test_secondary_attribute_names(ec2_service):
+    assert get_single_ec2_vpc(ec2_service).secondary_attribute_names == ["vpc_enable_dns_support"]
 
 
 @mock_iam
@@ -149,14 +157,15 @@ def test_secondary_attribute_maps(iam_service):
     }
 
 
-def test_shape(single_ec2_vpc):
-    assert single_ec2_vpc.shape.name == "Vpc"
+@mock_ec2
+def test_shape(ec2_service):
+    assert get_single_ec2_vpc(ec2_service).shape.name == "Vpc"
 
 
 @mock_ec2
+@mock_sts
 def test_relationships(ec2_service):
-    single_ec2_vpc = list(ec2_service.collection("vpc").all())[0]
-    assert single_ec2_vpc.relationships[0].partial_urn.resource_type == "dhcp_options"
+    assert get_single_ec2_vpc(ec2_service).relationships[0].partial_urn.resource_type == "dhcp_options"
 
 
 def test_empty_resource(ec2_service):

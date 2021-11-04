@@ -194,3 +194,13 @@ def inferred_ec2_vpcs(cloudwanderer_boto3_session):
         )
         for vpc in cloudwanderer_boto3_session.resource("ec2").vpcs.all()
     ]
+
+
+def get_single_ec2_vpc(ec2_service):
+    """Return a single Ec2 Vpc.
+
+    Be warned, you can ONLY access properties on the resultant vpc that do not entail additional API calls.
+    See single_iam_role for more details on how to mock additional API calls.
+    """
+
+    return list(ec2_service.collection("vpc").all())[0]

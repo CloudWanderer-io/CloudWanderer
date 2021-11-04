@@ -261,6 +261,12 @@ class CloudWandererResourceFactory(ResourceFactory):
     def _create_get_secondary_attributes(self) -> Callable:
         def get_secondary_attributes(self) -> Generator["CloudWandererServiceResource", None, None]:
             for secondary_attribute_name in self.secondary_attribute_names:
+                logger.info(
+                    "Getting %s secondary attributes from %s for %s",
+                    secondary_attribute_name,
+                    self.get_region(),
+                    self.get_urn().resource_id,
+                )
                 getter = getattr(self, snake_to_pascal(secondary_attribute_name))
                 secondary_attribute_resource = getter()
                 secondary_attribute_resource.load()
@@ -308,6 +314,7 @@ class CloudWandererResourceFactory(ResourceFactory):
             """Return the raw data dictionary for this resource, ensuring that all possible keys are present."""
             result = {attribute: None for attribute in self.shape.members.keys()}
             result.update(self.meta.data or {})
+            result.update(self.get_secondary_attributes_map())
             return _clean_boto3_metadata(result)
 
         return property(normalized_raw_data)
@@ -357,10 +364,7 @@ class CloudWandererResourceFactory(ResourceFactory):
             for relationship_specification in self.resource_map.relationships:
                 base_paths_raw = jmespath.search(
                     relationship_specification.base_path,
-                    {
-                        **self.normalized_raw_data,
-                        **self.get_secondary_attributes_map(),
-                    },
+                    self.normalized_raw_data,
                 )
                 base_paths = [base_paths_raw] if not isinstance(base_paths_raw, list) else base_paths_raw
                 for base_path in base_paths:

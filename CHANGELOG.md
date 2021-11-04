@@ -1,4 +1,7 @@
-# 0.21.0
+# 0.20.2
+
+- Fixed bug causing secondary attributes to be fetched twice.
+# 0.20.1
 
 - Fixed nonfunctional `read_all` method on `GremlinStorageConnector`
 

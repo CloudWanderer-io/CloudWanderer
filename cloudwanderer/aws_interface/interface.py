@@ -110,16 +110,13 @@ class CloudWandererAWSInterface:
                     dependent_resource_urns.append(urn)
                     yield CloudWandererResource(
                         urn=urn,
-                        resource_data={
-                            **dependent_resource.normalized_raw_data,
-                            **dependent_resource.get_secondary_attributes_map(),
-                        },
+                        resource_data=dependent_resource.normalized_raw_data,
                         parent_urn=resource.get_urn(),
                         relationships=dependent_resource.relationships,
                     )
         yield CloudWandererResource(
             urn=resource.get_urn(),
-            resource_data={**resource.normalized_raw_data, **resource.get_secondary_attributes_map()},
+            resource_data=resource.normalized_raw_data,
             dependent_resource_urns=dependent_resource_urns,
             relationships=resource.relationships,
         )
@@ -166,16 +163,13 @@ class CloudWandererAWSInterface:
                         dependent_resource_urns.append(urn)
                         yield CloudWandererResource(
                             urn=urn,
-                            resource_data={
-                                **dependent_resource.normalized_raw_data,
-                                **dependent_resource.get_secondary_attributes_map(),
-                            },
+                            resource_data=dependent_resource.normalized_raw_data,
                             parent_urn=resource.get_urn(),
                             relationships=dependent_resource.relationships,
                         )
                 yield CloudWandererResource(
                     urn=resource.get_urn(),
-                    resource_data={**resource.normalized_raw_data, **resource.get_secondary_attributes_map()},
+                    resource_data=resource.normalized_raw_data,
                     dependent_resource_urns=dependent_resource_urns,
                     relationships=resource.relationships,
                 )

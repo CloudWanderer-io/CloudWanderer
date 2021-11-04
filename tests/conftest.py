@@ -1,5 +1,5 @@
 import pytest
-from moto import mock_ec2, mock_iam
+from moto import mock_iam
 
 from cloudwanderer import CloudWanderer
 from cloudwanderer.aws_interface import CloudWandererAWSInterface, CloudWandererBoto3Session
@@ -53,17 +53,6 @@ def single_iam_role(iam_service):
     with mock_iam():
         create_iam_role()
         return list(iam_service.collection("role").all())[0]
-
-
-@pytest.fixture
-def single_ec2_vpc(ec2_service):
-    """Return a single Ec2 Vpc.
-
-    Be warned, you can ONLY access properties on the resultant vpc that do not entail additional API calls.
-    See single_iam_role for more details on how to mock additional API calls.
-    """
-    with mock_ec2():
-        return list(ec2_service.collection("vpc").all())[0]
 
 
 @pytest.fixture
