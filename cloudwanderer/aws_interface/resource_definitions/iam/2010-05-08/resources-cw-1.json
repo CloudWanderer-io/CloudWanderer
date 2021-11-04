@@ -41,13 +41,29 @@
     },
     "Role": {
       "type": "resource",
-      "regionalResource": false
+      "regionalResource": false,
+      "relationships": [
+        {
+          "basePath": "ManagedPolicyAttachments[]",
+          "idParts": [
+            {
+              "path": "PolicyArn",
+              "regexPattern": "[^:]+:[^:]+:[^:]+::(?P<account_id>[^:]*):policy.*/(?P<id_part_0>[^:]+)"
+            }
+          ],
+          "service": "iam",
+          "resourceType": "policy",
+          "regionSource": "sameAsResource",
+          "accountIdSource": "unknown",
+          "direction": "outbound"
+        }
+      ]
     },
     "RoleInlinePolicyAttachments": {
       "type": "secondaryAttribute",
       "secondaryAttributeMaps": [
         {
-          "sourcePath": "@",
+          "sourcePath": "PolicyNames",
           "destinationName": "InlinePolicyAttachments"
         }
       ]
@@ -56,7 +72,7 @@
       "type": "secondaryAttribute",
       "secondaryAttributeMaps": [
         {
-          "sourcePath": "@",
+          "sourcePath": "AttachedPolicies",
           "destinationName": "ManagedPolicyAttachments"
         }
       ]
