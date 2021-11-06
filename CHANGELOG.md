@@ -2,7 +2,9 @@
 
 - Fixed bug causing secondary attributes to be fetched twice.
 - Added relationship between roles and managed policies
-- Fixed secondary attribute of role policy attachments
+- Removed secondary attribute of inline role policy attachments
+- Fixed secondary attribute of managed role policy attachments
+- Added tests for IAM roles
 
 # 0.20.1
 
