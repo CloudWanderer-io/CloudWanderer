@@ -1,4 +1,12 @@
-# 0.21.0
+# 0.20.2
+
+- Fixed bug causing secondary attributes to be fetched twice.
+- Added relationship between roles and managed policies
+- Removed secondary attribute of inline role policy attachments
+- Fixed secondary attribute of managed role policy attachments
+- Added tests for IAM roles
+
+# 0.20.1
 
 - Fixed nonfunctional `read_all` method on `GremlinStorageConnector`
 

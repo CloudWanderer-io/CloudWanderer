@@ -188,23 +188,14 @@ can therefore be retrieved from the API without specifying the VPC of which it i
 How do I list Subresources?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Let's say we want to get a list of role policies. We can start by getting the role
+Let's say we want to get a list of inline role policies. We can start by getting the role
 
 .. doctest ::
 
     >>> role = next(storage_connector.read_resources(service='iam', resource_type='role'))
     >>> role.load()
 
-Next we need to find out what policies are attached, we can either do this with the secondary attributes.
-
-.. doctest ::
-
-    >>> role.inline_policy_attachments
-    {'PolicyNames': ['test-role-policy'], 'IsTruncated': False, 'Marker': None}
-    >>> role.inline_policy_attachments['PolicyNames']
-    ['test-role-policy']
-
-Or we can do it with the :attr:`~cloudwanderer.cloud_wanderer_resource.CloudWandererResource.dependent_resource_urns` property.
+Next we need to find out what inline policies are attached, as inline policies are dependent resources, we need to first find out what dependent resource URNs there are.
 
 .. doctest ::
 

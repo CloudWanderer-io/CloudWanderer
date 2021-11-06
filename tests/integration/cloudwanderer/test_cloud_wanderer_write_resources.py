@@ -225,17 +225,12 @@ def test_cleanup_resources_of_type_us_east_1(cloudwanderer_aws):
                 "AssumeRolePolicyDocument": {},
                 "CreateDate": ANY,
                 "Description": None,
-                "InlinePolicyAttachments": {"IsTruncated": False, "Marker": None, "PolicyNames": ["test-role-policy"]},
-                "ManagedPolicyAttachments": {
-                    "AttachedPolicies": [
-                        {
-                            "PolicyArn": "arn:aws:iam::aws:policy/aws-service-role/APIGatewayServiceRolePolicy",
-                            "PolicyName": "APIGatewayServiceRolePolicy",
-                        }
-                    ],
-                    "IsTruncated": False,
-                    "Marker": None,
-                },
+                "ManagedPolicyAttachments": [
+                    {
+                        "PolicyArn": "arn:aws:iam::aws:policy/aws-service-role/APIGatewayServiceRolePolicy",
+                        "PolicyName": "APIGatewayServiceRolePolicy",
+                    }
+                ],
                 "MaxSessionDuration": ANY,
                 "Path": "/",
                 "PermissionsBoundary": None,

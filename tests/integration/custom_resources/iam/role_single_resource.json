@@ -1,0 +1,256 @@
+{
+    "service": "iam",
+    "mockData": {
+        "get_role.return_value": {
+            "Role": {
+                "Path": "/",
+                "RoleName": "TestRole",
+                "RoleId": "111111111111111111111",
+                "Arn": "arn:aws:iam::0123456789012:role/service-role/TestRole",
+                "CreateDate": "2021-10-16T10:02:10Z",
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "sagemaker.amazonaws.com"
+                            },
+                            "Action": "sts:AssumeRole"
+                        }
+                    ]
+                },
+                "Description": "SageMaker Test Role.",
+                "MaxSessionDuration": 3600
+            }
+        },
+        "get_paginator.return_value.paginate.return_value": [
+            {
+                "PolicyNames": [
+                    "TestRolePolicy"
+                ]
+            }
+        ],
+        "get_role_policy.return_value": {
+            "RoleName": "TestRole",
+            "PolicyName": "TestRolePolicy",
+            "PolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Action": [
+                            "logs:CreateLogGroup",
+                            "logs:CreateLogStream",
+                            "logs:PutLogEvents"
+                        ],
+                        "Resource": "arn:aws:logs:eu-west-1:*:*",
+                        "Effect": "Allow"
+                    }
+                ]
+            }
+        },
+        "list_attached_role_policies.return_value": {
+            "AttachedPolicies": [
+                {
+                    "PolicyName": "TestManagedRole",
+                    "PolicyArn": "arn:aws:iam::01234567890:policy/TestManagedRole"
+                }
+            ]
+        }
+    },
+    "getResource": {
+        "urn": "urn:aws:123456789012:us-east-1:iam:role:TestRole"
+    },
+    "expectedCalls": {
+        "get_role": [
+            {
+                "args": [],
+                "kwargs": {
+                    "RoleName": "TestRole"
+                }
+            }
+        ],
+        "get_role_policy": [
+            {
+                "args": [],
+                "kwargs": {
+                    "RoleName": "TestRole",
+                    "PolicyName": "TestRolePolicy"
+                }
+            }
+        ],
+        "list_attached_role_policies": [
+            {
+                "args": [],
+                "kwargs": {
+                    "RoleName": "TestRole"
+                }
+            }
+        ]
+    },
+    "expectedResults": [
+        {
+            "urn": {
+                "cloud_name": "aws",
+                "account_id": {},
+                "region": "us-east-1",
+                "service": "iam",
+                "resource_type": "role_policy",
+                "resource_id_parts": [
+                    "TestRole",
+                    "TestRolePolicy"
+                ],
+                "resource_id": "TestRole/TestRolePolicy"
+            },
+            "relationships": [],
+            "dependent_resource_urns": [],
+            "parent_urn": {
+                "cloud_name": "aws",
+                "account_id": {},
+                "region": "us-east-1",
+                "service": "iam",
+                "resource_type": "role",
+                "resource_id_parts": [
+                    "TestRole"
+                ],
+                "resource_id": "TestRole"
+            },
+            "cloudwanderer_metadata": {
+                "RoleName": "TestRole",
+                "PolicyName": "TestRolePolicy",
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Action": [
+                                "logs:CreateLogGroup",
+                                "logs:CreateLogStream",
+                                "logs:PutLogEvents"
+                            ],
+                            "Resource": "arn:aws:logs:eu-west-1:*:*",
+                            "Effect": "Allow"
+                        }
+                    ]
+                }
+            },
+            "role_name": "TestRole",
+            "policy_name": "TestRolePolicy",
+            "policy_document": {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Action": [
+                            "logs:CreateLogGroup",
+                            "logs:CreateLogStream",
+                            "logs:PutLogEvents"
+                        ],
+                        "Resource": "arn:aws:logs:eu-west-1:*:*",
+                        "Effect": "Allow"
+                    }
+                ]
+            }
+        },
+        {
+            "urn": {
+                "cloud_name": "aws",
+                "account_id": {},
+                "region": "us-east-1",
+                "service": "iam",
+                "resource_type": "role",
+                "resource_id_parts": [
+                    "TestRole"
+                ],
+                "resource_id": "TestRole"
+            },
+            "relationships": [
+                [
+                    {
+                        "cloud_name": "aws",
+                        "account_id": "01234567890",
+                        "region": "us-east-1",
+                        "service": "iam",
+                        "resource_type": "policy",
+                        "resource_id_parts": [
+                            "TestManagedRole"
+                        ],
+                        "resource_id": "TestManagedRole"
+                    },
+                    "RelationshipDirection.OUTBOUND"
+                ]
+            ],
+            "dependent_resource_urns": [
+                {
+                    "cloud_name": "aws",
+                    "account_id": {},
+                    "region": "us-east-1",
+                    "service": "iam",
+                    "resource_type": "role_policy",
+                    "resource_id_parts": [
+                        "TestRole",
+                        "TestRolePolicy"
+                    ],
+                    "resource_id": "TestRole/TestRolePolicy"
+                }
+            ],
+            "parent_urn": null,
+            "cloudwanderer_metadata": {
+                "Path": "/",
+                "RoleName": "TestRole",
+                "RoleId": "111111111111111111111",
+                "Arn": "arn:aws:iam::0123456789012:role/service-role/TestRole",
+                "CreateDate": "2021-10-16T10:02:10Z",
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "sagemaker.amazonaws.com"
+                            },
+                            "Action": "sts:AssumeRole"
+                        }
+                    ]
+                },
+                "Description": "SageMaker Test Role.",
+                "MaxSessionDuration": 3600,
+                "PermissionsBoundary": null,
+                "Tags": null,
+                "RoleLastUsed": null,
+                "ManagedPolicyAttachments": [
+                    {
+                        "PolicyName": "TestManagedRole",
+                        "PolicyArn": "arn:aws:iam::01234567890:policy/TestManagedRole"
+                    }
+                ]
+            },
+            "path": "/",
+            "role_name": "TestRole",
+            "role_id": "111111111111111111111",
+            "arn": "arn:aws:iam::0123456789012:role/service-role/TestRole",
+            "create_date": "2021-10-16T10:02:10Z",
+            "assume_role_policy_document": {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Principal": {
+                            "Service": "sagemaker.amazonaws.com"
+                        },
+                        "Action": "sts:AssumeRole"
+                    }
+                ]
+            },
+            "description": "SageMaker Test Role.",
+            "max_session_duration": 3600,
+            "permissions_boundary": null,
+            "tags": null,
+            "role_last_used": null,
+            "managed_policy_attachments": [
+                {
+                    "PolicyName": "TestManagedRole",
+                    "PolicyArn": "arn:aws:iam::01234567890:policy/TestManagedRole"
+                }
+            ]
+        }
+    ]
+}

@@ -1,7 +1,7 @@
 """Create the CloudWandererServiceResource objects that do the magic."""
 import logging
 import re
-from typing import TYPE_CHECKING, Any, Callable, Dict, Generator, List, Optional, Type
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Type
 
 import jmespath  # type: ignore
 from boto3.resources.base import ServiceResource
@@ -19,6 +19,7 @@ from ..urn import URN, PartialUrn
 from ..utils import snake_to_pascal
 from .boto3_helpers import _clean_boto3_metadata
 from .boto3_loaders import MergedServiceLoader, ServiceMap
+from .exceptions import SecondaryAttributesNotFetchedError
 
 if TYPE_CHECKING:
     from .session import CloudWandererBoto3Session
@@ -75,7 +76,7 @@ class CloudWandererResourceFactory(ResourceFactory):
             # This should only exist only exist on Resources, not on Services
             attrs["get_discovery_action_templates"] = self._create_get_discovery_action_templates()
             # attrs["get_dependent_resource"] = self._create_get_dependent_resource(service_context)
-            attrs["get_secondary_attributes_map"] = self._create_get_secondary_attributes_map()
+            attrs["secondary_attributes_map"] = self._create_secondary_attributes_map()
             if hasattr(original_class_definition, "load"):
                 attrs["load"] = self._create_load(original_class_definition=original_class_definition)
         else:
@@ -86,7 +87,7 @@ class CloudWandererResourceFactory(ResourceFactory):
         attrs["get_account_id"] = self._create_get_account_id()
         attrs["get_urn"] = self._create_get_urn()
         attrs["get_region"] = self._create_get_region()
-        attrs["get_secondary_attributes"] = self._create_get_secondary_attributes()
+        attrs["fetch_secondary_attributes"] = self._create_fetch_secondary_attributes()
 
     def _create_load(self, original_class_definition: Any) -> Callable:
         if not hasattr(original_class_definition, "load"):
@@ -105,7 +106,7 @@ class CloudWandererResourceFactory(ResourceFactory):
                     f"{self.service_name} {self.resource_type} does not have a load definition in its resources-1.json"
                 )
 
-            has_non_empty_values = any(list([x for x in identifiers.values()]))
+            has_non_empty_values = any(x for x in identifiers.values())
             if not has_non_empty_values:
                 logger.debug(
                     "Load is a noop on this %s %s because we are an empty_resource=True resource",
@@ -244,29 +245,47 @@ class CloudWandererResourceFactory(ResourceFactory):
 
         return get_urn
 
-    def _create_get_secondary_attributes_map(self) -> Callable[..., Dict[str, Any]]:
-        def get_secondary_attributes_map(self) -> Dict[str, Any]:
-            """Return a dictionary representation of this resource's secondary attributes."""
+    def _create_secondary_attributes_map(self) -> property:
+        def secondary_attributes_map(self) -> Dict[str, Any]:
+            """Return a dictionary representation of this resource's secondary attributes.
+
+            Raises:
+                SecondaryAttributesNotFetchedError: When the secondary attributes haven't been fetched yet.
+            """
+            if not self._secondary_attributes_fetched:
+                raise SecondaryAttributesNotFetchedError(
+                    "Secondary attributes have not yet been fetched for this "
+                    "resource. Call fetch_secondary_attributes first."
+                )
             result = {}
-            for secondary_attribute in self.get_secondary_attributes():
-                logger.debug("Getting secondary attribute: %s", secondary_attribute)
+            for secondary_attribute in self._secondary_attributes:
                 for attribute_map in secondary_attribute.resource_map.secondary_attribute_maps:
                     result[attribute_map.destination_name] = jmespath.search(
                         attribute_map.source_path, secondary_attribute.normalized_raw_data
                     )
             return result
 
-        return get_secondary_attributes_map
+        return property(secondary_attributes_map)
 
-    def _create_get_secondary_attributes(self) -> Callable:
-        def get_secondary_attributes(self) -> Generator["CloudWandererServiceResource", None, None]:
+    def _create_fetch_secondary_attributes(self) -> Callable:
+        def fetch_secondary_attributes(self) -> None:
+            self._secondary_attributes = []
+
             for secondary_attribute_name in self.secondary_attribute_names:
+                logger.info(
+                    "Getting %s secondary attributes from %s for %s",
+                    secondary_attribute_name,
+                    self.get_region(),
+                    self.get_urn().resource_id,
+                )
                 getter = getattr(self, snake_to_pascal(secondary_attribute_name))
                 secondary_attribute_resource = getter()
                 secondary_attribute_resource.load()
-                yield secondary_attribute_resource
+                secondary_attribute_resource.fetch_secondary_attributes()
+                self._secondary_attributes.append(secondary_attribute_resource)
+            self._secondary_attributes_fetched = True
 
-        return get_secondary_attributes
+        return fetch_secondary_attributes
 
     def _create_secondary_attribute_names(self) -> property:
         def secondary_attribute_names(self) -> List[str]:
@@ -308,6 +327,7 @@ class CloudWandererResourceFactory(ResourceFactory):
             """Return the raw data dictionary for this resource, ensuring that all possible keys are present."""
             result = {attribute: None for attribute in self.shape.members.keys()}
             result.update(self.meta.data or {})
+            result.update(self.secondary_attributes_map)
             return _clean_boto3_metadata(result)
 
         return property(normalized_raw_data)
@@ -357,10 +377,7 @@ class CloudWandererResourceFactory(ResourceFactory):
             for relationship_specification in self.resource_map.relationships:
                 base_paths_raw = jmespath.search(
                     relationship_specification.base_path,
-                    {
-                        **self.normalized_raw_data,
-                        **self.get_secondary_attributes_map(),
-                    },
+                    self.normalized_raw_data,
                 )
                 base_paths = [base_paths_raw] if not isinstance(base_paths_raw, list) else base_paths_raw
                 for base_path in base_paths:
@@ -438,3 +455,4 @@ class CloudWandererResourceFactory(ResourceFactory):
             attrs["shape"] = self._create_shape()
             attrs["relationships"] = self._create_relationships()
             attrs["is_dependent_resource"] = self._create_is_dependent_resource()
+            attrs["_secondary_attributes_fetched"] = False

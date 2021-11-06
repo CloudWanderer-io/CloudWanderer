@@ -76,17 +76,12 @@ def test_write_valid_iam_role(cloudwanderer_aws):
             "AssumeRolePolicyDocument": {},
             "CreateDate": ANY,
             "Description": None,
-            "InlinePolicyAttachments": {"IsTruncated": False, "Marker": None, "PolicyNames": ["test-role-policy"]},
-            "ManagedPolicyAttachments": {
-                "AttachedPolicies": [
-                    {
-                        "PolicyArn": "arn:aws:iam::aws:policy/aws-service-role/APIGatewayServiceRolePolicy",
-                        "PolicyName": "APIGatewayServiceRolePolicy",
-                    }
-                ],
-                "IsTruncated": False,
-                "Marker": None,
-            },
+            "ManagedPolicyAttachments": [
+                {
+                    "PolicyArn": "arn:aws:iam::aws:policy/aws-service-role/APIGatewayServiceRolePolicy",
+                    "PolicyName": "APIGatewayServiceRolePolicy",
+                }
+            ],
             "MaxSessionDuration": 3600,
             "Path": "/",
             "PermissionsBoundary": None,
@@ -268,17 +263,12 @@ def test_cleanup_iam_role(cloudwanderer_aws):
             "AssumeRolePolicyDocument": {},
             "CreateDate": ANY,
             "Description": None,
-            "InlinePolicyAttachments": {"IsTruncated": False, "Marker": None, "PolicyNames": ["test-role-policy"]},
-            "ManagedPolicyAttachments": {
-                "AttachedPolicies": [
-                    {
-                        "PolicyArn": "arn:aws:iam::aws:policy/aws-service-role/APIGatewayServiceRolePolicy",
-                        "PolicyName": "APIGatewayServiceRolePolicy",
-                    }
-                ],
-                "IsTruncated": False,
-                "Marker": None,
-            },
+            "ManagedPolicyAttachments": [
+                {
+                    "PolicyArn": "arn:aws:iam::aws:policy/aws-service-role/APIGatewayServiceRolePolicy",
+                    "PolicyName": "APIGatewayServiceRolePolicy",
+                }
+            ],
             "MaxSessionDuration": 3600,
             "Path": "/",
             "PermissionsBoundary": None,

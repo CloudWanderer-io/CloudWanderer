@@ -78,6 +78,7 @@ class CloudWandererAWSInterface:
                 raise UnsupportedResourceTypeError(f"Resource type {urn.resource_type} doesn't support get_resource()")
             logger.info("Loading resource data.")
             resource.load()
+            resource.fetch_secondary_attributes()
 
         except botocore.exceptions.ClientError as ex:
             error_code = ex.response.get("ResponseMetadata", {}).get("HTTPStatusCode")
@@ -103,6 +104,7 @@ class CloudWandererAWSInterface:
                     resource.get_urn().resource_id,
                 )
                 for dependent_resource in resource.collection(resource_type=dependent_resource_type):
+                    dependent_resource.fetch_secondary_attributes()
                     logger.debug("Found %s", dependent_resource)
                     if not dependent_resource.meta.data and hasattr(dependent_resource, "load"):
                         dependent_resource.load()
@@ -110,16 +112,13 @@ class CloudWandererAWSInterface:
                     dependent_resource_urns.append(urn)
                     yield CloudWandererResource(
                         urn=urn,
-                        resource_data={
-                            **dependent_resource.normalized_raw_data,
-                            **dependent_resource.get_secondary_attributes_map(),
-                        },
+                        resource_data=dependent_resource.normalized_raw_data,
                         parent_urn=resource.get_urn(),
                         relationships=dependent_resource.relationships,
                     )
         yield CloudWandererResource(
             urn=resource.get_urn(),
-            resource_data={**resource.normalized_raw_data, **resource.get_secondary_attributes_map()},
+            resource_data=resource.normalized_raw_data,
             dependent_resource_urns=dependent_resource_urns,
             relationships=resource.relationships,
         )
@@ -149,6 +148,7 @@ class CloudWandererAWSInterface:
 
         try:
             for resource in service.collection(resource_type=resource_type, filters=resource_map.default_filters):
+                resource.fetch_secondary_attributes()
                 dependent_resource_urns = []
                 for dependent_resource_type in resource.dependent_resource_types:
                     logger.info(
@@ -159,6 +159,7 @@ class CloudWandererAWSInterface:
                         resource.get_urn().resource_id,
                     )
                     for dependent_resource in resource.collection(resource_type=dependent_resource_type):
+                        dependent_resource.fetch_secondary_attributes()
                         logger.debug("Found %s", dependent_resource)
                         if not dependent_resource.meta.data and hasattr(dependent_resource, "load"):
                             dependent_resource.load()
@@ -166,16 +167,13 @@ class CloudWandererAWSInterface:
                         dependent_resource_urns.append(urn)
                         yield CloudWandererResource(
                             urn=urn,
-                            resource_data={
-                                **dependent_resource.normalized_raw_data,
-                                **dependent_resource.get_secondary_attributes_map(),
-                            },
+                            resource_data=dependent_resource.normalized_raw_data,
                             parent_urn=resource.get_urn(),
                             relationships=dependent_resource.relationships,
                         )
                 yield CloudWandererResource(
                     urn=resource.get_urn(),
-                    resource_data={**resource.normalized_raw_data, **resource.get_secondary_attributes_map()},
+                    resource_data=resource.normalized_raw_data,
                     dependent_resource_urns=dependent_resource_urns,
                     relationships=resource.relationships,
                 )
