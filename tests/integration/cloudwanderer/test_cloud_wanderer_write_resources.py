@@ -225,7 +225,6 @@ def test_cleanup_resources_of_type_us_east_1(cloudwanderer_aws):
                 "AssumeRolePolicyDocument": {},
                 "CreateDate": ANY,
                 "Description": None,
-                "InlinePolicyAttachments": ["test-role-policy"],
                 "ManagedPolicyAttachments": [
                     {
                         "PolicyArn": "arn:aws:iam::aws:policy/aws-service-role/APIGatewayServiceRolePolicy",

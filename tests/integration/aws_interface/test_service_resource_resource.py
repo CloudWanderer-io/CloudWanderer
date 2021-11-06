@@ -152,7 +152,6 @@ def test_secondary_attribute_maps(iam_service):
     single_iam_role = list(iam_service.collection("role").all())[0]
     single_iam_role.fetch_secondary_attributes()
     assert single_iam_role.secondary_attributes_map == {
-        "InlinePolicyAttachments": ["test-role-policy"],
         "ManagedPolicyAttachments": [
             {
                 "PolicyName": "APIGatewayServiceRolePolicy",

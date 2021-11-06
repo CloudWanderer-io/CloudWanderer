@@ -76,7 +76,6 @@ def test_write_valid_iam_role(cloudwanderer_aws):
             "AssumeRolePolicyDocument": {},
             "CreateDate": ANY,
             "Description": None,
-            "InlinePolicyAttachments": ["test-role-policy"],
             "ManagedPolicyAttachments": [
                 {
                     "PolicyArn": "arn:aws:iam::aws:policy/aws-service-role/APIGatewayServiceRolePolicy",
@@ -264,7 +263,6 @@ def test_cleanup_iam_role(cloudwanderer_aws):
             "AssumeRolePolicyDocument": {},
             "CreateDate": ANY,
             "Description": None,
-            "InlinePolicyAttachments": ["test-role-policy"],
             "ManagedPolicyAttachments": [
                 {
                     "PolicyArn": "arn:aws:iam::aws:policy/aws-service-role/APIGatewayServiceRolePolicy",
