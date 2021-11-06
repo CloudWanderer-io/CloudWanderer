@@ -4,7 +4,7 @@ Provides simpler methods for :class:`~.cloud_wanderer.CloudWanderer` to call.
 """
 
 import logging
-from typing import TYPE_CHECKING, Iterator, List, Optional, cast
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, cast
 
 import botocore
 from boto3.resources.base import ServiceResource
@@ -128,6 +128,7 @@ class CloudWandererAWSInterface:
         service_name: str,
         resource_type: str,
         region: str,
+        filters: Dict[str, Any] = None,
         **kwargs,
     ) -> Iterator[CloudWandererResource]:
         """Return all resources of resource_type from Boto3.
@@ -136,6 +137,7 @@ class CloudWandererAWSInterface:
             service_name (str): The name of the service to get resource for (e.g. ``'ec2'``)
             resource_type (str): The type of resource to get resources of (e.g. ``'instance'``)
             region (str): The region to get resources of (e.g. ``'eu-west-1'``)
+            filters: A dictionary to be passed to the Boto3 method for filtering this resource.
             **kwargs: Additional keyword arguments will be passed down to the Boto3 client.
 
         Raises:
@@ -147,7 +149,9 @@ class CloudWandererAWSInterface:
         resource_map: ResourceMap = service.service_map.get_resource_map(resource_type)
 
         try:
-            for resource in service.collection(resource_type=resource_type, filters=resource_map.default_filters):
+            for resource in service.collection(
+                resource_type=resource_type, filters=filters or resource_map.default_filters
+            ):
                 resource.fetch_secondary_attributes()
                 dependent_resource_urns = []
                 for dependent_resource_type in resource.dependent_resource_types:

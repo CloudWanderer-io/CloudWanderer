@@ -6,7 +6,7 @@ from moto import mock_ec2, mock_iam, mock_sts
 from cloudwanderer import URN
 from cloudwanderer.exceptions import UnsupportedResourceTypeError, UnsupportedServiceError
 
-from ...pytest_helpers import compare_dict_allow_any, create_iam_role
+from ...pytest_helpers import compare_dict_allow_any, create_iam_policy, create_iam_role
 
 
 @mock_ec2
@@ -125,13 +125,31 @@ def test_get_resources_unsupported_resource_type(aws_interface):
         list(aws_interface.get_resources(service_name="ec2", resource_type="unicorn", region="eu-west-1"))
 
 
-# TODO: Add filter support back to get_resources
-# def test_filters(self, mock_service: MagicMock):
-#     aws_interface = CloudWandererAWSInterface(
-#         resource_filters=[ResourceFilter(service_name="ec2", resource_type="image", filters={"Owners": "all"})]
-#     )
-#     list(aws_interface.get_resources(service_name="ec2", resource_type="image"))
+@mock_iam
+@mock_sts
+def test_filters(aws_interface):
+    create_iam_policy()
+    result = list(
+        aws_interface.get_resources(
+            service_name="iam", resource_type="policy", region="us-east-1", filters={"Scope": "Local"}
+        )
+    )
 
-#     mock_service.return_value.get_resources.assert_called_with(
-#         resource_type="image", resource_filters={"Owners": "all"}
-#     )
+    assert [r.urn for r in result] == [
+        URN(
+            cloud_name="aws",
+            account_id="123456789012",
+            region="us-east-1",
+            service="iam",
+            resource_type="policy_version",
+            resource_id_parts=["arn:aws:iam::123456789012:policy/test-policy", "v1"],
+        ),
+        URN(
+            cloud_name="aws",
+            account_id="123456789012",
+            region="us-east-1",
+            service="iam",
+            resource_type="policy",
+            resource_id_parts=["test-policy"],
+        ),
+    ]

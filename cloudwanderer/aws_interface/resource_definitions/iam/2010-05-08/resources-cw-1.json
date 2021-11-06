@@ -86,9 +86,12 @@
     "Policy": {
       "type": "resource",
       "regionalResource": false,
-      "defaultFilters": {
-        "Scope": "Local"
-      }
+      "urnOverrides": [
+        {
+          "path": "Arn",
+          "regexPattern": "[^:]+:[^:]+:[^:]+::(?P<account_id>[^:]*):policy.*/(?P<id_part_0>[^:]+)"
+        }
+      ]
     },
     "PolicyVersion": {
       "type": "dependentResource",

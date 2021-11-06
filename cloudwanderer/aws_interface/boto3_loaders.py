@@ -251,28 +251,24 @@ class ResourceMap(NamedTuple):
             discover the region in which this resource exists.
         parent_resource_type:
             The snake_case resource type of the parent (if this is a subresource).
-        ignored_subresources:
-            A list of snake case subresources which exist in the Boto3 definition but should be ignored.
         default_filters:
             A dict of arguments to supply to the API Method used when enumerating this resource type.
             This can be overridden by the user with the ``filters`` argument.
         service_map:
             A link back to the parent :class:`ServiceMap` object.
-        requires_load_for_full_metadata:
-            If set ``resource.load()`` is called when fetching a list of these resources.
-            Resources in a big increase in the number of API calls as one must be made for *each* resource.
         regional_resource:
             Whether or not this resource exists in every region.
+        urn_overrides:
+            Optional specifications for overriding URN parts based on resource metadata.
     """
 
     type: Optional[str]
     region_request: Optional["ResourceRegionRequest"]
-    ignored_subresources: list
     default_filters: Dict[str, Any]
     service_map: ServiceMap
     relationships: List["RelationshipSpecification"]
     secondary_attribute_maps: List["SecondaryAttributeMap"]
-    requires_load_for_full_metadata: bool = False
+    urn_overrides: List["IdPartSpecification"]
     regional_resource: bool = True
 
     @classmethod
@@ -284,8 +280,6 @@ class ResourceMap(NamedTuple):
         return cls(
             type=definition.get("type"),
             region_request=ResourceRegionRequest.factory(definition.get("regionRequest")),
-            ignored_subresources=definition.get("ignoredSubresources", []),
-            requires_load_for_full_metadata=definition.get("requiresLoadForFullMetadata", False),
             regional_resource=definition.get("regionalResource", True),
             default_filters=definition.get("defaultFilters", {}),
             service_map=service_map,
@@ -296,6 +290,9 @@ class ResourceMap(NamedTuple):
             secondary_attribute_maps=[
                 SecondaryAttributeMap(source_path=mapping["sourcePath"], destination_name=mapping["destinationName"])
                 for mapping in definition.get("secondaryAttributeMaps", [])
+            ],
+            urn_overrides=[
+                IdPartSpecification.factory(urn_override) for urn_override in definition.get("urnOverrides", [])
             ],
         )
 

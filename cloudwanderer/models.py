@@ -1,6 +1,6 @@
 """Models for CloudWanderer data."""
 from enum import Enum, auto, unique
-from typing import List, NamedTuple
+from typing import Any, Dict, List, NamedTuple, Optional
 
 from .urn import PartialUrn
 
@@ -50,10 +50,13 @@ class ServiceResourceType(NamedTuple):
     Attributes:
         service_name: The name of the service
         resource_type: The type of resource
+        filter:
+            A dictionary specifying how to filter resources of this type (passed to the cloud interface as a filter arg)
     """
 
     service_name: str
     name: str
+    filter: Optional[Dict[str, Any]] = None
 
 
 class Relationship(NamedTuple):
