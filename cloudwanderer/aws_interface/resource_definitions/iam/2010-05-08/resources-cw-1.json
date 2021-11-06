@@ -59,15 +59,6 @@
         }
       ]
     },
-    "RoleInlinePolicyAttachments": {
-      "type": "secondaryAttribute",
-      "secondaryAttributeMaps": [
-        {
-          "sourcePath": "PolicyNames",
-          "destinationName": "InlinePolicyAttachments"
-        }
-      ]
-    },
     "RoleManagedPolicyAttachments": {
       "type": "secondaryAttribute",
       "secondaryAttributeMaps": [

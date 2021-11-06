@@ -259,7 +259,6 @@ class CloudWandererResourceFactory(ResourceFactory):
                 )
             result = {}
             for secondary_attribute in self._secondary_attributes:
-                logger.debug("Getting secondary attribute: %s", secondary_attribute)
                 for attribute_map in secondary_attribute.resource_map.secondary_attribute_maps:
                     result[attribute_map.destination_name] = jmespath.search(
                         attribute_map.source_path, secondary_attribute.normalized_raw_data

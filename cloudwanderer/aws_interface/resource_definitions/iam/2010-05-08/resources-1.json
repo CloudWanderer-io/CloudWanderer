@@ -563,19 +563,6 @@
         "path": "Role"
       },
       "has": {
-        "RoleInlinePolicyAttachments": {
-          "resource": {
-            "type": "RoleInlinePolicyAttachments",
-            "identifiers": [
-              {
-                "target": "Name",
-                "source": "identifier",
-                "name": "RoleName"
-              }
-            ],
-            "path": "@"
-          }
-        },
         "RoleManagedPolicyAttachments": {
           "resource": {
             "type": "RoleManagedPolicyAttachments",
