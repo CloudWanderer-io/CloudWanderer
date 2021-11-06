@@ -202,5 +202,6 @@ def get_single_ec2_vpc(ec2_service):
     Be warned, you can ONLY access properties on the resultant vpc that do not entail additional API calls.
     See single_iam_role for more details on how to mock additional API calls.
     """
-
-    return list(ec2_service.collection("vpc").all())[0]
+    vpc = list(ec2_service.collection("vpc").all())[0]
+    vpc.fetch_secondary_attributes()
+    return vpc

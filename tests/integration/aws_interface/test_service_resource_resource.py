@@ -10,6 +10,7 @@ from ...pytest_helpers import compare_dict_allow_any, create_iam_role, create_s3
 
 
 @mock_ec2
+@mock_sts
 def test_raw_data(ec2_service):
     compare_dict_allow_any(
         {
@@ -64,16 +65,19 @@ def test_normalized_raw_data(ec2_service):
 
 
 @mock_ec2
+@mock_sts
 def test_resource_type(ec2_service):
     assert get_single_ec2_vpc(ec2_service).resource_type == "vpc"
 
 
 @mock_ec2
+@mock_sts
 def test_get_region_regional_resources(ec2_service):
     assert get_single_ec2_vpc(ec2_service).get_region() == "eu-west-2"
 
 
 @mock_s3
+@mock_sts
 def test_get_region_global_service_global_resources(s3_service):
     create_s3_buckets(regions=["us-east-1", "eu-west-2", "ap-east-1"])
 
@@ -89,11 +93,13 @@ def test_get_account_id(ec2_service):
 
 
 @mock_ec2
+@mock_sts
 def test_service_name(ec2_service):
     assert get_single_ec2_vpc(ec2_service).service_name == "ec2"
 
 
 @mock_ec2
+@mock_sts
 def test_resource_map(ec2_service):
     assert isinstance(get_single_ec2_vpc(ec2_service).resource_map, ResourceMap)
 
@@ -118,6 +124,7 @@ def test_collection(iam_service):
     single_iam_role = list(iam_service.collection("role").all())[0]
     single_role_policy = list(single_iam_role.collection("role_policy").all())[0]
     single_role_policy.load()
+    single_role_policy.fetch_secondary_attributes()
 
     assert (
         str(single_role_policy.get_urn()) == "urn:aws:123456789012:us-east-1:iam:role_policy:test-role/test-role-policy"
@@ -133,6 +140,7 @@ def test_collection(iam_service):
 
 
 @mock_ec2
+@mock_sts
 def test_secondary_attribute_names(ec2_service):
     assert get_single_ec2_vpc(ec2_service).secondary_attribute_names == ["vpc_enable_dns_support"]
 
@@ -142,7 +150,8 @@ def test_secondary_attribute_names(ec2_service):
 def test_secondary_attribute_maps(iam_service):
     create_iam_role()
     single_iam_role = list(iam_service.collection("role").all())[0]
-    assert single_iam_role.get_secondary_attributes_map() == {
+    single_iam_role.fetch_secondary_attributes()
+    assert single_iam_role.secondary_attributes_map == {
         "InlinePolicyAttachments": ["test-role-policy"],
         "ManagedPolicyAttachments": [
             {
@@ -154,6 +163,7 @@ def test_secondary_attribute_maps(iam_service):
 
 
 @mock_ec2
+@mock_sts
 def test_shape(ec2_service):
     assert get_single_ec2_vpc(ec2_service).shape.name == "Vpc"
 
