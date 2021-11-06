@@ -46,7 +46,7 @@ def test_write_resources_in_region(cloudwanderer):
 
 def test_write_resource_type(cloudwanderer):
     """It is sufficient for this not to throw an exception."""
-    cloudwanderer.write_resources(regions=["us-east-1"], service_resource_types=[ServiceResourceType("iam", "role")])
+    cloudwanderer.write_resources(regions=["us-east-1"], service_resource_types=[ServiceResourceType("iam", "policy")])
 
 
 def test_read_all(storage_connector):

@@ -171,9 +171,9 @@
                         "service": "iam",
                         "resource_type": "policy",
                         "resource_id_parts": [
-                            "TestManagedRole"
+                            "arn:aws:iam::01234567890:policy/TestManagedRole"
                         ],
-                        "resource_id": "TestManagedRole"
+                        "resource_id": "arn\\:aws\\:iam\\:\\:01234567890\\:policy\\/TestManagedRole"
                     },
                     "RelationshipDirection.OUTBOUND"
                 ]

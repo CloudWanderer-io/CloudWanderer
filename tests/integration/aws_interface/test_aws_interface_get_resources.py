@@ -150,6 +150,6 @@ def test_filters(aws_interface):
             region="us-east-1",
             service="iam",
             resource_type="policy",
-            resource_id_parts=["test-policy"],
+            resource_id_parts=["arn:aws:iam::123456789012:policy/test-policy"],
         ),
     ]

@@ -1,7 +1,8 @@
 # 0.22.0
 
 - Added managed policy relationships to IAM users
-- Added managed policy relationships to IAM groups
+- Fixed identity of IAM managed policies incorrectly getting created as Policyname instead of ARN
+- Added explanatory error message to GremlinConnnector if an error occurs while saving an attribute that may exceed the `maxContentLength`
 
 # 0.21.0
 

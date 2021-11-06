@@ -93,10 +93,7 @@ class GremlinStorageConnector(BaseStorageConnector):
         )
         for id_part in resource.urn.resource_id_parts:
             traversal.property(Cardinality.set_, "_resource_id_parts", id_part)
-        traversal = self._write_properties(
-            traversal=traversal, properties=resource.cloudwanderer_metadata.resource_data
-        )
-        traversal.next()
+        self._write_properties(traversal=traversal, properties=resource.cloudwanderer_metadata.resource_data)
 
         self._write_relationships(resource)
         self._clean_up_relationships(urn=resource.urn, cutoff=resource.discovery_time)
@@ -281,7 +278,14 @@ class GremlinStorageConnector(BaseStorageConnector):
         logger.debug("Writing properties: %s", properties)
         for property_name, property_value in properties.items():
             traversal = traversal.property(Cardinality.single, str(property_name), str(property_value))
-        return traversal
+        traversal_size = len(str(traversal).encode())
+        try:
+            traversal.next()
+        except RuntimeError as ex:
+            raise RuntimeError(
+                "GremlinStorageConnector got a runtime error while saving a property of "
+                f"{traversal_size} bytes, check your Gremlin server's maxContentLength is larger than this."
+            ) from ex
 
     def _write_edge(
         self,

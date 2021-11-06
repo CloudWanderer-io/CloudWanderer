@@ -226,9 +226,9 @@
                         "service": "iam",
                         "resource_type": "policy",
                         "resource_id_parts": [
-                            "TestManagedUserPolicy"
+                            "arn:aws:iam::01234567890:policy/TestManagedUserPolicy"
                         ],
-                        "resource_id": "TestManagedUserPolicy"
+                        "resource_id": "arn\\:aws\\:iam\\:\\:01234567890\\:policy\\/TestManagedUserPolicy"
                     },
                     "RelationshipDirection.OUTBOUND"
                 ]

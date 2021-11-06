@@ -298,6 +298,6 @@ def test_filters(cloudwanderer_aws):
     )
 
     assert set(r["urn"] for r in cloudwanderer_aws.storage_connectors[0].read_all()) == {
-        "urn:aws:123456789012:us-east-1:iam:policy:test-policy",
+        "urn:aws:123456789012:us-east-1:iam:policy:arn\\:aws\\:iam\\:\\:123456789012\\:policy\\/test-policy",
         "urn:aws:123456789012:us-east-1:iam:policy_version:arn\\:aws\\:iam\\:\\:123456789012\\:policy\\/test-policy/v1",
     }
