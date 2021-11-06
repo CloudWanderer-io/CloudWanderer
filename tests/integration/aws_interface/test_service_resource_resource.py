@@ -119,6 +119,21 @@ def test_dependent_resource_types(single_iam_role):
 
 @mock_iam
 @mock_sts
+def test_get_urn_regex_pattern(iam_service):
+    single_iam_policy = list(iam_service.collection("policy").all())[0]
+    single_iam_policy.fetch_secondary_attributes()
+    assert single_iam_policy.get_urn() == URN(
+        cloud_name="aws",
+        account_id="aws",
+        region="us-east-1",
+        service="iam",
+        resource_type="policy",
+        resource_id_parts=["APIGatewayServiceRolePolicy"],
+    )
+
+
+@mock_iam
+@mock_sts
 def test_collection(iam_service):
     create_iam_role()
     single_iam_role = list(iam_service.collection("role").all())[0]

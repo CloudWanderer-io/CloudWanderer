@@ -54,7 +54,6 @@ class TestResourceMap(unittest.TestCase):
 
         assert isinstance(resource_map.region_request, ResourceRegionRequest)
 
-        assert resource_map.requires_load_for_full_metadata
         assert not resource_map.regional_resource
         assert resource_map.default_filters == {"Key": "Value"}
 

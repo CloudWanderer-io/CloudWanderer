@@ -6,7 +6,13 @@ from moto import mock_ec2, mock_iam, mock_s3, mock_sts
 from cloudwanderer.models import ServiceResourceType
 from cloudwanderer.urn import URN
 
-from ...pytest_helpers import compare_list_of_dicts_allow_any, create_ec2_instances, create_iam_role, create_s3_buckets
+from ...pytest_helpers import (
+    compare_list_of_dicts_allow_any,
+    create_ec2_instances,
+    create_iam_policy,
+    create_iam_role,
+    create_s3_buckets,
+)
 
 
 @mock_ec2
@@ -276,3 +282,22 @@ def test_cleanup_resources_of_type_us_east_1(cloudwanderer_aws):
     )
 
     assert list(cloudwanderer_aws.storage_connectors[0].read_all()) == []
+
+
+@mock_iam
+@mock_sts
+@mock_ec2
+def test_filters(cloudwanderer_aws):
+    create_iam_policy()
+
+    cloudwanderer_aws.write_resources(
+        regions=["us-east-1"],
+        service_resource_types=[
+            ServiceResourceType(service_name="iam", name="policy", filter={"Scope": "Local"}),
+        ],
+    )
+
+    assert set(r["urn"] for r in cloudwanderer_aws.storage_connectors[0].read_all()) == {
+        "urn:aws:123456789012:us-east-1:iam:policy:test-policy",
+        "urn:aws:123456789012:us-east-1:iam:policy_version:arn\\:aws\\:iam\\:\\:123456789012\\:policy\\/test-policy/v1",
+    }

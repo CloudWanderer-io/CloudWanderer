@@ -38,6 +38,14 @@ def create_iam_role() -> None:
     )
 
 
+def create_iam_policy() -> None:
+    iam_resource = boto3.resource("iam")
+    iam_resource.create_policy(
+        PolicyName="test-policy",
+        PolicyDocument='{"Version": "2012-10-17","Statement": [ {"Action": "*","Resource": "*","Effect": "Allow"}]}',
+    )
+
+
 def create_ec2_instances(regions: List[str] = ["eu-west-2"], count=1):
     for region_name in regions:
         logger.info("Creating ec2 instance in %s", region_name)

@@ -1,6 +1,7 @@
 """Create the CloudWandererServiceResource objects that do the magic."""
 import logging
 import re
+from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Type
 
 import jmespath  # type: ignore
@@ -28,6 +29,20 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+
+def _get_urn_components_from_string(regex_pattern, string) -> Dict[str, Any]:
+    result = re.match(regex_pattern, string)
+    if not result:
+        return {}
+    urn_components = defaultdict(list)
+    for arg_name, arg_value in result.groupdict().items():
+        if arg_name in ["cloud_name", "account_id", "region", "service", "resource_type"]:
+            urn_components[arg_name] = arg_value
+            continue
+        if arg_name.startswith("id_part_"):
+            urn_components["resource_id_parts"].append(arg_value)
+    return urn_components
 
 
 class CloudWandererResourceFactory(ResourceFactory):
@@ -235,13 +250,20 @@ class CloudWandererResourceFactory(ResourceFactory):
     def _create_get_urn(self) -> Callable:
         def get_urn(self) -> URN:
             id_parts = [getattr(self, identifier) for identifier in self.meta.identifiers]
-            return URN(
-                account_id=self.get_account_id(),
-                region=self.get_region(),
-                service=self.service_name,
-                resource_type=self.resource_type,
-                resource_id_parts=id_parts,
-            )
+            urn_args = {
+                "account_id": self.get_account_id(),
+                "region": self.get_region(),
+                "service": self.service_name,
+                "resource_type": self.resource_type,
+                "resource_id_parts": id_parts,
+            }
+            for urn_override in self.resource_map.urn_overrides:
+                urn_args.update(
+                    _get_urn_components_from_string(
+                        urn_override.regex_pattern, jmespath.search(urn_override.path, self.meta.data)
+                    )
+                )
+            return URN(**urn_args)
 
         return get_urn
 
@@ -406,15 +428,11 @@ class CloudWandererResourceFactory(ResourceFactory):
                         if not id_part.regex_pattern:
                             urn_args["resource_id_parts"].append(id_raw)
                             continue
-                        result = re.match(id_part.regex_pattern, id_raw)
-                        if not result:
+                        regex_results = _get_urn_components_from_string(id_part.regex_pattern, id_raw)
+                        if not regex_results:
                             continue
-                        for arg_name, arg_value in result.groupdict().items():
-                            if arg_name in ["cloud_name", "account_id", "region", "service", "resource_type"]:
-                                urn_args[arg_name] = arg_value
-                                continue
-                            if arg_name.startswith("id_part_"):
-                                urn_args["resource_id_parts"].append(arg_value)
+                        urn_args.update(regex_results)
+
                     if not urn_args["resource_id_parts"]:
                         continue
                     relationships.append(
