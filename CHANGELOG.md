@@ -2,7 +2,8 @@
 
 - Added ability to override URN parts via a regex pattern (used for AWS Managed IAM Policies)
 - Added per-execution resource filtering
-- Changd default filtering for IAM policies to include AWS managed policies
+- Changed default filtering for IAM policies to include AWS managed policies
+
 # 0.20.2
 
 - Fixed bug causing secondary attributes to be fetched twice.
