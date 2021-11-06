@@ -1,3 +1,8 @@
+# 0.22.0
+
+- Added managed policy relationships to IAM users
+- Added managed policy relationships to IAM groups
+
 # 0.21.0
 
 - Added ability to override URN parts via a regex pattern (used for AWS Managed IAM Policies)

@@ -92,7 +92,7 @@
         {
             "urn": {
                 "cloud_name": "aws",
-                "account_id": {},
+                "account_id": "0123456789012",
                 "region": "us-east-1",
                 "service": "iam",
                 "resource_type": "role_policy",
@@ -106,7 +106,7 @@
             "dependent_resource_urns": [],
             "parent_urn": {
                 "cloud_name": "aws",
-                "account_id": {},
+                "account_id": "0123456789012",
                 "region": "us-east-1",
                 "service": "iam",
                 "resource_type": "role",
@@ -153,7 +153,7 @@
         {
             "urn": {
                 "cloud_name": "aws",
-                "account_id": {},
+                "account_id": "0123456789012",
                 "region": "us-east-1",
                 "service": "iam",
                 "resource_type": "role",
@@ -181,7 +181,7 @@
             "dependent_resource_urns": [
                 {
                     "cloud_name": "aws",
-                    "account_id": {},
+                    "account_id": "0123456789012",
                     "region": "us-east-1",
                     "service": "iam",
                     "resource_type": "role_policy",

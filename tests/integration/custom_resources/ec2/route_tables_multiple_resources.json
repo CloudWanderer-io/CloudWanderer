@@ -49,7 +49,7 @@
         {
             "urn": {
                 "cloud_name": "aws",
-                "account_id": {},
+                "account_id": "0123456789012",
                 "region": "eu-west-2",
                 "service": "ec2",
                 "resource_type": "route",
@@ -63,7 +63,7 @@
             "dependent_resource_urns": [],
             "parent_urn": {
                 "cloud_name": "aws",
-                "account_id": {},
+                "account_id": "0123456789012",
                 "region": "eu-west-2",
                 "service": "ec2",
                 "resource_type": "route_table",
@@ -108,7 +108,7 @@
         {
             "urn": {
                 "cloud_name": "aws",
-                "account_id": {},
+                "account_id": "0123456789012",
                 "region": "eu-west-2",
                 "service": "ec2",
                 "resource_type": "route",
@@ -137,7 +137,7 @@
             "dependent_resource_urns": [],
             "parent_urn": {
                 "cloud_name": "aws",
-                "account_id": {},
+                "account_id": "0123456789012",
                 "region": "eu-west-2",
                 "service": "ec2",
                 "resource_type": "route_table",
@@ -182,7 +182,7 @@
         {
             "urn": {
                 "cloud_name": "aws",
-                "account_id": {},
+                "account_id": "0123456789012",
                 "region": "eu-west-2",
                 "service": "ec2",
                 "resource_type": "route_table",
@@ -210,7 +210,7 @@
             "dependent_resource_urns": [
                 {
                     "cloud_name": "aws",
-                    "account_id": {},
+                    "account_id": "0123456789012",
                     "region": "eu-west-2",
                     "service": "ec2",
                     "resource_type": "route",
@@ -222,7 +222,7 @@
                 },
                 {
                     "cloud_name": "aws",
-                    "account_id": {},
+                    "account_id": "0123456789012",
                     "region": "eu-west-2",
                     "service": "ec2",
                     "resource_type": "route",

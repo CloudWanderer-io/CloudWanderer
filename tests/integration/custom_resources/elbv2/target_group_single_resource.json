@@ -71,7 +71,7 @@
         {
             "urn": {
                 "cloud_name": "aws",
-                "account_id": {},
+                "account_id": "0123456789012",
                 "region": "eu-west-2",
                 "service": "elbv2",
                 "resource_type": "target",
@@ -85,7 +85,7 @@
             "dependent_resource_urns": [],
             "parent_urn": {
                 "cloud_name": "aws",
-                "account_id": {},
+                "account_id": "0123456789012",
                 "region": "eu-west-2",
                 "service": "elbv2",
                 "resource_type": "target_group",
@@ -120,7 +120,7 @@
         {
             "urn": {
                 "cloud_name": "aws",
-                "account_id": {},
+                "account_id": "0123456789012",
                 "region": "eu-west-2",
                 "service": "elbv2",
                 "resource_type": "target_group",
@@ -148,7 +148,7 @@
             "dependent_resource_urns": [
                 {
                     "cloud_name": "aws",
-                    "account_id": {},
+                    "account_id": "0123456789012",
                     "region": "eu-west-2",
                     "service": "elbv2",
                     "resource_type": "target",

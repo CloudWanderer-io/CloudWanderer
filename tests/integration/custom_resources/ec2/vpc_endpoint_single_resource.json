@@ -73,7 +73,7 @@
         {
             "urn": {
                 "cloud_name": "aws",
-                "account_id": {},
+                "account_id": "0123456789012",
                 "region": "eu-west-2",
                 "service": "ec2",
                 "resource_type": "vpc_endpoint",

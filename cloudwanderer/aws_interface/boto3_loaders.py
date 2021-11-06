@@ -260,6 +260,10 @@ class ResourceMap(NamedTuple):
             Whether or not this resource exists in every region.
         urn_overrides:
             Optional specifications for overriding URN parts based on resource metadata.
+        requires_load:
+            If the resource requires .load() calling on it before it has a complete set of metadata.
+            Used by IAM PolicyVersion because as a dependent resource it needs to be listed with ListPolicyVersions,
+            then subsequently got with GetPolicyVersion.
     """
 
     type: Optional[str]
@@ -270,6 +274,7 @@ class ResourceMap(NamedTuple):
     secondary_attribute_maps: List["SecondaryAttributeMap"]
     urn_overrides: List["IdPartSpecification"]
     regional_resource: bool = True
+    requires_load: bool = False
 
     @classmethod
     def factory(
@@ -294,6 +299,7 @@ class ResourceMap(NamedTuple):
             urn_overrides=[
                 IdPartSpecification.factory(urn_override) for urn_override in definition.get("urnOverrides", [])
             ],
+            requires_load=definition.get("requiresLoad", False),
         )
 
     def should_query_resources_in_region(self, region: str) -> bool:

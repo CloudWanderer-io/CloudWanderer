@@ -93,7 +93,7 @@
         {
             "urn": {
                 "cloud_name": "aws",
-                "account_id": {},
+                "account_id": "0123456789012",
                 "region": "eu-west-2",
                 "service": "autoscaling",
                 "resource_type": "auto_scaling_group",

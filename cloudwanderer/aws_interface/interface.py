@@ -106,7 +106,10 @@ class CloudWandererAWSInterface:
                 for dependent_resource in resource.collection(resource_type=dependent_resource_type):
                     dependent_resource.fetch_secondary_attributes()
                     logger.debug("Found %s", dependent_resource)
-                    if not dependent_resource.meta.data and hasattr(dependent_resource, "load"):
+                    logger.debug("Attrs %s", dependent_resource.meta.data)
+                    if dependent_resource.resource_map.requires_load or (
+                        not dependent_resource.meta.data and hasattr(dependent_resource, "load")
+                    ):
                         dependent_resource.load()
                     urn = dependent_resource.get_urn()
                     dependent_resource_urns.append(urn)
@@ -165,7 +168,9 @@ class CloudWandererAWSInterface:
                     for dependent_resource in resource.collection(resource_type=dependent_resource_type):
                         dependent_resource.fetch_secondary_attributes()
                         logger.debug("Found %s", dependent_resource)
-                        if not dependent_resource.meta.data and hasattr(dependent_resource, "load"):
+                        if dependent_resource.resource_map.requires_load or (
+                            not dependent_resource.meta.data and hasattr(dependent_resource, "load")
+                        ):
                             dependent_resource.load()
                         urn = dependent_resource.get_urn()
                         dependent_resource_urns.append(urn)

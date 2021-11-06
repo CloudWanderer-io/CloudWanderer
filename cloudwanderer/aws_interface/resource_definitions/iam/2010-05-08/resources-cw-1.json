@@ -6,12 +6,37 @@
   "resources": {
     "User": {
       "type": "resource",
-      "regionalResource": false
+      "regionalResource": false,
+      "relationships": [
+        {
+          "basePath": "ManagedPolicyAttachments[]",
+          "idParts": [
+            {
+              "path": "PolicyArn",
+              "regexPattern": "(?P<id_part_0>[^:]+:[^:]+:[^:]+::(?P<account_id>[^:]*):policy.*)"
+            }
+          ],
+          "service": "iam",
+          "resourceType": "policy",
+          "regionSource": "sameAsResource",
+          "accountIdSource": "unknown",
+          "direction": "outbound"
+        }
+      ]
     },
     "UserPolicy": {
       "type": "dependentResource",
       "parentResourceType": "user",
       "regionalResource": false
+    },
+    "UserManagedPolicyAttachments": {
+      "type": "secondaryAttribute",
+      "secondaryAttributeMaps": [
+        {
+          "sourcePath": "AttachedPolicies",
+          "destinationName": "ManagedPolicyAttachments"
+        }
+      ]
     },
     "VirtualMfaDevice": {
       "type": "resource",
@@ -48,7 +73,7 @@
           "idParts": [
             {
               "path": "PolicyArn",
-              "regexPattern": "[^:]+:[^:]+:[^:]+::(?P<account_id>[^:]*):policy.*/(?P<id_part_0>[^:]+)"
+              "regexPattern": "(?P<id_part_0>[^:]+:[^:]+:[^:]+::(?P<account_id>[^:]*):policy.*)"
             }
           ],
           "service": "iam",
@@ -89,13 +114,14 @@
       "urnOverrides": [
         {
           "path": "Arn",
-          "regexPattern": "[^:]+:[^:]+:[^:]+::(?P<account_id>[^:]*):policy.*/(?P<id_part_0>[^:]+)"
+          "regexPattern": "(?P<id_part_0>[^:]+:[^:]+:[^:]+::(?P<account_id>[^:]*):policy.*)"
         }
       ]
     },
     "PolicyVersion": {
       "type": "dependentResource",
       "parentResourceType": "policy",
+      "requiresLoad": true,
       "regionalResource": false
     },
     "InstanceProfile": {
