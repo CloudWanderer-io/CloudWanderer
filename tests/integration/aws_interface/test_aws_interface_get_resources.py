@@ -2,8 +2,9 @@ from unittest.mock import ANY
 
 import pytest
 from moto import mock_ec2, mock_iam, mock_sts
-
+from itertools import islice
 from cloudwanderer import URN
+from cloudwanderer.aws_interface.models import AWSResourceTypeFilter
 from cloudwanderer.exceptions import UnsupportedResourceTypeError, UnsupportedServiceError
 
 from ...pytest_helpers import compare_dict_allow_any, create_iam_policy, create_iam_role
@@ -127,29 +128,20 @@ def test_get_resources_unsupported_resource_type(aws_interface):
 
 @mock_iam
 @mock_sts
-def test_filters(aws_interface):
+def test_jmespath_filters(aws_interface):
     create_iam_policy()
-    result = list(
-        aws_interface.get_resources(
-            service_name="iam", resource_type="policy", region="us-east-1", filters={"Scope": "Local"}
-        )
+    result = aws_interface.get_resources(
+        service_name="iam",
+        resource_type="policy",
+        region="us-east-1",
+        service_resource_type_filters=[
+            AWSResourceTypeFilter(
+                service="iam", resource_type="policy_version", jmespath_filters=["[?IsDefaultVersion==`true`]"]
+            )
+        ],
     )
 
-    assert [r.urn for r in result] == [
-        URN(
-            cloud_name="aws",
-            account_id="123456789012",
-            region="us-east-1",
-            service="iam",
-            resource_type="policy_version",
-            resource_id_parts=["arn:aws:iam::123456789012:policy/test-policy", "v1"],
-        ),
-        URN(
-            cloud_name="aws",
-            account_id="123456789012",
-            region="us-east-1",
-            service="iam",
-            resource_type="policy",
-            resource_id_parts=["arn:aws:iam::123456789012:policy/test-policy"],
-        ),
-    ]
+    assert list(islice((r.is_default_version for r in result if hasattr(r, "is_default_version")), 10)) == [True] * 10
+
+
+# TODO: test custom and default filters

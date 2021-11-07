@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 from typing import Callable, Dict, List, NamedTuple, Optional, Union
 
-from cloudwanderer.models import ServiceResourceType
+from cloudwanderer.models import ServiceResourceTypeFilter, ServiceResourceType
 
 from .aws_interface import CloudWandererAWSInterface
 from .cloud_wanderer_resource import CloudWandererResource
@@ -15,17 +15,6 @@ from .utils import exception_logging_wrapper
 logger = logging.getLogger("cloudwanderer")
 
 
-def _get_service_resource_type_from_list(
-    service_resource_types: List[ServiceResourceType], service: str, resource_type: str
-) -> Optional[ServiceResourceType]:
-    return next(
-        iter(
-            service_resource_type
-            for service_resource_type in service_resource_types
-            if service_resource_type.service_name == service and service_resource_type.name == resource_type
-        ),
-        None,
-    )
 
 
 class CloudWanderer:
@@ -74,6 +63,7 @@ class CloudWanderer:
         self,
         regions: Optional[List[str]] = None,
         service_resource_types: Optional[List[ServiceResourceType]] = None,
+        service_resource_type_filters: Optional[List[ServiceResourceTypeFilter]] = None,
         **kwargs,
     ) -> None:
         """Write all AWS resources in this account from all regions and all services to storage.
@@ -101,16 +91,12 @@ class CloudWanderer:
             for get_urn in action_set.get_urns:
                 if not get_urn.region or not get_urn.service or not get_urn.resource_type:
                     raise ValueError(f"Invalid get_urn {get_urn}")
-                resource_type = _get_service_resource_type_from_list(
-                    service_resource_types=service_resource_types or [],
-                    service=get_urn.service,
-                    resource_type=get_urn.resource_type,
-                )
+
                 resources = self.cloud_interface.get_resources(
                     region=get_urn.region,
                     service_name=get_urn.service,
                     resource_type=get_urn.resource_type,
-                    filters=resource_type.filter if resource_type else None,
+                    service_resource_type_filters=service_resource_type_filters,
                 )
                 for resource in resources:
                     earliest_resource_discovered = discovery_start_times.get(resource.urn.cloud_service_resource_label)

@@ -9,9 +9,11 @@ from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, cast
 import botocore
 from boto3.resources.base import ServiceResource
 
+from cloudwanderer.aws_interface.models import AWSResourceTypeFilter
+
 from ..cloud_wanderer_resource import CloudWandererResource
 from ..exceptions import UnsupportedResourceTypeError
-from ..models import ActionSet, ServiceResourceType, TemplateActionSet
+from ..models import ActionSet, ServiceResourceType, ServiceResourceTypeFilter, TemplateActionSet
 from ..urn import URN
 from .aws_services import AWS_SERVICES
 from .session import CloudWandererBoto3Session
@@ -23,6 +25,19 @@ if TYPE_CHECKING:
 from .boto3_loaders import ResourceMap
 
 logger = logging.getLogger(__name__)
+
+
+def _get_service_resource_type_filter_from_list(
+    service_resource_type_filters: List[AWSResourceTypeFilter], service: str, resource_type: str
+) -> Optional[AWSResourceTypeFilter]:
+    return next(
+        iter(
+            service_resource_type
+            for service_resource_type in service_resource_type_filters
+            if service_resource_type.service == service and service_resource_type.resource_type == resource_type
+        ),
+        None,
+    )
 
 
 class CloudWandererAWSInterface:
@@ -131,7 +146,7 @@ class CloudWandererAWSInterface:
         service_name: str,
         resource_type: str,
         region: str,
-        filters: Dict[str, Any] = None,
+        service_resource_type_filters: Optional[List[AWSResourceTypeFilter]] = None,
         **kwargs,
     ) -> Iterator[CloudWandererResource]:
         """Return all resources of resource_type from Boto3.
@@ -150,12 +165,25 @@ class CloudWandererAWSInterface:
         logger.info("Getting %s %s resources from %s", service_name, resource_type, region)
         service = self.cloudwanderer_boto3_session.resource(service_name=service_name, region_name=region)
         resource_map: ResourceMap = service.service_map.get_resource_map(resource_type)
-
+        base_resource_filter = (
+            _get_service_resource_type_filter_from_list(
+                service_resource_type_filters=service_resource_type_filters or [],
+                service=service_name,
+                resource_type=resource_type,
+            )
+            or resource_map.default_aws_resource_type_filter
+        )
         try:
             for resource in service.collection(
-                resource_type=resource_type, filters=filters or resource_map.default_filters
+                resource_type=resource_type, filters=base_resource_filter.botocore_filters
             ):
                 resource.fetch_secondary_attributes()
+                if not list(base_resource_filter.filter_jmespath(resources=[resource])):
+                    logger.info(
+                        "Skipping %s because it did not match one of the jmespath filters for this resource type",
+                        dependent_resource,
+                    )
+                    continue
                 dependent_resource_urns = []
                 for dependent_resource_type in resource.dependent_resource_types:
                     logger.info(
@@ -165,8 +193,28 @@ class CloudWandererAWSInterface:
                         region,
                         resource.get_urn().resource_id,
                     )
-                    for dependent_resource in resource.collection(resource_type=dependent_resource_type):
+                    dependent_resource_map = service.service_map.get_resource_map(dependent_resource_type)
+                    dependent_resource_filter = (
+                        _get_service_resource_type_filter_from_list(
+                            service_resource_type_filters=service_resource_type_filters or [],
+                            service=service_name,
+                            resource_type=dependent_resource_type,
+                        )
+                        or dependent_resource_map.default_aws_resource_type_filter
+                    )
+                    logger.info(dependent_resource_filter)
+                    for dependent_resource in resource.collection(
+                        resource_type=dependent_resource_type,
+                        filters=dependent_resource_filter.botocore_filters,
+                    ):
                         dependent_resource.fetch_secondary_attributes()
+
+                        if not list(dependent_resource_filter.filter_jmespath(resources=[dependent_resource])):
+                            logger.info(
+                                "Skipping %s because it did not match one of the jmespath filters for this resource type",
+                                dependent_resource,
+                            )
+                            continue
                         logger.debug("Found %s", dependent_resource)
                         if dependent_resource.resource_map.requires_load or (
                             not dependent_resource.meta.data and hasattr(dependent_resource, "load")
@@ -201,15 +249,15 @@ class CloudWandererAWSInterface:
         service_resource_types = service_resource_types or []
         discovery_regions = regions or self.cloudwanderer_boto3_session.get_enabled_regions()
 
-        service_names = [resource_type.service_name for resource_type in service_resource_types]
+        service_names = [resource_type.service for resource_type in service_resource_types]
         action_sets = []
         service_names = service_names or self.cloudwanderer_boto3_session.get_available_resources()
         logger.debug("Getting actions for: %s", service_names)
         for service_name in service_names:
             service_specific_resource_types = [
-                resource_type.name
+                resource_type.resource_type
                 for resource_type in service_resource_types
-                if resource_type.service_name == service_name
+                if resource_type.service == service_name
             ]
             service = self.cloudwanderer_boto3_session.resource(service_name=cast(AWS_SERVICES, service_name))
             action_sets.extend(

@@ -1,4 +1,6 @@
 import datetime
+
+from boto3 import resource
 from cloudwanderer.urn import URN, PartialUrn
 from cloudwanderer.cloud_wanderer_resource import CloudWandererResource
 from pytest import fixture
@@ -62,7 +64,7 @@ def test_write_resources(cloud_wanderer: CloudWanderer):
 
     cloud_wanderer.cloud_interface.get_resource_discovery_actions.assert_called()
     cloud_wanderer.cloud_interface.get_resources.assert_called_with(
-        region="eu-west-1", service_name="ec2", resource_type="vpc"
+        region="eu-west-1", service_name="ec2", resource_type="vpc", filters=None
     )
     cloud_wanderer.storage_connectors[0].write_resource.assert_called_with(
         CloudWandererResource(
@@ -89,11 +91,11 @@ def test_write_resources(cloud_wanderer: CloudWanderer):
 
 
 def test_get_resources_specific_resource(cloud_wanderer: CloudWanderer):
-    cloud_wanderer.write_resources(service_resource_types=[ServiceResourceType(service_name="ec2", name="vpc")])
+    cloud_wanderer.write_resources(service_resource_types=[ServiceResourceType(service="ec2", resource_type="vpc")])
 
     cloud_wanderer.cloud_interface.get_resource_discovery_actions.assert_called()
     cloud_wanderer.cloud_interface.get_resources.assert_called_with(
-        region="eu-west-1", service_name="ec2", resource_type="vpc"
+        region="eu-west-1", service_name="ec2", resource_type="vpc", filters=None
     )
     cloud_wanderer.storage_connectors[0].write_resource.assert_called_with(
         CloudWandererResource(

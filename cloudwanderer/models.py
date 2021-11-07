@@ -1,8 +1,16 @@
 """Models for CloudWanderer data."""
+import abc
 from enum import Enum, auto, unique
 from typing import Any, Dict, List, NamedTuple, Optional
 
 from .urn import PartialUrn
+
+
+class ServiceResourceTypeFilter(abc.ABC):
+    """Abstract Base Class for CloudInterfaces to subclass for resource filtering."""
+
+    service_name: str
+    resource_type: str
 
 
 class ActionSet(NamedTuple):
@@ -48,14 +56,14 @@ class ServiceResourceType(NamedTuple):
     """A resource type including a service that it is member of.
 
     Attributes:
-        service_name: The name of the service
-        resource_type: The type of resource
+        service: The name of the service
+        resource_type: The type of resource (snake_case)
         filter:
             A dictionary specifying how to filter resources of this type (passed to the cloud interface as a filter arg)
     """
 
-    service_name: str
-    name: str
+    service: str
+    resource_type: str
     filter: Optional[Dict[str, Any]] = None
 
 

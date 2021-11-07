@@ -47,6 +47,7 @@ def service_resource_ec2_vpc(cloudwanderer_boto3_session):
     service = cloudwanderer_boto3_session.resource("ec2")
     resource = service.resource(resource_type="vpc", identifiers=["vpc-11111"])
     resource.load()
+    resource.fetch_secondary_attributes()
     return resource
 
 
@@ -55,6 +56,7 @@ def service_resource_lambda_function(cloudwanderer_boto3_session):
     service = cloudwanderer_boto3_session.resource("lambda")
     resource = service.resource(resource_type="function", identifiers=["test-function"])
     resource.load()
+    resource.fetch_secondary_attributes()
     return resource
 
 
@@ -85,15 +87,8 @@ def test_get_region(service_resource_s3_bucket):
     assert region == "eu-west-1"
 
 
-def test_get_secondary_attributes_map(service_resource_ec2_vpc):
-    assert service_resource_ec2_vpc.get_secondary_attributes_map() == {"EnableDnsSupport": True}
-
-
-def test_get_secondary_attributes(service_resource_ec2_vpc):
-    assert list(service_resource_ec2_vpc.get_secondary_attributes())[0].meta.data == {
-        "EnableDnsSupport": {"Value": True},
-        "VpcId": "vpc-11111",
-    }
+def test_secondary_attributes_map(service_resource_ec2_vpc):
+    assert service_resource_ec2_vpc.secondary_attributes_map == {"EnableDnsSupport": True}
 
 
 def test_secondary_attribute_names(service_resource_ec2_vpc):
@@ -101,7 +96,7 @@ def test_secondary_attribute_names(service_resource_ec2_vpc):
 
 
 def test_shape(service_resource_ec2_vpc):
-    service_resource_ec2_vpc.meta.client.meta.service_model.shape_for.assert_called_with("Vpc")
+    service_resource_ec2_vpc.meta.client.meta.service_model.shape_for.assert_any_call("Vpc")
 
 
 def test_normalized_raw_data(service_resource_ec2_vpc):
@@ -122,6 +117,7 @@ def test_normalized_raw_data(service_resource_ec2_vpc):
         "CidrBlock": "10.16.0.0/16",
         "CidrBlockAssociationSet": None,
         "DhcpOptionsId": None,
+        "EnableDnsSupport": True,
         "InstanceTenancy": None,
         "Ipv6CidrBlockAssociationSet": None,
         "IsDefault": None,
