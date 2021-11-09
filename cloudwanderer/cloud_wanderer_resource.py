@@ -2,12 +2,12 @@
 
 import datetime
 import logging
-from typing import Any, Callable, Generator, List, Optional, Tuple, Union
+from typing import Any, Callable, Generator, List, Optional, Tuple
 
 from botocore import xform_name
 
 from .models import Relationship  # type: ignore
-from .urn import URN, PartialUrn
+from .urn import URN
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +53,7 @@ class CloudWandererResource:
 
     def __init__(
         self,
-        urn: Union[URN, PartialUrn],
+        urn: URN,
         resource_data: dict,
         relationships: List[Relationship] = None,
         loader: Optional[Callable] = None,

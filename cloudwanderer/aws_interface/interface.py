@@ -62,11 +62,17 @@ class CloudWandererAWSInterface:
         """
         return self.cloudwanderer_boto3_session.get_enabled_regions()
 
-    def get_resource(self, urn: URN, include_dependent_resources: bool = True) -> Iterator[CloudWandererResource]:
+    def get_resource(
+        self,
+        urn: URN,
+        service_resource_type_filters: Optional[List[AWSResourceTypeFilter]] = None,
+        include_dependent_resources: bool = True,
+    ) -> Iterator[CloudWandererResource]:
         """Yield the resource picked out by this URN and optionally its subresources.
 
         Arguments:
             urn (URN): The urn of the resource to get.
+            service_resource_type_filters: A :class:`AWSResourceTypeFilter` list to filter resources.
             include_dependent_resources: Whether or not to additionally yield the dependent_resources of the resource.
 
         Raises:
@@ -108,30 +114,9 @@ class CloudWandererAWSInterface:
 
         dependent_resource_urns = []
         if include_dependent_resources:
-            for dependent_resource_type in resource.dependent_resource_types:
-                logger.info(
-                    "Getting %s %s dependent resources from %s for %s",
-                    urn.service,
-                    dependent_resource_type,
-                    urn.region,
-                    resource.get_urn().resource_id,
-                )
-                for dependent_resource in resource.collection(resource_type=dependent_resource_type):
-                    dependent_resource.fetch_secondary_attributes()
-                    logger.debug("Found %s", dependent_resource)
-                    logger.debug("Attrs %s", dependent_resource.meta.data)
-                    if dependent_resource.resource_map.requires_load or (
-                        not dependent_resource.meta.data and hasattr(dependent_resource, "load")
-                    ):
-                        dependent_resource.load()
-                    urn = dependent_resource.get_urn()
-                    dependent_resource_urns.append(urn)
-                    yield CloudWandererResource(
-                        urn=urn,
-                        resource_data=dependent_resource.normalized_raw_data,
-                        parent_urn=resource.get_urn(),
-                        relationships=dependent_resource.relationships,
-                    )
+            for dependent_resource in self._get_dependent_resources(resource, service_resource_type_filters):
+                dependent_resource_urns.append(dependent_resource.urn)
+                yield dependent_resource
         yield CloudWandererResource(
             urn=resource.get_urn(),
             resource_data=resource.normalized_raw_data,
@@ -183,50 +168,9 @@ class CloudWandererAWSInterface:
                     )
                     continue
                 dependent_resource_urns = []
-                for dependent_resource_type in resource.dependent_resource_types:
-                    logger.info(
-                        "Getting %s %s dependent resources from %s for %s",
-                        service_name,
-                        dependent_resource_type,
-                        region,
-                        resource.get_urn().resource_id,
-                    )
-                    dependent_resource_map = service.service_map.get_resource_map(dependent_resource_type)
-                    dependent_resource_filter = (
-                        _get_service_resource_type_filter_from_list(
-                            service_resource_type_filters=service_resource_type_filters or [],
-                            service=service_name,
-                            resource_type=dependent_resource_type,
-                        )
-                        or dependent_resource_map.default_aws_resource_type_filter
-                    )
-                    logger.info(dependent_resource_filter)
-                    for dependent_resource in resource.collection(
-                        resource_type=dependent_resource_type,
-                        filters=dependent_resource_filter.botocore_filters,
-                    ):
-                        dependent_resource.fetch_secondary_attributes()
-
-                        if not next(dependent_resource_filter.filter_jmespath(resources=[dependent_resource]), None):
-                            logger.info(
-                                "Skipping %s because it did not match one of the jmespath "
-                                "filters for this resource type",
-                                dependent_resource,
-                            )
-                            continue
-                        logger.debug("Found %s", dependent_resource)
-                        if dependent_resource.resource_map.requires_load or (
-                            not dependent_resource.meta.data and hasattr(dependent_resource, "load")
-                        ):
-                            dependent_resource.load()
-                        urn = dependent_resource.get_urn()
-                        dependent_resource_urns.append(urn)
-                        yield CloudWandererResource(
-                            urn=urn,
-                            resource_data=dependent_resource.normalized_raw_data,
-                            parent_urn=resource.get_urn(),
-                            relationships=dependent_resource.relationships,
-                        )
+                for dependent_resource in self._get_dependent_resources(resource, service_resource_type_filters):
+                    dependent_resource_urns.append(dependent_resource.urn)
+                    yield dependent_resource
                 yield CloudWandererResource(
                     urn=resource.get_urn(),
                     resource_data=resource.normalized_raw_data,
@@ -241,6 +185,52 @@ class CloudWandererAWSInterface:
                 logger.info("%s %s not supported in %s", service_name, resource_type, region)
                 return
             raise
+
+    def _get_dependent_resources(
+        self, resource: ServiceResource, service_resource_type_filters: Optional[List[AWSResourceTypeFilter]]
+    ) -> Iterator[CloudWandererResource]:
+        for dependent_resource_type in resource.dependent_resource_types:
+            logger.info(
+                "Getting %s %s dependent resources from %s for %s",
+                resource.service_name,
+                dependent_resource_type,
+                resource.get_region(),
+                resource.get_urn().resource_id,
+            )
+            dependent_resource_map = resource.service_map.get_resource_map(dependent_resource_type)
+            dependent_resource_filter = (
+                _get_service_resource_type_filter_from_list(
+                    service_resource_type_filters=service_resource_type_filters or [],
+                    service=resource.service_name,
+                    resource_type=dependent_resource_type,
+                )
+                or dependent_resource_map.default_aws_resource_type_filter
+            )
+            logger.info(dependent_resource_filter)
+            for dependent_resource in resource.collection(
+                resource_type=dependent_resource_type,
+                filters=dependent_resource_filter.botocore_filters,
+            ):
+                dependent_resource.fetch_secondary_attributes()
+
+                if not next(dependent_resource_filter.filter_jmespath(resources=[dependent_resource]), None):
+                    logger.info(
+                        "Skipping %s because it did not match one of the jmespath " "filters for this resource type",
+                        dependent_resource,
+                    )
+                    continue
+                logger.debug("Found %s", dependent_resource)
+                if dependent_resource.resource_map.requires_load or (
+                    not dependent_resource.meta.data and hasattr(dependent_resource, "load")
+                ):
+                    dependent_resource.load()
+                urn = dependent_resource.get_urn()
+                yield CloudWandererResource(
+                    urn=urn,
+                    resource_data=dependent_resource.normalized_raw_data,
+                    parent_urn=resource.get_urn(),
+                    relationships=dependent_resource.relationships,
+                )
 
     def get_resource_discovery_actions(
         self, regions: List[str] = None, service_resource_types: List[ServiceResourceType] = None

@@ -1,5 +1,5 @@
 import datetime
-from unittest.mock import MagicMock
+from unittest.mock import ANY, MagicMock
 
 from pytest import fixture
 
@@ -64,7 +64,7 @@ def test_write_resources(cloud_wanderer: CloudWanderer):
 
     cloud_wanderer.cloud_interface.get_resource_discovery_actions.assert_called()
     cloud_wanderer.cloud_interface.get_resources.assert_called_with(
-        region="eu-west-1", service_name="ec2", resource_type="vpc", service_resource_type_filters=None
+        region="eu-west-1", service_name="ec2", resource_type="vpc", service_resource_type_filters=ANY
     )
     cloud_wanderer.storage_connectors[0].write_resource.assert_called_with(
         CloudWandererResource(
@@ -95,7 +95,7 @@ def test_get_resources_specific_resource(cloud_wanderer: CloudWanderer):
 
     cloud_wanderer.cloud_interface.get_resource_discovery_actions.assert_called()
     cloud_wanderer.cloud_interface.get_resources.assert_called_with(
-        region="eu-west-1", service_name="ec2", resource_type="vpc", service_resource_type_filters=None
+        region="eu-west-1", service_name="ec2", resource_type="vpc", service_resource_type_filters=ANY
     )
     cloud_wanderer.storage_connectors[0].write_resource.assert_called_with(
         CloudWandererResource(

@@ -33,7 +33,9 @@ class CloudWanderer:
         self.storage_connectors = storage_connectors
         self.cloud_interface = cloud_interface or CloudWandererAWSInterface()
 
-    def write_resource(self, urn: URN, **kwargs) -> None:
+    def write_resource(
+        self, urn: URN, service_resource_type_filters: Optional[List[ServiceResourceTypeFilter]] = None
+    ) -> None:
         """Fetch data for and persist to storage a single resource and its subresources.
 
         If the resource does not exist it will be deleted from the storage connectors.
@@ -41,12 +43,17 @@ class CloudWanderer:
         Arguments:
             urn (URN):
                 The URN of the resource to write
-            **kwargs:
-                All additional keyword arguments will be passed down to the cloud interface client calls.
+            service_resource_type_filters:
+                List of :class:`ServiceResourceTypeFilter` specific to the CloudInterface that helps filter resources.
         """
+        validated_resource_type_filters = self.cloud_interface.type_check_filter_objects(
+            service_resource_type_filters or []
+        )
         for storage_connector in self.storage_connectors:
             storage_connector.open()
-        resources = list(self.cloud_interface.get_resource(urn=urn, **kwargs))
+        resources = list(
+            self.cloud_interface.get_resource(urn=urn, service_resource_type_filters=validated_resource_type_filters)
+        )
 
         for resource in resources:
             self._write_resource(resource=resource)
