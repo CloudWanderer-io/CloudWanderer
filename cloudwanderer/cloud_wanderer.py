@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 from typing import Callable, Dict, List, NamedTuple, Optional, Union
 
-from cloudwanderer.models import ServiceResourceTypeFilter, ServiceResourceType
+from cloudwanderer.models import ServiceResourceType, ServiceResourceTypeFilter
 
 from .aws_interface import CloudWandererAWSInterface
 from .cloud_wanderer_resource import CloudWandererResource
@@ -13,8 +13,6 @@ from .urn import URN, PartialUrn
 from .utils import exception_logging_wrapper
 
 logger = logging.getLogger("cloudwanderer")
-
-
 
 
 class CloudWanderer:
@@ -64,7 +62,6 @@ class CloudWanderer:
         regions: Optional[List[str]] = None,
         service_resource_types: Optional[List[ServiceResourceType]] = None,
         service_resource_type_filters: Optional[List[ServiceResourceTypeFilter]] = None,
-        **kwargs,
     ) -> None:
         """Write all AWS resources in this account from all regions and all services to storage.
 
@@ -75,12 +72,15 @@ class CloudWanderer:
                 The name of the region to get resources from (defaults to session default if not specified)
             service_resource_types:
                 The resource types to discover.
-            kwargs:
-                All additional keyword arguments will be passed down to the cloud interface client calls.
+            service_resource_type_filters:
+                List of :class:`ServiceResourceTypeFilter` specific to the CloudInterface that helps filter resources.
 
         Raises:
             ValueError: If invalid get/delete urns are produced by the cloud interface's get_resource_discovery_actions
         """
+        validated_resource_type_filters = self.cloud_interface.type_check_filter_objects(
+            service_resource_type_filters or []
+        )
         for storage_connector in self.storage_connectors:
             storage_connector.open()
         action_sets = self.cloud_interface.get_resource_discovery_actions(
@@ -96,7 +96,7 @@ class CloudWanderer:
                     region=get_urn.region,
                     service_name=get_urn.service,
                     resource_type=get_urn.resource_type,
-                    service_resource_type_filters=service_resource_type_filters,
+                    service_resource_type_filters=validated_resource_type_filters or [],
                 )
                 for resource in resources:
                     earliest_resource_discovered = discovery_start_times.get(resource.urn.cloud_service_resource_label)

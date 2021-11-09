@@ -4,7 +4,7 @@ Provides simpler methods for :class:`~.cloud_wanderer.CloudWanderer` to call.
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, cast
+from typing import TYPE_CHECKING, Iterator, List, Optional, cast
 
 import botocore
 from boto3.resources.base import ServiceResource
@@ -42,8 +42,6 @@ def _get_service_resource_type_filter_from_list(
 
 class CloudWandererAWSInterface:
     """Simplifies lookup of Boto3 services and resources."""
-
-    limit_resources = None
 
     def __init__(
         self,
@@ -155,7 +153,7 @@ class CloudWandererAWSInterface:
             service_name (str): The name of the service to get resource for (e.g. ``'ec2'``)
             resource_type (str): The type of resource to get resources of (e.g. ``'instance'``)
             region (str): The region to get resources of (e.g. ``'eu-west-1'``)
-            filters: A dictionary to be passed to the Boto3 method for filtering this resource.
+            service_resource_type_filters: A :class:`AWSResourceTypeFilter` list to filter resources.
             **kwargs: Additional keyword arguments will be passed down to the Boto3 client.
 
         Raises:
@@ -178,10 +176,10 @@ class CloudWandererAWSInterface:
                 resource_type=resource_type, filters=base_resource_filter.botocore_filters
             ):
                 resource.fetch_secondary_attributes()
-                if not list(base_resource_filter.filter_jmespath(resources=[resource])):
+                if not next(base_resource_filter.filter_jmespath(resources=[resource]), None):
                     logger.info(
                         "Skipping %s because it did not match one of the jmespath filters for this resource type",
-                        dependent_resource,
+                        resource,
                     )
                     continue
                 dependent_resource_urns = []
@@ -209,9 +207,10 @@ class CloudWandererAWSInterface:
                     ):
                         dependent_resource.fetch_secondary_attributes()
 
-                        if not list(dependent_resource_filter.filter_jmespath(resources=[dependent_resource])):
+                        if not next(dependent_resource_filter.filter_jmespath(resources=[dependent_resource]), None):
                             logger.info(
-                                "Skipping %s because it did not match one of the jmespath filters for this resource type",
+                                "Skipping %s because it did not match one of the jmespath "
+                                "filters for this resource type",
                                 dependent_resource,
                             )
                             continue
@@ -283,6 +282,26 @@ class CloudWandererAWSInterface:
                     continue
                 for dependent_resource_type in resource.dependent_resource_types:
                     yield service.resource(dependent_resource_type, empty_resource=True)
+
+    def type_check_filter_objects(
+        self, service_resource_type_filters=List[ServiceResourceTypeFilter]
+    ) -> List[AWSResourceTypeFilter]:
+        """Return true if all :class:`ServiceResourceTypeFilter` in the list are :class:`AWSResourceTypeFilter`.
+
+        Parameters:
+            service_resource_type_filters: The filters to validate they are the correct type.
+
+        Raises:
+            ValueError: If not all service_resource_type_filters are :class:`AWSResourceTypeFilter`
+        """
+        if not all(
+            isinstance(service_resource_type_filter, AWSResourceTypeFilter)
+            for service_resource_type_filter in service_resource_type_filters
+        ):
+            raise ValueError(
+                "All service_resource_type_filters must be " "AWSResourceTypeFilter when using the aws cloud interface."
+            )
+        return service_resource_type_filters
 
     def _inflate_action_set_regions(self, action_set_templates: List[TemplateActionSet]) -> List[ActionSet]:
         enabled_regions = self.cloudwanderer_boto3_session.get_enabled_regions()

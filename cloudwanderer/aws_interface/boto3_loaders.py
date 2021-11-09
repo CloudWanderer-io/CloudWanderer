@@ -229,6 +229,7 @@ class ServiceMap(NamedTuple):
         boto3_resource_name = snake_to_pascal(resource_type)
         return ResourceMap.factory(
             service_map=self,
+            name=boto3_resource_name,
             definition=self.resource_definition.get(boto3_resource_name, {}),
         )
 
@@ -280,6 +281,7 @@ class ResourceMap(NamedTuple):
     @classmethod
     def factory(
         cls,
+        name: str,
         service_map: ServiceMap,
         definition: Dict[str, Any],
     ) -> "ResourceMap":
@@ -289,7 +291,7 @@ class ResourceMap(NamedTuple):
             regional_resource=definition.get("regionalResource", True),
             default_aws_resource_type_filter=AWSResourceTypeFilter(
                 service=service_map.name,
-                resource_type=botocore.xform_name(definition["type"]),
+                resource_type=botocore.xform_name(name),
                 botocore_filters=definition.get("defaultBotocoreFilters", {}),
                 jmespath_filters=definition.get("defaultJMESPathFilters", []),
             ),
