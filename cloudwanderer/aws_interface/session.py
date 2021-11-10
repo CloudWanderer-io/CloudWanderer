@@ -1,13 +1,16 @@
 """Subclass of Boto3 Session class to provide additional helper methods."""
 import logging
-from typing import List
+from typing import List, Optional, Union
 
 import boto3
+import botocore
 from botocore.loaders import Loader
 
 from ..cache_helpers import memoized_method
+from .aws_services import AWS_SERVICES
 from .boto3_loaders import MergedServiceLoader
 from .resource_factory import CloudWandererResourceFactory
+from .stubs.resource import CloudWandererServiceResource
 
 logger = logging.getLogger(__name__)
 
@@ -57,3 +60,30 @@ class CloudWandererBoto3Session(boto3.session.Session):
         """Return a list of enabled regions in this account."""
         regions = self.client("ec2").describe_regions()["Regions"]
         return [region["RegionName"] for region in regions if region["OptInStatus"] != "not-opted-in"]
+
+    def resource(  # type: ignore[override]
+        self,
+        service_name: AWS_SERVICES,
+        region_name: Optional[str] = None,
+        api_version: Optional[str] = None,
+        use_ssl: Optional[bool] = True,
+        verify: Union[bool, str, None] = None,
+        endpoint_url: Optional[str] = None,
+        aws_access_key_id: Optional[str] = None,
+        aws_secret_access_key: Optional[str] = None,
+        aws_session_token: Optional[str] = None,
+        config: Optional[botocore.client.Config] = None,
+    ) -> CloudWandererServiceResource:  # type: ignore
+        return super().resource(  # type: ignore[call-overload, misc]
+            self,
+            service_name,
+            region_name=region_name,
+            api_version=api_version,
+            use_ssl=use_ssl,
+            verify=verify,
+            endpoint_url=endpoint_url,
+            aws_access_key_id=aws_access_key_id,
+            aws_secret_access_key=aws_secret_access_key,
+            aws_session_token=aws_session_token,
+            config=config,
+        )

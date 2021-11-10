@@ -7,7 +7,6 @@ import logging
 from typing import TYPE_CHECKING, Iterator, List, Optional, cast
 
 import botocore
-from boto3.resources.base import ServiceResource
 
 from cloudwanderer.aws_interface.models import AWSResourceTypeFilter
 
@@ -187,7 +186,9 @@ class CloudWandererAWSInterface:
             raise
 
     def _get_dependent_resources(
-        self, resource: ServiceResource, service_resource_type_filters: Optional[List[AWSResourceTypeFilter]]
+        self,
+        resource: CloudWandererServiceResource,
+        service_resource_type_filters: Optional[List[AWSResourceTypeFilter]],
     ) -> Iterator[CloudWandererResource]:
         for dependent_resource_type in resource.dependent_resource_types:
             logger.info(
@@ -257,7 +258,7 @@ class CloudWandererAWSInterface:
 
         return self._inflate_action_set_regions(action_sets)
 
-    def get_all_empty_resources(self, include_dependent_resource=False) -> Iterator[ServiceResource]:
+    def get_all_empty_resources(self, include_dependent_resource=False) -> Iterator[CloudWandererServiceResource]:
         """Return an ``empty_resource=True`` ServiceResource object for each resource type.
 
         Arguments:
