@@ -94,17 +94,8 @@ Writing VPCs is as simple as passing the ``resource_types`` argument.
 
 .. doctest ::
 
-    >>> wanderer.write_resources(resource_types=['vpcs'])
-
-Excluding Resource Types
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Some resource types take a very long time to query (e.g. EC2 Images) and depending on what you're using your data for
-may not be worth the time.
-
-.. doctest ::
-
-    >>> wanderer.write_resources(exclude_resources=['ec2:images'])
+    >>> from cloudwanderer import ServiceResourceType
+    >>> wanderer.write_resources(service_resource_types=[ServiceResourceType(service='ec2', resource_type='vpcs')])
 
 Writing Resource by URN
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^

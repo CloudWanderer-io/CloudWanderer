@@ -14,3 +14,5 @@ CloudWanderer Models
 .. autoclass :: cloudwanderer.models.RelationshipRegionSource
 
 .. autoclass :: cloudwanderer.models.RelationshipDirection
+
+.. autoclass :: cloudwanderer.models.ServiceResourceTypeFilter

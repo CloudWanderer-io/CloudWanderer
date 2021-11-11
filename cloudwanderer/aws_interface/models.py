@@ -1,13 +1,10 @@
 """AWS Interface specific model classes."""
-import jmespath  # type: ignore
 from typing import Any, Dict, Iterator, List, Optional
 
-from ..cloud_wanderer_resource import CloudWandererResource
-from ..models import ServiceResourceTypeFilter
-import logging
+import jmespath  # type: ignore
 from boto3.resources.base import ServiceResource
 
-logger = logging.getLogger(__name__)
+from ..models import ServiceResourceTypeFilter
 
 
 class AWSResourceTypeFilter(ServiceResourceTypeFilter):
@@ -35,12 +32,18 @@ class AWSResourceTypeFilter(ServiceResourceTypeFilter):
 
     def filter_jmespath(self, resources: List[ServiceResource]) -> Iterator[ServiceResource]:
         if not self.jmespath_filters:
-            logger.info("Returning all as no jmespath filter is set")
             yield from resources
         for resource in resources:
             for filter in self.jmespath_filters:
                 if jmespath.search(filter, [resource.meta.data]):
                     yield resource
 
-    def __repr__(self):
-        return f"AWSResourceTypeFilter(service='{self.service}', resource_type='{self.resource_type}', botocore_filters={self.botocore_filters}, jmespath_filters={self.jmespath_filters})"
+    def __repr__(self) -> str:
+        """Return an instantiable representation of this object."""
+        return (
+            "AWSResourceTypeFilter("
+            f"service='{self.service}', "
+            f"resource_type='{self.resource_type}', "
+            f"botocore_filters={self.botocore_filters}, "
+            f"jmespath_filters={self.jmespath_filters})"
+        )
