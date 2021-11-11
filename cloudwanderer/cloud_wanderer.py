@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 from typing import Callable, Dict, List, NamedTuple, Optional, Union
 
-from cloudwanderer.models import ServiceResourceType
+from cloudwanderer.models import ServiceResourceType, ServiceResourceTypeFilter
 
 from .aws_interface import CloudWandererAWSInterface
 from .cloud_wanderer_resource import CloudWandererResource
@@ -13,19 +13,6 @@ from .urn import URN, PartialUrn
 from .utils import exception_logging_wrapper
 
 logger = logging.getLogger("cloudwanderer")
-
-
-def _get_service_resource_type_from_list(
-    service_resource_types: List[ServiceResourceType], service: str, resource_type: str
-) -> Optional[ServiceResourceType]:
-    return next(
-        iter(
-            service_resource_type
-            for service_resource_type in service_resource_types
-            if service_resource_type.service_name == service and service_resource_type.name == resource_type
-        ),
-        None,
-    )
 
 
 class CloudWanderer:
@@ -46,7 +33,9 @@ class CloudWanderer:
         self.storage_connectors = storage_connectors
         self.cloud_interface = cloud_interface or CloudWandererAWSInterface()
 
-    def write_resource(self, urn: URN, **kwargs) -> None:
+    def write_resource(
+        self, urn: URN, service_resource_type_filters: Optional[List[ServiceResourceTypeFilter]] = None
+    ) -> None:
         """Fetch data for and persist to storage a single resource and its subresources.
 
         If the resource does not exist it will be deleted from the storage connectors.
@@ -54,12 +43,17 @@ class CloudWanderer:
         Arguments:
             urn (URN):
                 The URN of the resource to write
-            **kwargs:
-                All additional keyword arguments will be passed down to the cloud interface client calls.
+            service_resource_type_filters:
+                List of :class:`ServiceResourceTypeFilter` specific to the CloudInterface that helps filter resources.
         """
+        validated_resource_type_filters = self.cloud_interface.type_check_filter_objects(
+            service_resource_type_filters or []
+        )
         for storage_connector in self.storage_connectors:
             storage_connector.open()
-        resources = list(self.cloud_interface.get_resource(urn=urn, **kwargs))
+        resources = list(
+            self.cloud_interface.get_resource(urn=urn, service_resource_type_filters=validated_resource_type_filters)
+        )
 
         for resource in resources:
             self._write_resource(resource=resource)
@@ -74,7 +68,7 @@ class CloudWanderer:
         self,
         regions: Optional[List[str]] = None,
         service_resource_types: Optional[List[ServiceResourceType]] = None,
-        **kwargs,
+        service_resource_type_filters: Optional[List[ServiceResourceTypeFilter]] = None,
     ) -> None:
         """Write all AWS resources in this account from all regions and all services to storage.
 
@@ -85,12 +79,15 @@ class CloudWanderer:
                 The name of the region to get resources from (defaults to session default if not specified)
             service_resource_types:
                 The resource types to discover.
-            kwargs:
-                All additional keyword arguments will be passed down to the cloud interface client calls.
+            service_resource_type_filters:
+                List of :class:`ServiceResourceTypeFilter` specific to the CloudInterface that helps filter resources.
 
         Raises:
             ValueError: If invalid get/delete urns are produced by the cloud interface's get_resource_discovery_actions
         """
+        validated_resource_type_filters = self.cloud_interface.type_check_filter_objects(
+            service_resource_type_filters or []
+        )
         for storage_connector in self.storage_connectors:
             storage_connector.open()
         action_sets = self.cloud_interface.get_resource_discovery_actions(
@@ -101,16 +98,12 @@ class CloudWanderer:
             for get_urn in action_set.get_urns:
                 if not get_urn.region or not get_urn.service or not get_urn.resource_type:
                     raise ValueError(f"Invalid get_urn {get_urn}")
-                resource_type = _get_service_resource_type_from_list(
-                    service_resource_types=service_resource_types or [],
-                    service=get_urn.service,
-                    resource_type=get_urn.resource_type,
-                )
+
                 resources = self.cloud_interface.get_resources(
                     region=get_urn.region,
                     service_name=get_urn.service,
                     resource_type=get_urn.resource_type,
-                    filters=resource_type.filter if resource_type else None,
+                    service_resource_type_filters=validated_resource_type_filters or [],
                 )
                 for resource in resources:
                     earliest_resource_discovered = discovery_start_times.get(resource.urn.cloud_service_resource_label)

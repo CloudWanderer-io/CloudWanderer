@@ -1,7 +1,7 @@
 """Storage Connector for Gremlin databases."""
 import logging
 from datetime import datetime
-from typing import Any, Dict, Iterator, List, Optional, Union
+from typing import Any, Dict, Iterator, List, Optional, Union, cast
 
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection  # type: ignore
 from gremlin_python.process.anonymous_traversal import traversal  # type: ignore
@@ -150,7 +150,7 @@ class GremlinStorageConnector(BaseStorageConnector):
                     )
                 continue
             logger.debug("Writing inferred resource %s", inferred_partner_urn)
-            self._write_resource(CloudWandererResource(urn=relationship.partial_urn, resource_data={}))
+            self._write_resource(CloudWandererResource(urn=cast(URN, relationship.partial_urn), resource_data={}))
             self._write_relationship_edge(
                 resource_urn=resource.urn,
                 relationship_resource_urn=inferred_partner_urn,

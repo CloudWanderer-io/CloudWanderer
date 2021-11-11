@@ -26,3 +26,14 @@ The order of operations when discovering roles and their policies is as follows:
 Interestingly this involves actually _moving_ ``AttachedPolicies`` (and renaming to ``RoleManagedPolicyAttachments``) from ``hasMany`` to ``has``.
 This is because we want to have ``RoleManagedPolicyAttachments`` as an secondary attribute rather than a dependent resource (as that would create a resource that was an _attachment_ which would make no sense.).
 Once we have it as a secondary attribute on the role we can use it to create relationships to the indenpendently discovered managed policies. 
+
+IAM Policy Versions
+----------------------
+
+Managed IAM Policies add another layer of complexity in getting to the PolicyDocument. Managed Policies maintain a version history which is the location for the 
+policy document. These ``PolicyVersions`` are represented as dependent resources of the ``Policy`` resources, however to enumarate (``ListPolicyVersions``) is not to 
+get their PolicyDocument ``GetPolicyVersion``. This means we have to have a ``hasMany`` relationship between the ``Policy`` and the ``PolicyVersion`` that calls ``ListPolicyVersions`` 
+and then a ``load`` which calls ``GetPolicyVersion``. This is the purpose of the ``requiresLoad`` attribute in the :class:`ResourceMap`.
+
+Without this, we would have to have two tiers of dependent resources, one tier being the ``PolicyVersionList`` and that would then have to have dependent resources of the type ``PolicyVersion``
+    which would be exceedingly ugly.

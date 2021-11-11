@@ -43,10 +43,10 @@ def loaded_memory_connector():
         wanderer.write_resources(
             regions=["us-east-1", "eu-west-2"],
             service_resource_types=[
-                ServiceResourceType(service_name="ec2", name="instance"),
-                ServiceResourceType(service_name="ec2", name="vpc"),
-                ServiceResourceType(service_name="s3", name="bucket"),
-                ServiceResourceType(service_name="iam", name="role"),
+                ServiceResourceType(service="ec2", resource_type="instance"),
+                ServiceResourceType(service="ec2", resource_type="vpc"),
+                ServiceResourceType(service="s3", resource_type="bucket"),
+                ServiceResourceType(service="iam", resource_type="role"),
             ],
         )
     return connector

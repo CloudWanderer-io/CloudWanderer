@@ -3,6 +3,7 @@
 - Added managed policy relationships to IAM users
 - Fixed identity of IAM managed policies incorrectly getting created as Policyname instead of ARN
 - Added explanatory error message to GremlinConnnector if an error occurs while saving an attribute that may exceed the `maxContentLength`
+- Fixed bug causing IAM Policy Versions not to load their policies.
 
 # 0.21.0
 

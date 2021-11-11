@@ -284,7 +284,7 @@
           "direction": "outbound"
         }
       ],
-      "defaultFilters": {
+      "defaultBotocoreFilters": {
         "Owners": [
           "self"
         ]
@@ -292,7 +292,7 @@
     },
     "Snapshot": {
       "type": "resource",
-      "defaultFilters": {
+      "defaultBotocoreFilters": {
         "OwnerIds": [
           "self"
         ]

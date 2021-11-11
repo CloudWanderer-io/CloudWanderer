@@ -21,6 +21,8 @@ from boto3.resources.base import ServiceResource
 from botocore.exceptions import DataNotFoundError, UnknownServiceError  # type: ignore
 from botocore.loaders import Loader
 
+from cloudwanderer.aws_interface.models import AWSResourceTypeFilter
+
 from ..cache_helpers import memoized_method
 from ..exceptions import MalformedFileError, UnsupportedServiceError
 from ..models import RelationshipAccountIdSource, RelationshipDirection, RelationshipRegionSource
@@ -227,6 +229,7 @@ class ServiceMap(NamedTuple):
         boto3_resource_name = snake_to_pascal(resource_type)
         return ResourceMap.factory(
             service_map=self,
+            name=boto3_resource_name,
             definition=self.resource_definition.get(boto3_resource_name, {}),
         )
 
@@ -251,9 +254,8 @@ class ResourceMap(NamedTuple):
             discover the region in which this resource exists.
         parent_resource_type:
             The snake_case resource type of the parent (if this is a subresource).
-        default_filters:
-            A dict of arguments to supply to the API Method used when enumerating this resource type.
-            This can be overridden by the user with the ``filters`` argument.
+        default_aws_resource_type_filter:
+           The default :class:`AWSResourceTypeFilter` for this resource.
         service_map:
             A link back to the parent :class:`ServiceMap` object.
         regional_resource:
@@ -268,7 +270,7 @@ class ResourceMap(NamedTuple):
 
     type: Optional[str]
     region_request: Optional["ResourceRegionRequest"]
-    default_filters: Dict[str, Any]
+    default_aws_resource_type_filter: AWSResourceTypeFilter
     service_map: ServiceMap
     relationships: List["RelationshipSpecification"]
     secondary_attribute_maps: List["SecondaryAttributeMap"]
@@ -279,6 +281,7 @@ class ResourceMap(NamedTuple):
     @classmethod
     def factory(
         cls,
+        name: str,
         service_map: ServiceMap,
         definition: Dict[str, Any],
     ) -> "ResourceMap":
@@ -286,7 +289,12 @@ class ResourceMap(NamedTuple):
             type=definition.get("type"),
             region_request=ResourceRegionRequest.factory(definition.get("regionRequest")),
             regional_resource=definition.get("regionalResource", True),
-            default_filters=definition.get("defaultFilters", {}),
+            default_aws_resource_type_filter=AWSResourceTypeFilter(
+                service=service_map.name,
+                resource_type=botocore.xform_name(name),
+                botocore_filters=definition.get("defaultBotocoreFilters", {}),
+                jmespath_filters=definition.get("defaultJMESPathFilters", []),
+            ),
             service_map=service_map,
             relationships=[
                 RelationshipSpecification.factory(relationship_specification)
