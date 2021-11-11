@@ -1,6 +1,6 @@
 """Subclass of Boto3 Session class to provide additional helper methods."""
 import logging
-from typing import List, Optional, Union
+from typing import TYPE_CHECKING, List, Optional, Union
 
 import boto3
 import botocore
@@ -10,7 +10,9 @@ from ..cache_helpers import memoized_method
 from .aws_services import AWS_SERVICES
 from .boto3_loaders import MergedServiceLoader
 from .resource_factory import CloudWandererResourceFactory
-from .stubs.resource import CloudWandererServiceResource
+
+if TYPE_CHECKING:
+    from .stubs.resource import CloudWandererServiceResource
 
 logger = logging.getLogger(__name__)
 
@@ -73,9 +75,8 @@ class CloudWandererBoto3Session(boto3.session.Session):
         aws_secret_access_key: Optional[str] = None,
         aws_session_token: Optional[str] = None,
         config: Optional[botocore.client.Config] = None,
-    ) -> CloudWandererServiceResource:  # type: ignore
+    ) -> "CloudWandererServiceResource":
         return super().resource(  # type: ignore[call-overload, misc]
-            self,
             service_name,
             region_name=region_name,
             api_version=api_version,

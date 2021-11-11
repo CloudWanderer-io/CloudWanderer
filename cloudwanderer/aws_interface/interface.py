@@ -18,7 +18,6 @@ from .aws_services import AWS_SERVICES
 from .session import CloudWandererBoto3Session
 
 if TYPE_CHECKING:
-
     from .stubs.resource import CloudWandererServiceResource
 
 from .boto3_loaders import ResourceMap
@@ -187,7 +186,7 @@ class CloudWandererAWSInterface:
 
     def _get_dependent_resources(
         self,
-        resource: CloudWandererServiceResource,
+        resource: "CloudWandererServiceResource",
         service_resource_type_filters: Optional[List[AWSResourceTypeFilter]],
     ) -> Iterator[CloudWandererResource]:
         for dependent_resource_type in resource.dependent_resource_types:
@@ -258,7 +257,7 @@ class CloudWandererAWSInterface:
 
         return self._inflate_action_set_regions(action_sets)
 
-    def get_all_empty_resources(self, include_dependent_resource=False) -> Iterator[CloudWandererServiceResource]:
+    def get_all_empty_resources(self, include_dependent_resource=False) -> Iterator["CloudWandererServiceResource"]:
         """Return an ``empty_resource=True`` ServiceResource object for each resource type.
 
         Arguments:
