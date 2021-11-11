@@ -206,7 +206,6 @@ class CloudWandererAWSInterface:
                 )
                 or dependent_resource_map.default_aws_resource_type_filter
             )
-            logger.info(dependent_resource_filter)
             for dependent_resource in resource.collection(
                 resource_type=dependent_resource_type,
                 filters=dependent_resource_filter.botocore_filters,
@@ -276,7 +275,7 @@ class CloudWandererAWSInterface:
     def type_check_filter_objects(
         self, service_resource_type_filters=List[ServiceResourceTypeFilter]
     ) -> List[AWSResourceTypeFilter]:
-        """Return true if all :class:`ServiceResourceTypeFilter` in the list are :class:`AWSResourceTypeFilter`.
+        """Raise exception if not all :class:`ServiceResourceTypeFilter` in the list are :class:`AWSResourceTypeFilter`.
 
         Parameters:
             service_resource_type_filters: The filters to validate they are the correct type.
