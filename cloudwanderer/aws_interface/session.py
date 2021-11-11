@@ -77,7 +77,7 @@ class CloudWandererBoto3Session(boto3.session.Session):
         config: Optional[botocore.client.Config] = None,
     ) -> "CloudWandererServiceResource":
         return super().resource(  # type: ignore[call-overload, misc]
-            service_name,
+            service_name,  # type: ignore[arg-type]
             region_name=region_name,
             api_version=api_version,
             use_ssl=use_ssl,
