@@ -1,5 +1,6 @@
-from cloudwanderer.aws_interface import AWSResourceTypeFilter
 from unittest.mock import MagicMock
+
+from cloudwanderer.aws_interface import AWSResourceTypeFilter
 
 
 def test_str():
@@ -8,8 +9,10 @@ def test_str():
     )
 
     assert (
-        str(subject)
-        == "AWSResourceTypeFilter(service='ec2', resource_type='image', botocore_filters={'Scope': 'local'}, jmespath_filters=[''])"
+        str(subject) == "AWSResourceTypeFilter(service='ec2', "
+        "resource_type='image', "
+        "botocore_filters={'Scope': 'local'}, "
+        "jmespath_filters=[''])"
     )
 
 
