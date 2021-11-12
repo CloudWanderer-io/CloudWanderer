@@ -67,6 +67,7 @@ class TestResourceMap(unittest.TestCase):
         )
 
         assert isinstance(resource_map.default_aws_resource_type_filter, AWSResourceTypeFilter)
+        assert resource_map.name == "RolePolicy"
 
     def test_should_query_resources_in_region_global_service(self):
         resource_map = ResourceMap.factory(

@@ -249,6 +249,8 @@ class ResourceMap(NamedTuple):
     """Specification for additional CloudWanderer specific metadata about a Boto3 resource type.
 
     Attributes:
+        name:
+            The PascalCase name of the resource
         region_request:
             An optional definition for how to perform a secondary query to
             discover the region in which this resource exists.
@@ -268,6 +270,7 @@ class ResourceMap(NamedTuple):
             then subsequently got with GetPolicyVersion.
     """
 
+    name: str
     type: Optional[str]
     region_request: Optional["ResourceRegionRequest"]
     default_aws_resource_type_filter: AWSResourceTypeFilter
@@ -286,6 +289,7 @@ class ResourceMap(NamedTuple):
         definition: Dict[str, Any],
     ) -> "ResourceMap":
         return cls(
+            name=name,
             type=definition.get("type"),
             region_request=ResourceRegionRequest.factory(definition.get("regionRequest")),
             regional_resource=definition.get("regionalResource", True),
