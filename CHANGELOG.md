@@ -4,6 +4,8 @@
 - Fixed identity of IAM managed policies incorrectly getting created as Policyname instead of ARN
 - Added explanatory error message to GremlinConnnector if an error occurs while saving an attribute that may exceed the `maxContentLength`
 - Fixed bug causing IAM Policy Versions not to load their policies.
+- Filter back _in_ AWS owned Managed Policies by default
+- Filter _out_ non-default Policy Versions by default
 
 # 0.21.0
 
