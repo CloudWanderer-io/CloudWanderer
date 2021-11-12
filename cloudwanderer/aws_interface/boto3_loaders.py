@@ -250,20 +250,24 @@ class ResourceMap(NamedTuple):
 
     Attributes:
         name:
-            The PascalCase name of the resource
+            The PascalCase name of the resource (e.g. ``Instance``)
+        type:
+            The snake_case type of the resource (e.g. ``instance``)
         region_request:
             An optional definition for how to perform a secondary query to
             discover the region in which this resource exists.
-        parent_resource_type:
-            The snake_case resource type of the parent (if this is a subresource).
         default_aws_resource_type_filter:
            The default :class:`AWSResourceTypeFilter` for this resource.
         service_map:
             A link back to the parent :class:`ServiceMap` object.
-        regional_resource:
-            Whether or not this resource exists in every region.
+        relationships:
+            The specifications for the relationships this resource can have.
+        secondary_attribute_maps:
+            The specifications for the secondary attributes for this resource.
         urn_overrides:
             Optional specifications for overriding URN parts based on resource metadata.
+        regional_resource:
+            Whether or not this resource exists in every region.
         requires_load:
             If the resource requires .load() calling on it before it has a complete set of metadata.
             Used by IAM PolicyVersion because as a dependent resource it needs to be listed with ListPolicyVersions,
