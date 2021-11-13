@@ -38,6 +38,7 @@ def _get_urn_components_from_string(regex_pattern, string) -> Dict[str, Any]:
     urn_components = defaultdict(list)
     for arg_name, arg_value in result.groupdict().items():
         if arg_name in ["cloud_name", "account_id", "region", "service", "resource_type"]:
+            logger.debug("Found %s:%s from %s", arg_name, arg_value, regex_pattern)
             urn_components[arg_name] = arg_value
             continue
         if arg_name.startswith("id_part_"):
@@ -381,7 +382,7 @@ class CloudWandererResourceFactory(ResourceFactory):
                 if resource_map.type == "dependentResource":
                     dependent_resource_types.add(resource_type)
 
-            return list(dependent_resource_types)
+            return sorted(list(dependent_resource_types))
 
         return property(dependent_resource_types)
 

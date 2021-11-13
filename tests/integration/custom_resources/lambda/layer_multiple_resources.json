@@ -52,7 +52,7 @@
         {
             "urn": {
                 "cloud_name": "aws",
-                "account_id": {},
+                "account_id": "0123456789012",
                 "region": "eu-west-2",
                 "service": "lambda",
                 "resource_type": "layer_version",
@@ -66,7 +66,7 @@
             "dependent_resource_urns": [],
             "parent_urn": {
                 "cloud_name": "aws",
-                "account_id": {},
+                "account_id": "0123456789012",
                 "region": "eu-west-2",
                 "service": "lambda",
                 "resource_type": "layer",
@@ -99,7 +99,7 @@
         {
             "urn": {
                 "cloud_name": "aws",
-                "account_id": {},
+                "account_id": "0123456789012",
                 "region": "eu-west-2",
                 "service": "lambda",
                 "resource_type": "layer",
@@ -111,7 +111,7 @@
             "relationships": [],
             "dependent_resource_urns": [
                 {
-                    "account_id": {},
+                    "account_id": "0123456789012",
                     "cloud_name": "aws",
                     "region": "eu-west-2",
                     "resource_id": "test-layer/1",

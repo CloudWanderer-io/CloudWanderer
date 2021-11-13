@@ -1,0 +1,295 @@
+{
+    "service": "iam",
+    "mockData": {
+        "get_paginator.side_effect": [
+            {
+                "paginate.return_value": [
+                    {
+                        "AccessKeyMetadata": [
+                            {
+                                "UserName": "TestUser",
+                                "AccessKeyId": "11111111111111111111",
+                                "Status": "Active",
+                                "CreateDate": "2012-12-09T12:29:04Z"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "paginate.return_value": [
+                    {
+                        "MFADevices": []
+                    }
+                ]
+            },
+            {
+                "paginate.return_value": [
+                    {
+                        "Certificates": []
+                    }
+                ]
+            },
+            {
+                "paginate.return_value": [
+                    {
+                        "PolicyNames": [
+                            "TestUserPolicy"
+                        ]
+                    }
+                ]
+            }
+        ],
+        "get_user.return_value": {
+            "User": {
+                "Path": "/",
+                "UserName": "TestUser",
+                "UserId": "111111111111111111111",
+                "Arn": "arn:aws:iam::01234567890:user/TestUser",
+                "CreateDate": "2016-01-30T16:01:16Z"
+            }
+        },
+        "get_user_policy.return_value": {
+            "UserName": "TestUser",
+            "PolicyName": "TestUserPolicy",
+            "PolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Action": [
+                            "logs:CreateLogGroup",
+                            "logs:CreateLogStream",
+                            "logs:PutLogEvents"
+                        ],
+                        "Resource": "arn:aws:logs:eu-west-1:*:*",
+                        "Effect": "Allow"
+                    }
+                ]
+            }
+        },
+        "list_attached_user_policies.return_value": {
+            "AttachedPolicies": [
+                {
+                    "PolicyName": "TestManagedUserPolicy",
+                    "PolicyArn": "arn:aws:iam::01234567890:policy/TestManagedUserPolicy"
+                }
+            ]
+        }
+    },
+    "getResource": {
+        "urn": "urn:aws:123456789012:us-east-1:iam:user:TestUser"
+    },
+    "expectedCalls": {
+        "get_user": [
+            {
+                "args": [],
+                "kwargs": {
+                    "UserName": "TestUser"
+                }
+            }
+        ],
+        "get_user_policy": [
+            {
+                "args": [],
+                "kwargs": {
+                    "UserName": "TestUser",
+                    "PolicyName": "TestUserPolicy"
+                }
+            }
+        ],
+        "list_attached_user_policies": [
+            {
+                "args": [],
+                "kwargs": {
+                    "UserName": "TestUser"
+                }
+            }
+        ]
+    },
+    "expectedResults": [
+        {
+            "urn": {
+                "cloud_name": "aws",
+                "account_id": "0123456789012",
+                "region": "us-east-1",
+                "service": "iam",
+                "resource_type": "access_key",
+                "resource_id_parts": [
+                    "TestUser",
+                    "11111111111111111111"
+                ],
+                "resource_id": "TestUser/11111111111111111111"
+            },
+            "relationships": [],
+            "dependent_resource_urns": [],
+            "parent_urn": {
+                "cloud_name": "aws",
+                "account_id": "0123456789012",
+                "region": "us-east-1",
+                "service": "iam",
+                "resource_type": "user",
+                "resource_id_parts": [
+                    "TestUser"
+                ],
+                "resource_id": "TestUser"
+            },
+            "cloudwanderer_metadata": {
+                "UserName": "TestUser",
+                "AccessKeyId": "11111111111111111111",
+                "Status": "Active",
+                "CreateDate": "2012-12-09T12:29:04Z"
+            },
+            "user_name": "TestUser",
+            "access_key_id": "11111111111111111111",
+            "status": "Active",
+            "create_date": "2012-12-09T12:29:04Z"
+        },
+        {
+            "urn": {
+                "cloud_name": "aws",
+                "account_id": "0123456789012",
+                "region": "us-east-1",
+                "service": "iam",
+                "resource_type": "user_policy",
+                "resource_id_parts": [
+                    "TestUser",
+                    "TestUserPolicy"
+                ],
+                "resource_id": "TestUser/TestUserPolicy"
+            },
+            "relationships": [],
+            "dependent_resource_urns": [],
+            "parent_urn": {
+                "cloud_name": "aws",
+                "account_id": "0123456789012",
+                "region": "us-east-1",
+                "service": "iam",
+                "resource_type": "user",
+                "resource_id_parts": [
+                    "TestUser"
+                ],
+                "resource_id": "TestUser"
+            },
+            "cloudwanderer_metadata": {
+                "UserName": "TestUser",
+                "PolicyName": "TestUserPolicy",
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Action": [
+                                "logs:CreateLogGroup",
+                                "logs:CreateLogStream",
+                                "logs:PutLogEvents"
+                            ],
+                            "Resource": "arn:aws:logs:eu-west-1:*:*",
+                            "Effect": "Allow"
+                        }
+                    ]
+                }
+            },
+            "user_name": "TestUser",
+            "policy_name": "TestUserPolicy",
+            "policy_document": {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Action": [
+                            "logs:CreateLogGroup",
+                            "logs:CreateLogStream",
+                            "logs:PutLogEvents"
+                        ],
+                        "Resource": "arn:aws:logs:eu-west-1:*:*",
+                        "Effect": "Allow"
+                    }
+                ]
+            }
+        },
+        {
+            "urn": {
+                "cloud_name": "aws",
+                "account_id": "0123456789012",
+                "region": "us-east-1",
+                "service": "iam",
+                "resource_type": "user",
+                "resource_id_parts": [
+                    "TestUser"
+                ],
+                "resource_id": "TestUser"
+            },
+            "relationships": [
+                [
+                    {
+                        "cloud_name": "aws",
+                        "account_id": "01234567890",
+                        "region": "us-east-1",
+                        "service": "iam",
+                        "resource_type": "policy",
+                        "resource_id_parts": [
+                            "arn:aws:iam::01234567890:policy/TestManagedUserPolicy"
+                        ],
+                        "resource_id": "arn\\:aws\\:iam\\:\\:01234567890\\:policy\\/TestManagedUserPolicy"
+                    },
+                    "RelationshipDirection.OUTBOUND"
+                ]
+            ],
+            "dependent_resource_urns": [
+                {
+                    "cloud_name": "aws",
+                    "account_id": "0123456789012",
+                    "region": "us-east-1",
+                    "service": "iam",
+                    "resource_type": "access_key",
+                    "resource_id_parts": [
+                        "TestUser",
+                        "11111111111111111111"
+                    ],
+                    "resource_id": "TestUser/11111111111111111111"
+                },
+                {
+                    "cloud_name": "aws",
+                    "account_id": "0123456789012",
+                    "region": "us-east-1",
+                    "service": "iam",
+                    "resource_type": "user_policy",
+                    "resource_id_parts": [
+                        "TestUser",
+                        "TestUserPolicy"
+                    ],
+                    "resource_id": "TestUser/TestUserPolicy"
+                }
+            ],
+            "parent_urn": null,
+            "cloudwanderer_metadata": {
+                "Path": "/",
+                "UserName": "TestUser",
+                "UserId": "111111111111111111111",
+                "Arn": "arn:aws:iam::01234567890:user/TestUser",
+                "CreateDate": "2016-01-30T16:01:16Z",
+                "PasswordLastUsed": null,
+                "PermissionsBoundary": null,
+                "Tags": null,
+                "ManagedPolicyAttachments": [
+                    {
+                        "PolicyName": "TestManagedUserPolicy",
+                        "PolicyArn": "arn:aws:iam::01234567890:policy/TestManagedUserPolicy"
+                    }
+                ]
+            },
+            "path": "/",
+            "user_name": "TestUser",
+            "user_id": "111111111111111111111",
+            "arn": "arn:aws:iam::01234567890:user/TestUser",
+            "create_date": "2016-01-30T16:01:16Z",
+            "password_last_used": null,
+            "permissions_boundary": null,
+            "tags": null,
+            "managed_policy_attachments": [
+                {
+                    "PolicyName": "TestManagedUserPolicy",
+                    "PolicyArn": "arn:aws:iam::01234567890:policy/TestManagedUserPolicy"
+                }
+            ]
+        }
+    ]
+}

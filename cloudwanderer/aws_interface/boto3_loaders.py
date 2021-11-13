@@ -21,6 +21,8 @@ from boto3.resources.base import ServiceResource
 from botocore.exceptions import DataNotFoundError, UnknownServiceError  # type: ignore
 from botocore.loaders import Loader
 
+from cloudwanderer.aws_interface.models import AWSResourceTypeFilter
+
 from ..cache_helpers import memoized_method
 from ..exceptions import MalformedFileError, UnsupportedServiceError
 from ..models import RelationshipAccountIdSource, RelationshipDirection, RelationshipRegionSource
@@ -227,6 +229,7 @@ class ServiceMap(NamedTuple):
         boto3_resource_name = snake_to_pascal(resource_type)
         return ResourceMap.factory(
             service_map=self,
+            name=boto3_resource_name,
             definition=self.resource_definition.get(boto3_resource_name, {}),
         )
 
@@ -246,42 +249,60 @@ class ResourceMap(NamedTuple):
     """Specification for additional CloudWanderer specific metadata about a Boto3 resource type.
 
     Attributes:
+        name:
+            The PascalCase name of the resource (e.g. ``Instance``)
+        type:
+            The snake_case type of the resource (e.g. ``instance``)
         region_request:
             An optional definition for how to perform a secondary query to
             discover the region in which this resource exists.
-        parent_resource_type:
-            The snake_case resource type of the parent (if this is a subresource).
-        default_filters:
-            A dict of arguments to supply to the API Method used when enumerating this resource type.
-            This can be overridden by the user with the ``filters`` argument.
+        default_aws_resource_type_filter:
+           The default :class:`AWSResourceTypeFilter` for this resource.
         service_map:
             A link back to the parent :class:`ServiceMap` object.
-        regional_resource:
-            Whether or not this resource exists in every region.
+        relationships:
+            The specifications for the relationships this resource can have.
+        secondary_attribute_maps:
+            The specifications for the secondary attributes for this resource.
         urn_overrides:
             Optional specifications for overriding URN parts based on resource metadata.
+        regional_resource:
+            Whether or not this resource exists in every region.
+        requires_load:
+            If the resource requires .load() calling on it before it has a complete set of metadata.
+            Used by IAM PolicyVersion because as a dependent resource it needs to be listed with ListPolicyVersions,
+            then subsequently got with GetPolicyVersion.
     """
 
+    name: str
     type: Optional[str]
     region_request: Optional["ResourceRegionRequest"]
-    default_filters: Dict[str, Any]
+    default_aws_resource_type_filter: AWSResourceTypeFilter
     service_map: ServiceMap
     relationships: List["RelationshipSpecification"]
     secondary_attribute_maps: List["SecondaryAttributeMap"]
     urn_overrides: List["IdPartSpecification"]
     regional_resource: bool = True
+    requires_load: bool = False
 
     @classmethod
     def factory(
         cls,
+        name: str,
         service_map: ServiceMap,
         definition: Dict[str, Any],
     ) -> "ResourceMap":
         return cls(
+            name=name,
             type=definition.get("type"),
             region_request=ResourceRegionRequest.factory(definition.get("regionRequest")),
             regional_resource=definition.get("regionalResource", True),
-            default_filters=definition.get("defaultFilters", {}),
+            default_aws_resource_type_filter=AWSResourceTypeFilter(
+                service=service_map.name,
+                resource_type=botocore.xform_name(name),
+                botocore_filters=definition.get("defaultBotocoreFilters", {}),
+                jmespath_filters=definition.get("defaultJMESPathFilters", []),
+            ),
             service_map=service_map,
             relationships=[
                 RelationshipSpecification.factory(relationship_specification)
@@ -294,6 +315,7 @@ class ResourceMap(NamedTuple):
             urn_overrides=[
                 IdPartSpecification.factory(urn_override) for urn_override in definition.get("urnOverrides", [])
             ],
+            requires_load=definition.get("requiresLoad", False),
         )
 
     def should_query_resources_in_region(self, region: str) -> bool:

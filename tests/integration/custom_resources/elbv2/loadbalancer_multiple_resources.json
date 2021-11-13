@@ -49,7 +49,7 @@
         {
             "urn": {
                 "cloud_name": "aws",
-                "account_id": {},
+                "account_id": "0123456789012",
                 "region": "eu-west-2",
                 "service": "elbv2",
                 "resource_type": "load_balancer",

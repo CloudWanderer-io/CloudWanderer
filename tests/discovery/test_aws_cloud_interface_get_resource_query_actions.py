@@ -153,7 +153,7 @@ def test_get_resource_discovery_actions_specific_resource_type(
     aws_interface._get_discovery_action_templates_for_service = MagicMock(return_value=[mock_action_set_vpc])
 
     result = aws_interface.get_resource_discovery_actions(
-        service_resource_types=[ServiceResourceType(service_name="ec2", name="vpc")]
+        service_resource_types=[ServiceResourceType(service="ec2", resource_type="vpc")]
     )
 
     assert len(result) == 1

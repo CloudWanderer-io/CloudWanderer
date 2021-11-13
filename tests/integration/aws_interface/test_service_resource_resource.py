@@ -128,7 +128,7 @@ def test_get_urn_regex_pattern(iam_service):
         region="us-east-1",
         service="iam",
         resource_type="policy",
-        resource_id_parts=["APIGatewayServiceRolePolicy"],
+        resource_id_parts=["arn:aws:iam::aws:policy/aws-service-role/APIGatewayServiceRolePolicy"],
     )
 
 

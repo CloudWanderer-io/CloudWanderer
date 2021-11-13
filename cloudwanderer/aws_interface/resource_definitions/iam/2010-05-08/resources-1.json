@@ -98,6 +98,18 @@
               }
             ]
           }
+        },
+        "UserManagedPolicyAttachments": {
+          "resource": {
+            "type": "UserManagedPolicyAttachments",
+            "identifiers": [
+              {
+                "target": "UserName",
+                "source": "identifier",
+                "name": "Name"
+              }
+            ]
+          }
         }
       },
       "hasMany": {
@@ -127,28 +139,6 @@
               }
             ],
             "path": "AccessKeyMetadata[]"
-          }
-        },
-        "AttachedPolicies": {
-          "request": {
-            "operation": "ListAttachedUserPolicies",
-            "params": [
-              {
-                "target": "UserName",
-                "source": "identifier",
-                "name": "Name"
-              }
-            ]
-          },
-          "resource": {
-            "type": "Policy",
-            "identifiers": [
-              {
-                "target": "Arn",
-                "source": "response",
-                "path": "AttachedPolicies[].PolicyArn"
-              }
-            ]
           }
         },
         "Groups": {
@@ -297,106 +287,9 @@
               }
             ]
           }
-        },
-        "PolicyVersion": {
-          "resource": {
-            "type": "PolicyVersion",
-            "identifiers": [
-              {
-                "target": "Arn",
-                "source": "identifier",
-                "name": "Arn"
-              },
-              {
-                "target": "VersionId",
-                "source": "input"
-              }
-            ]
-          }
         }
       },
       "hasMany": {
-        "AttachedGroups": {
-          "request": {
-            "operation": "ListEntitiesForPolicy",
-            "params": [
-              {
-                "target": "PolicyArn",
-                "source": "identifier",
-                "name": "Arn"
-              },
-              {
-                "target": "EntityFilter",
-                "source": "string",
-                "value": "Group"
-              }
-            ]
-          },
-          "resource": {
-            "type": "Group",
-            "identifiers": [
-              {
-                "target": "Name",
-                "source": "response",
-                "path": "PolicyGroups[].GroupName"
-              }
-            ]
-          }
-        },
-        "AttachedRoles": {
-          "request": {
-            "operation": "ListEntitiesForPolicy",
-            "params": [
-              {
-                "target": "PolicyArn",
-                "source": "identifier",
-                "name": "Arn"
-              },
-              {
-                "target": "EntityFilter",
-                "source": "string",
-                "value": "Role"
-              }
-            ]
-          },
-          "resource": {
-            "type": "Role",
-            "identifiers": [
-              {
-                "target": "Name",
-                "source": "response",
-                "path": "PolicyRoles[].RoleName"
-              }
-            ]
-          }
-        },
-        "AttachedUsers": {
-          "request": {
-            "operation": "ListEntitiesForPolicy",
-            "params": [
-              {
-                "target": "PolicyArn",
-                "source": "identifier",
-                "name": "Arn"
-              },
-              {
-                "target": "EntityFilter",
-                "source": "string",
-                "value": "User"
-              }
-            ]
-          },
-          "resource": {
-            "type": "User",
-            "identifiers": [
-              {
-                "target": "Name",
-                "source": "response",
-                "path": "PolicyUsers[].UserName"
-              }
-            ]
-          }
-        },
         "Versions": {
           "request": {
             "operation": "ListPolicyVersions",
@@ -643,6 +536,28 @@
           "params": [
             {
               "target": "RoleName",
+              "source": "identifier",
+              "name": "Name"
+            }
+          ]
+        },
+        "path": "@"
+      }
+    },
+    "UserManagedPolicyAttachments": {
+      "identifiers": [
+        {
+          "name": "Name",
+          "memberName": "Name"
+        }
+      ],
+      "shape": "ListAttachedUserPoliciesResponse",
+      "load": {
+        "request": {
+          "operation": "ListAttachedUserPolicies",
+          "params": [
+            {
+              "target": "UserName",
               "source": "identifier",
               "name": "Name"
             }

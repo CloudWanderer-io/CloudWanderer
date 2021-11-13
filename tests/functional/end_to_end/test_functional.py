@@ -39,7 +39,6 @@ class TestFunctional(unittest.TestCase):
     # The _a_ in this test name ensures this test runs first so that subsequent read tests have values to read.
     def test_a_write_resources(self):
         thread_results = self.wanderer.write_resources_concurrently(
-            exclude_resources=["ec2:image", "ec2:snapshot", "iam:policy"],
             concurrency=12,
             cloud_interface_generator=lambda: CloudWandererAWSInterface(
                 cloudwanderer_boto3_session=CloudWandererBoto3Session()

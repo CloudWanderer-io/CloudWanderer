@@ -3,6 +3,7 @@ from unittest.mock import ANY
 import boto3
 from moto import mock_ec2, mock_iam, mock_s3, mock_sts
 
+from cloudwanderer.aws_interface.models import AWSResourceTypeFilter
 from cloudwanderer.models import ServiceResourceType
 from cloudwanderer.urn import URN
 
@@ -24,8 +25,8 @@ def test_write_resources(cloudwanderer_aws):
     cloudwanderer_aws.write_resources(
         regions=["eu-west-2", "us-east-1"],
         service_resource_types=[
-            ServiceResourceType(service_name="ec2", name="instance"),
-            ServiceResourceType(service_name="s3", name="bucket"),
+            ServiceResourceType(service="ec2", resource_type="instance"),
+            ServiceResourceType(service="s3", resource_type="bucket"),
         ],
     )
 
@@ -189,7 +190,7 @@ def test_cleanup_resources_of_type_us_east_1(cloudwanderer_aws):
     cloudwanderer_aws.write_resources(
         regions=["us-east-1"],
         service_resource_types=[
-            ServiceResourceType(service_name="iam", name="role"),
+            ServiceResourceType(service="iam", resource_type="role"),
         ],
     )
 
@@ -277,7 +278,7 @@ def test_cleanup_resources_of_type_us_east_1(cloudwanderer_aws):
     cloudwanderer_aws.write_resources(
         regions=["us-east-1"],
         service_resource_types=[
-            ServiceResourceType(service_name="iam", name="role"),
+            ServiceResourceType(service="iam", resource_type="role"),
         ],
     )
 
@@ -292,12 +293,13 @@ def test_filters(cloudwanderer_aws):
 
     cloudwanderer_aws.write_resources(
         regions=["us-east-1"],
-        service_resource_types=[
-            ServiceResourceType(service_name="iam", name="policy", filter={"Scope": "Local"}),
+        service_resource_types=[ServiceResourceType(service="iam", resource_type="policy")],
+        service_resource_type_filters=[
+            AWSResourceTypeFilter(service="iam", resource_type="policy", botocore_filters={"Scope": "Local"})
         ],
     )
 
     assert set(r["urn"] for r in cloudwanderer_aws.storage_connectors[0].read_all()) == {
-        "urn:aws:123456789012:us-east-1:iam:policy:test-policy",
+        "urn:aws:123456789012:us-east-1:iam:policy:arn\\:aws\\:iam\\:\\:123456789012\\:policy\\/test-policy",
         "urn:aws:123456789012:us-east-1:iam:policy_version:arn\\:aws\\:iam\\:\\:123456789012\\:policy\\/test-policy/v1",
     }

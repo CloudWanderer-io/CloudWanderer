@@ -39,7 +39,14 @@ def test_all_custom_resources(file_name, aws_interface):
 
     mock_client = MagicMock(
         **{
-            **{"meta": aws_interface.cloudwanderer_boto3_session.client(test_spec["service"]).meta},
+            **{
+                "meta": aws_interface.cloudwanderer_boto3_session.client(test_spec["service"]).meta,
+                "get_caller_identity.return_value": {
+                    "UserId": "111111111111111111111",
+                    "Account": "0123456789012",
+                    "Arn": "arn:aws:iam::0123456789012:user/CloudWanderer",
+                },
+            },
             **build_mock(test_spec["mockData"]),
         }
     )

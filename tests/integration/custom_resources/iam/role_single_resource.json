@@ -92,7 +92,7 @@
         {
             "urn": {
                 "cloud_name": "aws",
-                "account_id": {},
+                "account_id": "0123456789012",
                 "region": "us-east-1",
                 "service": "iam",
                 "resource_type": "role_policy",
@@ -106,7 +106,7 @@
             "dependent_resource_urns": [],
             "parent_urn": {
                 "cloud_name": "aws",
-                "account_id": {},
+                "account_id": "0123456789012",
                 "region": "us-east-1",
                 "service": "iam",
                 "resource_type": "role",
@@ -153,7 +153,7 @@
         {
             "urn": {
                 "cloud_name": "aws",
-                "account_id": {},
+                "account_id": "0123456789012",
                 "region": "us-east-1",
                 "service": "iam",
                 "resource_type": "role",
@@ -171,9 +171,9 @@
                         "service": "iam",
                         "resource_type": "policy",
                         "resource_id_parts": [
-                            "TestManagedRole"
+                            "arn:aws:iam::01234567890:policy/TestManagedRole"
                         ],
-                        "resource_id": "TestManagedRole"
+                        "resource_id": "arn\\:aws\\:iam\\:\\:01234567890\\:policy\\/TestManagedRole"
                     },
                     "RelationshipDirection.OUTBOUND"
                 ]
@@ -181,7 +181,7 @@
             "dependent_resource_urns": [
                 {
                     "cloud_name": "aws",
-                    "account_id": {},
+                    "account_id": "0123456789012",
                     "region": "us-east-1",
                     "service": "iam",
                     "resource_type": "role_policy",

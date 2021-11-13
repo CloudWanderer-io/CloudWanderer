@@ -10,6 +10,7 @@ from cloudwanderer.aws_interface.boto3_loaders import (
     ResourceMap,
     ResourceRegionRequest,
 )
+from cloudwanderer.aws_interface.models import AWSResourceTypeFilter
 from cloudwanderer.models import RelationshipAccountIdSource, RelationshipDirection, RelationshipRegionSource
 
 
@@ -37,6 +38,7 @@ class TestResourceMap(unittest.TestCase):
 
     def test_global_service_regional_resource_map(self):
         resource_map = ResourceMap.factory(
+            name="Bucket",
             definition={
                 "type": "resource",
                 "regionalResource": False,
@@ -55,18 +57,21 @@ class TestResourceMap(unittest.TestCase):
         assert isinstance(resource_map.region_request, ResourceRegionRequest)
 
         assert not resource_map.regional_resource
-        assert resource_map.default_filters == {"Key": "Value"}
+        assert isinstance(resource_map.default_aws_resource_type_filter, AWSResourceTypeFilter)
 
     def test_dependent_resource_map(self):
         resource_map = ResourceMap.factory(
+            name="RolePolicy",
             definition={"type": "resource", "parentResourceType": "role"},
             service_map=MagicMock(),
         )
 
-        assert resource_map.default_filters == {}
+        assert isinstance(resource_map.default_aws_resource_type_filter, AWSResourceTypeFilter)
+        assert resource_map.name == "RolePolicy"
 
     def test_should_query_resources_in_region_global_service(self):
         resource_map = ResourceMap.factory(
+            name="Role",
             definition={},
             service_map=MagicMock(is_global_service=True, global_service_region="us-east-1"),
         )
@@ -77,6 +82,7 @@ class TestResourceMap(unittest.TestCase):
     def test_should_query_resources_in_region_regional_service(self):
         resource_map = ResourceMap.factory(
             definition={},
+            name="Instance",
             service_map=MagicMock(is_global_service=False),
         )
 
@@ -85,6 +91,7 @@ class TestResourceMap(unittest.TestCase):
 
     def test_relationships(self):
         resource_map = ResourceMap.factory(
+            name="Vpc",
             definition={
                 "relationships": [
                     {

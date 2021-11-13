@@ -41,12 +41,12 @@ def test_a_write_resources_concurrently(cloudwanderer):
 
 def test_write_resources_in_region(cloudwanderer):
     """It is sufficient for this not to throw an exception."""
-    cloudwanderer.write_resources(regions=["us-east-1"], exclude_resources=[])
+    cloudwanderer.write_resources(regions=["us-east-1"])
 
 
 def test_write_resource_type(cloudwanderer):
     """It is sufficient for this not to throw an exception."""
-    cloudwanderer.write_resources(regions=["us-east-1"], service_resource_types=[ServiceResourceType("iam", "role")])
+    cloudwanderer.write_resources(regions=["us-east-1"], service_resource_types=[ServiceResourceType("iam", "policy")])
 
 
 def test_read_all(storage_connector):

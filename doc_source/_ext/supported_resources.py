@@ -32,13 +32,7 @@ RESOURCE_TEMPLATE = Template(
 
     {{image}}
 
-    {% if default_filters %}
-    **Default Filters:**
-
-    When this resource is discovered the following filter will be applied.
-
-    ``.filter({{default_filters}})``
-    {% endif %}
+    {{default_filters}}
 
     **Example:**
 
@@ -379,6 +373,7 @@ class GetCwServices:
         description: str = "",
     ) -> str:
         image = ""
+        filters = ""
         service_model = service.meta.client.meta.service_model
         shape = service_model.shape_for(resource.meta.resource_model.shape)
         attributes = sorted(
@@ -390,16 +385,23 @@ class GetCwServices:
             attributes.append((attribute_name, attribute_resource_shape))
 
         if f"{service.service_name}_{resource.resource_type}" in self.gm.graph_dict:
-
             image = f".. image:: ../images/{service.service_name}_{resource.resource_type}.gv.png"
+        if resource.resource_map.default_aws_resource_type_filter.botocore_filters:
+            filters += (
+                "**Default Botocore Filters:** "
+                f"``{resource.resource_map.default_aws_resource_type_filter.botocore_filters}``\n\n"
+            )
+        if resource.resource_map.default_aws_resource_type_filter.jmespath_filters:
+            filters += (
+                "**Default JMESPath Filters:** "
+                f"``{resource.resource_map.default_aws_resource_type_filter.jmespath_filters}``\n"
+            )
         resource_section = RESOURCE_TEMPLATE.render(
             class_name=name.format(service_name=service.service_name, resource_name=resource.resource_type),
             service_name=service.service_name,
             resource_name=resource.resource_type,
             description=description.format(service_name=service.service_name, resource_name=resource.resource_type),
-            default_filters=", ".join(
-                f"{key}={repr(value)}" for key, value in resource.resource_map.default_filters.items()
-            ),
+            default_filters=filters,
             image=image,
         )
 
