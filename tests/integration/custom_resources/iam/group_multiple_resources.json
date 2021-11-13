@@ -1,0 +1,212 @@
+{
+    "service": "iam",
+    "mockData": {
+        "get_paginator.side_effect": [
+            {
+                "paginate.return_value": [
+                    {
+                        "Groups": [
+                            {
+                                "Path": "/",
+                                "GroupName": "TestGroup",
+                                "GroupId": "111111111111111111111",
+                                "Arn": "arn:aws:iam::0123456789012:group/TestGroup",
+                                "CreateDate": "2014-08-30T07:02:55Z"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "paginate.return_value": [
+                    {
+                        "PolicyNames": [
+                            "TestGroupPolicy"
+                        ]
+                    }
+                ]
+            }
+        ],
+        "get_group_policy.return_value": {
+            "GroupName": "TestGroup",
+            "PolicyName": "TestGroupPolicy",
+            "PolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Action": [
+                            "logs:CreateLogGroup",
+                            "logs:CreateLogStream",
+                            "logs:PutLogEvents"
+                        ],
+                        "Resource": "arn:aws:logs:eu-west-1:*:*",
+                        "Effect": "Allow"
+                    }
+                ]
+            }
+        },
+        "list_attached_group_policies.return_value": {
+            "AttachedPolicies": [
+                {
+                    "PolicyName": "ReadOnlyAccess",
+                    "PolicyArn": "arn:aws:iam::aws:policy/ReadOnlyAccess"
+                }
+            ]
+        }
+    },
+    "getResources": {
+        "serviceName": "iam",
+        "resourceType": "group",
+        "region": "us-east-1"
+    },
+    "expectedCalls": {
+        "get_group_policy": [
+            {
+                "args": [],
+                "kwargs": {
+                    "GroupName": "TestGroup",
+                    "PolicyName": "TestGroupPolicy"
+                }
+            }
+        ],
+        "list_attached_group_policies": [
+            {
+                "args": [],
+                "kwargs": {
+                    "GroupName": "TestGroup"
+                }
+            }
+        ]
+    },
+    "expectedResults": [
+        {
+            "urn": {
+                "cloud_name": "aws",
+                "account_id": "0123456789012",
+                "region": "us-east-1",
+                "service": "iam",
+                "resource_type": "group_policy",
+                "resource_id_parts": [
+                    "TestGroup",
+                    "TestGroupPolicy"
+                ],
+                "resource_id": "TestGroup/TestGroupPolicy"
+            },
+            "relationships": [],
+            "dependent_resource_urns": [],
+            "parent_urn": {
+                "cloud_name": "aws",
+                "account_id": "0123456789012",
+                "region": "us-east-1",
+                "service": "iam",
+                "resource_type": "group",
+                "resource_id_parts": [
+                    "TestGroup"
+                ],
+                "resource_id": "TestGroup"
+            },
+            "cloudwanderer_metadata": {
+                "GroupName": "TestGroup",
+                "PolicyName": "TestGroupPolicy",
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Action": [
+                                "logs:CreateLogGroup",
+                                "logs:CreateLogStream",
+                                "logs:PutLogEvents"
+                            ],
+                            "Resource": "arn:aws:logs:eu-west-1:*:*",
+                            "Effect": "Allow"
+                        }
+                    ]
+                }
+            },
+            "group_name": "TestGroup",
+            "policy_name": "TestGroupPolicy",
+            "policy_document": {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Action": [
+                            "logs:CreateLogGroup",
+                            "logs:CreateLogStream",
+                            "logs:PutLogEvents"
+                        ],
+                        "Resource": "arn:aws:logs:eu-west-1:*:*",
+                        "Effect": "Allow"
+                    }
+                ]
+            }
+        },
+        {
+            "urn": {
+                "cloud_name": "aws",
+                "account_id": "0123456789012",
+                "region": "us-east-1",
+                "service": "iam",
+                "resource_type": "group",
+                "resource_id_parts": [
+                    "TestGroup"
+                ],
+                "resource_id": "TestGroup"
+            },
+            "relationships": [
+                [
+                    {
+                        "cloud_name": "aws",
+                        "account_id": "aws",
+                        "region": "us-east-1",
+                        "service": "iam",
+                        "resource_type": "policy",
+                        "resource_id_parts": [
+                            "arn:aws:iam::aws:policy/ReadOnlyAccess"
+                        ],
+                        "resource_id": "arn\\:aws\\:iam\\:\\:aws\\:policy\\/ReadOnlyAccess"
+                    },
+                    "RelationshipDirection.OUTBOUND"
+                ]
+            ],
+            "dependent_resource_urns": [
+                {
+                    "cloud_name": "aws",
+                    "account_id": "0123456789012",
+                    "region": "us-east-1",
+                    "service": "iam",
+                    "resource_type": "group_policy",
+                    "resource_id_parts": [
+                        "TestGroup",
+                        "TestGroupPolicy"
+                    ],
+                    "resource_id": "TestGroup/TestGroupPolicy"
+                }
+            ],
+            "parent_urn": null,
+            "cloudwanderer_metadata": {
+                "Path": "/",
+                "GroupName": "TestGroup",
+                "GroupId": "111111111111111111111",
+                "Arn": "arn:aws:iam::0123456789012:group/TestGroup",
+                "CreateDate": "2014-08-30T07:02:55Z",
+                "ManagedPolicyAttachments": [
+                    {
+                        "PolicyName": "ReadOnlyAccess",
+                        "PolicyArn": "arn:aws:iam::aws:policy/ReadOnlyAccess"
+                    }
+                ]
+            },
+            "path": "/",
+            "group_name": "TestGroup",
+            "group_id": "111111111111111111111",
+            "arn": "arn:aws:iam::0123456789012:group/TestGroup",
+            "create_date": "2014-08-30T07:02:55Z",
+            "managed_policy_attachments": [
+                {
+                    "PolicyName": "ReadOnlyAccess",
+                    "PolicyArn": "arn:aws:iam::aws:policy/ReadOnlyAccess"
+                }
+            ]
+        }
+    ]
+}
