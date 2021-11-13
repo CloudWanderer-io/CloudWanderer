@@ -4,10 +4,10 @@ import logging
 from datetime import datetime
 from typing import Callable, Dict, List, NamedTuple, Optional, Union
 
-from cloudwanderer.models import ServiceResourceType, ServiceResourceTypeFilter
-
 from .aws_interface import CloudWandererAWSInterface
+from .base import CloudInterface
 from .cloud_wanderer_resource import CloudWandererResource
+from .models import ServiceResourceType, ServiceResourceTypeFilter
 from .storage_connectors import BaseStorageConnector
 from .urn import URN, PartialUrn
 from .utils import exception_logging_wrapper
@@ -19,14 +19,14 @@ class CloudWanderer:
     """CloudWanderer."""
 
     def __init__(
-        self, storage_connectors: List["BaseStorageConnector"], cloud_interface: CloudWandererAWSInterface = None
+        self, storage_connectors: List["BaseStorageConnector"], cloud_interface: CloudInterface = None
     ) -> None:
         """Initialise CloudWanderer.
 
         Args:
-            storage_connectors (List[BaseStorageConnector]):
+            storage_connectors:
                 CloudWanderer storage connector objects.
-            cloud_interface (CloudWandererAWSInterface):
+            cloud_interface:
                 The cloud interface to get resources from.
                 Defaults to :class:`~cloudwanderer.aws_interface.CloudWandererAWSInterface`.
         """
@@ -46,13 +46,10 @@ class CloudWanderer:
             service_resource_type_filters:
                 List of :class:`ServiceResourceTypeFilter` specific to the CloudInterface that helps filter resources.
         """
-        validated_resource_type_filters = self.cloud_interface.type_check_filter_objects(
-            service_resource_type_filters or []
-        )
         for storage_connector in self.storage_connectors:
             storage_connector.open()
         resources = list(
-            self.cloud_interface.get_resource(urn=urn, service_resource_type_filters=validated_resource_type_filters)
+            self.cloud_interface.get_resource(urn=urn, service_resource_type_filters=service_resource_type_filters)
         )
 
         for resource in resources:
@@ -70,7 +67,7 @@ class CloudWanderer:
         service_resource_types: Optional[List[ServiceResourceType]] = None,
         service_resource_type_filters: Optional[List[ServiceResourceTypeFilter]] = None,
     ) -> None:
-        """Write all AWS resources in this account from all regions and all services to storage.
+        """Write all resources in this account from all regions and all services to storage.
 
         All arguments are optional.
 
@@ -85,9 +82,6 @@ class CloudWanderer:
         Raises:
             ValueError: If invalid get/delete urns are produced by the cloud interface's get_resource_discovery_actions
         """
-        validated_resource_type_filters = self.cloud_interface.type_check_filter_objects(
-            service_resource_type_filters or []
-        )
         for storage_connector in self.storage_connectors:
             storage_connector.open()
         action_sets = self.cloud_interface.get_resource_discovery_actions(
@@ -103,7 +97,7 @@ class CloudWanderer:
                     region=get_urn.region,
                     service_name=get_urn.service,
                     resource_type=get_urn.resource_type,
-                    service_resource_type_filters=validated_resource_type_filters or [],
+                    service_resource_type_filters=service_resource_type_filters or [],
                 )
                 for resource in resources:
                     earliest_resource_discovered = discovery_start_times.get(resource.urn.cloud_service_resource_label)
@@ -138,7 +132,7 @@ class CloudWanderer:
         concurrency: int = 10,
         **kwargs,
     ) -> List["CloudWandererConcurrentWriteThreadResult"]:
-        """Write all AWS resources in this account from all regions and all services to storage.
+        """Write all resources in this account from all regions and all services to storage.
 
         Any additional args will be passed into the cloud interface's ``get_`` methods.
         **WARNING:** Experimental.

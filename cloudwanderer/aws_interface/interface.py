@@ -4,17 +4,17 @@ Provides simpler methods for :class:`~.cloud_wanderer.CloudWanderer` to call.
 """
 
 import logging
-from typing import TYPE_CHECKING, Iterator, List, Optional, cast
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, cast
 
 import botocore
 
-from cloudwanderer.aws_interface.models import AWSResourceTypeFilter
-
+from ..base import CloudInterface
 from ..cloud_wanderer_resource import CloudWandererResource
 from ..exceptions import UnsupportedResourceTypeError
 from ..models import ActionSet, ServiceResourceType, ServiceResourceTypeFilter, TemplateActionSet
 from ..urn import URN
 from .aws_services import AWS_SERVICES
+from .models import AWSResourceTypeFilter
 from .session import CloudWandererBoto3Session
 
 if TYPE_CHECKING:
@@ -38,7 +38,7 @@ def _get_service_resource_type_filter_from_list(
     )
 
 
-class CloudWandererAWSInterface:
+class CloudWandererAWSInterface(CloudInterface):
     """Simplifies lookup of Boto3 services and resources."""
 
     def __init__(
@@ -63,8 +63,9 @@ class CloudWandererAWSInterface:
     def get_resource(
         self,
         urn: URN,
-        service_resource_type_filters: Optional[List[AWSResourceTypeFilter]] = None,
+        service_resource_type_filters: Optional[List[ServiceResourceTypeFilter]] = None,
         include_dependent_resources: bool = True,
+        client_args: Optional[Dict[str, Any]] = None,
     ) -> Iterator[CloudWandererResource]:
         """Yield the resource picked out by this URN and optionally its subresources.
 
@@ -72,14 +73,16 @@ class CloudWandererAWSInterface:
             urn (URN): The urn of the resource to get.
             service_resource_type_filters: A :class:`AWSResourceTypeFilter` list to filter resources.
             include_dependent_resources: Whether or not to additionally yield the dependent_resources of the resource.
+            client_args: Additional keyword arguments will be passed down to the Boto3 client.
 
         Raises:
             UnsupportedResourceTypeError: Occurs when we try to get an unsupported resource type.
             botocore.exceptions.ClientError: Raises from Boto3 client.
         """
+        validated_resource_type_filters = self._type_check_filter_objects(service_resource_type_filters or {})
         try:
             service = self.cloudwanderer_boto3_session.resource(
-                service_name=cast(AWS_SERVICES, urn.service), region_name=urn.region
+                service_name=cast(AWS_SERVICES, urn.service), region_name=urn.region, **(client_args or {})
             )
             if service.service_map.is_global_service and service.service_map.global_service_region != urn.region:
                 logger.info(
@@ -112,7 +115,7 @@ class CloudWandererAWSInterface:
 
         dependent_resource_urns = []
         if include_dependent_resources:
-            for dependent_resource in self._get_dependent_resources(resource, service_resource_type_filters):
+            for dependent_resource in self._get_dependent_resources(resource, validated_resource_type_filters):
                 dependent_resource_urns.append(dependent_resource.urn)
                 yield dependent_resource
         yield CloudWandererResource(
@@ -127,8 +130,8 @@ class CloudWandererAWSInterface:
         service_name: str,
         resource_type: str,
         region: str,
-        service_resource_type_filters: Optional[List[AWSResourceTypeFilter]] = None,
-        **kwargs,
+        service_resource_type_filters: Optional[List[ServiceResourceTypeFilter]] = None,
+        client_args: Optional[Dict[str, Any]] = None,
     ) -> Iterator[CloudWandererResource]:
         """Return all resources of resource_type from Boto3.
 
@@ -137,18 +140,21 @@ class CloudWandererAWSInterface:
             resource_type (str): The type of resource to get resources of (e.g. ``'instance'``)
             region (str): The region to get resources of (e.g. ``'eu-west-1'``)
             service_resource_type_filters: A :class:`AWSResourceTypeFilter` list to filter resources.
-            **kwargs: Additional keyword arguments will be passed down to the Boto3 client.
+            client_args: Additional keyword arguments will be passed down to the Boto3 client.
 
         Raises:
             botocore.exceptions.ClientError: Occurs if the Boto3 Client Errors.
         """
+        validated_resource_type_filters = self._type_check_filter_objects(service_resource_type_filters or {})
         service_name = cast(AWS_SERVICES, service_name)
         logger.info("Getting %s %s resources from %s", service_name, resource_type, region)
-        service = self.cloudwanderer_boto3_session.resource(service_name=service_name, region_name=region)
+        service = self.cloudwanderer_boto3_session.resource(
+            service_name=service_name, region_name=region, **(client_args or {})
+        )
         resource_map: ResourceMap = service.service_map.get_resource_map(resource_type)
         base_resource_filter = (
             _get_service_resource_type_filter_from_list(
-                service_resource_type_filters=service_resource_type_filters or [],
+                service_resource_type_filters=validated_resource_type_filters,
                 service=service_name,
                 resource_type=resource_type,
             )
@@ -166,7 +172,7 @@ class CloudWandererAWSInterface:
                     )
                     continue
                 dependent_resource_urns = []
-                for dependent_resource in self._get_dependent_resources(resource, service_resource_type_filters):
+                for dependent_resource in self._get_dependent_resources(resource, validated_resource_type_filters):
                     dependent_resource_urns.append(dependent_resource.urn)
                     yield dependent_resource
                 yield CloudWandererResource(
@@ -234,6 +240,13 @@ class CloudWandererAWSInterface:
     def get_resource_discovery_actions(
         self, regions: List[str] = None, service_resource_types: List[ServiceResourceType] = None
     ) -> List[ActionSet]:
+        """Return the ActionSets required to discover resources according to the params.
+
+        Arguments:
+            regions: List of regions to discover resources in
+            service_resource_types: List of service resource types to discover
+
+        """
         service_resource_types = service_resource_types or []
         discovery_regions = regions or self.cloudwanderer_boto3_session.get_enabled_regions()
 
@@ -256,23 +269,7 @@ class CloudWandererAWSInterface:
 
         return self._inflate_action_set_regions(action_sets)
 
-    def get_all_empty_resources(self, include_dependent_resource=False) -> Iterator["CloudWandererServiceResource"]:
-        """Return an ``empty_resource=True`` ServiceResource object for each resource type.
-
-        Arguments:
-            include_dependent_resource: Whether or not dependent resources should be returned.
-        """
-        for service_name in self.cloudwanderer_boto3_session.get_available_resources():
-            service = self.cloudwanderer_boto3_session.resource(service_name)  # type: ignore
-            for resource_type in service.resource_types:
-                resource = service.resource(resource_type, empty_resource=True)
-                yield resource
-                if not include_dependent_resource:
-                    continue
-                for dependent_resource_type in resource.dependent_resource_types:
-                    yield service.resource(dependent_resource_type, empty_resource=True)
-
-    def type_check_filter_objects(
+    def _type_check_filter_objects(
         self, service_resource_type_filters=List[ServiceResourceTypeFilter]
     ) -> List[AWSResourceTypeFilter]:
         """Raise exception if not all :class:`ServiceResourceTypeFilter` in the list are :class:`AWSResourceTypeFilter`.
