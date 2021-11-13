@@ -8,10 +8,10 @@ from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, cast
 
 import botocore
 
-from ..base import CloudInterface
+from ..base import CloudInterface, ServiceResourceTypeFilter
 from ..cloud_wanderer_resource import CloudWandererResource
 from ..exceptions import UnsupportedResourceTypeError
-from ..models import ActionSet, ServiceResourceType, ServiceResourceTypeFilter, TemplateActionSet
+from ..models import ActionSet, ServiceResourceType, TemplateActionSet
 from ..urn import URN
 from .aws_services import AWS_SERVICES
 from .models import AWSResourceTypeFilter

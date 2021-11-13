@@ -3,8 +3,15 @@ import abc
 from typing import Any, Dict, Iterator, List, Optional
 
 from .cloud_wanderer_resource import CloudWandererResource
-from .models import ActionSet, ServiceResourceType, ServiceResourceTypeFilter
+from .models import ActionSet, ServiceResourceType
 from .urn import URN
+
+
+class ServiceResourceTypeFilter(abc.ABC):
+    """Abstract Base Class for CloudInterfaces to subclass for resource filtering."""
+
+    service_name: str
+    resource_type: str
 
 
 class CloudInterface(abc.ABC):

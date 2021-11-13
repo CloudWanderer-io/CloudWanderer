@@ -4,7 +4,7 @@ from typing import Any, Dict, Iterator, List, Optional
 import jmespath  # type: ignore
 from boto3.resources.base import ServiceResource
 
-from ..models import ServiceResourceTypeFilter
+from ..base import ServiceResourceTypeFilter
 
 
 class AWSResourceTypeFilter(ServiceResourceTypeFilter):

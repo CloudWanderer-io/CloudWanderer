@@ -1,16 +1,8 @@
 """Models for CloudWanderer data."""
-import abc
 from enum import Enum, auto, unique
 from typing import List, NamedTuple
 
 from .urn import PartialUrn
-
-
-class ServiceResourceTypeFilter(abc.ABC):
-    """Abstract Base Class for CloudInterfaces to subclass for resource filtering."""
-
-    service_name: str
-    resource_type: str
 
 
 class ActionSet(NamedTuple):

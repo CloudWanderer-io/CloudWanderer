@@ -5,9 +5,9 @@ from datetime import datetime
 from typing import Callable, Dict, List, NamedTuple, Optional, Union
 
 from .aws_interface import CloudWandererAWSInterface
-from .base import CloudInterface
+from .base import CloudInterface, ServiceResourceTypeFilter
 from .cloud_wanderer_resource import CloudWandererResource
-from .models import ServiceResourceType, ServiceResourceTypeFilter
+from .models import ServiceResourceType
 from .storage_connectors import BaseStorageConnector
 from .urn import URN, PartialUrn
 from .utils import exception_logging_wrapper
