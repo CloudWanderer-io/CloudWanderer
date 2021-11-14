@@ -16,6 +16,22 @@
                     ],
                     "path": "AutoScalingGroups[]"
                 }
+            },
+            "LaunchConfigurations": {
+                "request": {
+                    "operation": "DescribeLaunchConfigurations"
+                },
+                "resource": {
+                    "type": "LaunchConfiguration",
+                    "identifiers": [
+                        {
+                            "target": "LaunchConfigurationName",
+                            "source": "response",
+                            "path": "LaunchConfigurations[].LaunchConfigurationName"
+                        }
+                    ],
+                    "path": "LaunchConfigurations[]"
+                }
             }
         }
     },
@@ -40,6 +56,28 @@
                     ]
                 },
                 "path": "AutoScalingGroups[0]"
+            }
+        },
+        "LaunchConfiguration": {
+            "identifiers": [
+                {
+                    "name": "LaunchConfigurationName",
+                    "memberName": "LaunchConfigurationName"
+                }
+            ],
+            "shape": "LaunchConfiguration",
+            "load": {
+                "request": {
+                    "operation": "DescribeLaunchConfigurations",
+                    "params": [
+                        {
+                            "target": "LaunchConfigurationNames[0]",
+                            "source": "identifier",
+                            "name": "LaunchConfigurationName"
+                        }
+                    ]
+                },
+                "path": "LaunchConfigurations[0]"
             }
         }
     }
