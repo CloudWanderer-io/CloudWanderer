@@ -1,4 +1,62 @@
 {
     "service": {},
-    "resources": {}
+    "resources": {
+        "LoadBalancer": {
+            "type": "resource",
+            "relationships": [
+                {
+                    "basePath": "@",
+                    "idParts": [
+                        {
+                            "path": "VPCId"
+                        }
+                    ],
+                    "service": "ec2",
+                    "resourceType": "vpc",
+                    "regionSource": "sameAsResource",
+                    "accountIdSource": "unknown",
+                    "direction": "inbound"
+                },
+                {
+                    "basePath": "Instances[]",
+                    "idParts": [
+                        {
+                            "path": "InstanceId"
+                        }
+                    ],
+                    "service": "ec2",
+                    "resourceType": "instance",
+                    "regionSource": "sameAsResource",
+                    "accountIdSource": "unknown",
+                    "direction": "outbound"
+                },
+                {
+                    "basePath": "SecurityGroups[]",
+                    "idParts": [
+                        {
+                            "path": "@"
+                        }
+                    ],
+                    "service": "ec2",
+                    "resourceType": "security_group",
+                    "regionSource": "sameAsResource",
+                    "accountIdSource": "unknown",
+                    "direction": "outbound"
+                },
+                {
+                    "basePath": "Subnets[]",
+                    "idParts": [
+                        {
+                            "path": "@"
+                        }
+                    ],
+                    "service": "ec2",
+                    "resourceType": "subnet",
+                    "regionSource": "sameAsResource",
+                    "accountIdSource": "unknown",
+                    "direction": "outbound"
+                }
+            ]
+        }
+    }
 }

@@ -32,8 +32,8 @@
                     ],
                     "Subnets": [
                         "subnet-11111111",
-                        "subnet-11111111",
-                        "subnet-11111111"
+                        "subnet-22222222",
+                        "subnet-33333333"
                     ],
                     "VPCId": "vpc-11111111",
                     "Instances": [
@@ -89,7 +89,92 @@
                 ],
                 "resource_id": "test"
             },
-            "relationships": [],
+            "relationships": [
+                [
+                    {
+                        "cloud_name": "aws",
+                        "account_id": "unknown",
+                        "region": "eu-west-2",
+                        "service": "ec2",
+                        "resource_type": "vpc",
+                        "resource_id_parts": [
+                            "vpc-11111111"
+                        ],
+                        "resource_id": "vpc-11111111"
+                    },
+                    "RelationshipDirection.INBOUND"
+                ],
+                [
+                    {
+                        "cloud_name": "aws",
+                        "account_id": "unknown",
+                        "region": "eu-west-2",
+                        "service": "ec2",
+                        "resource_type": "instance",
+                        "resource_id_parts": [
+                            "i-111111111111"
+                        ],
+                        "resource_id": "i-111111111111"
+                    },
+                    "RelationshipDirection.OUTBOUND"
+                ],
+                [
+                    {
+                        "cloud_name": "aws",
+                        "account_id": "unknown",
+                        "region": "eu-west-2",
+                        "service": "ec2",
+                        "resource_type": "security_group",
+                        "resource_id_parts": [
+                            "sg-11111111"
+                        ],
+                        "resource_id": "sg-11111111"
+                    },
+                    "RelationshipDirection.OUTBOUND"
+                ],
+                [
+                    {
+                        "cloud_name": "aws",
+                        "account_id": "unknown",
+                        "region": "eu-west-2",
+                        "service": "ec2",
+                        "resource_type": "subnet",
+                        "resource_id_parts": [
+                            "subnet-11111111"
+                        ],
+                        "resource_id": "subnet-11111111"
+                    },
+                    "RelationshipDirection.OUTBOUND"
+                ],
+                [
+                    {
+                        "cloud_name": "aws",
+                        "account_id": "unknown",
+                        "region": "eu-west-2",
+                        "service": "ec2",
+                        "resource_type": "subnet",
+                        "resource_id_parts": [
+                            "subnet-22222222"
+                        ],
+                        "resource_id": "subnet-22222222"
+                    },
+                    "RelationshipDirection.OUTBOUND"
+                ],
+                [
+                    {
+                        "cloud_name": "aws",
+                        "account_id": "unknown",
+                        "region": "eu-west-2",
+                        "service": "ec2",
+                        "resource_type": "subnet",
+                        "resource_id_parts": [
+                            "subnet-33333333"
+                        ],
+                        "resource_id": "subnet-33333333"
+                    },
+                    "RelationshipDirection.OUTBOUND"
+                ]
+            ],
             "dependent_resource_urns": [],
             "parent_urn": null,
             "cloudwanderer_metadata": {
@@ -121,8 +206,8 @@
                 ],
                 "Subnets": [
                     "subnet-11111111",
-                    "subnet-11111111",
-                    "subnet-11111111"
+                    "subnet-22222222",
+                    "subnet-33333333"
                 ],
                 "VPCId": "vpc-11111111",
                 "Instances": [
@@ -175,8 +260,8 @@
             ],
             "subnets": [
                 "subnet-11111111",
-                "subnet-11111111",
-                "subnet-11111111"
+                "subnet-22222222",
+                "subnet-33333333"
             ],
             "vpc_id": "vpc-11111111",
             "instances": [
