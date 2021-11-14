@@ -6,12 +6,12 @@ import pytest
 from cloudwanderer.aws_interface import CloudWandererBoto3Session
 
 
-@lru_cache
+@lru_cache()
 def session_cache():
     return CloudWandererBoto3Session()
 
 
-@lru_cache
+@lru_cache()
 def service_cache(service_name):
     session = session_cache()
     return session.resource(service_name)
