@@ -1,3 +1,8 @@
+# 0.24.0
+
+- Added Launch Configuration discovery
+- Added classic ELB discovery
+
 # 0.23.0 
 
 - Added managed policy relationship to IAM Groups
