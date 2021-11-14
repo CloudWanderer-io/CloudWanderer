@@ -58,7 +58,36 @@
                 ],
                 "resource_id": "test"
             },
-            "relationships": [],
+            "relationships": [
+                [
+                    {
+                        "account_id": "unknown",
+                        "cloud_name": "aws",
+                        "region": "eu-west-2",
+                        "resource_id": "ami-11111111111111111",
+                        "resource_id_parts": [
+                            "ami-11111111111111111"
+                        ],
+                        "resource_type": "image",
+                        "service": "ec2"
+                    },
+                    "RelationshipDirection.OUTBOUND"
+                ],
+                [
+                    {
+                        "account_id": "unknown",
+                        "cloud_name": "aws",
+                        "region": "eu-west-2",
+                        "resource_id": "sg-11111111111111111",
+                        "resource_id_parts": [
+                            "sg-11111111111111111"
+                        ],
+                        "resource_type": "security_group",
+                        "service": "ec2"
+                    },
+                    "RelationshipDirection.OUTBOUND"
+                ]
+            ],
             "dependent_resource_urns": [],
             "parent_urn": null,
             "cloudwanderer_metadata": {

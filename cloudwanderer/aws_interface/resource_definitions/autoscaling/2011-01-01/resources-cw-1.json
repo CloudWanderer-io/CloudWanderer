@@ -45,6 +45,51 @@
           "direction": "outbound"
         }
       ]
+    },
+    "LaunchConfiguration": {
+      "type": "resource",
+      "relationships": [
+        {
+          "basePath": "@",
+          "idParts": [
+            {
+              "path": "ImageId"
+            }
+          ],
+          "service": "ec2",
+          "resourceType": "image",
+          "regionSource": "sameAsResource",
+          "accountIdSource": "unknown",
+          "direction": "outbound"
+        },
+        {
+          "basePath": "SecurityGroups[]",
+          "idParts": [
+            {
+              "path": "@"
+            }
+          ],
+          "service": "ec2",
+          "resourceType": "security_group",
+          "regionSource": "sameAsResource",
+          "accountIdSource": "unknown",
+          "direction": "outbound"
+        },
+        {
+          "basePath": "@",
+          "idParts": [
+            {
+              "path": "IamInstanceProfile.Arn",
+              "regexPattern": "[^:]+:[^:]+:[^:]+:[^:]*:(?P<account_id>[^:]+):[^:]+/(?P<id_part_0>[^:]+)"
+            }
+          ],
+          "service": "iam",
+          "resourceType": "instance_profile",
+          "regionSource": "unknown",
+          "accountIdSource": "sameAsResource",
+          "direction": "outbound"
+        }
+      ]
     }
   }
 }
