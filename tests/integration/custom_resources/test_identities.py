@@ -23,19 +23,23 @@ def resource_type_cache(service_name, resource_type):
     return service.resource(resource_type, empty_resource=True)
 
 
+def get_id_parts_from_regex(regex_pattern):
+    pattern = re.compile(regex_pattern)
+    return [id_part for id_part in pattern.groupindex.keys() if id_part.startswith("id_")]
+
+
 def validate_id_parts(service_name, resource_type, id_parts):
     resource = resource_type_cache(service_name, resource_type)
     id_part_list = []
 
     for part in id_parts:
         if part.regex_pattern:
-            pattern = re.compile(part.regex_pattern)
-            id_part_list.extend(id_part for id_part in pattern.groupindex.keys() if id_part.startswith("id_"))
+            id_part_list.extend(get_id_parts_from_regex(part.regex_pattern))
             continue
         id_part_list.append(part.path)
     assert len(resource.meta.resource_model.identifiers) == len(id_part_list), (
         f"Expected {[x.name for x in resource.meta.resource_model.identifiers]} "
-        f"got {id_part_list}. These are not expected to match names, but the number of ids must match."
+        f"got {id_part_list}. The id names are not expected to match, but the number of ids must match."
     )
 
 
