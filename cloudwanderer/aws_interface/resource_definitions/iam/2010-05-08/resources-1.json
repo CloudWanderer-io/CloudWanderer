@@ -357,6 +357,18 @@
               }
             ]
           }
+        },
+        "GroupManagedPolicyAttachments": {
+          "resource": {
+            "type": "GroupManagedPolicyAttachments",
+            "identifiers": [
+              {
+                "target": "GroupName",
+                "source": "identifier",
+                "name": "Name"
+              }
+            ]
+          }
         }
       },
       "hasMany": {
@@ -558,6 +570,28 @@
           "params": [
             {
               "target": "UserName",
+              "source": "identifier",
+              "name": "Name"
+            }
+          ]
+        },
+        "path": "@"
+      }
+    },
+    "GroupManagedPolicyAttachments": {
+      "identifiers": [
+        {
+          "name": "Name",
+          "memberName": "Name"
+        }
+      ],
+      "shape": "ListAttachedGroupPoliciesResponse",
+      "load": {
+        "request": {
+          "operation": "ListAttachedGroupPolicies",
+          "params": [
+            {
+              "target": "GroupName",
               "source": "identifier",
               "name": "Name"
             }

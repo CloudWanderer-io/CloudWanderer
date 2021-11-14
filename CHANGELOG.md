@@ -1,3 +1,7 @@
+# 0.23.0 
+
+- Added managed policy relationship to IAM Groups
+
 # 0.22.0
 
 - Added managed policy relationships to IAM users
