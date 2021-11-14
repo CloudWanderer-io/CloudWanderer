@@ -1,0 +1,205 @@
+{
+    "service": "elb",
+    "mockData": {
+        "describe_load_balancers.return_value": {
+            "LoadBalancerDescriptions": [
+                {
+                    "LoadBalancerName": "test",
+                    "DNSName": "test-111111111111.eu-west-1.elb.amazonaws.com",
+                    "CanonicalHostedZoneName": "test-111111111111.eu-west-1.elb.amazonaws.com",
+                    "CanonicalHostedZoneNameID": "11111111111111",
+                    "ListenerDescriptions": [
+                        {
+                            "Listener": {
+                                "Protocol": "HTTP",
+                                "LoadBalancerPort": 80,
+                                "InstanceProtocol": "HTTP",
+                                "InstancePort": 80
+                            },
+                            "PolicyNames": []
+                        }
+                    ],
+                    "Policies": {
+                        "AppCookieStickinessPolicies": [],
+                        "LBCookieStickinessPolicies": [],
+                        "OtherPolicies": []
+                    },
+                    "BackendServerDescriptions": [],
+                    "AvailabilityZones": [
+                        "eu-west-1a",
+                        "eu-west-1c",
+                        "eu-west-1b"
+                    ],
+                    "Subnets": [
+                        "subnet-11111111",
+                        "subnet-11111111",
+                        "subnet-11111111"
+                    ],
+                    "VPCId": "vpc-11111111",
+                    "Instances": [
+                        {
+                            "InstanceId": "i-111111111111"
+                        }
+                    ],
+                    "HealthCheck": {
+                        "Target": "HTTP:80/index.html",
+                        "Interval": 30,
+                        "Timeout": 5,
+                        "UnhealthyThreshold": 2,
+                        "HealthyThreshold": 10
+                    },
+                    "SourceSecurityGroup": {
+                        "OwnerAlias": "0123456789012",
+                        "GroupName": "default"
+                    },
+                    "SecurityGroups": [
+                        "sg-11111111"
+                    ],
+                    "CreatedTime": "2021-11-14T15:13:30.680Z",
+                    "Scheme": "internet-facing"
+                }
+            ]
+        }
+    },
+    "getResource": {
+        "urn": "urn:aws:123456789012:eu-west-2:elb:load_balancer:test"
+    },
+    "expectedCalls": {
+        "describe_load_balancers": [
+            {
+                "args": [],
+                "kwargs": {
+                    "LoadBalancerNames": [
+                        "test"
+                    ]
+                }
+            }
+        ]
+    },
+    "expectedResults": [
+        {
+            "urn": {
+                "cloud_name": "aws",
+                "account_id": "0123456789012",
+                "region": "eu-west-2",
+                "service": "elb",
+                "resource_type": "load_balancer",
+                "resource_id_parts": [
+                    "test"
+                ],
+                "resource_id": "test"
+            },
+            "relationships": [],
+            "dependent_resource_urns": [],
+            "parent_urn": null,
+            "cloudwanderer_metadata": {
+                "LoadBalancerName": "test",
+                "DNSName": "test-111111111111.eu-west-1.elb.amazonaws.com",
+                "CanonicalHostedZoneName": "test-111111111111.eu-west-1.elb.amazonaws.com",
+                "CanonicalHostedZoneNameID": "11111111111111",
+                "ListenerDescriptions": [
+                    {
+                        "Listener": {
+                            "Protocol": "HTTP",
+                            "LoadBalancerPort": 80,
+                            "InstanceProtocol": "HTTP",
+                            "InstancePort": 80
+                        },
+                        "PolicyNames": []
+                    }
+                ],
+                "Policies": {
+                    "AppCookieStickinessPolicies": [],
+                    "LBCookieStickinessPolicies": [],
+                    "OtherPolicies": []
+                },
+                "BackendServerDescriptions": [],
+                "AvailabilityZones": [
+                    "eu-west-1a",
+                    "eu-west-1c",
+                    "eu-west-1b"
+                ],
+                "Subnets": [
+                    "subnet-11111111",
+                    "subnet-11111111",
+                    "subnet-11111111"
+                ],
+                "VPCId": "vpc-11111111",
+                "Instances": [
+                    {
+                        "InstanceId": "i-111111111111"
+                    }
+                ],
+                "HealthCheck": {
+                    "Target": "HTTP:80/index.html",
+                    "Interval": 30,
+                    "Timeout": 5,
+                    "UnhealthyThreshold": 2,
+                    "HealthyThreshold": 10
+                },
+                "SourceSecurityGroup": {
+                    "OwnerAlias": "0123456789012",
+                    "GroupName": "default"
+                },
+                "SecurityGroups": [
+                    "sg-11111111"
+                ],
+                "CreatedTime": "2021-11-14T15:13:30.680Z",
+                "Scheme": "internet-facing"
+            },
+            "load_balancer_name": "test",
+            "dns_name": "test-111111111111.eu-west-1.elb.amazonaws.com",
+            "canonical_hosted_zone_name": "test-111111111111.eu-west-1.elb.amazonaws.com",
+            "canonical_hosted_zone_name_id": "11111111111111",
+            "listener_descriptions": [
+                {
+                    "Listener": {
+                        "Protocol": "HTTP",
+                        "LoadBalancerPort": 80,
+                        "InstanceProtocol": "HTTP",
+                        "InstancePort": 80
+                    },
+                    "PolicyNames": []
+                }
+            ],
+            "policies": {
+                "AppCookieStickinessPolicies": [],
+                "LBCookieStickinessPolicies": [],
+                "OtherPolicies": []
+            },
+            "backend_server_descriptions": [],
+            "availability_zones": [
+                "eu-west-1a",
+                "eu-west-1c",
+                "eu-west-1b"
+            ],
+            "subnets": [
+                "subnet-11111111",
+                "subnet-11111111",
+                "subnet-11111111"
+            ],
+            "vpc_id": "vpc-11111111",
+            "instances": [
+                {
+                    "InstanceId": "i-111111111111"
+                }
+            ],
+            "health_check": {
+                "Target": "HTTP:80/index.html",
+                "Interval": 30,
+                "Timeout": 5,
+                "UnhealthyThreshold": 2,
+                "HealthyThreshold": 10
+            },
+            "source_security_group": {
+                "OwnerAlias": "0123456789012",
+                "GroupName": "default"
+            },
+            "security_groups": [
+                "sg-11111111"
+            ],
+            "created_time": "2021-11-14T15:13:30.680Z",
+            "scheme": "internet-facing"
+        }
+    ]
+}
