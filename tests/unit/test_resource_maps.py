@@ -4,13 +4,13 @@ from unittest.mock import MagicMock
 import boto3
 from boto3.resources.model import ResourceModel
 
-from cloudwanderer.aws_interface.boto3_loaders import (
+from cloudwanderer.aws_interface.models import (
+    AWSResourceTypeFilter,
     IdPartSpecification,
     RelationshipSpecification,
     ResourceMap,
     ResourceRegionRequest,
 )
-from cloudwanderer.aws_interface.models import AWSResourceTypeFilter
 from cloudwanderer.models import RelationshipAccountIdSource, RelationshipDirection, RelationshipRegionSource
 
 

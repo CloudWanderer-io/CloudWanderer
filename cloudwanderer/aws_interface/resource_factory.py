@@ -19,8 +19,9 @@ from ..models import Relationship, RelationshipAccountIdSource, RelationshipRegi
 from ..urn import URN, PartialUrn
 from ..utils import snake_to_pascal
 from .boto3_helpers import _clean_boto3_metadata
-from .boto3_loaders import MergedServiceLoader, ServiceMap
+from .boto3_loaders import MergedServiceLoader
 from .exceptions import SecondaryAttributesNotFetchedError
+from .models import ServiceMap
 
 if TYPE_CHECKING:
     from .session import CloudWandererBoto3Session

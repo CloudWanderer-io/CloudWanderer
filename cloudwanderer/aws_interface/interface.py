@@ -14,13 +14,12 @@ from ..exceptions import UnsupportedResourceTypeError
 from ..models import ActionSet, ServiceResourceType, TemplateActionSet
 from ..urn import URN
 from .aws_services import AWS_SERVICES
-from .models import AWSResourceTypeFilter
+from .models import AWSResourceTypeFilter, ResourceMap
 from .session import CloudWandererBoto3Session
 
 if TYPE_CHECKING:
     from .stubs.resource import CloudWandererServiceResource
 
-from .boto3_loaders import ResourceMap
 
 logger = logging.getLogger(__name__)
 
