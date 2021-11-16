@@ -31,8 +31,8 @@ nitpick_ignore = [
     ("py:exc", "botocore.exceptions.ClientError"),
     ("py:class", "botocore.client.ClientCreator"),
     ("py:class", "botocore.model.Shape"),
-    ("py:class", "datetime.datetime"),
     ("py:class", "gremlin_python.driver.driver_remote_connection.DriverRemoteConnection"),
+    ("py:class", "type"),
 ]
 
 
@@ -78,6 +78,7 @@ html_favicon = "logo.png"
 intersphinx_mapping = {
     "boto3": ("https://boto3.amazonaws.com/v1/documentation/api/latest/", None),
     "botocore": ("https://botocore.amazonaws.com/v1/documentation/api/latest/", None),
+    "python": ("https://docs.python.org/3", None),
 }
 
 # -- Napoleon

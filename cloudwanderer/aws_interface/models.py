@@ -6,7 +6,12 @@ import jmespath  # type: ignore
 from boto3.resources.base import ServiceResource
 
 from ..base import ServiceResourceTypeFilter
-from ..models import RelationshipAccountIdSource, RelationshipDirection, RelationshipRegionSource
+from ..models import (
+    RelationshipAccountIdSource,
+    RelationshipDirection,
+    RelationshipRegionSource,
+    ResourceIdUniquenessScope,
+)
 from ..utils import camel_to_snake, snake_to_pascal
 
 
@@ -97,43 +102,32 @@ class ServiceMap(NamedTuple):
 
 
 class ResourceMap(NamedTuple):
-    """Specification for additional CloudWanderer specific metadata about a Boto3 resource type.
+    """Specification for additional CloudWanderer specific metadata about a Boto3 resource type."""
 
-    Attributes:
-        name:
-            The PascalCase name of the resource (e.g. ``Instance``)
-        type:
-            The snake_case type of the resource (e.g. ``instance``)
-        region_request:
-            An optional definition for how to perform a secondary query to
-            discover the region in which this resource exists.
-        default_aws_resource_type_filter:
-           The default :class:`AWSResourceTypeFilter` for this resource.
-        service_map:
-            A link back to the parent :class:`ServiceMap` object.
-        relationships:
-            The specifications for the relationships this resource can have.
-        secondary_attribute_maps:
-            The specifications for the secondary attributes for this resource.
-        urn_overrides:
-            Optional specifications for overriding URN parts based on resource metadata.
-        regional_resource:
-            Whether or not this resource exists in every region.
-        requires_load:
-            If the resource requires .load() calling on it before it has a complete set of metadata.
-            Used by IAM PolicyVersion because as a dependent resource it needs to be listed with ListPolicyVersions,
-            then subsequently got with GetPolicyVersion.
-    """
-
+    #: The PascalCase name of the resource (e.g. ``Instance``)
     name: str
+    #: The snake_case type of the resource (e.g. ``instance``)
     type: Optional[str]
+    #: The scope in which this resource's ID is unique.
+    id_uniqueness_scope: ResourceIdUniquenessScope
+    #: An optional definition for how to perform a secondary query to discover the region in
+    #: which this resource exists
     region_request: Optional["ResourceRegionRequest"]
+    #: The default :class:`AWSResourceTypeFilter` for this resource.
     default_aws_resource_type_filter: AWSResourceTypeFilter
+    #: A link back to the parent :class:`ServiceMap` object.
     service_map: ServiceMap
+    #: The specifications for the relationships this resource can have.
     relationships: List["RelationshipSpecification"]
+    #: The specifications for the secondary attributes for this resource.
     secondary_attribute_maps: List["SecondaryAttributeMap"]
+    #: Optional specifications for overriding URN parts based on resource metadata.
     urn_overrides: List["IdPartSpecification"]
+    #: Whether or not this resource exists in every region.
     regional_resource: bool = True
+    #: If the resource requires .load() calling on it before it has a complete set of metadata.
+    #: Used by IAM PolicyVersion because as a dependent resource it needs to be
+    #: listed with ListPolicyVersions, then subsequently got with GetPolicyVersion.
     requires_load: bool = False
 
     @classmethod
@@ -167,6 +161,7 @@ class ResourceMap(NamedTuple):
                 IdPartSpecification.factory(urn_override) for urn_override in definition.get("urnOverrides", [])
             ],
             requires_load=definition.get("requiresLoad", False),
+            id_uniqueness_scope=ResourceIdUniquenessScope.factory(definition.get("idUniquenessScope", {})),
         )
 
     def should_query_resources_in_region(self, region: str) -> bool:
@@ -255,7 +250,9 @@ class RelationshipSpecification(NamedTuple):
 class IdPartSpecification(NamedTuple):
     """Specification for getting the ID parts of a resource's relationship with another resource."""
 
+    #: The path to the ID Part
     path: str
+    #: The regex pattern to apply to the ID part to extract the URN
     regex_pattern: str
 
     @classmethod
@@ -266,5 +263,7 @@ class IdPartSpecification(NamedTuple):
 class SecondaryAttributeMap(NamedTuple):
     """Specification for mapping attributes contained in a secondary attribute to its parent's resource."""
 
+    #: The path to get the URN from in the Secondary Attribute resource metadata itself.
     source_path: str
+    #: The key to place this secondary attribute under in the parent resource.
     destination_name: str
