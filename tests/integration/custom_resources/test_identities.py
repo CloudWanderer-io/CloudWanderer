@@ -1,6 +1,4 @@
 import logging
-import re
-from collections import defaultdict
 from functools import lru_cache
 
 import pytest
@@ -28,40 +26,21 @@ def resource_type_cache(service_name, resource_type):
     return service.resource(resource_type, empty_resource=True)
 
 
-def get_matching_groups(regex_pattern, starts_with=""):
-    pattern = re.compile(regex_pattern)
-    return [id_part for id_part in pattern.groupindex.keys()]
-
-
-def get_urn_components_from_id_parts(id_parts):
-    urn_parts = defaultdict(list)
-    for part in id_parts:
-        if part.regex_pattern:
-            for matching_group in get_matching_groups(part.regex_pattern):
-                if matching_group.startswith("id_"):
-                    urn_parts["id_parts"].append(matching_group)
-                    continue
-                urn_parts[matching_group].append("regex")
-            continue
-        urn_parts["id_parts"].append(part.path)
-    return dict(urn_parts)
-
-
 def validate_identifiers(service_name, resource_type, id_parts):
-    identifiers = get_urn_components_from_id_parts(id_parts).get("id_parts", [])
+    urn_parts = {k: v for id_part in id_parts for k, v in id_part.specified_urn_parts.items()}
     resource = resource_type_cache(service_name, resource_type)
-    assert len(resource.meta.resource_model.identifiers) == len(identifiers), (
+    assert len(resource.meta.resource_model.identifiers) == len(urn_parts["resource_id_parts"]), (
         f"Expected {[x.name for x in resource.meta.resource_model.identifiers]} "
-        f"got {identifiers}. The id names are not expected to match, but the number of ids must match."
+        f"got {urn_parts['resource_id_parts']}. The id names are "
+        "not expected to match, but the number of ids must match."
     )
 
 
 def validate_relationship_spec_fulfils_uniqueness_scope(relationship_spec, originating_resource_type):
 
-    # regex_matching_groups = get_matching_groups()
     resource = resource_type_cache(relationship_spec.service, relationship_spec.resource_type)
     scope = resource.resource_map.id_uniqueness_scope
-    urn_components = get_urn_components_from_id_parts(relationship_spec.id_parts)
+    urn_components = {k: v for id_part in relationship_spec.id_parts for k, v in id_part.specified_urn_parts.items()}
     if scope.requires_region:
         assert relationship_spec.region_source != RelationshipRegionSource.UNKNOWN or "region" in urn_components, (
             f"{relationship_spec.service} {relationship_spec.resource_type} requires "

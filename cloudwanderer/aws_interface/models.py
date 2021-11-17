@@ -1,4 +1,6 @@
 """AWS Interface specific model classes."""
+import re
+from collections import defaultdict
 from typing import Any, Dict, Iterator, List, NamedTuple, Optional
 
 import botocore
@@ -13,6 +15,7 @@ from ..models import (
     ResourceIdUniquenessScope,
 )
 from ..utils import camel_to_snake, snake_to_pascal
+from .utils import _get_urn_components_from_string
 
 
 class AWSResourceTypeFilter(ServiceResourceTypeFilter):
@@ -258,6 +261,37 @@ class IdPartSpecification(NamedTuple):
     @classmethod
     def factory(cls, definition) -> "IdPartSpecification":
         return cls(path=definition["path"], regex_pattern=definition.get("regexPattern", ""))
+
+    def get_urn_parts(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Return id parts from a given data dict.
+
+        Parameters:
+            data: The data dictionary to get URN parts from.
+        """
+        id_raw = jmespath.search(self.path, data)
+        if not id_raw:
+            return None
+        if not self.regex_pattern:
+            return {"resource_id_parts": [id_raw]}
+        regex_results = _get_urn_components_from_string(self.regex_pattern, id_raw)
+        if not regex_results:
+            return None
+        return dict(regex_results)
+
+    @property
+    def specified_urn_parts(self) -> Dict[str, List[str]]:
+        """Return a dictionary specifying the URN components which were specified in this id part specification."""
+        urn_parts = defaultdict(list)
+        if self.regex_pattern:
+            pattern = re.compile(self.regex_pattern)
+            for matching_group in pattern.groupindex.keys():
+                if matching_group.startswith("id_part_"):
+                    urn_parts["resource_id_parts"].append(matching_group)
+                    continue
+                urn_parts[matching_group].append(matching_group)
+            return dict(urn_parts)
+        urn_parts["resource_id_parts"].append(self.path)
+        return dict(urn_parts)
 
 
 class SecondaryAttributeMap(NamedTuple):
