@@ -87,7 +87,10 @@ class RelationshipDirection(Enum):
 
 
 class ResourceIdUniquenessScope(NamedTuple):
-    """What is the scope of this resource ID's uniqueness."""
+    """What is the scope of this resource ID's uniqueness.
+
+    This is not used at runtime but is used by tests to determine the validity of relationship specifications.
+    """
 
     #: The resource id is only unique if the region is also supplied
     requires_region: bool

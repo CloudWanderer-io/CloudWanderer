@@ -14,7 +14,7 @@
           "service": "autoscaling",
           "resourceType": "launch_configuration",
           "regionSource": "sameAsResource",
-          "accountIdSource": "unknown",
+          "accountIdSource": "sameAsResource",
           "direction": "outbound"
         },
         {
@@ -27,7 +27,7 @@
           "service": "elb",
           "resourceType": "load_balancer",
           "regionSource": "sameAsResource",
-          "accountIdSource": "unknown",
+          "accountIdSource": "sameAsResource",
           "direction": "outbound"
         },
         {

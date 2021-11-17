@@ -6,6 +6,10 @@
   "resources": {
     "NatGateway": {
       "type": "resource",
+      "idUniquenessScope": {
+        "requiresAccountId": false,
+        "requiresRegion": false
+      },
       "relationships": [
         {
           "basePath": "@",
@@ -82,6 +86,10 @@
     },
     "RouteTable": {
       "type": "resource",
+      "idUniquenessScope": {
+        "requiresAccountId": false,
+        "requiresRegion": false
+      },
       "relationships": [
         {
           "basePath": "Associations[]",
@@ -113,6 +121,10 @@
     },
     "NetworkInterface": {
       "type": "resource",
+      "idUniquenessScope": {
+        "requiresAccountId": false,
+        "requiresRegion": false
+      },
       "relationships": [
         {
           "basePath": "Attachment",
@@ -157,6 +169,10 @@
     },
     "NetworkAcl": {
       "type": "resource",
+      "idUniquenessScope": {
+        "requiresAccountId": false,
+        "requiresRegion": false
+      },
       "relationships": [
         {
           "basePath": "Associations[]",
@@ -175,6 +191,10 @@
     },
     "InternetGateway": {
       "type": "resource",
+      "idUniquenessScope": {
+        "requiresAccountId": false,
+        "requiresRegion": false
+      },
       "relationships": [
         {
           "basePath": "Attachments[]",
@@ -193,6 +213,10 @@
     },
     "Volume": {
       "type": "resource",
+      "idUniquenessScope": {
+        "requiresAccountId": false,
+        "requiresRegion": false
+      },
       "relationships": [
         {
           "basePath": "Attachments[]",
@@ -222,8 +246,19 @@
         }
       ]
     },
+    "DhcpOptions": {
+      "type": "resource",
+      "idUniquenessScope": {
+        "requiresAccountId": false,
+        "requiresRegion": false
+      }
+    },
     "Vpc": {
       "type": "resource",
+      "idUniquenessScope": {
+        "requiresAccountId": false,
+        "requiresRegion": false
+      },
       "relationships": [
         {
           "basePath": "@",
@@ -242,6 +277,10 @@
     },
     "Subnet": {
       "type": "resource",
+      "idUniquenessScope": {
+        "requiresAccountId": false,
+        "requiresRegion": false
+      },
       "relationships": [
         {
           "basePath": "@",
@@ -269,6 +308,10 @@
     },
     "Image": {
       "type": "resource",
+      "idUniquenessScope": {
+        "requiresAccountId": false,
+        "requiresRegion": false
+      },
       "relationships": [
         {
           "basePath": "BlockDeviceMappings[].Ebs",
@@ -292,6 +335,10 @@
     },
     "Snapshot": {
       "type": "resource",
+      "idUniquenessScope": {
+        "requiresAccountId": false,
+        "requiresRegion": false
+      },
       "defaultBotocoreFilters": {
         "OwnerIds": [
           "self"
@@ -300,6 +347,10 @@
     },
     "Instance": {
       "type": "resource",
+      "idUniquenessScope": {
+        "requiresAccountId": false,
+        "requiresRegion": false
+      },
       "relationships": [
         {
           "basePath": "@",
@@ -368,6 +419,20 @@
           "direction": "outbound"
         }
       ]
+    },
+    "SecurityGroup": {
+      "type": "resource",
+      "idUniquenessScope": {
+        "requiresAccountId": false,
+        "requiresRegion": false
+      }
+    },
+    "ElasticIp": {
+      "type": "resource",
+      "idUniquenessScope": {
+        "requiresAccountId": false,
+        "requiresRegion": false
+      }
     }
   }
 }
