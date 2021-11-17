@@ -281,16 +281,15 @@ class IdPartSpecification(NamedTuple):
     @property
     def specified_urn_parts(self) -> Dict[str, List[str]]:
         """Return a dictionary specifying the URN components which were specified in this id part specification."""
+        if not self.regex_pattern:
+            return {"resource_id_parts": [self.path]}
         urn_parts = defaultdict(list)
-        if self.regex_pattern:
-            pattern = re.compile(self.regex_pattern)
-            for matching_group in pattern.groupindex.keys():
-                if matching_group.startswith("id_part_"):
-                    urn_parts["resource_id_parts"].append(matching_group)
-                    continue
-                urn_parts[matching_group].append(matching_group)
-            return dict(urn_parts)
-        urn_parts["resource_id_parts"].append(self.path)
+        pattern = re.compile(self.regex_pattern)
+        for matching_group in pattern.groupindex.keys():
+            if matching_group.startswith("id_part_"):
+                urn_parts["resource_id_parts"].append(matching_group)
+                continue
+            urn_parts[matching_group].append(matching_group)
         return dict(urn_parts)
 
 
