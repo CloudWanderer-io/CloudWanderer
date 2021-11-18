@@ -63,10 +63,15 @@ class AWSResourceTypeFilter(ServiceResourceTypeFilter):
 class ServiceMap(NamedTuple):
     """Specification for additional CloudWanderer specific metadata about a Boto3 service."""
 
+    #: The name of the service
     name: str
+    #: The raw definition of the resources in this service
     resource_definition: dict
+    #: Whether or not it is a global service
     global_service: bool
+    #: If it is a global service, what region is its primary region
     global_service_region: str
+    #: The raw service definition
     service_definition: dict
 
     @property
@@ -181,9 +186,13 @@ class ResourceMap(NamedTuple):
 class ResourceRegionRequest(NamedTuple):
     """Specification for a request to get a resource's region."""
 
+    #: The (snake_case) name of the botocore client operation to call
     operation: str
-    params: list
+    #: The parameters to the request
+    params: List["ResourceRegionRequestParam"]
+    #: The path of to the region value in the request response
     path_to_region: str
+    #: The value to use if no region is found
     default_value: str
 
     @classmethod
@@ -217,8 +226,11 @@ class ResourceRegionRequest(NamedTuple):
 class ResourceRegionRequestParam(NamedTuple):
     """Specification for a request param data model."""
 
+    #: The name of the argument to supply
     target: str
+    #: The source for the value of the argument (e.g. ``resourceAttribute``)
     source: str
+    #: The name of the attribute to pull the value from
     name: str
 
     @classmethod
@@ -229,12 +241,21 @@ class ResourceRegionRequestParam(NamedTuple):
 class RelationshipSpecification(NamedTuple):
     """Specification for a relationship between two resources."""
 
+    #: The base path to the id parts
     base_path: str
+    #: The specifications for the parts of relationship partner resource's URN
     id_parts: List["IdPartSpecification"]
+    #: The service name of the partner resource
     service: str
+    #: The resource type of the partner resource
     resource_type: str
+    #: The source for determining the region of the partner resource
     region_source: RelationshipRegionSource
+    #: The source for determining the account id of the partner resource
     account_id_source: RelationshipAccountIdSource
+    #: The direction of the relationship.
+    #: Whether the resource HAS the partner resource (outbound) or the
+    #: partner resource HAS the resource (inbound)
     direction: RelationshipDirection
 
     @classmethod
