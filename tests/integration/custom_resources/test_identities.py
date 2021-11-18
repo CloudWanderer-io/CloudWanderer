@@ -1,12 +1,9 @@
-import logging
 from functools import lru_cache
 
 import pytest
 
 from cloudwanderer.aws_interface import CloudWandererBoto3Session
 from cloudwanderer.models import RelationshipAccountIdSource, RelationshipRegionSource
-
-logger = logging.getLogger(__name__)
 
 
 @lru_cache()
