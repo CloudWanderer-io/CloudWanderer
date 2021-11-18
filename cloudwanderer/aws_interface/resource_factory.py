@@ -1,7 +1,5 @@
 """Create the CloudWandererServiceResource objects that do the magic."""
 import logging
-import re
-from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Type
 
 import jmespath  # type: ignore
@@ -19,8 +17,10 @@ from ..models import Relationship, RelationshipAccountIdSource, RelationshipRegi
 from ..urn import URN, PartialUrn
 from ..utils import snake_to_pascal
 from .boto3_helpers import _clean_boto3_metadata
-from .boto3_loaders import MergedServiceLoader, ServiceMap
+from .boto3_loaders import MergedServiceLoader
 from .exceptions import SecondaryAttributesNotFetchedError
+from .models import ServiceMap
+from .utils import _get_urn_components_from_string
 
 if TYPE_CHECKING:
     from .session import CloudWandererBoto3Session
@@ -29,21 +29,6 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
-
-
-def _get_urn_components_from_string(regex_pattern, string) -> Dict[str, Any]:
-    result = re.match(regex_pattern, string)
-    if not result:
-        return {}
-    urn_components = defaultdict(list)
-    for arg_name, arg_value in result.groupdict().items():
-        if arg_name in ["cloud_name", "account_id", "region", "service", "resource_type"]:
-            logger.debug("Found %s:%s from %s", arg_name, arg_value, regex_pattern)
-            urn_components[arg_name] = arg_value
-            continue
-        if arg_name.startswith("id_part_"):
-            urn_components["resource_id_parts"].append(arg_value)
-    return urn_components
 
 
 class CloudWandererResourceFactory(ResourceFactory):
@@ -423,16 +408,9 @@ class CloudWandererResourceFactory(ResourceFactory):
                         urn_args["region"] = self.get_region()
 
                     for id_part in relationship_specification.id_parts:
-                        id_raw = jmespath.search(id_part.path, base_path)
-                        if not id_raw:
-                            continue
-                        if not id_part.regex_pattern:
-                            urn_args["resource_id_parts"].append(id_raw)
-                            continue
-                        regex_results = _get_urn_components_from_string(id_part.regex_pattern, id_raw)
-                        if not regex_results:
-                            continue
-                        urn_args.update(regex_results)
+                        urn_parts = id_part.get_urn_parts(base_path)
+                        if urn_parts:
+                            urn_args.update(urn_parts)
 
                     if not urn_args["resource_id_parts"]:
                         continue

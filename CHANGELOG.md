@@ -1,3 +1,7 @@
+# 0.25.0 
+
+- Added `ResourceIdUniquenessScope` to AWS Interface to ensure that relationship specifications are sufficiently specific to uniquely identify a resource of that type.
+
 # 0.24.0
 
 - Added Launch Configuration discovery

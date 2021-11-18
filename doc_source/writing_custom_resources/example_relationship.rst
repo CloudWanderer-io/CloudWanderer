@@ -98,17 +98,18 @@ There are a number of keys in the relationship definition, let's go through them
     If the resource acting as the origin of our relationship (:class:`ec2.subnet`) **has** the resource acting as the partner in our relationship (:class:`ec2.vpc`).
     then the resource is considered ``outbound``. In our case it's the other way around, a :class:`ec2.vpc` has a :class:`ec2.subnet` therefore it should be ``inbound``.
  
- Complex ID Parts
- -------------------
+ 
+Complex ID Parts
+-------------------
 
- In some cases our job won't be quite so easy. 
- If you have a relationship like the one between :class:`iam.instance_profile` and its :class:`iam.role`, you'll find that the 
- role is not specified in the :attr:`~boto3:IAM.Client.list_instance_profiles` payload as a role name (which is what the id part is for an `iam.role` resource).
- Instead if is an entire ARN, which means you have to split out the ARN into its component parts.
+In some cases our job won't be quite so easy. 
+If you have a relationship like the one between :class:`iam.instance_profile` and its :class:`iam.role`, you'll find that the 
+role is not specified in the :attr:`~boto3:IAM.Client.list_instance_profiles` payload as a role name (which is what the id part is for an `iam.role` resource).
+Instead if is an entire ARN, which means you have to split out the ARN into its component parts.
 
- This is done using the ``regexPattern`` key inside the ``idParts`` definition.
+This is done using the ``regexPattern`` key inside the ``idParts`` definition.
 
- .. code-block:: json
+.. code-block:: json
     :linenos:
     :emphasize-lines: 6
 

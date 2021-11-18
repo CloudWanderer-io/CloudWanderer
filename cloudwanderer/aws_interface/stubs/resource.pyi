@@ -4,7 +4,7 @@ from boto3.resources.base import ResourceMeta
 
 from ...models import Relationship, TemplateActionSet
 from ...urn import URN
-from ..boto3_loaders import ServiceMap
+from ..models import ServiceMap
 
 class CloudWandererServiceResource:
     service_name: str

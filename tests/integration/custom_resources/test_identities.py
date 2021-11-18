@@ -1,9 +1,9 @@
-import re
 from functools import lru_cache
 
 import pytest
 
 from cloudwanderer.aws_interface import CloudWandererBoto3Session
+from cloudwanderer.models import RelationshipAccountIdSource, RelationshipRegionSource
 
 
 @lru_cache()
@@ -23,24 +23,35 @@ def resource_type_cache(service_name, resource_type):
     return service.resource(resource_type, empty_resource=True)
 
 
-def get_id_parts_from_regex(regex_pattern):
-    pattern = re.compile(regex_pattern)
-    return [id_part for id_part in pattern.groupindex.keys() if id_part.startswith("id_")]
-
-
-def validate_id_parts(service_name, resource_type, id_parts):
+def validate_identifiers(service_name, resource_type, id_parts):
+    urn_parts = {k: v for id_part in id_parts for k, v in id_part.specified_urn_parts.items()}
     resource = resource_type_cache(service_name, resource_type)
-    id_part_list = []
-
-    for part in id_parts:
-        if part.regex_pattern:
-            id_part_list.extend(get_id_parts_from_regex(part.regex_pattern))
-            continue
-        id_part_list.append(part.path)
-    assert len(resource.meta.resource_model.identifiers) == len(id_part_list), (
+    assert len(resource.meta.resource_model.identifiers) == len(urn_parts["resource_id_parts"]), (
         f"Expected {[x.name for x in resource.meta.resource_model.identifiers]} "
-        f"got {id_part_list}. The id names are not expected to match, but the number of ids must match."
+        f"got {urn_parts['resource_id_parts']}. The id names are "
+        "not expected to match, but the number of ids must match."
     )
+
+
+def validate_relationship_spec_fulfils_uniqueness_scope(relationship_spec, originating_resource_type):
+
+    resource = resource_type_cache(relationship_spec.service, relationship_spec.resource_type)
+    scope = resource.resource_map.id_uniqueness_scope
+    urn_components = {k: v for id_part in relationship_spec.id_parts for k, v in id_part.specified_urn_parts.items()}
+    if scope.requires_region:
+        assert relationship_spec.region_source != RelationshipRegionSource.UNKNOWN or "region" in urn_components, (
+            f"{relationship_spec.service} {relationship_spec.resource_type} requires "
+            "region to uniquely identify it, but "
+            f"relationship from {originating_resource_type} does not specify it"
+        )
+    if scope.requires_account_id:
+        assert (
+            relationship_spec.account_id_source != RelationshipAccountIdSource.UNKNOWN or "account_id" in urn_components
+        ), (
+            f"{relationship_spec.service} {relationship_spec.resource_type} requires "
+            "account id to uniquely identify it, but "
+            f"relationship from {originating_resource_type} does not specify it"
+        )
 
 
 def get_resources_to_test():
@@ -57,5 +68,7 @@ def get_resources_to_test():
 
 @pytest.mark.parametrize("resource_type, resource", get_resources_to_test())
 def test_identities(resource_type, resource):
-    for relationship in resource.resource_map.relationships:
-        validate_id_parts(relationship.service, relationship.resource_type, relationship.id_parts)
+    for relationship_spec in resource.resource_map.relationships:
+
+        validate_identifiers(relationship_spec.service, relationship_spec.resource_type, relationship_spec.id_parts)
+        validate_relationship_spec_fulfils_uniqueness_scope(relationship_spec, resource_type)

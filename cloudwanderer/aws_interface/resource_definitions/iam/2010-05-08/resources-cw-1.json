@@ -6,6 +6,10 @@
   "resources": {
     "User": {
       "type": "resource",
+      "idUniquenessScope": {
+        "requiresAccountId": true,
+        "requiresRegion": false
+      },
       "regionalResource": false,
       "relationships": [
         {
@@ -49,6 +53,10 @@
     },
     "Group": {
       "type": "resource",
+      "idUniquenessScope": {
+        "requiresAccountId": true,
+        "requiresRegion": false
+      },
       "regionalResource": false,
       "relationships": [
         {
@@ -83,6 +91,10 @@
     },
     "SamlProvider": {
       "type": "resource",
+      "idUniquenessScope": {
+        "requiresAccountId": true,
+        "requiresRegion": false
+      },
       "regionalResource": false
     },
     "ServerCertificate": {
@@ -91,6 +103,10 @@
     },
     "Role": {
       "type": "resource",
+      "idUniquenessScope": {
+        "requiresAccountId": true,
+        "requiresRegion": false
+      },
       "regionalResource": false,
       "relationships": [
         {
@@ -135,6 +151,10 @@
     },
     "Policy": {
       "type": "resource",
+      "idUniquenessScope": {
+        "requiresAccountId": true,
+        "requiresRegion": false
+      },
       "regionalResource": false,
       "urnOverrides": [
         {
@@ -153,6 +173,10 @@
     },
     "InstanceProfile": {
       "type": "resource",
+      "idUniquenessScope": {
+        "requiresAccountId": true,
+        "requiresRegion": false
+      },
       "regionalResource": false,
       "relationships": [
         {

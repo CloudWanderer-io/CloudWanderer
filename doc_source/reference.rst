@@ -12,3 +12,4 @@ Reference
     reference/urn
     reference/exceptions
     reference/models
+    reference/base

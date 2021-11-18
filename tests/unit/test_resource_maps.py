@@ -4,14 +4,19 @@ from unittest.mock import MagicMock
 import boto3
 from boto3.resources.model import ResourceModel
 
-from cloudwanderer.aws_interface.boto3_loaders import (
+from cloudwanderer.aws_interface.models import (
+    AWSResourceTypeFilter,
     IdPartSpecification,
     RelationshipSpecification,
     ResourceMap,
     ResourceRegionRequest,
 )
-from cloudwanderer.aws_interface.models import AWSResourceTypeFilter
-from cloudwanderer.models import RelationshipAccountIdSource, RelationshipDirection, RelationshipRegionSource
+from cloudwanderer.models import (
+    RelationshipAccountIdSource,
+    RelationshipDirection,
+    RelationshipRegionSource,
+    ResourceIdUniquenessScope,
+)
 
 
 class TestResourceMap(unittest.TestCase):
@@ -119,3 +124,14 @@ class TestResourceMap(unittest.TestCase):
                 account_id_source=RelationshipAccountIdSource.UNKNOWN,
             )
         ]
+
+    def test_uniqueness_scope(self):
+        resource_map = ResourceMap.factory(
+            name="Vpc",
+            definition={"idUniquenessScope": {"requiresRegion": False, "requiresAccountId": False}},
+            service_map=MagicMock(is_global_service=False),
+        )
+
+        assert resource_map.id_uniqueness_scope == ResourceIdUniquenessScope(
+            requires_region=False, requires_account_id=False
+        )

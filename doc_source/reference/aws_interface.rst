@@ -7,3 +7,4 @@ CloudWanderer AWS Interface
 
     aws_interface/index
     aws_interface/boto3_loaders
+    aws_interface/models

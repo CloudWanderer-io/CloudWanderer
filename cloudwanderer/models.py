@@ -1,6 +1,6 @@
 """Models for CloudWanderer data."""
 from enum import Enum, auto, unique
-from typing import List, NamedTuple
+from typing import Any, Dict, List, NamedTuple
 
 from .urn import PartialUrn
 
@@ -8,7 +8,9 @@ from .urn import PartialUrn
 class ActionSet(NamedTuple):
     """Define a list of partial URNs to discover and delete."""
 
+    #: The URNs to get
     get_urns: List[PartialUrn]
+    #: The URNs to delete
     delete_urns: List[PartialUrn]
 
 
@@ -45,14 +47,11 @@ class TemplateActionSet(ActionSet):
 
 
 class ServiceResourceType(NamedTuple):
-    """A resource type including a service that it is member of.
+    """A resource type including a service that it is member of."""
 
-    Attributes:
-        service: The name of the service
-        resource_type: The type of resource (snake_case)
-    """
-
+    #: The name of the service
     service: str
+    #: The type of resource (snake_case)
     resource_type: str
 
 
@@ -85,3 +84,22 @@ class RelationshipDirection(Enum):
 
     OUTBOUND = auto()
     INBOUND = auto()
+
+
+class ResourceIdUniquenessScope(NamedTuple):
+    """What is the scope of this resource ID's uniqueness.
+
+    This is not used at runtime but is used by tests to determine the validity of relationship specifications.
+    """
+
+    #: The resource id is only unique if the region is also supplied
+    requires_region: bool
+    #: The resource id is only unique if the account id is also supplied
+    requires_account_id: bool
+
+    @classmethod
+    def factory(cls, raw_dict: Dict[str, Any]) -> "ResourceIdUniquenessScope":
+        return cls(
+            requires_region=raw_dict.get("requiresRegion", True),
+            requires_account_id=raw_dict.get("requiresAccountId", True),
+        )
