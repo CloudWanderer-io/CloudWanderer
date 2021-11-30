@@ -156,6 +156,7 @@ def test_write_resources(cloudwanderer_aws):
                 "value": [],
             },
         ],
+        allow_partial_match_first=True,
     )
 
 
