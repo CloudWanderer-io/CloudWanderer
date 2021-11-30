@@ -134,3 +134,4 @@ workspace.code-workspace
 .DS_Store
 *.gv
 *.gv.png
+*.tar.gz
