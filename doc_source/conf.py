@@ -201,4 +201,7 @@ cloudwanderer.aws_interface.CloudWandererAWSInterface.get_resource_discovery_act
 cloudwanderer.storage_connectors.DynamoDbConnector = MagicMock(
     return_value=cloudwanderer.storage_connectors.MemoryStorageConnector()
 )
+cloudwanderer.storage_connectors.GremlinStorageConnector = MagicMock(
+    return_value=cloudwanderer.storage_connectors.MemoryStorageConnector()
+)
 """

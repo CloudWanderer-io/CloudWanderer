@@ -17,11 +17,19 @@
       :target: https://www.cloudwanderer.io/en/latest/?badge=latest
       :alt: Documentation Status
 
-A Python package which wanders across your AWS account and records your resources in DynamoDB
-
-
 | **Documentation:** `CloudWanderer.io <https://www.cloudwanderer.io>`_
 | **GitHub:** `https://github.com/CloudWanderer-io/CloudWanderer <https://github.com/CloudWanderer-io/CloudWanderer>`_
+
+A Python package which allows you to enumerate and store your AWS Resources in AWS Neptune (or Gremlin for local execution) in order to be able to ask questions like:
+
+1. What EC2 instances do I have that are in Public Subnets that have roles and are accessible from the internet?
+2. How old are my IAM users access keys?
+3. What lambda functions do I have that are connected to VPCs that have access to the internet via a NAT gateway?
+4. How many untagged VPCs do I have across all regions?
+
+.. image:: https://www.cloudwanderer.io/en/latest/_images/cloudwanderer_graph.png
+   :alt: AWS resources represented on a graph
+
 
 Installation
 """""""""""""""
@@ -30,53 +38,57 @@ Installation
 
    pip install cloudwanderer
 
-Usage
-""""""""""
+Local Quickstart
+""""""""""""""""""
 
-Start a local dynamodb
+Spin up a local `Gremlin Graph Database server <http://tinkerpop.apache.org/docs/current/reference/#gremlin-server>`__ and a Jupyter Notebook.
 
 .. code-block ::
 
-   $  docker run -p 8000:8000 amazon/dynamodb-local
+   $ git clone https://github.com/CloudWanderer-io/docker-graph-notebook.git
+   $ cd docker-graph-notebook
+   $ docker-compose up
+
+Look in the output for something that looks like:
+
+.. code-block::
+
+   jupyter-notebook_1  |     Or copy and paste one of these URLs:
+   jupyter-notebook_1  |         http://localhost:8888/?token=88dc054886e3ea73480de91066937a33c9bc8bd484eb395c
+
+Open the URL in question in a tab in your browser.
 
 
-Open up python and import and initialise `CloudWanderer`
+Open up Python and import and initialise `CloudWanderer`
 
 .. doctest ::
 
    >>> import logging
    >>> from cloudwanderer import CloudWanderer
-   >>> from cloudwanderer.storage_connectors import DynamoDbConnector
-   >>> storage_connector = DynamoDbConnector(
-   ...     endpoint_url='http://localhost:8000'
+   >>> from cloudwanderer.storage_connectors import GremlinStorageConnector
+   >>> storage_connector = GremlinStorageConnector(
+   ...     endpoint_url="ws://localhost:8182"
    ... )
    >>> wanderer = CloudWanderer(storage_connectors=[storage_connector])
    >>> logging.basicConfig(level='INFO')
-   >>> storage_connector.init()
 
-Get all the resources from your AWS account and save them to your local dynamodb.
+Get all the resources from your AWS account and save them to your local Gremlin graph database.
 
 .. doctest ::
 
    >>> wanderer.write_resources()
 
-Get a list of VPCs back.
+Go to the Jupyter Notebook link you opened earlier and type the following to get a list of VPCs back into a new cell.
 
-.. doctest ::
+.. code-block:: 
 
-   >>> vpcs = storage_connector.read_resources(service='ec2', resource_type='vpc')
-   >>> first_vpc = next(vpcs)
-   >>> first_vpc.urn
-   URN(cloud_name='aws', account_id='123456789012', region='eu-west-2', service='ec2', resource_type='vpc', resource_id_parts=['vpc-11111111'])
+   %%gremlin
+   g.V().hasLabel('aws_ec2_vpc').out().path().by(valueMap(true))
 
-Load the full details of the resource.
+Voila!
 
-.. doctest ::
+.. image:: https://user-images.githubusercontent.com/803607/144116568-ef8e6d38-11f6-477e-8c30-0882fbe29c94.png
+   :alt: Example Query and graph output
 
-   >>> first_vpc.load()
-   >>> first_vpc.cidr_block
-   '172.31.0.0/16'
-   >>> first_vpc.instance_tenancy
-   'default'
-   >>> first_vpc.is_default
-   True
+You can learn more Gremlin (the language that's supported by the local setup here) by reading `Kevin Lawrence's amazing book on Gremlin <https://kelvinlawrence.net/book/Gremlin-Graph-Guide.html>`__ 
+OR you can get stuck in to the much more straightforward OpenCypher language by following the `Neptune Quickstart guide <https://www.cloudwanderer.io/en/latest/neptune_quickstart.html>`__.
