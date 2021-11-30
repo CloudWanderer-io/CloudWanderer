@@ -1,4 +1,4 @@
-Examples
+DynamoDB Quickstart
 ==========================
 
 Getting Started

@@ -12,8 +12,9 @@ CloudWanderer
    :caption: Contents:
 
    what_is_cloudwanderer
-   neptune_quickstart
-   examples
+   getting_started
+   opencypher_examples
+   dynamodb_examples
    supported_resources
    resource_definitions
    writing_custom_resources
