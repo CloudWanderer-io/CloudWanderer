@@ -1,3 +1,7 @@
+# 0.25.1
+
+- Fixed bug preventing `ALL_REGIONS` action templates from being properly inflated
+
 # 0.25.0 
 
 - Added `ResourceIdUniquenessScope` to AWS Interface to ensure that relationship specifications are sufficiently specific to uniquely identify a resource of that type.
