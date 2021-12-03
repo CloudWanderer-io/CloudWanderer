@@ -13,7 +13,13 @@ from botocore.loaders import Loader
 from botocore.model import Shape
 
 from ..exceptions import UnsupportedResourceTypeError
-from ..models import Relationship, RelationshipAccountIdSource, RelationshipRegionSource, TemplateActionSet
+from ..models import (
+    Relationship,
+    RelationshipAccountIdSource,
+    RelationshipRegionSource,
+    TemplateActionSet,
+    TemplateActionSetRegionValues,
+)
 from ..urn import URN, PartialUrn
 from ..utils import snake_to_pascal
 from .boto3_helpers import _clean_boto3_metadata
@@ -132,7 +138,7 @@ class CloudWandererResourceFactory(ResourceFactory):
                 if not self.resource_map.should_query_resources_in_region(discovery_region):
                     continue
                 if self.service_map.is_global_service and self.resource_map.regional_resource:
-                    cleanup_region = "ALL_REGIONS"
+                    cleanup_region = TemplateActionSetRegionValues.ALL_REGIONS.name
                 else:
                     cleanup_region = discovery_region
                 if self.resource_map.type != "dependentResource":

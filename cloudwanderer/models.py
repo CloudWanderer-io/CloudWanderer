@@ -1,5 +1,5 @@
 """Models for CloudWanderer data."""
-from enum import Enum, auto, unique
+from enum import Enum, IntEnum, auto, unique
 from typing import Any, Dict, List, NamedTuple
 
 from .urn import PartialUrn
@@ -18,7 +18,7 @@ class TemplateActionSet(ActionSet):
     """An set of actions which have not yet had all their placeholders inflated.
 
     This differs from a regular ActionSet action insofar as it
-    will probably contain actions with the region 'ALL'.
+    will probably contain actions with the region :attr:`TemplateActionSetRegionValues.ALL_REGIONS`.
     These actions need to be unpacked into region specific actions that
     reflect the enabled regions in the AWS account in question
     before being placed into a non-cloud specific ActionSet class
@@ -37,7 +37,7 @@ class TemplateActionSet(ActionSet):
 
     @staticmethod
     def _inflate_partial_urn(partial_urn: PartialUrn, account_id: str, regions: List[str]) -> List[PartialUrn]:
-        if partial_urn.region != "ALL":
+        if partial_urn.region != TemplateActionSetRegionValues.ALL_REGIONS.name:
             return [partial_urn.copy(account_id=account_id)]
 
         inflated_partial_urns = []
@@ -46,8 +46,24 @@ class TemplateActionSet(ActionSet):
         return inflated_partial_urns
 
 
+@unique
+class TemplateActionSetRegionValues(IntEnum):
+    """The possible template values for regions."""
+
+    #: The action template applies to all regions
+    ALL_REGIONS = auto()
+
+
 class ServiceResourceType(NamedTuple):
-    """A resource type including a service that it is member of."""
+    """A resource type including a service that it is member of.
+
+    Example:
+        Creating an S3 bucket resource type:
+
+        >>> from cloudwanderer import ServiceResourceType
+        >>> print(ServiceResourceType(service="s3", resource_type="bucket"))
+        ServiceResourceType(service='s3', resource_type='bucket')
+    """
 
     #: The name of the service
     service: str
