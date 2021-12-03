@@ -3,7 +3,7 @@ from unittest.mock import ANY, MagicMock
 from pytest import fixture
 
 from cloudwanderer.aws_interface import CloudWandererAWSInterface
-from cloudwanderer.models import ActionSet, ServiceResourceType, TemplateActionSet
+from cloudwanderer.models import ActionSet, ServiceResourceType, TemplateActionSet, TemplateActionSetRegionValues
 from cloudwanderer.urn import PartialUrn
 
 
@@ -60,7 +60,7 @@ def mock_action_set_s3():
         delete_urns=[
             PartialUrn(
                 account_id="ALL",
-                region="ALL",
+                region=TemplateActionSetRegionValues.ALL_REGIONS.name,
                 service="s3",
                 resource_type="bucket",
                 resource_id_parts=["ALL"],
