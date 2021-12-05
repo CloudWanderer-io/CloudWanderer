@@ -63,7 +63,7 @@ RESOURCE_TEMPLATE = Template(
 
     **Gremlin Example:**
 
-    How to query resources of this type using OpenCypher in Neptune/local Gremlin.
+    How to query resources of this type using Gremlin in Neptune/local Gremlin.
 
     .. code-block::
 
