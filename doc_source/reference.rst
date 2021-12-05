@@ -3,7 +3,6 @@ Classes
 
 .. toctree::
     :maxdepth: 2
-    :caption: Classes:
 
     reference/class_reference
     reference/cloudwanderer_resource
