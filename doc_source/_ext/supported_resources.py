@@ -54,10 +54,20 @@ RESOURCE_TEMPLATE = Template(
 
     **OpenCypher Example:**
 
+    How to query resources of this type using OpenCypher in Neptune.
+
     .. code-block::
 
-        MATCH ({{resource_name}}:{{service_name}}_{{resource_name}})
+        MATCH ({{resource_name}}:aws_{{service_name}}_{{resource_name}})
         RETURN *
+
+    **Gremlin Example:**
+
+    How to query resources of this type using OpenCypher in Neptune/local Gremlin.
+
+    .. code-block::
+
+        g.V().hasLabel('aws_{{service_name}}_{{resource_name}}').out().path().by(valueMap(true))
 
 """
 )
