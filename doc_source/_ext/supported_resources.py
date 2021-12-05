@@ -26,6 +26,9 @@ if TYPE_CHECKING:
 RESOURCE_TEMPLATE = Template(
     """
 
+{{class_name}}
+'''''''''''''''''''''''''''''''''''''''''
+
 .. py:class:: {{class_name}}
 
     {{description}}
@@ -34,16 +37,27 @@ RESOURCE_TEMPLATE = Template(
 
     {{default_filters}}
 
-    **Example:**
+    **Discovery Example:**
 
-    .. code-block ::
+    .. doctest ::
 
-        resources = storage_connector.read_resources(
-            service="{{service_name}}",
-            resource_type="{{resource_name}}")
-        for resource in resources:
-            resource.load()
-            print(resource.urn)
+        >>> from cloudwanderer import CloudWanderer, ServiceResourceType
+        >>> from cloudwanderer.storage_connectors import GremlinStorageConnector
+        >>> cloud_wanderer = CloudWanderer(storage_connectors=[
+        ...        GremlinStorageConnector(
+        ...          endpoint_url="ws://localhost:8182",
+        ...        )
+        ...    ])
+        >>> cloud_wanderer.write_resources(
+        ...     service_resource_types=[ServiceResourceType("{{service_name}}","{{resource_name}}")]
+        ... )
+
+    **OpenCypher Example:**
+
+    .. code-block::
+
+        MATCH ({{resource_name}}:{{service_name}}_{{resource_name}})
+        RETURN *
 
 """
 )
@@ -326,6 +340,10 @@ class GetCwServices:
             service_model = service.meta.client.meta.service_model
             service_id = service_model.metadata["serviceId"]
             service_section = f"{service_id}\n{'-'*len(service_id)}\n\n"
+            service_section += ".. contents:: \n"
+            service_section += "\t:backlinks: none\n"
+            service_section += "\t:local:\n"
+            service_section += "\t:depth: 3\n\n"
             service_section += "\n\n".join(self.get_collections(service))
             if not os.path.exists(os.path.join(self.base_path, self.relative_path)):
                 os.makedirs(os.path.join(self.base_path, self.relative_path))
@@ -410,7 +428,7 @@ class GetCwServices:
             documentation = attribute.documentation
             documentation = self.parse_html(documentation).replace("\n", "")
             attributes_doc += ATTRIBUTES_TEMPLATE.format(attribute_name=attribute_name, documentation=documentation)
-            resource_section += f"            print(resource.{attribute_name})\n"
+            # resource_section += f"            print(resource.{attribute_name})\n"
 
         resource_section += "\n\n"
         resource_section += attributes_doc

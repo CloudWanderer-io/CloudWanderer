@@ -1,4 +1,4 @@
-Writing Custom Resources
+Extending Supported Resources
 =========================
 
 One of the primary objectives of CloudWanderer is to make it extremely easy to extend the supported resources.
@@ -8,7 +8,7 @@ what these definitions look like and how to create your own.
 .. toctree::
     :maxdepth: 2
 
-    writing_custom_resources/anatomy_of_a_custom_resource
-    writing_custom_resources/example_resource
-    writing_custom_resources/example_dependent_resource
-    writing_custom_resources/example_relationship
+    extending_supported_resources/anatomy_of_a_resource_definition
+    extending_supported_resources/example_resource
+    extending_supported_resources/example_dependent_resource
+    extending_supported_resources/example_relationship

@@ -1,4 +1,4 @@
-Writing a Custom Resource
+Writing a Resource Definition
 ======================================
 
 In this example  we're going to write a custom resource for Lambda Layers.

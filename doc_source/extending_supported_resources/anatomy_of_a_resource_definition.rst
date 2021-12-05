@@ -1,7 +1,7 @@
-Anatomy of a Custom Resource
+Anatomy of a Resource Definition
 ================================
 
-Because they are loaded into Boto3, CloudWanderer custom resources use the same JSON definition as Boto3 resources.
+Because they are loaded into Boto3, CloudWanderer resources use the same JSON definition as Boto3 resources.
 
 .. code-block:: json
     :linenos:

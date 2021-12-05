@@ -9,3 +9,4 @@ This makes it extremely easy to ask complex questions that may require chaining 
     gremlin_vs_neptune
     neptune_quickstart
     opencypher_examples
+    dynamodb_examples

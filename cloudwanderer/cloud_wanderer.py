@@ -40,11 +40,26 @@ class CloudWanderer:
 
         If the resource does not exist it will be deleted from the storage connectors.
 
+        Example:
+            Fetch a specific VPC and write it to a local Gremlin database.
+
+                >>> from cloudwanderer import CloudWanderer, ServiceResourceType, URN
+                >>> from cloudwanderer.storage_connectors import GremlinStorageConnector
+                >>> cloud_wanderer = CloudWanderer(storage_connectors=[
+                ...        GremlinStorageConnector(
+                ...          endpoint_url="ws://localhost:8182",
+                ...        )
+                ...    ])
+                >>> cloud_wanderer.write_resource(
+                ...     urn=URN.from_string("urn:aws:123456789012:us-east-1:ec2:vpc:vpc-11111111")
+                ... )
+
         Arguments:
             urn (URN):
                 The URN of the resource to write
             service_resource_type_filters:
-                List of :class:`ServiceResourceTypeFilter` specific to the CloudInterface that helps filter resources.
+                List of :class:`~cloudwanderer.base.ServiceResourceTypeFilter`
+                specific to the CloudInterface that helps filter resources.
         """
         for storage_connector in self.storage_connectors:
             storage_connector.open()
@@ -67,9 +82,23 @@ class CloudWanderer:
         service_resource_types: Optional[List[ServiceResourceType]] = None,
         service_resource_type_filters: Optional[List[ServiceResourceTypeFilter]] = None,
     ) -> None:
-        """Write all resources in this account from all regions and all services to storage.
+        """Fetch all resources in this account from all regions and all services and write to storage.
 
         All arguments are optional.
+
+        Example:
+            Fetch AWS EC2 VPCs and write to a local Gremlin database.
+
+                >>> from cloudwanderer import CloudWanderer, ServiceResourceType
+                >>> from cloudwanderer.storage_connectors import GremlinStorageConnector
+                >>> cloud_wanderer = CloudWanderer(storage_connectors=[
+                ...        GremlinStorageConnector(
+                ...          endpoint_url="ws://localhost:8182",
+                ...        )
+                ...    ])
+                >>> cloud_wanderer.write_resources(
+                ...     service_resource_types=[ServiceResourceType("ec2","vpc")]
+                ... )
 
         Arguments:
             regions:
@@ -77,7 +106,8 @@ class CloudWanderer:
             service_resource_types:
                 The resource types to discover.
             service_resource_type_filters:
-                List of :class:`ServiceResourceTypeFilter` specific to the CloudInterface that helps filter resources.
+                List of :class:`~cloudwanderer.base.ServiceResourceTypeFilter`
+                specific to the CloudInterface that helps filter resources.
 
         Raises:
             ValueError: If invalid get/delete urns are produced by the cloud interface's get_resource_discovery_actions

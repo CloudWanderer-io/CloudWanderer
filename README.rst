@@ -59,7 +59,7 @@ Look in the output for something that looks like:
 Open the URL in question in a tab in your browser.
 
 
-Open up Python and import and initialise `CloudWanderer`
+Open up Python **in your preferred IDE** and import and initialise `CloudWanderer`
 
 .. doctest ::
 
@@ -78,7 +78,7 @@ Get all the resources from your AWS account and save them to your local Gremlin 
 
    >>> wanderer.write_resources()
 
-Go to the Jupyter Notebook link you opened earlier and type the following to get a list of VPCs back into a new cell.
+Go to the Jupyter Notebook link you opened earlier and, **create a new notebook by hitting 'new'** on the top right, and type the following into a new cell to get a list of VPCs.
 
 .. code-block:: 
 
