@@ -1,4 +1,4 @@
-Reference
+Classes
 ============
 
 .. toctree::
