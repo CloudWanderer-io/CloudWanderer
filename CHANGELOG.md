@@ -1,3 +1,7 @@
+# 0.25.2
+
+- Fix #242 by moving to using `MANIFEST.in`
+
 # 0.25.1
 
 - Fixed bug preventing `ALL_REGIONS` action templates from being properly inflated
