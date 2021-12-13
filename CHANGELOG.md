@@ -1,3 +1,6 @@
+# 0.26.0
+
+- Allow the setting of `account_id` and `enabled_regions` in `CloudWandererAWSInterface` if you already know these values and want to avoid unecessary API calls.
 # 0.25.2
 
 - Fix #242 by moving to using `MANIFEST.in`
