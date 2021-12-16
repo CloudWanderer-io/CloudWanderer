@@ -40,38 +40,25 @@ def _get_service_resource_type_filter_from_list(
 class CloudWandererAWSInterface(CloudInterface):
     """Simplifies lookup of Boto3 services and resources."""
 
-    def __init__(
-        self,
-        cloudwanderer_boto3_session: Optional[CloudWandererBoto3Session] = None,
-        account_id: Optional[str] = None,
-        enabled_regions: Optional[List[str]] = None,
-    ) -> None:
+    def __init__(self, cloudwanderer_boto3_session: Optional[CloudWandererBoto3Session] = None) -> None:
         """Simplifies lookup of Boto3 services and resources.
 
         Arguments:
             cloudwanderer_boto3_session:
                 A CloudWandererBoto3Session session, if not provided the default will be used.
-            account_id:
-                The AWS account ID we're fetching resources from. This will be fetched automatically via API
-                call if not supplied.
-            enabled_regions:
-                The list of regions enabled in this AWS account. This will be fetched automatically via API
-                call if not supplied.
         """
         self.cloudwanderer_boto3_session = cloudwanderer_boto3_session or CloudWandererBoto3Session()
-        self.account_id = account_id
-        self.enabled_regions = enabled_regions
 
     def get_enabled_regions(self) -> List[str]:
         """Return the list of regions enabled.
 
         Fulfils the interface requirements for :class:`cloudwanderer.cloud_wanderer.CloudWanderer` to call.
         """
-        return self.enabled_regions or self.cloudwanderer_boto3_session.get_enabled_regions()
+        return self.cloudwanderer_boto3_session.get_enabled_regions()
 
     def get_account_id(self) -> str:
         """Return the ID of the account we're getting resources from."""
-        return self.account_id or self.cloudwanderer_boto3_session.get_account_id()
+        return self.cloudwanderer_boto3_session.get_account_id()
 
     def get_resource(
         self,
