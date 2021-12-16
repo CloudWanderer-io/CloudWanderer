@@ -83,7 +83,7 @@ def test_write_resources(cloudwanderer_aws):
                             "Status": "attached",
                         },
                         "Description": "Primary network interface",
-                        "Groups": [],
+                        "Groups": [{"GroupId": ANY, "GroupName": "default"}],
                         "MacAddress": "1b:2b:3c:4d:5e:6f",
                         "NetworkInterfaceId": ANY,
                         "OwnerId": ANY,
