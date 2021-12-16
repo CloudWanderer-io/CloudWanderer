@@ -17,19 +17,19 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class CloudWandererBoto3SessionGetterClientConfig:
-    """Allows the specification of internal getter client config :class:`CloudWandererBoto3SessionGetterClientConfig` .
+class CloudWandererBoto3ClientConfig:
+    """Allows the specification of internal getter client config.
 
     Example:
         Configure the sts client (used in :attr:`CloudWandererBoto3Session.get_account_id`) to use
         a regional endpoint url.
 
             >>> from cloudwanderer.aws_interface import (
-            ...     CloudWandererBoto3SessionGetterClientConfig,
+            ...     CloudWandererBoto3ClientConfig,
             ...     CloudWandererBoto3Session
             ... )
-            >>> getter_client_config = CloudWandererBoto3SessionGetterClientConfig(
-            ...     sts={"endpoint_url": "https://eu-west-1.sts.amazonaws.com"}
+            >>> getter_client_config = CloudWandererBoto3ClientConfig(
+            ...     sts={"endpoint_url": "https://sts.eu-west-1.amazonaws.com"}
             ... )
             >>> cloudwanderer_boto3_session = CloudWandererBoto3Session(getter_client_config=getter_client_config)
     """
@@ -54,8 +54,46 @@ class CloudWandererBoto3Session(boto3.session.Session):
         profile_name=None,
         resource_factory=None,
         service_mapping_loader: Loader = None,
-        getter_client_config: Optional[CloudWandererBoto3SessionGetterClientConfig] = None,
+        getter_client_config: Optional[CloudWandererBoto3ClientConfig] = None,
+        account_id: Optional[str] = None,
+        enabled_regions: Optional[List[str]] = None,
     ) -> None:
+        """Subclass of Boto3 Session class to provide additional helper methods.
+
+        You will need to interact with this class to provide any credentials that cannot be found in the
+        normal Boto3 credentials locations (env vars, default profile, etc.)
+
+        You can also use it to supply a custom resource factory
+        if you want to test or use your own resource definitions.
+
+        Args:
+            aws_access_key_id:
+                AWS access key ID
+            aws_secret_access_key:
+                AWS secret access key
+            aws_session_token:
+                AWS temporary session token
+            region_name:
+                Default region when creating new connections
+            botocore_session:
+                Use this Botocore session instead of creating a new default one.
+            profile_name:
+                 The name of a profile to use. If not given, then the default profile is used.
+            resource_factory:
+                Supply a custom resource factory, useful if you want to test/use your own resource definitions.
+            service_mapping_loader:
+                Supply a custom service mapping loader, useful if you want to test/use your own resource definitions.
+            getter_client_config:
+                Supply boto3 client config for
+                :func:`CloudWandererBoto3Session.get_account_id` and
+                :func:`CloudWandererBoto3Session.get_enabled_regions` .
+            account_id:
+                The AWS account ID we're fetching resources from. This will be fetched automatically via API
+                call if not supplied.
+            enabled_regions:
+                The list of regions enabled in this AWS account. This will be fetched automatically via API
+                call if not supplied.
+        """
         self.service_mapping_loader = service_mapping_loader
         super().__init__(
             aws_access_key_id=aws_access_key_id,
@@ -72,11 +110,15 @@ class CloudWandererBoto3Session(boto3.session.Session):
             cloudwanderer_boto3_session=self,
         )
 
-        self.getter_client_config = getter_client_config or CloudWandererBoto3SessionGetterClientConfig()
+        self.getter_client_config = getter_client_config or CloudWandererBoto3ClientConfig()
+        self._account_id = account_id
+        self._enabled_regions = enabled_regions
 
     @memoized_method()
     def get_account_id(self) -> str:
         """Return the AWS Account ID our Boto3 session is authenticated against."""
+        if self._account_id:
+            return self._account_id
         sts = self.client("sts", **self.getter_client_config("sts"))
         return sts.get_caller_identity()["Account"]
 
@@ -87,6 +129,8 @@ class CloudWandererBoto3Session(boto3.session.Session):
     @memoized_method()
     def get_enabled_regions(self) -> List[str]:
         """Return a list of enabled regions in this account."""
+        if self._enabled_regions:
+            return self._enabled_regions
         regions = self.client("ec2", **self.getter_client_config("ec2")).describe_regions()["Regions"]
         return [region["RegionName"] for region in regions if region["OptInStatus"] != "not-opted-in"]
 

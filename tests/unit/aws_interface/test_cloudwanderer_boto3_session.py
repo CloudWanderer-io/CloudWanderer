@@ -1,18 +1,22 @@
 from unittest.mock import MagicMock
 
-from cloudwanderer.aws_interface import CloudWandererBoto3Session, CloudWandererBoto3SessionGetterClientConfig
+from cloudwanderer.aws_interface import CloudWandererBoto3ClientConfig, CloudWandererBoto3Session
+
+
+def test_get_account_id_from_arg():
+    botocore_session = MagicMock()
+    subject = CloudWandererBoto3Session(botocore_session=botocore_session, account_id="0123456789012")
+
+    assert subject.get_account_id() == "0123456789012"
+
+    botocore_session.create_client.assert_not_called()
 
 
 def test_get_account_id():
     botocore_session = MagicMock()
     subject = CloudWandererBoto3Session(
-        aws_access_key_id="A",
-        aws_secret_access_key="A",
-        aws_session_token="A",
         botocore_session=botocore_session,
-        getter_client_config=CloudWandererBoto3SessionGetterClientConfig(
-            sts={"endpoint_url": "sts.eu-west-1.amazonaws.com"}
-        ),
+        getter_client_config=CloudWandererBoto3ClientConfig(sts={"endpoint_url": "sts.eu-west-1.amazonaws.com"}),
     )
 
     subject.get_account_id()
@@ -34,13 +38,8 @@ def test_get_account_id():
 def test_get_enabled_regions():
     botocore_session = MagicMock()
     subject = CloudWandererBoto3Session(
-        aws_access_key_id="A",
-        aws_secret_access_key="A",
-        aws_session_token="A",
         botocore_session=botocore_session,
-        getter_client_config=CloudWandererBoto3SessionGetterClientConfig(
-            ec2={"endpoint_url": "ec2.eu-west-1.amazonaws.com"}
-        ),
+        getter_client_config=CloudWandererBoto3ClientConfig(ec2={"endpoint_url": "ec2.eu-west-1.amazonaws.com"}),
     )
 
     subject.get_enabled_regions()
@@ -57,3 +56,12 @@ def test_get_enabled_regions():
         aws_session_token=None,
         config=None,
     )
+
+
+def test_get_enabled_regions_from_arg():
+    botocore_session = MagicMock()
+    subject = CloudWandererBoto3Session(botocore_session=botocore_session, enabled_regions=["eu-west-1"])
+
+    assert subject.get_enabled_regions() == ["eu-west-1"]
+
+    botocore_session.create_client.assert_not_called()
