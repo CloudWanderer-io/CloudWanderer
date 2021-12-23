@@ -1,3 +1,7 @@
+# 0.27.1
+
+- Reinclude py.typed in package
+
 # 0.27.0
 
 - Added support for `requiresLoad` on base resources.

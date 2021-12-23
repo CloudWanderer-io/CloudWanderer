@@ -1,3 +1,3 @@
 recursive-include cloudwanderer/** *.pyi
 recursive-include cloudwanderer/** *.json
-include ./cloudwanderer/py.typed
+include cloudwanderer/py.typed
