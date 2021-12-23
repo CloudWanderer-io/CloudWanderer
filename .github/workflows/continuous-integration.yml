@@ -1,6 +1,6 @@
 name: CloudWanderer Linting & Testing
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
   linting-and-type-checking:

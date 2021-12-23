@@ -1,6 +1,6 @@
 name: CloudWanderer Functional Tests
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
   functional-storage-tests:
