@@ -1,3 +1,7 @@
+# 0.27.2
+
+- Add `get_available_subresources` method to `CloudWandererServiceResource` stubs.
+
 # 0.27.1
 
 - Reinclude py.typed in package
@@ -9,7 +13,6 @@
 # 0.26.1
 
 - Moved account id and enabled region specifications to CloudWanderer3Boto3Session from AWSInterface. Fixes #247
-
 
 # 0.26.0
 
@@ -24,7 +27,7 @@
 
 - Fixed bug preventing `ALL_REGIONS` action templates from being properly inflated
 
-# 0.25.0 
+# 0.25.0
 
 - Added `ResourceIdUniquenessScope` to AWS Interface to ensure that relationship specifications are sufficiently specific to uniquely identify a resource of that type.
 
@@ -33,7 +36,7 @@
 - Added Launch Configuration discovery
 - Added classic ELB discovery
 
-# 0.23.0 
+# 0.23.0
 
 - Added managed policy relationship to IAM Groups
 
@@ -77,9 +80,11 @@
 # 0.19.4
 
 - Fixed json files not being included
+
 # 0.19.3
 
 - Added `read_resource` to `GremlinStorageConnector`
+
 # 0.19.2
 
 - Change target health from a secondary attribute to a dependent resource
@@ -88,6 +93,7 @@
 # 0.19.1
 
 - Fix typo in relationship between igw and route
+
 # 0.19.0
 
 - Dispense with wrapper methods and instead subclass the boto3 resource factory so we can create new methods directly on the ServiceResource objects.
@@ -96,27 +102,28 @@
 # 0.18.0
 
 - Added `requiresLoadForFullMetadata` to service mappings. Allows resources like Regional WebACLs to declare that they get impoverished data from their list operation and need `resource.load()` called to fetch all info.
-- Added support for services which have both regional *and* global resources
+- Added support for services which have both regional _and_ global resources
 - Moved get_and_cleanup_actions from CloudWandererBoto3Resource to ResourceMap
 - Added Resource Filtering options to flexibly filter out resources you're not interested in.
 
 ## New Resources
- - Added ec2 nat gateways
- - Added ec2 egress only internet gateways
- - Added ec2 vpn gateways
- - Added ec2 vpn customer gateways
- - Added ec2 vpn connections
- - Added wafv2 regional web acls
+
+- Added ec2 nat gateways
+- Added ec2 egress only internet gateways
+- Added ec2 vpn gateways
+- Added ec2 vpn customer gateways
+- Added ec2 vpn connections
+- Added wafv2 regional web acls
 
 # 0.17.0
 
 ## New Resources
- - Added ec2 vpc endpoints support
- - Added ec2 vpc endpoint services support
- - Added ec2 elastic IP support
- - Added elbv2 target group support
- - Added elbv2 load balancer support
 
+- Added ec2 vpc endpoints support
+- Added ec2 vpc endpoint services support
+- Added ec2 elastic IP support
+- Added elbv2 target group support
+- Added elbv2 load balancer support
 
 # 0.16.1
 
@@ -140,7 +147,6 @@
 - Added AutoScalingGroup fixing [#123](https://github.com/CloudWanderer-io/CloudWanderer/issues/123)
 - Added load operation for lambda layer versions
 
-
 # 0.15.0
 
 - Added `lambda` `layer` resource type.
@@ -151,22 +157,22 @@
 
 # 0.14.1
 
- - Implemented `mypy` type checking
- - Corrected a huge number of type hints
- - Reformalised arguments for `get_resources` on storage_connectors.
- - Fixed DynamoDB pagination
+- Implemented `mypy` type checking
+- Corrected a huge number of type hints
+- Reformalised arguments for `get_resources` on storage_connectors.
+- Fixed DynamoDB pagination
 
 # 0.14.0
 
- - Added `parent_urn` and `subresource_urn` properties to the `CloudWanderResource` class.
- - Added new DynamoDB secondary index `parent_urn`
- - Fixed bug where subresources were not cleaned up when `write_resource` was called on `CloudWanderer`
- - Stripped out DynamoDB record specific attributes which were polluting Secondary Attributes dictionaries.
- - Changed `AWSInterface` `get_resources` to expect specific service, resource type, region arguments instead of reusing the arguments from CloudWanderer `write_resources`.
- - Added `get_actions` to `AWSInterface` which returns a list of `GetAndCleanUp` objects which pair `GetAction`s and `CleanUpAction`s.
- - CloudWanderer's `write_resources` now contains the logic for iterating over each `GetAction`, calling `get_resources` on `AWSInterface` and calling `delete_resource_of_type_in_account_region` on each StorageConnector in accordance with the `CleanUpAction`.
- - Added `get_and_cleanup_actions` property to `CloudWandererBoto3Resource` so the responsibility for defining `GetAndCleanUp` objects resides with the resource. This provides maximum flexibility for asymmetric region/resource discovery (like S3 buckets).
- - Added `get_empty_service` to `Boto3Services` to minimise the number of unnecessary (and expensive) Boto3 client creations when generating get and cleanup actions.
+- Added `parent_urn` and `subresource_urn` properties to the `CloudWanderResource` class.
+- Added new DynamoDB secondary index `parent_urn`
+- Fixed bug where subresources were not cleaned up when `write_resource` was called on `CloudWanderer`
+- Stripped out DynamoDB record specific attributes which were polluting Secondary Attributes dictionaries.
+- Changed `AWSInterface` `get_resources` to expect specific service, resource type, region arguments instead of reusing the arguments from CloudWanderer `write_resources`.
+- Added `get_actions` to `AWSInterface` which returns a list of `GetAndCleanUp` objects which pair `GetAction`s and `CleanUpAction`s.
+- CloudWanderer's `write_resources` now contains the logic for iterating over each `GetAction`, calling `get_resources` on `AWSInterface` and calling `delete_resource_of_type_in_account_region` on each StorageConnector in accordance with the `CleanUpAction`.
+- Added `get_and_cleanup_actions` property to `CloudWandererBoto3Resource` so the responsibility for defining `GetAndCleanUp` objects resides with the resource. This provides maximum flexibility for asymmetric region/resource discovery (like S3 buckets).
+- Added `get_empty_service` to `Boto3Services` to minimise the number of unnecessary (and expensive) Boto3 client creations when generating get and cleanup actions.
 
 # 0.13.2
 
@@ -194,10 +200,10 @@
 
 - Changed the way `exclude_resources` works so you can differentiate between CloudFormation Stacks and OpsWorks Stacks #70
 - Formalised the interface between the `CloudInterface` > `CloudWanderer` > `StorageConnector` by
-    converting Boto3 resources to `CloudWandererResources`
-    - Removed `write_secondary_attributes` from `BaseStorageConnector` as it's no longer required to be public.
+  converting Boto3 resources to `CloudWandererResources`
+  - Removed `write_secondary_attributes` from `BaseStorageConnector` as it's no longer required to be public.
 - Added `name` argument to `get_secondary_attribute` allowing you to get secondary attributes by name.
-- Ensured that all resource attributes that *can* exist *do* exist when `CloudWandererResource` returned from `CloudWandererBoto3Interface`, irrespective of whether they were returned in that particular API call.
+- Ensured that all resource attributes that _can_ exist _do_ exist when `CloudWandererResource` returned from `CloudWandererBoto3Interface`, irrespective of whether they were returned in that particular API call.
 
 ## New Resources
 
@@ -209,18 +215,18 @@
 - Collapsed all `write_secondary_attributes` methods into `write_resources` so secondary attributes are written automatically.
 - Moved AWS specific methods to `CloudWandererBoto3Interface`
 - Fixed bug that would have prevented global services with regional resources being cleaned properly.
-    This was due to cleanup only happening in the global service region, and being limited to
-    cleaning up resources in that region. E.g. it would write buckets from all regions from `us-east-1`
-    and then _only_ cleanup `us-east-1` s3 buckets.
+  This was due to cleanup only happening in the global service region, and being limited to
+  cleaning up resources in that region. E.g. it would write buckets from all regions from `us-east-1`
+  and then _only_ cleanup `us-east-1` s3 buckets.
 - Removed `client_args` as an explicit argument on cloudwanderer resources, any keywords args supplied to `write_` methods are now passed into the `get_` methods of the `cloud_interface`
 - Subresources now build their compound id using a `/` separator rather than a `:` separator. This ensures that
-    `:` remains the primary separator for URN parts.
+  `:` remains the primary separator for URN parts.
 
 # 0.10.2
 
- - Reuse service definition objects via `_get_resource_definitions` to save on time spent reinstantiating identical objects
- - Only instantiate the default `ServiceMapping` from `get_service_mapping` if it's required.
- - Reduced number of regions tested from _all_ to 3.
+- Reuse service definition objects via `_get_resource_definitions` to save on time spent reinstantiating identical objects
+- Only instantiate the default `ServiceMapping` from `get_service_mapping` if it's required.
+- Reduced number of regions tested from _all_ to 3.
 
 # 0.10.1
 
@@ -243,35 +249,35 @@
 - Added `get_secondary_attribute` to `CloudWandererResource`
 - Added `is_inflated` to `CloudWandererResource`
 - Storage Standardisation improvements
-    - Standardised storage connector write tests
-    - Deleted duplicate read tests
-    - Added `write_resource_attribute` to `BaseStorageConnector`
-    - Added `write_resource_attribute` to `MemoryStorageConnector`
-    - Renamed `resource_attributes` to `secondary_attributes`
+  - Standardised storage connector write tests
+  - Deleted duplicate read tests
+  - Added `write_resource_attribute` to `BaseStorageConnector`
+  - Added `write_resource_attribute` to `MemoryStorageConnector`
+  - Renamed `resource_attributes` to `secondary_attributes`
 - Fixed bug where `write_secondary_attributes` would enumerate services which did not have secondary attributes.
 
 # 0.8.0
 
 - Added support for multiple storage connectors
 - Made Storage Connectors the primary interface for reading from storage
-    - `read_resource` on DynamoDbStorageConnector returns a `CloudWandererResource` instead of an iterator.
-    - `read_resource` on MemoryStorageConnector returns a `CloudWandererResource` instead of an iterator.
-    - Added `read_resources` to DynamoDbStorageConnector
-    - Added `read_resources` to MemoryStorageConnector
-    - Removed `read_resource_of_type` from DynamoDBStorageConnector
-    - Removed `read_resource_of_type_in_account` from DynamoDBStorageConnector
-    - Removed `read_all_resources_in_account` from DynamoDBStorageConnector
-    - Removed `read_resource_of_type` from BaseStorageConnector
-    - Removed `read_resource_of_type_in_account` from BaseStorageConnector
-    - Removed `read_all_resources_in_account` from BaseStorageConnector
-    - Removed `read_resource_of_type` from MemoryStorageConnector
-    - Removed `read_resource_of_type_in_account` from MemoryStorageConnector
-    - Removed `read_all_resources_in_account` from MemoryStorageConnector
-    - Removed `read_resource_of_type` from CloudWanderer
-    - Removed `read_resource` from CloudWanderer
-    - Removed `read_all_resources_in_account` from CloudWanderer
-    - Removed `read_resource_of_type_in_account` from CloudWanderer
-- Added  dynamodb filter expressions to increase flexibility of `get_resources`
+  - `read_resource` on DynamoDbStorageConnector returns a `CloudWandererResource` instead of an iterator.
+  - `read_resource` on MemoryStorageConnector returns a `CloudWandererResource` instead of an iterator.
+  - Added `read_resources` to DynamoDbStorageConnector
+  - Added `read_resources` to MemoryStorageConnector
+  - Removed `read_resource_of_type` from DynamoDBStorageConnector
+  - Removed `read_resource_of_type_in_account` from DynamoDBStorageConnector
+  - Removed `read_all_resources_in_account` from DynamoDBStorageConnector
+  - Removed `read_resource_of_type` from BaseStorageConnector
+  - Removed `read_resource_of_type_in_account` from BaseStorageConnector
+  - Removed `read_all_resources_in_account` from BaseStorageConnector
+  - Removed `read_resource_of_type` from MemoryStorageConnector
+  - Removed `read_resource_of_type_in_account` from MemoryStorageConnector
+  - Removed `read_all_resources_in_account` from MemoryStorageConnector
+  - Removed `read_resource_of_type` from CloudWanderer
+  - Removed `read_resource` from CloudWanderer
+  - Removed `read_all_resources_in_account` from CloudWanderer
+  - Removed `read_resource_of_type_in_account` from CloudWanderer
+- Added dynamodb filter expressions to increase flexibility of `get_resources`
 - Added attribute projections for urn parts to DynamoDB Global Secondary Indexes
 
 # 0.7.1
@@ -310,12 +316,12 @@
 
 # 0.5.0
 
- - Add tests for storage connector
- - Fixed return of read_all on storage connector
- - Added delete_resource on storage connector
- - Added delete_resource_of_type_in_account_region on storage connector
- - write_resources in CloudWanderer now deletes resources which no longer exist.
- - Added param for number_of_shards for dynamodb connector rather than hardcoding it.
+- Add tests for storage connector
+- Fixed return of read_all on storage connector
+- Added delete_resource on storage connector
+- Added delete_resource_of_type_in_account_region on storage connector
+- write_resources in CloudWanderer now deletes resources which no longer exist.
+- Added param for number_of_shards for dynamodb connector rather than hardcoding it.
 
 # 0.4.0
 
