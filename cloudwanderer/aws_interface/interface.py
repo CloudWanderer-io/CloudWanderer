@@ -118,6 +118,7 @@ class CloudWandererAWSInterface(CloudInterface):
             for dependent_resource in self._get_dependent_resources(resource, validated_resource_type_filters):
                 dependent_resource_urns.append(dependent_resource.urn)
                 yield dependent_resource
+
         yield CloudWandererResource(
             urn=resource.get_urn(),
             resource_data=resource.normalized_raw_data,
@@ -175,6 +176,8 @@ class CloudWandererAWSInterface(CloudInterface):
                 for dependent_resource in self._get_dependent_resources(resource, validated_resource_type_filters):
                     dependent_resource_urns.append(dependent_resource.urn)
                     yield dependent_resource
+                if resource.resource_map.requires_load:
+                    resource.load()
                 yield CloudWandererResource(
                     urn=resource.get_urn(),
                     resource_data=resource.normalized_raw_data,

@@ -1,3 +1,7 @@
+# 0.27.0
+
+- Added support for `requiresLoad` on base resources.
+
 # 0.26.1
 
 - Moved account id and enabled region specifications to CloudWanderer3Boto3Session from AWSInterface. Fixes #247
