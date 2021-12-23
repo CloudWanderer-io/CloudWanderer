@@ -1,3 +1,7 @@
+# 0.27.2
+
+- Add `get_available_subresources` method to `CloudWandererServiceResource` stubs.
+
 # 0.27.1
 
 - Reinclude py.typed in package
@@ -9,7 +13,6 @@
 # 0.26.1
 
 - Moved account id and enabled region specifications to CloudWanderer3Boto3Session from AWSInterface. Fixes #247
-
 
 # 0.26.0
 
