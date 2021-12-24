@@ -1,3 +1,8 @@
+# 0.27.0
+
+- Added `cloudName` to RelationshipSpecification
+
+
 # 0.27.2
 
 - Add `get_available_subresources` method to `CloudWandererServiceResource` stubs.
