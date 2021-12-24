@@ -118,6 +118,7 @@ class TestResourceMap(unittest.TestCase):
                 base_path="@",
                 direction=RelationshipDirection.INBOUND,
                 id_parts=[IdPartSpecification(path="VpcId", regex_pattern="")],
+                cloud_name="aws",
                 service="ec2",
                 resource_type="vpc",
                 region_source=RelationshipRegionSource.SAME_AS_RESOURCE,

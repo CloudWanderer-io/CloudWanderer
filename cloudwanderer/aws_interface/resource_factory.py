@@ -399,7 +399,7 @@ class CloudWandererResourceFactory(ResourceFactory):
                         logger.debug("Skipping building a relationship for %s as the basePath is empty", self.get_urn())
                         continue
                     urn_args = {
-                        "cloud_name": "aws",
+                        "cloud_name": relationship_specification.cloud_name,
                         "account_id": "unknown",
                         "region": "unknown",
                         "service": relationship_specification.service,

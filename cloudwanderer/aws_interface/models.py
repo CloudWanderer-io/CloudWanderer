@@ -245,6 +245,8 @@ class RelationshipSpecification(NamedTuple):
     base_path: str
     #: The specifications for the parts of relationship partner resource's URN
     id_parts: List["IdPartSpecification"]
+    #: The name of the Cloud (defaults to aws)
+    cloud_name: str
     #: The service name of the partner resource
     service: str
     #: The resource type of the partner resource
@@ -266,6 +268,7 @@ class RelationshipSpecification(NamedTuple):
             id_parts=[IdPartSpecification.factory(id_part) for id_part in definition["idParts"]],
             service=definition["service"],
             resource_type=definition["resourceType"],
+            cloud_name=definition.get("cloudName", "aws"),
             region_source=RelationshipRegionSource[camel_to_snake(definition["regionSource"])],
             account_id_source=RelationshipAccountIdSource[camel_to_snake(definition["accountIdSource"])],
         )
