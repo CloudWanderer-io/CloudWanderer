@@ -1,4 +1,4 @@
-# 0.27.0
+# 0.28.0
 
 - Added `cloudName` to RelationshipSpecification
 - Updated `relationships` on `ServiceResource.relationships` to take `cloud_name` from the `RelationshipSpecification`
