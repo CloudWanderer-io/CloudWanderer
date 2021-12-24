@@ -3,7 +3,8 @@ from unittest.mock import ANY
 from boto3.resources.base import ServiceResource
 from moto import mock_ec2, mock_iam, mock_s3, mock_sts
 
-from cloudwanderer.aws_interface.models import ResourceMap
+from cloudwanderer.aws_interface.models import IdPartSpecification, RelationshipSpecification, ResourceMap
+from cloudwanderer.models import RelationshipAccountIdSource, RelationshipDirection, RelationshipRegionSource
 from cloudwanderer.urn import URN
 
 from ...pytest_helpers import compare_dict_allow_any, create_iam_role, create_s3_buckets, get_single_ec2_vpc
@@ -182,12 +183,6 @@ def test_shape(ec2_service):
     assert get_single_ec2_vpc(ec2_service).shape.name == "Vpc"
 
 
-@mock_ec2
-@mock_sts
-def test_relationships(ec2_service):
-    assert get_single_ec2_vpc(ec2_service).relationships[0].partial_urn.resource_type == "dhcp_options"
-
-
 def test_empty_resource(ec2_service):
     vpc = ec2_service.resource("vpc", empty_resource=True)
 
@@ -200,3 +195,55 @@ def test_empty_resource_is_dependent_resource_true(iam_service):
 
 def test_empty_resource_is_dependent_resource_false(iam_service):
     assert not iam_service.resource("role", empty_resource=True).is_dependent_resource
+
+
+@mock_sts
+@mock_ec2
+def test_relationships(ec2_service):
+    vpc = get_single_ec2_vpc(ec2_service)
+
+    result = vpc.relationships
+
+    assert len(result) == 1
+    assert dict(result[0].partial_urn) == {
+        "account_id": "unknown",
+        "cloud_name": "aws",
+        "region": "eu-west-2",
+        "resource_id": ANY,
+        "resource_id_parts": [ANY],
+        "resource_type": "dhcp_options",
+        "service": "ec2",
+    }
+
+
+@mock_sts
+@mock_ec2
+def test_relationships_specifying_cloud(ec2_service):
+    vpc = get_single_ec2_vpc(ec2_service)
+    # Override the relationship specification to specify the cloud
+    vpc.resource_map.relationships.pop(0)
+    vpc.resource_map.relationships.append(
+        RelationshipSpecification(
+            base_path="@",
+            id_parts=[IdPartSpecification(path="DhcpOptionsId", regex_pattern="")],
+            cloud_name="overridden",
+            service="ec2",
+            resource_type="dhcp_options",
+            region_source=RelationshipRegionSource.SAME_AS_RESOURCE,
+            account_id_source=RelationshipAccountIdSource.UNKNOWN,
+            direction=RelationshipDirection.OUTBOUND,
+        )
+    )
+
+    result = vpc.relationships
+
+    assert len(result) == 1
+    assert dict(result[0].partial_urn) == {
+        "account_id": "unknown",
+        "cloud_name": "overridden",
+        "region": "eu-west-2",
+        "resource_id": ANY,
+        "resource_id_parts": [ANY],
+        "resource_type": "dhcp_options",
+        "service": "ec2",
+    }
