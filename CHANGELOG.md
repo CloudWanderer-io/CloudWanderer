@@ -1,3 +1,7 @@
+# 0.29.0
+
+- Fix bug where wafv2 `RegionalWebAcl` resources would not correctly load their data
+
 # 0.28.0
 
 - Added `cloudName` to RelationshipSpecification

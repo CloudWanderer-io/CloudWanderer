@@ -3,7 +3,7 @@
     "resources": {
         "RegionalWebAcl": {
             "type": "resource",
-            "requiresLoadForFullMetadata": true
+            "requiresLoad": true
         }
     }
 }
