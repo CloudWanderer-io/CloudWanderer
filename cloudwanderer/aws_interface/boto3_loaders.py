@@ -29,8 +29,11 @@ logger = logging.getLogger(__name__)
 class CustomServiceLoader:
     """A class to load custom services."""
 
-    def __init__(self, definition_path: str = "resource_definitions") -> None:
-        self.service_definitions_path = os.path.join(pathlib.Path(__file__).parent.absolute(), definition_path)
+    def __init__(self, definition_path: str = None) -> None:
+
+        self.service_definitions_path = definition_path or os.path.join(
+            pathlib.Path(__file__).parent.absolute(), "resource_definitions"
+        )
 
     @memoized_method()
     def get_service_definition(self, service_name: str, type_name: str, api_version: str) -> dict:
@@ -72,9 +75,11 @@ class CustomServiceLoader:
 class MergedServiceLoader(Loader):
     """A class to merge the services from a custom service loader with those of Boto3."""
 
-    def __init__(self) -> None:
-        self.custom_service_loader = CustomServiceLoader()
-        botocore_session = botocore.session.get_session()
+    def __init__(
+        self, custom_service_loader: CustomServiceLoader = None, botocore_session: botocore.session.Session = None
+    ) -> None:
+        self.custom_service_loader = custom_service_loader or CustomServiceLoader()
+        botocore_session = botocore_session or botocore.session.get_session()
         self.botocore_loader = botocore_session.get_component("data_loader")
         boto3_data_path = os.path.join(os.path.dirname(boto3.__file__), "data")
         self.botocore_loader.search_paths.append(boto3_data_path)
