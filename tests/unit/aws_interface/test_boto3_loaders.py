@@ -11,7 +11,7 @@ def test_merged_service_loader_list_available_services():
         custom_service_loader=mock_custom_service_loader, botocore_session=mock_botocore_session
     )
 
-    assert subject.list_available_services() == ["lambda", "ec2"]
+    assert subject.list_available_services() == ["ec2", "lambda"]
 
 
 def test_custom_service_loader_path_default():

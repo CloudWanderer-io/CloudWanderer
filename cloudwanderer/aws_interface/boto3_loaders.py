@@ -93,7 +93,7 @@ class MergedServiceLoader(Loader):
     def list_available_services(self, type_name: str = "resources-1") -> List[str]:
         _ = type_name
         """Return a list of service names that can be loaded."""
-        return list(set(self.cloudwanderer_available_services + self.boto3_available_services))
+        return sorted(list(set(self.cloudwanderer_available_services + self.boto3_available_services)))
 
     def determine_latest_version(self, service_name: str, type_name: str) -> str:
         return max(self.list_api_versions(service_name, type_name))
