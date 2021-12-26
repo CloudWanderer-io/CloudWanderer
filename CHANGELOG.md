@@ -1,3 +1,9 @@
+# 0.29.0
+
+- Fix bug where wafv2 `RegionalWebAcl` resources would not correctly load their data (Fixes [#250](https://github.com/CloudWanderer-io/CloudWanderer/issues/250))
+- Made it possible to pass a custom `CustomServiceLoader` into `ServiceLoader`
+- Made it possible to pass an entirely custom (not just relative) path into `CustomServiceLoader` (fixes [#249](https://github.com/CloudWanderer-io/CloudWanderer/issues/249))
+
 # 0.28.0
 
 - Added `cloudName` to RelationshipSpecification
