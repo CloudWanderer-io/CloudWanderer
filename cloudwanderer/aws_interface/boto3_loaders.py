@@ -27,7 +27,13 @@ logger = logging.getLogger(__name__)
 
 
 class CustomServiceLoader:
-    """A class to load custom services."""
+    """A class to load custom services.
+
+    Parameters:
+        definition_path:
+            The absolute path to the resource definition JSON folders. This must mirror the folder structure
+            and JSON schema found in CloudWanderer/boto3.
+    """
 
     def __init__(self, definition_path: str = None) -> None:
 
