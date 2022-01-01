@@ -11,7 +11,7 @@
       ]
     },
     "TargetGroup": {
-      "type": "resource",
+      "type": "baseResource",
       "relationships": [
         {
           "basePath": "@",
@@ -99,7 +99,7 @@
       ]
     },
     "LoadBalancer": {
-      "type": "resource",
+      "type": "baseResource",
       "relationships": [
         {
           "basePath": "@",

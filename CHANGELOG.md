@@ -3,6 +3,8 @@
 - `PartialURN` now throws an error if you pass a non-string as a resource_id_part
 - `ServiceResource.get_urn` now converts integer resource_id_parts to strings
 - Ensured lambda layer versions load full metadata with `get_layer_version` call.
+- Added enum for resource map `ResourceIndependenceType` normalising on `baseResource` rather than `resource` as was used in some places.
+- `CloudWandererAWSInterface.get_resource` now throws an error if you try to get a dependent resource as this will cause `parent_urn` not to be populated.
 
 # 0.29.0
 

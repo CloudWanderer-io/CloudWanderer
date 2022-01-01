@@ -102,6 +102,15 @@ class RelationshipDirection(Enum):
     INBOUND = auto()
 
 
+@unique
+class ResourceIndependenceType(Enum):
+    """Enum specifying whether this resource requires a parent resource for id uniqueness."""
+
+    BASE_RESOURCE = auto()
+    DEPENDENT_RESOURCE = auto()
+    SECONDARY_ATTRIBUTE = auto()
+
+
 class ResourceIdUniquenessScope(NamedTuple):
     """What is the scope of this resource ID's uniqueness.
 

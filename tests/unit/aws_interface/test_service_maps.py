@@ -26,7 +26,7 @@ def test_global_service_map():
             },
             "resources": {
                 "Bucket": {
-                    "type": "resource",
+                    "type": "baseResource",
                     "regionRequest": {
                         "operation": "get_bucket_location",
                         "params": [{"target": "Bucket", "source": "resourceAttribute", "name": "name"}],

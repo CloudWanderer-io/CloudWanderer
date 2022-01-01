@@ -4,7 +4,7 @@ from boto3.resources.base import ResourceMeta
 
 from ...models import Relationship, TemplateActionSet
 from ...urn import URN
-from ..models import ServiceMap
+from ..models import ResourceMap, ServiceMap
 
 class CloudWandererServiceResource:
     service_name: str
@@ -12,6 +12,7 @@ class CloudWandererServiceResource:
     resource_types: List[str]
     dependent_resource_types: List[str]
     service_map: ServiceMap
+    resource_map: ResourceMap
     meta: ResourceMeta
     normalized_raw_data: Dict[str, Any]
     relationships: List[Relationship]

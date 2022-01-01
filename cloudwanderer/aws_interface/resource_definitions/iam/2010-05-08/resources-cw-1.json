@@ -5,7 +5,7 @@
   },
   "resources": {
     "User": {
-      "type": "resource",
+      "type": "baseResource",
       "idUniquenessScope": {
         "requiresAccountId": true,
         "requiresRegion": false
@@ -43,7 +43,7 @@
       ]
     },
     "VirtualMfaDevice": {
-      "type": "resource",
+      "type": "baseResource",
       "regionalResource": false
     },
     "MfaDevice": {
@@ -52,7 +52,7 @@
       "regionalResource": false
     },
     "Group": {
-      "type": "resource",
+      "type": "baseResource",
       "idUniquenessScope": {
         "requiresAccountId": true,
         "requiresRegion": false
@@ -90,7 +90,7 @@
       "regionalResource": false
     },
     "SamlProvider": {
-      "type": "resource",
+      "type": "baseResource",
       "idUniquenessScope": {
         "requiresAccountId": true,
         "requiresRegion": false
@@ -98,11 +98,11 @@
       "regionalResource": false
     },
     "ServerCertificate": {
-      "type": "resource",
+      "type": "baseResource",
       "regionalResource": false
     },
     "Role": {
-      "type": "resource",
+      "type": "baseResource",
       "idUniquenessScope": {
         "requiresAccountId": true,
         "requiresRegion": false
@@ -150,7 +150,7 @@
       "regionalResource": false
     },
     "Policy": {
-      "type": "resource",
+      "type": "baseResource",
       "idUniquenessScope": {
         "requiresAccountId": true,
         "requiresRegion": false
@@ -172,7 +172,7 @@
       "regionalResource": false
     },
     "InstanceProfile": {
-      "type": "resource",
+      "type": "baseResource",
       "idUniquenessScope": {
         "requiresAccountId": true,
         "requiresRegion": false

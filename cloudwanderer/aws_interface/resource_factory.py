@@ -17,6 +17,7 @@ from ..models import (
     Relationship,
     RelationshipAccountIdSource,
     RelationshipRegionSource,
+    ResourceIndependenceType,
     TemplateActionSet,
     TemplateActionSetRegionValues,
 )
@@ -141,7 +142,7 @@ class CloudWandererResourceFactory(ResourceFactory):
                     cleanup_region = TemplateActionSetRegionValues.ALL_REGIONS.name
                 else:
                     cleanup_region = discovery_region
-                if self.resource_map.type != "dependentResource":
+                if self.resource_map.type != ResourceIndependenceType.DEPENDENT_RESOURCE:
                     actions.get_urns.append(
                         PartialUrn(
                             cloud_name="aws",
@@ -171,7 +172,7 @@ class CloudWandererResourceFactory(ResourceFactory):
         return get_collection_manager
 
     def _create_get_collection_model(self) -> Callable:
-        def get_collection_model(self, resource_type) -> Optional[str]:
+        def get_collection_model(self, resource_type: str) -> Optional[str]:
             """Resource names *almost* always match their resource type, but not always.
 
             I'm looking at you EC2 KeyPair!
@@ -313,7 +314,7 @@ class CloudWandererResourceFactory(ResourceFactory):
             secondary_attribute_names = []
             for subresource in self.meta.resource_model.subresources:
                 resource_map = self.service_map.get_resource_map(xform_name(subresource.name))
-                if not resource_map or resource_map.type != "secondaryAttribute":
+                if not resource_map or resource_map.type != ResourceIndependenceType.SECONDARY_ATTRIBUTE:
                     continue
                 secondary_attribute_names.append(xform_name(subresource.name))
 
@@ -370,14 +371,14 @@ class CloudWandererResourceFactory(ResourceFactory):
             for collection in self.meta.resource_model.collections:
                 resource_type = xform_name(collection.resource.type)
                 resource_map = self.service_map.get_resource_map(resource_type=resource_type)
-                if resource_map.type == "dependentResource":
+                if resource_map.type == ResourceIndependenceType.DEPENDENT_RESOURCE:
                     dependent_resource_types.add(resource_type)
             for subresource in self.meta.resource_model.subresources + self.meta.resource_model.references:
                 resource_type = xform_name(subresource.resource.type)
                 if resource_type in dependent_resource_types:
                     continue
                 resource_map = self.service_map.get_resource_map(resource_type=resource_type)
-                if resource_map.type == "dependentResource":
+                if resource_map.type == ResourceIndependenceType.DEPENDENT_RESOURCE:
                     dependent_resource_types.add(resource_type)
 
             return sorted(list(dependent_resource_types))
@@ -436,7 +437,7 @@ class CloudWandererResourceFactory(ResourceFactory):
 
     def _create_is_dependent_resource(self) -> property:
         def is_dependent_resource(self) -> bool:
-            return self.resource_map.type == "dependentResource"
+            return self.resource_map.type == ResourceIndependenceType.DEPENDENT_RESOURCE
 
         return property(is_dependent_resource)
 

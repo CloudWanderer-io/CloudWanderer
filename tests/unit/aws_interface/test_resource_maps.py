@@ -45,7 +45,7 @@ class TestResourceMap(unittest.TestCase):
         resource_map = ResourceMap.factory(
             name="Bucket",
             definition={
-                "type": "resource",
+                "type": "baseResource",
                 "regionalResource": False,
                 "regionRequest": {
                     "operation": "get_bucket_location",
@@ -67,7 +67,7 @@ class TestResourceMap(unittest.TestCase):
     def test_dependent_resource_map(self):
         resource_map = ResourceMap.factory(
             name="RolePolicy",
-            definition={"type": "resource", "parentResourceType": "role"},
+            definition={"type": "baseResource", "parentResourceType": "role"},
             service_map=MagicMock(),
         )
 

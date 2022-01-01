@@ -1,9 +1,9 @@
 {
-    "service": {},
-    "resources": {
-        "RegionalWebAcl": {
-            "type": "resource",
-            "requiresLoad": true
-        }
+  "service": {},
+  "resources": {
+    "RegionalWebAcl": {
+      "type": "baseResource",
+      "requiresLoad": true
     }
+  }
 }
