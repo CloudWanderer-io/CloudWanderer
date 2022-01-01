@@ -1,44 +1,35 @@
 {
     "service": "lambda",
     "mockData": {
-        "get_paginator.side_effect": [
-            {
-                "paginate.return_value": [
-                    {
-                        "Layers": [
-                            {
-                                "LayerName": "test-layer",
-                                "LayerArn": "arn:aws:lambda:eu-west-1:123456789012:layer:test-layer",
-                                "LatestMatchingVersion": {
-                                    "LayerVersionArn": "arn:aws:lambda:eu-west-1:123456789012:layer:test-layer:1",
-                                    "Version": 1,
-                                    "Description": "This is a test layer!",
-                                    "CreatedDate": "2020-10-17T13:18:00.303+0000",
-                                    "CompatibleRuntimes": [
-                                        "nodejs10.x"
-                                    ]
-                                }
-                            }
-                        ]
-                    }
-                ]
+        "get_paginator.side_effect": [{
+                "paginate.return_value": [{
+                    "Layers": [{
+                        "LayerName": "test-layer",
+                        "LayerArn": "arn:aws:lambda:eu-west-1:123456789012:layer:test-layer",
+                        "LatestMatchingVersion": {
+                            "LayerVersionArn": "arn:aws:lambda:eu-west-1:123456789012:layer:test-layer:1",
+                            "Version": 1,
+                            "Description": "This is a test layer!",
+                            "CreatedDate": "2020-10-17T13:18:00.303+0000",
+                            "CompatibleRuntimes": [
+                                "nodejs10.x"
+                            ]
+                        }
+                    }]
+                }]
             },
             {
-                "paginate.return_value": [
-                    {
-                        "LayerVersions": [
-                            {
-                                "LayerVersionArn": "arn:aws:lambda:eu-west-1:123456789012:layer:test-layer:1",
-                                "Version": 1,
-                                "Description": "This is a test layer!",
-                                "CreatedDate": "2020-10-17T13:18:00.303+0000",
-                                "CompatibleRuntimes": [
-                                    "nodejs10.x"
-                                ]
-                            }
+                "paginate.return_value": [{
+                    "LayerVersions": [{
+                        "LayerVersionArn": "arn:aws:lambda:eu-west-1:123456789012:layer:test-layer:1",
+                        "Version": 1,
+                        "Description": "This is a test layer!",
+                        "CreatedDate": "2020-10-17T13:18:00.303+0000",
+                        "CompatibleRuntimes": [
+                            "nodejs10.x"
                         ]
-                    }
-                ]
+                    }]
+                }]
             }
         ]
     },
@@ -47,9 +38,41 @@
         "resourceType": "layer",
         "region": "eu-west-2"
     },
-    "expectedCalls": {},
-    "expectedResults": [
-        {
+    "expectedCalls": {
+        "get_paginator": [{
+                "args": [
+                    "list_layers"
+                ],
+                "kwargs": {}
+            },
+            {
+                "args": [
+                    "list_layer_versions"
+                ],
+                "kwargs": {}
+            }
+        ],
+        "get_paginator.side_effect[0].paginate": [{
+            "args": [],
+            "kwargs": {
+                "PaginationConfig": {
+                    "MaxItems": null,
+                    "PageSize": null
+                }
+            }
+        }],
+        "get_paginator.side_effect[1].paginate": [{
+            "args": [],
+            "kwargs": {
+                "PaginationConfig": {
+                    "MaxItems": null,
+                    "PageSize": null
+                },
+                "LayerName": "test-layer"
+            }
+        }]
+    },
+    "expectedResults": [{
             "urn": {
                 "cloud_name": "aws",
                 "account_id": "0123456789012",
@@ -58,7 +81,7 @@
                 "resource_type": "layer_version",
                 "resource_id_parts": [
                     "test-layer",
-                    1
+                    "1"
                 ],
                 "resource_id": "test-layer/1"
             },
@@ -109,20 +132,18 @@
                 "resource_id": "test-layer"
             },
             "relationships": [],
-            "dependent_resource_urns": [
-                {
-                    "account_id": "0123456789012",
-                    "cloud_name": "aws",
-                    "region": "eu-west-2",
-                    "resource_id": "test-layer/1",
-                    "resource_id_parts": [
-                        "test-layer",
-                        1
-                    ],
-                    "resource_type": "layer_version",
-                    "service": "lambda"
-                }
-            ],
+            "dependent_resource_urns": [{
+                "account_id": "0123456789012",
+                "cloud_name": "aws",
+                "region": "eu-west-2",
+                "resource_id": "test-layer/1",
+                "resource_id_parts": [
+                    "test-layer",
+                    "1"
+                ],
+                "resource_type": "layer_version",
+                "service": "lambda"
+            }],
             "parent_urn": null,
             "cloudwanderer_metadata": {
                 "LayerName": "test-layer",

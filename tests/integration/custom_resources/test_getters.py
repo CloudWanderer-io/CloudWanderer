@@ -1,8 +1,9 @@
 import json
 import logging
 import os
+import re
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, call
 
 import botocore
 import pytest
@@ -16,11 +17,13 @@ logger = logging.getLogger(__name__)
 
 def build_mock(mock_spec):
     result = {}
+    paginator_side_effects = []
     for key, value in mock_spec.items():
         if key == "get_paginator.side_effect":
-            value = MagicMock(side_effect=[MagicMock(**effect) for effect in value])
+            paginator_side_effects = [MagicMock(**effect) for effect in value]
+            value = MagicMock(side_effect=paginator_side_effects)
         result[key] = value
-    return result
+    return result, paginator_side_effects
 
 
 def get_resources_to_test():
@@ -36,7 +39,7 @@ def get_resources_to_test():
 def test_all_custom_resources(file_name, aws_interface):
     with open(file_name) as f:
         test_spec = json.load(f)
-
+    mock, paginator_side_effects = build_mock(test_spec["mockData"])
     mock_client = MagicMock(
         **{
             **{
@@ -47,7 +50,7 @@ def test_all_custom_resources(file_name, aws_interface):
                     "Arn": "arn:aws:iam::0123456789012:user/CloudWanderer",
                 },
             },
-            **build_mock(test_spec["mockData"]),
+            **mock,
         }
     )
     aws_interface.cloudwanderer_boto3_session.client = MagicMock(return_value=mock_client)
@@ -92,7 +95,17 @@ def test_all_custom_resources(file_name, aws_interface):
         logger.info("Assert calls %s on %s", calls, method_path)
         method = mock_client
         for attr in method_path.split("."):
+            index_match = re.search(r"\[(?P<index>\d)\](?P<attr>.*)", attr)
+            if index_match:
+                # This will only work if it's an index of `get_paginator.side_effect`
+                index = index_match.groupdict()["index"]
+                attr = index_match.groupdict()["attr"]
+                method = paginator_side_effects[int(index)]
+                if not attr:
+                    continue
+
             method = getattr(method, attr)
-        for call in calls:
-            logger.info("Assert %s calls on %s", call, method_path)
-            method.assert_called_with(*call["args"], **call["kwargs"])
+
+        logger.info("Assert %s calls on %s", calls, method_path)
+        logger.info([call(*call_dict["args"], **call_dict["kwargs"]) for call_dict in calls])
+        method.assert_has_calls([call(*call_dict["args"], **call_dict["kwargs"]) for call_dict in calls])
