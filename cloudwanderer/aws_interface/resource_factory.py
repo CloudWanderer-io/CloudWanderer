@@ -240,8 +240,15 @@ class CloudWandererResourceFactory(ResourceFactory):
         return collection
 
     def _create_get_urn(self) -> Callable:
+        def normalize_identifier(identifier: Any) -> str:
+            convertable_types = tuple([int])
+
+            if isinstance(identifier, convertable_types):
+                return str(identifier)
+            return identifier
+
         def get_urn(self) -> URN:
-            id_parts = [getattr(self, identifier) for identifier in self.meta.identifiers]
+            id_parts = [normalize_identifier(getattr(self, identifier)) for identifier in self.meta.identifiers]
             urn_args = {
                 "account_id": self.get_account_id(),
                 "region": self.get_region(),

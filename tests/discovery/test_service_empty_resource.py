@@ -63,7 +63,7 @@ def test_get_discovery_action_templates_regional_resource_regional_service(servi
             region="eu-west-1",
             service="ec2",
             resource_type="vpc",
-            resource_id_parts=[None],
+            resource_id_parts=[],
         )
     ]
     assert action_template[0].delete_urns == [
@@ -73,7 +73,7 @@ def test_get_discovery_action_templates_regional_resource_regional_service(servi
             region="eu-west-1",
             service="ec2",
             resource_type="vpc",
-            resource_id_parts=[None],
+            resource_id_parts=[],
         )
     ]
 
@@ -88,7 +88,7 @@ def test_get_discovery_action_templates_regional_resource_global_service(service
             region="us-east-1",
             service="s3",
             resource_type="bucket",
-            resource_id_parts=[None],
+            resource_id_parts=[],
         )
     ]
     assert action_template[0].delete_urns == [
@@ -98,7 +98,7 @@ def test_get_discovery_action_templates_regional_resource_global_service(service
             region="ALL_REGIONS",
             service="s3",
             resource_type="bucket",
-            resource_id_parts=[None],
+            resource_id_parts=[],
         )
     ]
 
@@ -114,7 +114,7 @@ def test_dependent_resources_subresource(service_resource_iam_role_policy):
             region="us-east-1",
             service="iam",
             resource_type="role_policy",
-            resource_id_parts=[None],
+            resource_id_parts=[],
         )
     ]
 
