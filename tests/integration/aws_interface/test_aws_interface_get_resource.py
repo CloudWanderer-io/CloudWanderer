@@ -4,7 +4,7 @@ import pytest
 from moto import mock_ec2, mock_iam, mock_s3, mock_secretsmanager, mock_sts
 
 from cloudwanderer import URN
-from cloudwanderer.exceptions import UnsupportedServiceError
+from cloudwanderer.exceptions import UnsupportedResourceTypeError, UnsupportedServiceError
 
 from ...pytest_helpers import compare_dict_allow_any, create_iam_role, create_s3_buckets, create_secretsmanager_secrets
 
@@ -331,29 +331,32 @@ def test_get_resource_subresources(aws_interface):
 
 @mock_iam
 @mock_sts
-def test_get_subresource(aws_interface):
+def test_get_dependent_resource(aws_interface):
     create_iam_role()
-    result = next(
-        aws_interface.get_resource(
-            urn=URN(
-                account_id="123456789012",
-                region="us-east-1",
-                service="iam",
-                resource_type="role_policy",
-                resource_id_parts=["test-role", "test-role-policy"],
+
+    # In 0.20.1 getting dependent resources was disabled as it did not populate parent URNs.
+    with pytest.raises(UnsupportedResourceTypeError):
+        result = next(
+            aws_interface.get_resource(
+                urn=URN(
+                    account_id="123456789012",
+                    region="us-east-1",
+                    service="iam",
+                    resource_type="role_policy",
+                    resource_id_parts=["test-role", "test-role-policy"],
+                )
             )
         )
-    )
 
-    assert result.cloudwanderer_metadata.resource_data == {
-        "PolicyDocument": {
-            "Statement": {
-                "Action": "s3:ListBucket",
-                "Effect": "Allow",
-                "Resource": "arn:aws:s3:::example_bucket",
+        assert result.cloudwanderer_metadata.resource_data == {
+            "PolicyDocument": {
+                "Statement": {
+                    "Action": "s3:ListBucket",
+                    "Effect": "Allow",
+                    "Resource": "arn:aws:s3:::example_bucket",
+                },
+                "Version": "2012-10-17",
             },
-            "Version": "2012-10-17",
-        },
-        "PolicyName": "test-role-policy",
-        "RoleName": "test-role",
-    }
+            "PolicyName": "test-role-policy",
+            "RoleName": "test-role",
+        }

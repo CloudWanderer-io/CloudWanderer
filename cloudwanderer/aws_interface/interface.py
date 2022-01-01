@@ -11,7 +11,7 @@ import botocore
 from ..base import CloudInterface, ServiceResourceTypeFilter
 from ..cloud_wanderer_resource import CloudWandererResource
 from ..exceptions import UnsupportedResourceTypeError
-from ..models import ActionSet, ServiceResourceType, TemplateActionSet
+from ..models import ActionSet, ResourceIndependenceType, ServiceResourceType, TemplateActionSet
 from ..urn import URN
 from .aws_services import AWS_SERVICES
 from .models import AWSResourceTypeFilter, ResourceMap
@@ -94,6 +94,10 @@ class CloudWandererAWSInterface(CloudInterface):
                     service_name=cast(AWS_SERVICES, urn.service), region_name=service.service_map.global_service_region
                 )
             resource = service.resource(resource_type=urn.resource_type, identifiers=urn.resource_id_parts)
+            if resource.resource_map.type == ResourceIndependenceType.DEPENDENT_RESOURCE:
+                raise UnsupportedResourceTypeError(
+                    f"Resource type {urn.resource_type} is a dependent resource, please enumerate its parent."
+                )
             if not hasattr(resource, "load"):
                 raise UnsupportedResourceTypeError(f"Resource type {urn.resource_type} doesn't support get_resource()")
             logger.info("Loading resource data.")
@@ -227,7 +231,11 @@ class CloudWandererAWSInterface(CloudInterface):
                         dependent_resource,
                     )
                     continue
-                logger.debug("Found %s", dependent_resource)
+                logger.debug(
+                    "Found %s, it %s",
+                    dependent_resource,
+                    ["does not require loading", "requires loading"][dependent_resource.resource_map.requires_load],
+                )
                 if dependent_resource.resource_map.requires_load or (
                     not dependent_resource.meta.data and hasattr(dependent_resource, "load")
                 ):

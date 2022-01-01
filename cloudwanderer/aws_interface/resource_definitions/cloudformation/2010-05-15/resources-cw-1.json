@@ -1,8 +1,8 @@
 {
-    "service": {},
-    "resources": {
-        "Stack": {
-            "type": "resource"
-        }
+  "service": {},
+  "resources": {
+    "Stack": {
+      "type": "baseResource"
     }
+  }
 }

@@ -1,12 +1,12 @@
 {
-    "service": {},
-    "resources": {
-        "Vault": {
-            "type": "resource"
-        },
-        "Job": {
-            "type": "dependentResource",
-            "parentResource": "Vault"
-        }
+  "service": {},
+  "resources": {
+    "Vault": {
+      "type": "baseResource"
+    },
+    "Job": {
+      "type": "dependentResource",
+      "parentResource": "Vault"
     }
+  }
 }

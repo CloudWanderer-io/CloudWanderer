@@ -5,7 +5,7 @@
   },
   "resources": {
     "NatGateway": {
-      "type": "resource",
+      "type": "baseResource",
       "idUniquenessScope": {
         "requiresAccountId": false,
         "requiresRegion": false
@@ -85,7 +85,7 @@
       ]
     },
     "RouteTable": {
-      "type": "resource",
+      "type": "baseResource",
       "idUniquenessScope": {
         "requiresAccountId": false,
         "requiresRegion": false
@@ -120,7 +120,7 @@
       ]
     },
     "NetworkInterface": {
-      "type": "resource",
+      "type": "baseResource",
       "idUniquenessScope": {
         "requiresAccountId": false,
         "requiresRegion": false
@@ -168,7 +168,7 @@
       ]
     },
     "NetworkAcl": {
-      "type": "resource",
+      "type": "baseResource",
       "idUniquenessScope": {
         "requiresAccountId": false,
         "requiresRegion": false
@@ -190,7 +190,7 @@
       ]
     },
     "InternetGateway": {
-      "type": "resource",
+      "type": "baseResource",
       "idUniquenessScope": {
         "requiresAccountId": false,
         "requiresRegion": false
@@ -212,7 +212,7 @@
       ]
     },
     "Volume": {
-      "type": "resource",
+      "type": "baseResource",
       "idUniquenessScope": {
         "requiresAccountId": false,
         "requiresRegion": false
@@ -247,14 +247,14 @@
       ]
     },
     "DhcpOptions": {
-      "type": "resource",
+      "type": "baseResource",
       "idUniquenessScope": {
         "requiresAccountId": false,
         "requiresRegion": false
       }
     },
     "Vpc": {
-      "type": "resource",
+      "type": "baseResource",
       "idUniquenessScope": {
         "requiresAccountId": false,
         "requiresRegion": false
@@ -276,7 +276,7 @@
       ]
     },
     "Subnet": {
-      "type": "resource",
+      "type": "baseResource",
       "idUniquenessScope": {
         "requiresAccountId": false,
         "requiresRegion": false
@@ -307,7 +307,7 @@
       ]
     },
     "Image": {
-      "type": "resource",
+      "type": "baseResource",
       "idUniquenessScope": {
         "requiresAccountId": false,
         "requiresRegion": false
@@ -334,7 +334,7 @@
       }
     },
     "Snapshot": {
-      "type": "resource",
+      "type": "baseResource",
       "idUniquenessScope": {
         "requiresAccountId": false,
         "requiresRegion": false
@@ -346,7 +346,7 @@
       }
     },
     "Instance": {
-      "type": "resource",
+      "type": "baseResource",
       "idUniquenessScope": {
         "requiresAccountId": false,
         "requiresRegion": false
@@ -421,14 +421,14 @@
       ]
     },
     "SecurityGroup": {
-      "type": "resource",
+      "type": "baseResource",
       "idUniquenessScope": {
         "requiresAccountId": false,
         "requiresRegion": false
       }
     },
     "ElasticIp": {
-      "type": "resource",
+      "type": "baseResource",
       "idUniquenessScope": {
         "requiresAccountId": false,
         "requiresRegion": false

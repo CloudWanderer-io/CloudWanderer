@@ -49,6 +49,11 @@ class PartialUrn:
         self.service = service
         self.resource_type = resource_type
         self.resource_id_parts: List[str] = resource_id_parts or []
+        if not all(isinstance(id_part, str) for id_part in self.resource_id_parts):
+            raise ValueError(
+                f"All resource_id_parts must be strings, got {self.resource_id_parts} "
+                f"for {self.service} {self.resource_type}"
+            )
         self.resource_id = "/".join(self.escape_id(id_part) or "" for id_part in self.resource_id_parts)
 
     def copy(

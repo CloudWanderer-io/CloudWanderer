@@ -29,3 +29,10 @@ def test_is_not_partial():
 
 def test_str_conversion(partial_urn):
     assert str(partial_urn) == "urn:unknown:111111111111:unknown:service:resource_type:id"
+
+
+def test_non_string_id_parts():
+    with pytest.raises(ValueError):
+        PartialUrn(
+            account_id="1", region="region", service="service", resource_type="resource_type", resource_id_parts=[1]
+        )

@@ -1,39 +1,40 @@
 {
-  "service": {
-    "globalService": false,
-    "regionalResources": true
-  },
-  "resources": {
-    "Function": {
-      "type": "baseResource",
-      "relationships": [
-        {
-          "basePath": "Layers[]",
-          "idParts": [
-            {
-              "path": "Arn",
-              "regexPattern": "[^:]+:[^:]+:[^:]+:(?P<region>[^:]+):(?P<account_id>[^:]+):[^:]+:(?P<id_part_0>[^:]+):(?P<id_part_1>[^:]+)"
-            }
-          ],
-          "service": "lambda",
-          "resourceType": "layer_version",
-          "regionSource": "sameAsResource",
-          "accountIdSource": "unknown",
-          "direction": "outbound"
+    "service": {
+        "globalService": false,
+        "regionalResources": true
+    },
+    "resources": {
+        "Function": {
+            "relationships": [
+                {
+                    "accountIdSource": "unknown",
+                    "basePath": "Layers[]",
+                    "direction": "outbound",
+                    "idParts": [
+                        {
+                            "path": "Arn",
+                            "regexPattern": "[^:]+:[^:]+:[^:]+:(?P<region>[^:]+):(?P<account_id>[^:]+):[^:]+:(?P<id_part_0>[^:]+):(?P<id_part_1>[^:]+)"
+                        }
+                    ],
+                    "regionSource": "sameAsResource",
+                    "resourceType": "layer_version",
+                    "service": "lambda"
+                }
+            ],
+            "type": "baseResource"
+        },
+        "FunctionAlias": {
+            "type": "dependentResource"
+        },
+        "FunctionVersion": {
+            "type": "dependentResource"
+        },
+        "Layer": {
+            "type": "baseResource"
+        },
+        "LayerVersion": {
+            "requiresLoad": true,
+            "type": "dependentResource"
         }
-      ]
-    },
-    "FunctionVersion": {
-      "type": "dependentResource"
-    },
-    "FunctionAlias": {
-      "type": "dependentResource"
-    },
-    "Layer": {
-      "type": "baseResource"
-    },
-    "LayerVersion": {
-      "type": "dependentResource"
     }
-  }
 }

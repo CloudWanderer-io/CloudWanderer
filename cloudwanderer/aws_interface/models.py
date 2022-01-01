@@ -13,6 +13,7 @@ from ..models import (
     RelationshipDirection,
     RelationshipRegionSource,
     ResourceIdUniquenessScope,
+    ResourceIndependenceType,
 )
 from ..utils import camel_to_snake, snake_to_pascal
 from .utils import _get_urn_components_from_string
@@ -114,8 +115,8 @@ class ResourceMap(NamedTuple):
 
     #: The PascalCase name of the resource (e.g. ``Instance``)
     name: str
-    #: The snake_case type of the resource (e.g. ``instance``)
-    type: Optional[str]
+    #: The ResourceIndependenceType of the resource (baseResource, secondaryAttribute, dependentResource)
+    type: ResourceIndependenceType
     #: The scope in which this resource's ID is unique.
     id_uniqueness_scope: ResourceIdUniquenessScope
     #: An optional definition for how to perform a secondary query to discover the region in
@@ -147,7 +148,7 @@ class ResourceMap(NamedTuple):
     ) -> "ResourceMap":
         return cls(
             name=name,
-            type=definition.get("type"),
+            type=ResourceIndependenceType[camel_to_snake(definition.get("type", "baseResource"))],
             region_request=ResourceRegionRequest.factory(definition.get("regionRequest")),
             regional_resource=definition.get("regionalResource", True),
             default_aws_resource_type_filter=AWSResourceTypeFilter(

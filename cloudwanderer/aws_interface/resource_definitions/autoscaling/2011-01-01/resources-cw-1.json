@@ -2,7 +2,7 @@
   "service": {},
   "resources": {
     "AutoScalingGroup": {
-      "type": "resource",
+      "type": "baseResource",
       "relationships": [
         {
           "basePath": "@",
@@ -47,7 +47,7 @@
       ]
     },
     "LaunchConfiguration": {
-      "type": "resource",
+      "type": "baseResource",
       "relationships": [
         {
           "basePath": "@",
