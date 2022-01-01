@@ -2,6 +2,7 @@
 
 - `PartialURN` now throws an error if you pass a non-string as a resource_id_part
 - `ServiceResource.get_urn` now converts integer resource_id_parts to strings
+- Ensured lambda layer versions load full metadata with `get_layer_version` call.
 
 # 0.29.0
 

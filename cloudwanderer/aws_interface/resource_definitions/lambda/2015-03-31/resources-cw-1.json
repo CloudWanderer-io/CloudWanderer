@@ -1,39 +1,40 @@
 {
-  "service": {
-    "globalService": false,
-    "regionalResources": true
-  },
   "resources": {
     "Function": {
-      "type": "baseResource",
       "relationships": [
         {
+          "accountIdSource": "unknown",
           "basePath": "Layers[]",
+          "direction": "outbound",
           "idParts": [
             {
               "path": "Arn",
               "regexPattern": "[^:]+:[^:]+:[^:]+:(?P<region>[^:]+):(?P<account_id>[^:]+):[^:]+:(?P<id_part_0>[^:]+):(?P<id_part_1>[^:]+)"
             }
           ],
-          "service": "lambda",
-          "resourceType": "layer_version",
           "regionSource": "sameAsResource",
-          "accountIdSource": "unknown",
-          "direction": "outbound"
+          "resourceType": "layer_version",
+          "service": "lambda"
         }
-      ]
-    },
-    "FunctionVersion": {
-      "type": "dependentResource"
+      ],
+      "type": "baseResource"
     },
     "FunctionAlias": {
+      "type": "dependentResource"
+    },
+    "FunctionVersion": {
       "type": "dependentResource"
     },
     "Layer": {
       "type": "baseResource"
     },
     "LayerVersion": {
+      "requiresLoad": true,
       "type": "dependentResource"
     }
+  },
+  "service": {
+    "globalService": false,
+    "regionalResources": true
   }
 }

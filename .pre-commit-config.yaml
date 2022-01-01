@@ -20,3 +20,9 @@ repos:
     hooks:
       - id: mypy
         exclude: ^doc_source/|^tests/
+  - repo: https://github.com/pre-commit/pre-commit-hooks.git
+    rev: v4.1.0
+    hooks:
+      - id: pretty-format-json
+        args:
+          - --autofix

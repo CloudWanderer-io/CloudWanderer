@@ -227,7 +227,11 @@ class CloudWandererAWSInterface(CloudInterface):
                         dependent_resource,
                     )
                     continue
-                logger.debug("Found %s", dependent_resource)
+                logger.debug(
+                    "Found %s, it %s",
+                    dependent_resource,
+                    ["does not require loading", "requires loading"][dependent_resource.resource_map.requires_load],
+                )
                 if dependent_resource.resource_map.requires_load or (
                     not dependent_resource.meta.data and hasattr(dependent_resource, "load")
                 ):
