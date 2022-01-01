@@ -1,40 +1,40 @@
 {
-  "resources": {
-    "Function": {
-      "relationships": [
-        {
-          "accountIdSource": "unknown",
-          "basePath": "Layers[]",
-          "direction": "outbound",
-          "idParts": [
-            {
-              "path": "Arn",
-              "regexPattern": "[^:]+:[^:]+:[^:]+:(?P<region>[^:]+):(?P<account_id>[^:]+):[^:]+:(?P<id_part_0>[^:]+):(?P<id_part_1>[^:]+)"
-            }
-          ],
-          "regionSource": "sameAsResource",
-          "resourceType": "layer_version",
-          "service": "lambda"
+    "service": {
+        "globalService": false,
+        "regionalResources": true
+    },
+    "resources": {
+        "Function": {
+            "relationships": [
+                {
+                    "accountIdSource": "unknown",
+                    "basePath": "Layers[]",
+                    "direction": "outbound",
+                    "idParts": [
+                        {
+                            "path": "Arn",
+                            "regexPattern": "[^:]+:[^:]+:[^:]+:(?P<region>[^:]+):(?P<account_id>[^:]+):[^:]+:(?P<id_part_0>[^:]+):(?P<id_part_1>[^:]+)"
+                        }
+                    ],
+                    "regionSource": "sameAsResource",
+                    "resourceType": "layer_version",
+                    "service": "lambda"
+                }
+            ],
+            "type": "baseResource"
+        },
+        "FunctionAlias": {
+            "type": "dependentResource"
+        },
+        "FunctionVersion": {
+            "type": "dependentResource"
+        },
+        "Layer": {
+            "type": "baseResource"
+        },
+        "LayerVersion": {
+            "requiresLoad": true,
+            "type": "dependentResource"
         }
-      ],
-      "type": "baseResource"
-    },
-    "FunctionAlias": {
-      "type": "dependentResource"
-    },
-    "FunctionVersion": {
-      "type": "dependentResource"
-    },
-    "Layer": {
-      "type": "baseResource"
-    },
-    "LayerVersion": {
-      "requiresLoad": true,
-      "type": "dependentResource"
     }
-  },
-  "service": {
-    "globalService": false,
-    "regionalResources": true
-  }
 }

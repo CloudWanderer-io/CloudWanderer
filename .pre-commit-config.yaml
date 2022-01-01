@@ -27,3 +27,4 @@ repos:
         args:
           - --autofix
           - --no-sort-keys
+          - --indent=4

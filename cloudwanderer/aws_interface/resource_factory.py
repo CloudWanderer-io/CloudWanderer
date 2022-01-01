@@ -242,9 +242,9 @@ class CloudWandererResourceFactory(ResourceFactory):
 
     def _create_get_urn(self) -> Callable:
         def normalize_identifier(identifier: Any) -> str:
-            convertable_types = tuple([int])
+            convertible_types = tuple([int])
 
-            if isinstance(identifier, convertable_types):
+            if isinstance(identifier, convertible_types):
                 return str(identifier)
             return identifier
 
