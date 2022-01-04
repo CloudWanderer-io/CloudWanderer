@@ -33,7 +33,7 @@ A Python package which allows you to enumerate and store your AWS Resources in A
 What does it do?
 """"""""""""""""""
 
-.. image:: images/discovering-ec2-instances-video.png
+.. image:: https://raw.githubusercontent.com/CloudWanderer-io/CloudWanderer/969a5692982f81ae2448a3447cb271adb2b333fa/doc_source/images/discovering-ec2-instances-video.png
    :target: https://www.youtube.com/watch?v=GARTSsyYkk8
    :alt: YouTube video demonstrating how to query public ec2 instances with CloudWander and OpenCypher.
 
