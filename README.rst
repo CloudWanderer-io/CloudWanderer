@@ -27,9 +27,6 @@ A Python package which allows you to enumerate and store your AWS Resources in A
 3. What lambda functions do I have that are connected to VPCs that have access to the internet via a NAT gateway?
 4. How many untagged VPCs do I have across all regions?
 
-.. image:: https://www.cloudwanderer.io/en/latest/_images/cloudwanderer_graph.png
-   :alt: AWS resources represented on a graph
-
 What does it do?
 """"""""""""""""""
 
