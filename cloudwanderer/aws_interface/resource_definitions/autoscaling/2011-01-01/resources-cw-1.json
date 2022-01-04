@@ -1,95 +1,95 @@
 {
-  "service": {},
-  "resources": {
-    "AutoScalingGroup": {
-      "type": "baseResource",
-      "relationships": [
-        {
-          "basePath": "@",
-          "idParts": [
-            {
-              "path": "LaunchConfigurationName"
-            }
-          ],
-          "service": "autoscaling",
-          "resourceType": "launch_configuration",
-          "regionSource": "sameAsResource",
-          "accountIdSource": "sameAsResource",
-          "direction": "outbound"
+    "service": {},
+    "resources": {
+        "AutoScalingGroup": {
+            "type": "baseResource",
+            "relationships": [
+                {
+                    "basePath": "@",
+                    "idParts": [
+                        {
+                            "path": "LaunchConfigurationName"
+                        }
+                    ],
+                    "service": "autoscaling",
+                    "resourceType": "launch_configuration",
+                    "regionSource": "sameAsResource",
+                    "accountIdSource": "sameAsResource",
+                    "direction": "outbound"
+                },
+                {
+                    "basePath": "LoadBalancerNames[]",
+                    "idParts": [
+                        {
+                            "path": "@"
+                        }
+                    ],
+                    "service": "elb",
+                    "resourceType": "load_balancer",
+                    "regionSource": "sameAsResource",
+                    "accountIdSource": "sameAsResource",
+                    "direction": "outbound"
+                },
+                {
+                    "basePath": "TargetGroupARNs[]",
+                    "idParts": [
+                        {
+                            "path": "@",
+                            "regexPattern": "[^:]+:[^:]+:[^:]+:(?P<region>[^:]+):(?P<account_id>[^:]+):.*/(?P<id_part_0>[^/]+)/[^/]+"
+                        }
+                    ],
+                    "service": "elbv2",
+                    "resourceType": "target_group",
+                    "regionSource": "sameAsResource",
+                    "accountIdSource": "unknown",
+                    "direction": "outbound"
+                }
+            ]
         },
-        {
-          "basePath": "@",
-          "idParts": [
-            {
-              "path": "LoadBalancerNames"
-            }
-          ],
-          "service": "elb",
-          "resourceType": "load_balancer",
-          "regionSource": "sameAsResource",
-          "accountIdSource": "sameAsResource",
-          "direction": "outbound"
-        },
-        {
-          "basePath": "TargetGroupARNs[]",
-          "idParts": [
-            {
-              "path": "@",
-              "regexPattern": "[^:]+:[^:]+:[^:]+:(?P<region>[^:]+):(?P<account_id>[^:]+):.*/(?P<id_part_0>[^/]+)/[^/]+"
-            }
-          ],
-          "service": "elbv2",
-          "resourceType": "target_group",
-          "regionSource": "sameAsResource",
-          "accountIdSource": "unknown",
-          "direction": "outbound"
+        "LaunchConfiguration": {
+            "type": "baseResource",
+            "relationships": [
+                {
+                    "basePath": "@",
+                    "idParts": [
+                        {
+                            "path": "ImageId"
+                        }
+                    ],
+                    "service": "ec2",
+                    "resourceType": "image",
+                    "regionSource": "sameAsResource",
+                    "accountIdSource": "unknown",
+                    "direction": "outbound"
+                },
+                {
+                    "basePath": "SecurityGroups[]",
+                    "idParts": [
+                        {
+                            "path": "@"
+                        }
+                    ],
+                    "service": "ec2",
+                    "resourceType": "security_group",
+                    "regionSource": "sameAsResource",
+                    "accountIdSource": "unknown",
+                    "direction": "outbound"
+                },
+                {
+                    "basePath": "@",
+                    "idParts": [
+                        {
+                            "path": "IamInstanceProfile.Arn",
+                            "regexPattern": "[^:]+:[^:]+:[^:]+:[^:]*:(?P<account_id>[^:]+):[^:]+/(?P<id_part_0>[^:]+)"
+                        }
+                    ],
+                    "service": "iam",
+                    "resourceType": "instance_profile",
+                    "regionSource": "unknown",
+                    "accountIdSource": "sameAsResource",
+                    "direction": "outbound"
+                }
+            ]
         }
-      ]
-    },
-    "LaunchConfiguration": {
-      "type": "baseResource",
-      "relationships": [
-        {
-          "basePath": "@",
-          "idParts": [
-            {
-              "path": "ImageId"
-            }
-          ],
-          "service": "ec2",
-          "resourceType": "image",
-          "regionSource": "sameAsResource",
-          "accountIdSource": "unknown",
-          "direction": "outbound"
-        },
-        {
-          "basePath": "SecurityGroups[]",
-          "idParts": [
-            {
-              "path": "@"
-            }
-          ],
-          "service": "ec2",
-          "resourceType": "security_group",
-          "regionSource": "sameAsResource",
-          "accountIdSource": "unknown",
-          "direction": "outbound"
-        },
-        {
-          "basePath": "@",
-          "idParts": [
-            {
-              "path": "IamInstanceProfile.Arn",
-              "regexPattern": "[^:]+:[^:]+:[^:]+:[^:]*:(?P<account_id>[^:]+):[^:]+/(?P<id_part_0>[^:]+)"
-            }
-          ],
-          "service": "iam",
-          "resourceType": "instance_profile",
-          "regionSource": "unknown",
-          "accountIdSource": "sameAsResource",
-          "direction": "outbound"
-        }
-      ]
     }
-  }
 }

@@ -1,5 +1,7 @@
 import os
+import re
 import sys
+from pathlib import Path
 
 # Configuration file for the Sphinx documentation builder.
 #
@@ -24,7 +26,9 @@ copyright = "2020, Sam Martin"
 author = "Sam Martin"
 
 # The full version, including alpha/beta/rc tags
-release = "0.25.1"
+with open(Path(__file__).parent.parent / Path("setup.py")) as f:
+    release = re.search(r"version=\"([^\"]+)\"", f.read()).groups()[0]
+
 
 nitpicky = True
 nitpick_ignore = [
@@ -33,6 +37,7 @@ nitpick_ignore = [
     ("py:class", "botocore.model.Shape"),
     ("py:class", "gremlin_python.driver.driver_remote_connection.DriverRemoteConnection"),
     ("py:class", "type"),
+    ("py:class", ("string", "boolean")),
 ]
 
 

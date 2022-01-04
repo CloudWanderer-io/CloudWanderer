@@ -55,7 +55,9 @@
                         "AvailabilityZones": [
                             "eu-west-1c"
                         ],
-                        "LoadBalancerNames": [],
+                        "LoadBalancerNames": [
+                            "lb-test-1"
+                        ],
                         "TargetGroupARNs": [],
                         "HealthCheckType": "EC2",
                         "HealthCheckGracePeriod": 300,
@@ -95,7 +97,22 @@
                 ],
                 "resource_id": "test"
             },
-            "relationships": [],
+            "relationships": [
+                [
+                    {
+                        "cloud_name": "aws",
+                        "account_id": "0123456789012",
+                        "region": "eu-west-2",
+                        "service": "elb",
+                        "resource_type": "load_balancer",
+                        "resource_id_parts": [
+                            "lb-test-1"
+                        ],
+                        "resource_id": "lb-test-1"
+                    },
+                    "RelationshipDirection.OUTBOUND"
+                ]
+            ],
             "dependent_resource_urns": [],
             "parent_urn": null,
             "cloudwanderer_metadata": {
@@ -152,7 +169,9 @@
                 "AvailabilityZones": [
                     "eu-west-1c"
                 ],
-                "LoadBalancerNames": [],
+                "LoadBalancerNames": [
+                    "lb-test-1"
+                ],
                 "TargetGroupARNs": [],
                 "HealthCheckType": "EC2",
                 "HealthCheckGracePeriod": 300,
@@ -228,7 +247,9 @@
             "availability_zones": [
                 "eu-west-1c"
             ],
-            "load_balancer_names": [],
+            "load_balancer_names": [
+                "lb-test-1"
+            ],
             "target_group_arns": [],
             "health_check_type": "EC2",
             "health_check_grace_period": 300,

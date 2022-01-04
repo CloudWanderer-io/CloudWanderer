@@ -1,3 +1,7 @@
+# 0.29.2
+
+- Fixed bug causing AutoScaling Groups related to Load Balancers to raise a bad resource ID error. Fixes #260.
+
 # 0.29.1
 
 - `PartialURN` now throws an error if you pass a non-string as a resource_id_part (Relates to the lamber layers section of #260)

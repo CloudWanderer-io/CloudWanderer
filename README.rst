@@ -22,13 +22,22 @@
 
 A Python package which allows you to enumerate and store your AWS Resources in AWS Neptune (or Gremlin for local execution) in order to be able to ask questions like:
 
-1. What EC2 instances do I have that are in Public Subnets that have roles and are accessible from the internet?
+1. `What EC2 instances do I have that are in Public Subnets that have roles and are accessible from the internet? <https://www.youtube.com/watch?v=GARTSsyYkk8>`__
 2. How old are my IAM users access keys?
 3. What lambda functions do I have that are connected to VPCs that have access to the internet via a NAT gateway?
 4. How many untagged VPCs do I have across all regions?
 
 .. image:: https://www.cloudwanderer.io/en/latest/_images/cloudwanderer_graph.png
    :alt: AWS resources represented on a graph
+
+What does it do?
+""""""""""""""""""
+
+.. image:: images/discovering-ec2-instances-video.png
+   :target: https://www.youtube.com/watch?v=GARTSsyYkk8
+   :alt: YouTube video demonstrating how to query public ec2 instances with CloudWander and OpenCypher.
+
+What the above `YouTube video <https://www.youtube.com/watch?v=GARTSsyYkk8>`__ to see an example of what you can do with CloudWanderer.
 
 
 Installation
