@@ -34,7 +34,7 @@ What does it do?
    :target: https://www.youtube.com/watch?v=GARTSsyYkk8
    :alt: YouTube video demonstrating how to query public ec2 instances with CloudWander and OpenCypher.
 
-What the above `YouTube video <https://www.youtube.com/watch?v=GARTSsyYkk8>`__ to see an example of what you can do with CloudWanderer.
+Watch the above `YouTube video <https://www.youtube.com/watch?v=GARTSsyYkk8>`__ to see an example of what you can do with CloudWanderer.
 
 
 Installation
