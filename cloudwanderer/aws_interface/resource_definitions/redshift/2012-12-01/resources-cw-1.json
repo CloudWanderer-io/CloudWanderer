@@ -31,7 +31,7 @@
                     "resourceType": "vpc",
                     "regionSource": "sameAsResource",
                     "accountIdSource": "unknown",
-                    "direction": "outbound"
+                    "direction": "inbound"
                 },
                 {
                     "basePath": "KmsKeyId",
@@ -55,6 +55,24 @@
                     ],
                     "service": "iam",
                     "resourceType": "role",
+                    "regionSource": "sameAsResource",
+                    "accountIdSource": "unknown",
+                    "direction": "inbound"
+                }
+            ]
+        },
+        "ClusterSnapshot": {
+            "type": "baseResource",
+            "relationships": [
+                {
+                    "basePath": "ClusterIdentifier",
+                    "idParts": [
+                        {
+                            "path": "@"
+                        }
+                    ],
+                    "service": "redshift",
+                    "resourceType": "cluster",
                     "regionSource": "sameAsResource",
                     "accountIdSource": "unknown",
                     "direction": "inbound"
