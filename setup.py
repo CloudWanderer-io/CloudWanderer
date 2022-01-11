@@ -10,7 +10,7 @@ with open(path.join(this_directory, "README.rst"), encoding="utf-8") as f:
     long_description = re.sub(r"..\s+doctest\s+::", ".. code-block ::", f.read())
 
 setup(
-    version="0.29.2",
+    version="0.30.0",
     python_requires=">=3.6.0",
     name="cloudwanderer",
     packages=find_packages(include=["cloudwanderer", "cloudwanderer.*"]),
@@ -20,6 +20,11 @@ setup(
     author="Sam Martin",
     author_email="samjackmartin+cloudwanderer@gmail.com",
     url="https://github.com/CloudWanderer-io/CloudWanderer",
-    install_requires=["boto3", "jmespath", 'typing_extensions; python_version < "3.8.0"', "gremlinpython"],
+    install_requires=[
+        "boto3",
+        "jmespath",
+        'typing_extensions; python_version < "3.8.0"',
+        "gremlinpython",
+    ],
     include_package_data=True,
 )

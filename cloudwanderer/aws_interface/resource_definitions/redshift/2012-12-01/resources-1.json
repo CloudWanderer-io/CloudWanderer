@@ -1,0 +1,84 @@
+{
+    "service": {
+        "hasMany": {
+            "Clusters": {
+                "request": {
+                    "operation": "DescribeClusters"
+                },
+                "resource": {
+                    "type": "Cluster",
+                    "identifiers": [
+                        {
+                            "target": "ClusterIdentifier",
+                            "source": "response",
+                            "path": "Clusters[].ClusterIdentifier"
+                        }
+                    ],
+                    "path": "Clusters[]"
+                }
+            },
+            "ClusterSnapshots": {
+                "request": {
+                    "operation": "DescribeClusterSnapshots"
+                },
+                "resource": {
+                    "type": "ClusterSnapshot",
+                    "identifiers": [
+                        {
+                            "target": "SnapshotIdentifier",
+                            "source": "response",
+                            "path": "Snapshots[].SnapshotIdentifier"
+                        }
+                    ],
+                    "path": "Snapshots[]"
+                }
+            }
+        }
+    },
+    "resources": {
+        "Cluster": {
+            "identifiers": [
+                {
+                    "name": "ClusterIdentifier",
+                    "memberName": "ClusterIdentifier"
+                }
+            ],
+            "shape": "Cluster",
+            "load": {
+                "request": {
+                    "operation": "DescribeClusters",
+                    "params": [
+                        {
+                            "target": "ClusterIdentifier",
+                            "source": "identifier",
+                            "name": "ClusterIdentifier"
+                        }
+                    ]
+                },
+                "path": "Clusters[0]"
+            }
+        },
+        "ClusterSnapshot": {
+            "identifiers": [
+                {
+                    "name": "SnapshotIdentifier",
+                    "memberName": "SnapshotIdentifier"
+                }
+            ],
+            "shape": "Snapshot",
+            "load": {
+                "request": {
+                    "operation": "DescribeClusterSnapshots",
+                    "params": [
+                        {
+                            "target": "SnapshotIdentifier",
+                            "source": "identifier",
+                            "name": "SnapshotIdentifier"
+                        }
+                    ]
+                },
+                "path": "Snapshots[0]"
+            }
+        }
+    }
+}

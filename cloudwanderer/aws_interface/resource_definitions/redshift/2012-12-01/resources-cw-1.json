@@ -1,0 +1,83 @@
+{
+    "service": {
+        "globalService": false,
+        "regionalResources": true
+    },
+    "resources": {
+        "Cluster": {
+            "type": "baseResource",
+            "relationships": [
+                {
+                    "basePath": "VpcSecurityGroups[]",
+                    "idParts": [
+                        {
+                            "path": "VpcSecurityGroupId"
+                        }
+                    ],
+                    "service": "ec2",
+                    "resourceType": "security_group",
+                    "regionSource": "sameAsResource",
+                    "accountIdSource": "unknown",
+                    "direction": "inbound"
+                },
+                {
+                    "basePath": "VpcId",
+                    "idParts": [
+                        {
+                            "path": "@"
+                        }
+                    ],
+                    "service": "ec2",
+                    "resourceType": "vpc",
+                    "regionSource": "sameAsResource",
+                    "accountIdSource": "unknown",
+                    "direction": "inbound"
+                },
+                {
+                    "basePath": "KmsKeyId",
+                    "idParts": [
+                        {
+                            "path": "@"
+                        }
+                    ],
+                    "service": "kms",
+                    "resourceType": "key",
+                    "regionSource": "sameAsResource",
+                    "accountIdSource": "unknown",
+                    "direction": "inbound"
+                },
+                {
+                    "basePath": "IamRoles[]",
+                    "idParts": [
+                        {
+                            "path": "@"
+                        }
+                    ],
+                    "service": "iam",
+                    "resourceType": "role",
+                    "regionSource": "sameAsResource",
+                    "accountIdSource": "unknown",
+                    "direction": "inbound"
+                }
+            ]
+        },
+        "ClusterSnapshot": {
+            "type": "baseResource",
+            "relationships": [
+                {
+                    "basePath": "ClusterIdentifier",
+                    "idParts": [
+                        {
+                            "path": "@"
+                        }
+                    ],
+                    "service": "redshift",
+                    "resourceType": "cluster",
+                    "regionSource": "sameAsResource",
+                    "accountIdSource": "unknown",
+                    "direction": "inbound"
+                }
+            ]
+        }
+    }
+}

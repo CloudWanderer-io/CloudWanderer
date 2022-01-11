@@ -1,3 +1,9 @@
+# 0.30.0
+
+## New Resources
+ - Added redshift cluster (Fixes #158)
+ - Added redshift cluster_snapshot (Fixes #161)
+
 # 0.29.2
 
 - Fixed bug causing AutoScaling Groups related to Load Balancers to raise a bad resource ID error. Fixes #260.
